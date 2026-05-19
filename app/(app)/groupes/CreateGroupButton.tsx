@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { LookingForSelector } from '@/components/ui/LookingForSelector'
 
 export function CreateGroupButton() {
   const router = useRouter()
@@ -9,6 +10,7 @@ export function CreateGroupButton() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [isPublic, setIsPublic] = useState(true)
+  const [lookingFor, setLookingFor] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -21,7 +23,12 @@ export function CreateGroupButton() {
     const res = await fetch('/api/groupes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined, isPublic }),
+      body: JSON.stringify({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        isPublic,
+        lookingFor: lookingFor.length > 0 ? JSON.stringify(lookingFor) : null,
+      }),
     })
 
     setLoading(false)
@@ -36,6 +43,8 @@ export function CreateGroupButton() {
     router.push(`/groupes/${group.id}`)
     router.refresh()
   }
+
+  const reset = () => { setOpen(false); setName(''); setDescription(''); setLookingFor([]); setError('') }
 
   if (!open) {
     return (
@@ -112,6 +121,13 @@ export function CreateGroupButton() {
             </button>
           </div>
         </div>
+        <div>
+          <label className="form-label">
+            Musiciens recherchés <span className="text-gray-400 font-normal">(optionnel)</span>
+          </label>
+          <p className="text-xs text-gray-400 mb-2">Si votre groupe est public, ces informations seront visibles par les autres musiciens.</p>
+          <LookingForSelector value={lookingFor} onChange={setLookingFor} />
+        </div>
         <div className="flex gap-3 pt-1">
           <button
             type="submit"
@@ -122,7 +138,7 @@ export function CreateGroupButton() {
           </button>
           <button
             type="button"
-            onClick={() => { setOpen(false); setName(''); setDescription(''); setError('') }}
+            onClick={reset}
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
           >
             Annuler

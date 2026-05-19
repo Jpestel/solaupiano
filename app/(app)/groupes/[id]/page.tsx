@@ -8,6 +8,11 @@ import JoinRequestsPanel from './JoinRequestsPanel'
 import { GroupSettingsButton } from './GroupSettingsButton'
 import { GroupCards } from './GroupCards'
 
+function parseLookingFor(raw?: string | null): string[] {
+  if (!raw) return []
+  try { return JSON.parse(raw) } catch { return [] }
+}
+
 export default async function GroupePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session) return null
@@ -26,7 +31,6 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
-    // @ts-ignore isPublic added via db push
     include: {
       members: {
         include: {
@@ -85,14 +89,24 @@ export default async function GroupePage({ params }: { params: { id: string } })
             {group.description && (
               <p className="text-gray-500 mt-1">{group.description}</p>
             )}
+            {parseLookingFor(group.lookingFor).length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <span className="text-xs text-amber-600 font-medium">Cherche :</span>
+                {parseLookingFor(group.lookingFor).map((inst) => (
+                  <span key={inst} className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    {inst}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-              (group as any).isPublic
+              group.isPublic
                 ? 'bg-green-100 text-green-700'
                 : 'bg-gray-100 text-gray-600'
             }`}>
-              {(group as any).isPublic ? '🌐 Public' : '🔒 Privé'}
+              {group.isPublic ? '🌐 Public' : '🔒 Privé'}
             </span>
             <RoleBadge role={membership.groupRole} />
             {isChef && (
@@ -100,7 +114,8 @@ export default async function GroupePage({ params }: { params: { id: string } })
                 groupId={groupId}
                 initialName={group.name}
                 initialDescription={group.description ?? null}
-                initialIsPublic={(group as any).isPublic}
+                initialIsPublic={group.isPublic}
+                initialLookingFor={parseLookingFor(group.lookingFor)}
               />
             )}
           </div>
@@ -145,7 +160,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
           groupRole,
           user: { id: user.id, name: user.name, instruments: user.instruments },
         }))}
-        showInvite={isChef && !(group as any).isPublic}
+        showInvite={isChef && !group.isPublic}
         isChef={isChef}
         canManage={canManageMembers}
         currentUserId={userId}

@@ -8,8 +8,14 @@ interface PublicGroup {
   name: string
   description?: string | null
   isPublic: boolean
+  lookingFor?: string | null
   _count: { members: number }
   joinRequests: { id: number; status: string }[]
+}
+
+function parseLookingFor(raw?: string | null): string[] {
+  if (!raw) return []
+  try { return JSON.parse(raw) } catch { return [] }
 }
 
 export function JoinPublicGroupsSection({ groups }: { groups: PublicGroup[] }) {
@@ -37,6 +43,7 @@ export function JoinPublicGroupsSection({ groups }: { groups: PublicGroup[] }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {groups.map((group) => {
         const req = requests[group.id]
+        const lookingFor = parseLookingFor(group.lookingFor)
         return (
           <div key={group.id} className={`rounded-xl border p-4 flex flex-col gap-3 ${group.isPublic ? 'border-gray-200 bg-white' : 'border-gray-200 bg-gray-50'}`}>
             <div className="flex items-start gap-3">
@@ -58,6 +65,17 @@ export function JoinPublicGroupsSection({ groups }: { groups: PublicGroup[] }) {
                 <p className="text-xs text-gray-400 mt-1">{group._count.members} membre{group._count.members > 1 ? 's' : ''}</p>
               </div>
             </div>
+
+            {lookingFor.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <span className="text-xs text-amber-600 font-medium mr-0.5">Cherche :</span>
+                {lookingFor.map((inst) => (
+                  <span key={inst} className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    {inst}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {group.isPublic ? (
               <>

@@ -39,6 +39,7 @@ export default async function GroupesPage() {
       name: true,
       description: true,
       isPublic: true,
+      lookingFor: true,
       _count: { select: { members: true } },
       joinRequests: {
         where: { userId },

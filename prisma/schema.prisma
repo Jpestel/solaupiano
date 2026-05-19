@@ -79,6 +79,7 @@ model Group {
   name        String
   description String?  @db.Text
   isPublic    Boolean  @default(true)
+  lookingFor  String?  @db.Text
   createdAt   DateTime @default(now())
 
   members      GroupMember[]
