@@ -45,6 +45,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { userId, groupRole = 'MEMBRE' } = await req.json()
   const groupId = Number(params.id)
 
+  const targetUser = await prisma.user.findUnique({ where: { id: Number(userId) } })
+  if (targetUser?.siteRole === 'ADMIN') {
+    return NextResponse.json({ error: 'L\'administrateur du site ne peut pas être membre d\'un groupe.' }, { status: 400 })
+  }
+
   const member = await prisma.groupMember.upsert({
     where: { userId_groupId: { userId: Number(userId), groupId } },
     update: { groupRole },
@@ -56,15 +61,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
-  if (!await checkAccess(session, Number(params.id))) {
+  if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
+
+  const groupId = Number(params.id)
+  const { userId } = await req.json()
+  const targetUserId = Number(userId)
+  const requesterId = Number(session.user.id)
+
+  // Allow self-removal OR chef/admin removing someone else
+  const isSelf = targetUserId === requesterId
+  if (!isSelf && !await checkAccess(session, groupId)) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
-  const { userId } = await req.json()
-  const groupId = Number(params.id)
-
   await prisma.groupMember.delete({
-    where: { userId_groupId: { userId: Number(userId), groupId } },
+    where: { userId_groupId: { userId: targetUserId, groupId } },
   })
 
   return NextResponse.json({ success: true })

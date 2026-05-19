@@ -22,6 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const target = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } })
   if (!target) return NextResponse.json({ error: 'Aucun compte trouvé avec cet email.' }, { status: 404 })
+  if (target.siteRole === 'ADMIN') return NextResponse.json({ error: 'L\'administrateur du site ne peut pas être membre d\'un groupe.' }, { status: 400 })
 
   const existing = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId: target.id, groupId } },

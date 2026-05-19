@@ -37,6 +37,10 @@ export async function PATCH(
   await prisma.joinRequest.update({ where: { id: requestId }, data: { status } })
 
   if (status === 'ACCEPTED') {
+    const requester = await prisma.user.findUnique({ where: { id: joinRequest.userId } })
+    if (requester?.siteRole === 'ADMIN') {
+      return NextResponse.json({ error: 'L\'administrateur ne peut pas rejoindre un groupe.' }, { status: 400 })
+    }
     await prisma.groupMember.create({
       data: { userId: joinRequest.userId, groupId, groupRole: 'MEMBRE' },
     })

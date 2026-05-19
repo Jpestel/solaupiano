@@ -212,6 +212,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
             }))}
             canManage={canManageMembers}
             currentUserId={userId}
+            currentUserRole={membership.groupRole}
           />
         </Card>
       </div>
