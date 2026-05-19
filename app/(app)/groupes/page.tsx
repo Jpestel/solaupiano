@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Card } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/ui/Badge'
+import { CreateGroupButton } from './CreateGroupButton'
 
 export default async function GroupesPage() {
   const session = await getServerSession(authOptions)
@@ -32,6 +33,7 @@ export default async function GroupesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Mes groupes</h1>
           <p className="text-gray-500 mt-1">Groupes musicaux dont vous êtes membre.</p>
         </div>
+        <CreateGroupButton />
       </div>
 
       {memberships.length === 0 ? (
@@ -40,7 +42,7 @@ export default async function GroupesPage() {
             <div className="text-5xl mb-4">🎶</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun groupe pour l&apos;instant</h3>
             <p className="text-gray-500 text-sm">
-              Vous n&apos;êtes membre d&apos;aucun groupe. Un administrateur peut vous inviter.
+              Créez votre premier groupe ou rejoignez-en un depuis votre profil.
             </p>
           </div>
         </Card>

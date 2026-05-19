@@ -26,20 +26,24 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
-  if (session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   const body = await req.json()
   const { name, description, chefId } = body
 
-  if (!name) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
+  if (!name?.trim()) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
+
+  const isAdmin = session.user.siteRole === 'ADMIN'
+
+  // Admin can designate a chef; a musician becomes CHEF of their own group
+  const chefUserId = isAdmin && chefId ? Number(chefId) : (!isAdmin ? Number(session.user.id) : null)
 
   const group = await prisma.group.create({
     data: {
-      name,
-      description,
-      ...(chefId && {
+      name: name.trim(),
+      description: description?.trim() || undefined,
+      ...(chefUserId && {
         members: {
-          create: { userId: Number(chefId), groupRole: 'CHEF' },
+          create: { userId: chefUserId, groupRole: 'CHEF' },
         },
       }),
     },

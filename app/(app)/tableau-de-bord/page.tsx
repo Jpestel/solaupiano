@@ -66,7 +66,9 @@ export default async function TableauDeBordPage() {
         <h1 className="text-2xl font-bold text-gray-900">
           Bonjour, {session.user.name} 👋
         </h1>
-        <p className="text-gray-500 mt-1">Voici un résumé de vos prochaines activités musicales.</p>
+        <p className="text-gray-500 mt-1">
+          {isAdmin ? 'Vue d\'ensemble des concerts à venir sur la plateforme.' : 'Voici un résumé de vos prochaines activités musicales.'}
+        </p>
       </div>
 
       {isAdmin ? (
