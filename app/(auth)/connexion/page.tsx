@@ -63,9 +63,12 @@ function ConnexionForm() {
         </div>
 
         <div>
-          <label htmlFor="password" className="form-label">
-            Mot de passe
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="password" className="form-label mb-0">Mot de passe</label>
+            <Link href="/mot-de-passe-oublie" className="text-xs text-indigo-600 hover:text-indigo-500">
+              Mot de passe oublié ?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"
