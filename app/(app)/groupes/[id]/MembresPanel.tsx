@@ -29,6 +29,7 @@ export default function MembresPanel({
   const router = useRouter()
   const [members, setMembers] = useState(initialMembers)
   const [processing, setProcessing] = useState<number | null>(null)
+  const [leaveWarning, setLeaveWarning] = useState(false)
 
   const isChef = currentUserRole === 'CHEF'
 
@@ -54,7 +55,7 @@ export default function MembresPanel({
       const otherChefs = members.filter((m) => m.groupRole === 'CHEF' && m.userId !== currentUserId)
       const otherMembers = members.filter((m) => m.userId !== currentUserId)
       if (otherChefs.length === 0 && otherMembers.length > 0) {
-        alert('Vous êtes le seul chef de ce groupe. Nommez un autre chef avant de quitter.')
+        setLeaveWarning(true)
         return
       }
     }
@@ -78,6 +79,16 @@ export default function MembresPanel({
   }
 
   return (
+    <div className="space-y-4">
+    {leaveWarning && (
+      <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <span className="text-amber-500 mt-0.5 flex-shrink-0">⚠️</span>
+        <div className="flex-1 text-sm text-amber-800">
+          Vous êtes le seul chef de ce groupe. Nommez un autre membre comme chef avant de pouvoir quitter.
+        </div>
+        <button onClick={() => setLeaveWarning(false)} className="text-amber-400 hover:text-amber-600 flex-shrink-0">✕</button>
+      </div>
+    )}
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {members.map((member) => {
         const isSelf = member.userId === currentUserId
@@ -152,6 +163,7 @@ export default function MembresPanel({
           </div>
         )
       })}
+    </div>
     </div>
   )
 }
