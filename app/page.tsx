@@ -225,6 +225,7 @@ export default async function PublicHomePage() {
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <Link href="/connexion" className="hover:text-indigo-600 transition-colors">Connexion</Link>
             <Link href="/inscription" className="hover:text-indigo-600 transition-colors">Inscription</Link>
+            <Link href="/mentions-legales" className="hover:text-indigo-600 transition-colors">Mentions légales</Link>
           </div>
         </div>
       </footer>
