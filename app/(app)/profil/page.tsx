@@ -193,8 +193,8 @@ export default function ProfilPage() {
           </form>
         </Card>
 
-        {/* Join a group */}
-        {availableGroups.length > 0 && (
+        {/* Join a group — hidden for admins */}
+        {profile.siteRole !== 'ADMIN' && availableGroups.length > 0 && (
           <Card>
             <CardHeader
               title="Rejoindre un groupe"
@@ -236,7 +236,7 @@ export default function ProfilPage() {
           </Card>
         )}
 
-        {availableGroups.length === 0 && !loading && (
+        {profile.siteRole !== 'ADMIN' && availableGroups.length === 0 && !loading && (
           <Card>
             <p className="text-sm text-gray-500 text-center py-2">
               Vous êtes membre de tous les groupes disponibles.

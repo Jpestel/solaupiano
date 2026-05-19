@@ -9,6 +9,7 @@ interface User {
   id: number
   name: string
   email: string
+  siteRole: string
 }
 
 interface Group {
@@ -170,7 +171,7 @@ export default function AdminGroupesPage() {
               className="form-input"
             >
               <option value="">Sélectionner un utilisateur...</option>
-              {users.map((u) => (
+              {users.filter((u) => u.siteRole !== 'ADMIN').map((u) => (
                 <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
               ))}
             </select>
