@@ -15,7 +15,11 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        // Public home page is always accessible
+        if (req.nextUrl.pathname === '/') return true
+        return !!token
+      },
     },
   }
 )
