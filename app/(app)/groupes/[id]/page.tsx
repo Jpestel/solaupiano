@@ -3,13 +3,10 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { formatDateWithDay } from '@/lib/utils'
-import { Card, CardHeader } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/ui/Badge'
 import JoinRequestsPanel from './JoinRequestsPanel'
-import MembresPanel from './MembresPanel'
-import { InvitePanel } from './InvitePanel'
 import { GroupSettingsButton } from './GroupSettingsButton'
+import { GroupCards } from './GroupCards'
 
 export default async function GroupePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -134,89 +131,25 @@ export default async function GroupePage({ params }: { params: { id: string } })
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Next rehearsal */}
-        <Card>
-          <CardHeader
-            title="Prochaine répétition"
-            action={
-              <Link href={`/groupes/${groupId}/repetitions`} className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">
-                Voir tout
-              </Link>
-            }
-          />
-          {group.rehearsals[0] ? (
-            <Link
-              href={`/groupes/${groupId}/repetitions/${group.rehearsals[0].id}`}
-              className="block rounded-xl bg-blue-50 border border-blue-100 p-4 hover:border-blue-300 transition-colors"
-            >
-              <p className="font-medium text-gray-900 capitalize">
-                {formatDateWithDay(group.rehearsals[0].date)}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                {group.rehearsals[0].startTime}{group.rehearsals[0].endTime ? ` - ${group.rehearsals[0].endTime}` : ''}
-              </p>
-              <p className="text-sm text-gray-600">{group.rehearsals[0].location}</p>
-            </Link>
-          ) : (
-            <p className="text-sm text-gray-500 text-center py-4">Aucune répétition prévue.</p>
-          )}
-        </Card>
-
-        {/* Next concert */}
-        <Card>
-          <CardHeader
-            title="Prochain concert"
-            action={
-              <Link href={`/groupes/${groupId}/concerts`} className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">
-                Voir tout
-              </Link>
-            }
-          />
-          {group.concerts[0] ? (
-            <div className="rounded-xl bg-purple-50 border border-purple-100 p-4">
-              <p className="font-medium text-gray-900">{group.concerts[0].name}</p>
-              <p className="text-sm text-gray-500 mt-1 capitalize">
-                {formatDateWithDay(group.concerts[0].date)}
-              </p>
-              <p className="text-sm text-gray-600">{group.concerts[0].location}</p>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 text-center py-4">Aucun concert prévu.</p>
-          )}
-        </Card>
-
-        {/* Invite by email — private group, chef only */}
-        {isChef && !(group as any).isPublic && (
-          <Card className="lg:col-span-2">
-            <CardHeader title="Inviter un musicien" />
-            <p className="text-sm text-gray-500 mb-3">
-              Ce groupe est privé. Invitez des musiciens inscrits sur la plateforme par leur adresse email.
-            </p>
-            <InvitePanel groupId={groupId} />
-          </Card>
-        )}
-
-        {/* Members */}
-        <Card className="lg:col-span-2">
-          <CardHeader title={`Membres (${group.members.length})`} />
-          <MembresPanel
-            groupId={groupId}
-            members={group.members.map(({ user, groupRole }) => ({
-              userId: user.id,
-              groupRole,
-              user: {
-                id: user.id,
-                name: user.name,
-                instruments: user.instruments,
-              },
-            }))}
-            canManage={canManageMembers}
-            currentUserId={userId}
-            currentUserRole={membership?.groupRole ?? 'CHEF'}
-          />
-        </Card>
-      </div>
+      <GroupCards
+        groupId={groupId}
+        rehearsal={group.rehearsals[0]
+          ? { ...group.rehearsals[0], date: group.rehearsals[0].date.toISOString() }
+          : null}
+        concert={group.concerts[0]
+          ? { ...group.concerts[0], date: group.concerts[0].date.toISOString() }
+          : null}
+        members={group.members.map(({ user, groupRole }) => ({
+          userId: user.id,
+          groupRole,
+          user: { id: user.id, name: user.name, instruments: user.instruments },
+        }))}
+        showInvite={isChef && !(group as any).isPublic}
+        isChef={isChef}
+        canManage={canManageMembers}
+        currentUserId={userId}
+        currentUserRole={membership?.groupRole ?? 'CHEF'}
+      />
     </div>
   )
 }
