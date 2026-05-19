@@ -9,6 +9,7 @@ import { RoleBadge } from '@/components/ui/Badge'
 import JoinRequestsPanel from './JoinRequestsPanel'
 import MembresPanel from './MembresPanel'
 import { InvitePanel } from './InvitePanel'
+import { GroupSettingsButton } from './GroupSettingsButton'
 
 export default async function GroupePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -86,7 +87,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
               <p className="text-gray-500 mt-1">{group.description}</p>
             )}
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
               (group as any).isPublic
                 ? 'bg-green-100 text-green-700'
@@ -95,6 +96,14 @@ export default async function GroupePage({ params }: { params: { id: string } })
               {(group as any).isPublic ? '🌐 Public' : '🔒 Privé'}
             </span>
             <RoleBadge role={membership.groupRole} />
+            {isChef && (
+              <GroupSettingsButton
+                groupId={groupId}
+                initialName={group.name}
+                initialDescription={group.description ?? null}
+                initialIsPublic={(group as any).isPublic}
+              />
+            )}
           </div>
         </div>
       </div>

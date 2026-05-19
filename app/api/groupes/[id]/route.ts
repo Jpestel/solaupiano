@@ -56,7 +56,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json()
   const group = await prisma.group.update({
     where: { id: groupId },
-    data: { name: body.name, description: body.description },
+    data: {
+      name: body.name,
+      description: body.description,
+      ...(typeof body.isPublic === 'boolean' && { isPublic: body.isPublic }),
+    },
   })
 
   return NextResponse.json(group)
