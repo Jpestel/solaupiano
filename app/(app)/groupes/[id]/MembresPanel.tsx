@@ -50,6 +50,14 @@ export default function MembresPanel({
   }
 
   const removeMember = async (targetUserId: number, isSelf: boolean) => {
+    if (isSelf && currentUserRole === 'CHEF') {
+      const otherChefs = members.filter((m) => m.groupRole === 'CHEF' && m.userId !== currentUserId)
+      const otherMembers = members.filter((m) => m.userId !== currentUserId)
+      if (otherChefs.length === 0 && otherMembers.length > 0) {
+        alert('Vous êtes le seul chef de ce groupe. Nommez un autre chef avant de quitter.')
+        return
+      }
+    }
     const label = isSelf ? 'Voulez-vous vraiment quitter ce groupe ?' : 'Retirer ce membre du groupe ?'
     if (!confirm(label)) return
     setProcessing(targetUserId)
