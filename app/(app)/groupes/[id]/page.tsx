@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { formatDateWithDay } from '@/lib/utils'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/ui/Badge'
+import JoinRequestsPanel from './JoinRequestsPanel'
 
 export default async function GroupePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -43,6 +44,20 @@ export default async function GroupePage({ params }: { params: { id: string } })
         orderBy: { date: 'asc' },
         take: 1,
       },
+      joinRequests: {
+        where: { status: 'PENDING' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              instruments: { include: { instrument: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
     },
   })
 
@@ -70,6 +85,13 @@ export default async function GroupePage({ params }: { params: { id: string } })
         </div>
       </div>
 
+      {/* Pending join requests — chef only */}
+      {isChef && group.joinRequests.length > 0 && (
+        <div className="mb-6">
+          <JoinRequestsPanel groupId={groupId} requests={group.joinRequests} />
+        </div>
+      )}
+
       {/* Quick links */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
@@ -94,10 +116,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
           <CardHeader
             title="Prochaine répétition"
             action={
-              <Link
-                href={`/groupes/${groupId}/repetitions`}
-                className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
-              >
+              <Link href={`/groupes/${groupId}/repetitions`} className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">
                 Voir tout
               </Link>
             }
@@ -125,10 +144,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
           <CardHeader
             title="Prochain concert"
             action={
-              <Link
-                href={`/groupes/${groupId}/concerts`}
-                className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
-              >
+              <Link href={`/groupes/${groupId}/concerts`} className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">
                 Voir tout
               </Link>
             }
@@ -148,9 +164,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
         {/* Members */}
         <Card className="lg:col-span-2">
-          <CardHeader
-            title={`Membres (${group.members.length})`}
-          />
+          <CardHeader title={`Membres (${group.members.length})`} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {group.members.map(({ user, groupRole }) => (
               <div

@@ -31,6 +31,12 @@ enum ResourceType {
   AUTRE
 }
 
+enum JoinRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -40,10 +46,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  instruments UserInstrument[]
-  groups      GroupMember[]
-  attendances Attendance[]
-  resources   Resource[]
+  instruments  UserInstrument[]
+  groups       GroupMember[]
+  attendances  Attendance[]
+  resources    Resource[]
+  joinRequests JoinRequest[]
 }
 
 model Instrument {
@@ -67,10 +74,11 @@ model Group {
   description String? @db.Text
   createdAt   DateTime @default(now())
 
-  members    GroupMember[]
-  rehearsals Rehearsal[]
-  concerts   Concert[]
-  songs      Song[]
+  members      GroupMember[]
+  rehearsals   Rehearsal[]
+  concerts     Concert[]
+  songs        Song[]
+  joinRequests JoinRequest[]
 }
 
 model GroupMember {
@@ -144,6 +152,21 @@ model Song {
   group      Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
   resources  Resource[]
   rehearsals RehearsalSong[]
+}
+
+model JoinRequest {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  groupId   Int
+  status    JoinRequestStatus @default(PENDING)
+  message   String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
 }
 
 model Resource {

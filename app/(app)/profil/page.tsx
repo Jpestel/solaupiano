@@ -18,34 +18,44 @@ interface ProfileData {
   instruments: { instrument: Instrument }[]
 }
 
+interface AvailableGroup {
+  id: number
+  name: string
+  description?: string
+  joinRequests: { id: number; status: string }[]
+}
+
 export default function ProfilPage() {
   const { data: session, update } = useSession()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [instruments, setInstruments] = useState<Instrument[]>([])
+  const [availableGroups, setAvailableGroups] = useState<AvailableGroup[]>([])
   const [name, setName] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
+  const [requestingGroup, setRequestingGroup] = useState<number | null>(null)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const [profRes, instrRes] = await Promise.all([
-        fetch('/api/profil'),
-        fetch('/api/instruments'),
-      ])
-      if (profRes.ok) {
-        const p: ProfileData = await profRes.json()
-        setProfile(p)
-        setName(p.name)
-        setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
-      }
-      if (instrRes.ok) setInstruments(await instrRes.json())
-      setLoading(false)
+  const fetchData = async () => {
+    const [profRes, instrRes, groupsRes] = await Promise.all([
+      fetch('/api/profil'),
+      fetch('/api/instruments'),
+      fetch('/api/groupes/disponibles'),
+    ])
+    if (profRes.ok) {
+      const p: ProfileData = await profRes.json()
+      setProfile(p)
+      setName(p.name)
+      setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
     }
-    fetchData()
-  }, [])
+    if (instrRes.ok) setInstruments(await instrRes.json())
+    if (groupsRes.ok) setAvailableGroups(await groupsRes.json())
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchData() }, [])
 
   const toggleInstrument = (id: number) => {
     setSelectedIds((prev) =>
@@ -71,13 +81,31 @@ export default function ProfilPage() {
       setError(d.error || 'Erreur lors de la sauvegarde.')
       return
     }
-
     setSuccess('Profil mis à jour avec succès.')
     await update({ name })
   }
 
+  const handleJoinRequest = async (groupId: number) => {
+    setRequestingGroup(groupId)
+    const res = await fetch(`/api/groupes/${groupId}/demandes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    setRequestingGroup(null)
+    if (res.ok) {
+      await fetchData()
+    }
+  }
+
   if (loading) return <div className="text-gray-500">Chargement...</div>
   if (!profile) return null
+
+  const statusLabel: Record<string, { label: string; className: string }> = {
+    PENDING:  { label: 'En attente',  className: 'bg-yellow-100 text-yellow-700' },
+    ACCEPTED: { label: 'Acceptée',    className: 'bg-green-100 text-green-700' },
+    REJECTED: { label: 'Refusée',     className: 'bg-red-100 text-red-700' },
+  }
 
   return (
     <div>
@@ -86,11 +114,11 @@ export default function ProfilPage() {
         <p className="text-gray-500 mt-1">Gérez vos informations personnelles.</p>
       </div>
 
-      <div className="max-w-lg">
+      <div className="max-w-lg space-y-6">
+        {/* Profile form */}
         <Card>
           <CardHeader title="Informations" />
 
-          {/* Avatar */}
           <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
             <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-2xl">
               {profile.name.charAt(0).toUpperCase()}
@@ -99,9 +127,7 @@ export default function ProfilPage() {
               <p className="font-semibold text-gray-900">{profile.name}</p>
               <p className="text-sm text-gray-500">{profile.email}</p>
               <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mt-1 ${
-                profile.siteRole === 'ADMIN'
-                  ? 'bg-purple-100 text-purple-700'
-                  : 'bg-gray-100 text-gray-600'
+                profile.siteRole === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
               }`}>
                 {profile.siteRole === 'ADMIN' ? 'Administrateur' : 'Utilisateur'}
               </span>
@@ -166,6 +192,57 @@ export default function ProfilPage() {
             </div>
           </form>
         </Card>
+
+        {/* Join a group */}
+        {availableGroups.length > 0 && (
+          <Card>
+            <CardHeader
+              title="Rejoindre un groupe"
+              subtitle="Envoyez une demande au chef de groupe"
+            />
+            <div className="space-y-3">
+              {availableGroups.map((group) => {
+                const req = group.joinRequests[0]
+                return (
+                  <div
+                    key={group.id}
+                    className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{group.name}</p>
+                      {group.description && (
+                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{group.description}</p>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 ml-3">
+                      {req ? (
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusLabel[req.status]?.className}`}>
+                          {statusLabel[req.status]?.label}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleJoinRequest(group.id)}
+                          disabled={requestingGroup === group.id}
+                          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-60 transition-colors"
+                        >
+                          {requestingGroup === group.id ? '...' : 'Demander'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        )}
+
+        {availableGroups.length === 0 && !loading && (
+          <Card>
+            <p className="text-sm text-gray-500 text-center py-2">
+              Vous êtes membre de tous les groupes disponibles.
+            </p>
+          </Card>
+        )}
       </div>
     </div>
   )
