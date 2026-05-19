@@ -6,6 +6,11 @@ import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 
+interface Instrument {
+  id: number
+  name: string
+}
+
 interface User {
   id: number
   name: string
@@ -13,21 +18,26 @@ interface User {
   siteRole: string
   createdAt: string
   groups: { group: { id: number; name: string }; groupRole: string }[]
-  instruments: { instrument: { name: string } }[]
+  instruments: { instrument: Instrument }[]
 }
 
 export default function AdminUtilisateursPage() {
   const [users, setUsers] = useState<User[]>([])
+  const [allInstruments, setAllInstruments] = useState<Instrument[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [editUser, setEditUser] = useState<User | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', email: '' })
+  const [editForm, setEditForm] = useState({ name: '', email: '', instrumentIds: [] as number[] })
   const [editError, setEditError] = useState('')
   const [editSaving, setEditSaving] = useState(false)
 
   const fetchUsers = async () => {
-    const res = await fetch('/api/admin/utilisateurs')
-    if (res.ok) setUsers(await res.json())
+    const [usrRes, instrRes] = await Promise.all([
+      fetch('/api/admin/utilisateurs'),
+      fetch('/api/instruments'),
+    ])
+    if (usrRes.ok) setUsers(await usrRes.json())
+    if (instrRes.ok) setAllInstruments(await instrRes.json())
     setLoading(false)
   }
 
@@ -35,8 +45,21 @@ export default function AdminUtilisateursPage() {
 
   const openEdit = (user: User) => {
     setEditUser(user)
-    setEditForm({ name: user.name, email: user.email })
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      instrumentIds: user.instruments.map((ui) => ui.instrument.id),
+    })
     setEditError('')
+  }
+
+  const toggleInstrument = (id: number) => {
+    setEditForm((prev) => ({
+      ...prev,
+      instrumentIds: prev.instrumentIds.includes(id)
+        ? prev.instrumentIds.filter((i) => i !== id)
+        : [...prev.instrumentIds, id],
+    }))
   }
 
   const handleEditSave = async (e: React.FormEvent) => {
@@ -47,7 +70,7 @@ export default function AdminUtilisateursPage() {
     const res = await fetch(`/api/admin/utilisateurs/${editUser.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editForm.name, email: editForm.email }),
+      body: JSON.stringify({ name: editForm.name, email: editForm.email, instrumentIds: editForm.instrumentIds }),
     })
     setEditSaving(false)
     if (!res.ok) {
@@ -218,6 +241,27 @@ export default function AdminUtilisateursPage() {
               className="form-input"
             />
           </div>
+          {allInstruments.length > 0 && (
+            <div>
+              <label className="form-label">Instruments</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {allInstruments.map((instr) => (
+                  <button
+                    key={instr.id}
+                    type="button"
+                    onClick={() => toggleInstrument(instr.id)}
+                    className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
+                      editForm.instrumentIds.includes(instr.id)
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                    }`}
+                  >
+                    {instr.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setEditUser(null)}>Annuler</Button>
             <Button type="submit" disabled={editSaving}>{editSaving ? 'Enregistrement...' : 'Sauvegarder'}</Button>

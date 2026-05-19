@@ -15,7 +15,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (err) return err
 
   const body = await req.json()
-  const { siteRole, name, email } = body
+  const { siteRole, name, email, instrumentIds } = body
+  const targetId = Number(params.id)
 
   const data: Record<string, unknown> = {}
 
@@ -34,17 +35,27 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (email !== undefined) {
     if (!email.trim()) return NextResponse.json({ error: 'L\'email est requis.' }, { status: 400 })
     const existing = await prisma.user.findFirst({
-      where: { email: email.trim(), NOT: { id: Number(params.id) } },
+      where: { email: email.trim(), NOT: { id: targetId } },
     })
     if (existing) return NextResponse.json({ error: 'Cet email est déjà utilisé.' }, { status: 400 })
     data.email = email.trim()
   }
 
   const user = await prisma.user.update({
-    where: { id: Number(params.id) },
+    where: { id: targetId },
     data,
     select: { id: true, name: true, email: true, siteRole: true },
   })
+
+  if (Array.isArray(instrumentIds)) {
+    await prisma.userInstrument.deleteMany({ where: { userId: targetId } })
+    if (instrumentIds.length > 0) {
+      await prisma.userInstrument.createMany({
+        data: instrumentIds.map((id: number) => ({ userId: targetId, instrumentId: id })),
+        skipDuplicates: true,
+      })
+    }
+  }
 
   return NextResponse.json(user)
 }
