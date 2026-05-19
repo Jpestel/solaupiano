@@ -77,7 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (group) {
     const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
     sendRehearsalNotification(
-      members.map((m) => ({ email: m.user.email, name: m.user.name })),
+      members.filter((m) => m.userId !== userId).map((m) => ({ email: m.user.email, name: m.user.name })),
       group.name,
       groupId,
       rehearsal,
