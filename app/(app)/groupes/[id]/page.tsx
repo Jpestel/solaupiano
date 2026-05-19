@@ -7,6 +7,7 @@ import { formatDateWithDay } from '@/lib/utils'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/ui/Badge'
 import JoinRequestsPanel from './JoinRequestsPanel'
+import MembresPanel from './MembresPanel'
 
 export default async function GroupePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -64,6 +65,8 @@ export default async function GroupePage({ params }: { params: { id: string } })
   if (!group) notFound()
 
   const isChef = membership.groupRole === 'CHEF'
+  const isAdmin = session.user.siteRole === 'ADMIN'
+  const canManageMembers = isChef || isAdmin
 
   return (
     <div>
@@ -165,29 +168,20 @@ export default async function GroupePage({ params }: { params: { id: string } })
         {/* Members */}
         <Card className="lg:col-span-2">
           <CardHeader title={`Membres (${group.members.length})`} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {group.members.map(({ user, groupRole }) => (
-              <div
-                key={user.id}
-                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
-              >
-                <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm flex-shrink-0">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                    {groupRole === 'CHEF' && <RoleBadge role="CHEF" />}
-                  </div>
-                  {user.instruments.length > 0 && (
-                    <p className="text-xs text-gray-500 truncate">
-                      {user.instruments.map((ui) => ui.instrument.name).join(', ')}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <MembresPanel
+            groupId={groupId}
+            members={group.members.map(({ user, groupRole }) => ({
+              userId: user.id,
+              groupRole,
+              user: {
+                id: user.id,
+                name: user.name,
+                instruments: user.instruments,
+              },
+            }))}
+            canManage={canManageMembers}
+            currentUserId={userId}
+          />
         </Card>
       </div>
     </div>

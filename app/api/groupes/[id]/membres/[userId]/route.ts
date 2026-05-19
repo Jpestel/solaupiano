@@ -1,0 +1,45 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+
+// PATCH — change a member's group role (CHEF ↔ MEMBRE)
+// Allowed by: site ADMIN or current CHEF of the group
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string; userId: string } }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
+
+  const groupId = Number(params.id)
+  const targetUserId = Number(params.userId)
+  const requesterId = Number(session.user.id)
+
+  const isAdmin = session.user.siteRole === 'ADMIN'
+  if (!isAdmin) {
+    const requesterMembership = await prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId: requesterId, groupId } },
+    })
+    if (!requesterMembership || requesterMembership.groupRole !== 'CHEF') {
+      return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+    }
+  }
+
+  const { groupRole } = await req.json()
+  if (!['CHEF', 'MEMBRE'].includes(groupRole)) {
+    return NextResponse.json({ error: 'Rôle invalide.' }, { status: 400 })
+  }
+
+  const target = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: targetUserId, groupId } },
+  })
+  if (!target) return NextResponse.json({ error: 'Membre introuvable.' }, { status: 404 })
+
+  const updated = await prisma.groupMember.update({
+    where: { userId_groupId: { userId: targetUserId, groupId } },
+    data: { groupRole },
+  })
+
+  return NextResponse.json(updated)
+}
