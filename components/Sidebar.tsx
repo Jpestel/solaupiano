@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { clsx } from '@/lib/utils'
+import { useSettings } from './SettingsProvider'
 
 const navItems = [
   {
@@ -35,16 +36,27 @@ const navItems = [
   },
 ]
 
-const adminItem = {
-  href: '/admin',
-  label: 'Administration',
-  icon: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  ),
-}
+const adminItems = [
+  {
+    href: '/admin',
+    label: 'Administration',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/admin/personnalisation',
+    label: 'Personnalisation',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+      </svg>
+    ),
+  },
+]
 
 interface SidebarProps {
   open?: boolean
@@ -54,9 +66,10 @@ interface SidebarProps {
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const { siteIcon } = useSettings()
 
   const isActive = (href: string) =>
-    href === '/tableau-de-bord' ? pathname === href : pathname.startsWith(href)
+    href === '/tableau-de-bord' || href === '/admin' ? pathname === href : pathname.startsWith(href)
 
   const userInitial = session?.user?.name?.charAt(0).toUpperCase() || '?'
 
@@ -66,9 +79,9 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
         <Link href="/tableau-de-bord" className="flex items-center gap-3" onClick={onClose}>
           <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow">
-            <span className="text-lg">🎹</span>
+            <span className="text-lg">{siteIcon}</span>
           </div>
-          <span className="font-bold text-indigo-900 text-lg leading-tight">Sol au Piano</span>
+          <span className="font-bold text-indigo-900 text-lg leading-tight">Solaupiano</span>
         </Link>
         {onClose && (
           <button onClick={onClose} className="lg:hidden p-1 rounded-lg hover:bg-gray-200 text-gray-500">
@@ -82,9 +95,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems
-          .filter((item) =>
-            item.href === '/groupes' ? session?.user?.siteRole !== 'ADMIN' : true
-          )
+          .filter((item) => item.href === '/groupes' ? session?.user?.siteRole !== 'ADMIN' : true)
           .map((item) => (
             <Link
               key={item.href}
@@ -97,9 +108,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                   : 'text-gray-700 hover:bg-gray-200'
               )}
             >
-              <span className={isActive(item.href) ? 'text-white' : 'text-gray-500'}>
-                {item.icon}
-              </span>
+              <span className={isActive(item.href) ? 'text-white' : 'text-gray-500'}>{item.icon}</span>
               {item.label}
             </Link>
           ))}
@@ -109,21 +118,22 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             <div className="pt-3 pb-1 px-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin</p>
             </div>
-            <Link
-              href={adminItem.href}
-              onClick={onClose}
-              className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive(adminItem.href)
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-gray-700 hover:bg-gray-200'
-              )}
-            >
-              <span className={isActive(adminItem.href) ? 'text-white' : 'text-gray-500'}>
-                {adminItem.icon}
-              </span>
-              {adminItem.label}
-            </Link>
+            {adminItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={clsx(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive(item.href)
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-gray-700 hover:bg-gray-200'
+                )}
+              >
+                <span className={isActive(item.href) ? 'text-white' : 'text-gray-500'}>{item.icon}</span>
+                {item.label}
+              </Link>
+            ))}
           </>
         )}
       </nav>
@@ -154,10 +164,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Desktop: always visible */}
       <div className="hidden lg:flex">{content}</div>
-
-      {/* Mobile: drawer overlay */}
       {open && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black/40" onClick={onClose} />

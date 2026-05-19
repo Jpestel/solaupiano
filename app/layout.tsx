@@ -1,19 +1,23 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from './providers'
+import { getSiteSettings } from '@/lib/site-settings'
+import { getThemeCss } from '@/lib/themes'
 
 export const metadata: Metadata = {
   title: 'Solaupiano',
   description: 'Plateforme de gestion de répétitions musicales',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const settings = await getSiteSettings()
+  const themeCss = getThemeCss(settings.colorTheme)
+
   return (
     <html lang="fr">
+      <head>
+        {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
+      </head>
       <body className="bg-gray-50 text-gray-900 antialiased">
         <Providers>{children}</Providers>
       </body>

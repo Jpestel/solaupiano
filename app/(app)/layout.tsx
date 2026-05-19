@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { Sidebar } from '@/components/Sidebar'
+import { SettingsProvider, useSettings } from '@/components/SettingsProvider'
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { siteIcon } = useSettings()
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -24,7 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-sm">🎹</span>
+              <span className="text-sm">{siteIcon}</span>
             </div>
             <span className="font-bold text-indigo-900 text-base">Solaupiano</span>
           </div>
@@ -37,5 +39,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SettingsProvider>
+      <AppLayoutInner>{children}</AppLayoutInner>
+    </SettingsProvider>
   )
 }

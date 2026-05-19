@@ -183,6 +183,11 @@ model JoinRequest {
   @@unique([userId, groupId])
 }
 
+model SiteSetting {
+  key   String @id
+  value String
+}
+
 model PasswordResetToken {
   id        Int      @id @default(autoincrement())
   userId    Int

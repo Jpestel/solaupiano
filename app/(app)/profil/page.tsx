@@ -163,7 +163,7 @@ export default function ProfilPage() {
               />
             </div>
 
-            {instruments.length > 0 && (
+            {profile.siteRole !== 'ADMIN' && instruments.length > 0 && (
               <div>
                 <label className="form-label">Instrument(s)</label>
                 <div className="flex flex-wrap gap-2 mt-1">

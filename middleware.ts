@@ -22,6 +22,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!connexion|inscription|mot-de-passe-oublie|reinitialiser-mot-de-passe|api/auth|api/inscription|api/instruments|_next/static|_next/image|favicon.ico).*)',
+    '/((?!connexion|inscription|mot-de-passe-oublie|reinitialiser-mot-de-passe|api/auth|api/inscription|api/instruments|api/settings|_next/static|_next/image|favicon.ico).*)',
   ],
 }
