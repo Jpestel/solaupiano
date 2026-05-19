@@ -17,6 +17,7 @@ export default function InscriptionPage() {
     password: '',
     confirmPassword: '',
     instrumentIds: [] as number[],
+    otherInstrument: '',
   })
   const [instruments, setInstruments] = useState<Instrument[]>([])
   const [error, setError] = useState('')
@@ -62,6 +63,7 @@ export default function InscriptionPage() {
         email: form.email,
         password: form.password,
         instrumentIds: form.instrumentIds,
+        otherInstrument: form.otherInstrument.trim() || undefined,
       }),
     })
 
@@ -98,9 +100,7 @@ export default function InscriptionPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="name" className="form-label">
-                Nom complet
-              </label>
+              <label htmlFor="name" className="form-label">Nom complet</label>
               <input
                 id="name"
                 type="text"
@@ -113,9 +113,7 @@ export default function InscriptionPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="form-label">
-                Adresse email
-              </label>
+              <label htmlFor="email" className="form-label">Adresse email</label>
               <input
                 id="email"
                 type="email"
@@ -129,9 +127,7 @@ export default function InscriptionPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="form-label">
-                Mot de passe
-              </label>
+              <label htmlFor="password" className="form-label">Mot de passe</label>
               <input
                 id="password"
                 type="password"
@@ -145,9 +141,7 @@ export default function InscriptionPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="form-label">
-                Confirmer le mot de passe
-              </label>
+              <label htmlFor="confirmPassword" className="form-label">Confirmer le mot de passe</label>
               <input
                 id="confirmPassword"
                 type="password"
@@ -163,21 +157,37 @@ export default function InscriptionPage() {
             {instruments.length > 0 && (
               <div>
                 <label className="form-label">Instrument(s) joué(s)</label>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-3 grid grid-cols-2 gap-y-2 gap-x-4">
                   {instruments.map((instrument) => (
-                    <button
+                    <label
                       key={instrument.id}
-                      type="button"
-                      onClick={() => toggleInstrument(instrument.id)}
-                      className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
-                        form.instrumentIds.includes(instrument.id)
-                          ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
-                      }`}
+                      className="flex items-center gap-2.5 cursor-pointer group"
                     >
-                      {instrument.name}
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={form.instrumentIds.includes(instrument.id)}
+                        onChange={() => toggleInstrument(instrument.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <span className="text-sm text-gray-700 group-hover:text-indigo-700 transition-colors">
+                        {instrument.name}
+                      </span>
+                    </label>
                   ))}
+                </div>
+
+                <div className="mt-3">
+                  <label htmlFor="otherInstrument" className="text-xs font-medium text-gray-500 mb-1 block">
+                    Autre instrument (non listé ci-dessus)
+                  </label>
+                  <input
+                    id="otherInstrument"
+                    type="text"
+                    value={form.otherInstrument}
+                    onChange={(e) => setForm({ ...form, otherInstrument: e.target.value })}
+                    className="form-input"
+                    placeholder="ex: Banjo, Cornemuse..."
+                  />
                 </div>
               </div>
             )}

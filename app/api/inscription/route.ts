@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, email, password, instrumentIds } = body
+    const { name, email, password, instrumentIds, otherInstrument } = body
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Tous les champs obligatoires doivent être remplis.' }, { status: 400 })
@@ -25,6 +25,21 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 12)
 
+    // Resolve "other" instrument — reuse existing or create new
+    const allInstrumentIds: number[] = Array.isArray(instrumentIds) ? [...instrumentIds] : []
+    if (otherInstrument?.trim()) {
+      const trimmed = otherInstrument.trim()
+      const existing = await prisma.instrument.findFirst({
+        where: { name: { equals: trimmed, mode: 'insensitive' } },
+      })
+      if (existing) {
+        if (!allInstrumentIds.includes(existing.id)) allInstrumentIds.push(existing.id)
+      } else {
+        const created = await prisma.instrument.create({ data: { name: trimmed } })
+        allInstrumentIds.push(created.id)
+      }
+    }
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -32,9 +47,7 @@ export async function POST(req: NextRequest) {
         password: hashedPassword,
         siteRole: isFirstUser ? 'ADMIN' : 'USER',
         instruments: {
-          create: Array.isArray(instrumentIds)
-            ? instrumentIds.map((id: number) => ({ instrumentId: id }))
-            : [],
+          create: allInstrumentIds.map((id: number) => ({ instrumentId: id })),
         },
       },
     })

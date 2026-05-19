@@ -75,7 +75,7 @@ export default function AdminInstrumentsPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Instruments</h1>
-        <p className="text-gray-500 mt-1">Gérez la liste des instruments disponibles.</p>
+        <p className="text-gray-500 mt-1">Gérez la liste des instruments disponibles. Les instruments ajoutés par les musiciens lors de l&apos;inscription apparaissent ici et sont modifiables.</p>
       </div>
 
       <div className="max-w-lg space-y-6">
