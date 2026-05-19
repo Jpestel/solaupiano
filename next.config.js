@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['formidable'],
+  experimental: {
+    serverComponentsExternalPackages: ['formidable'],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
