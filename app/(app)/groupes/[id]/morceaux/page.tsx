@@ -37,6 +37,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [addSongOpen, setAddSongOpen] = useState(false)
+  const [editSong, setEditSong] = useState<Song | null>(null)
   const [uploadSongId, setUploadSongId] = useState<number | null>(null)
   const [songForm, setSongForm] = useState({ title: '', artist: '', notes: '' })
   const [saving, setSaving] = useState(false)
@@ -80,6 +81,32 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     fetchData()
   }
 
+  const openEdit = (song: Song) => {
+    setEditSong(song)
+    setSongForm({ title: song.title, artist: song.artist || '', notes: song.notes || '' })
+    setError('')
+  }
+
+  const handleEditSong = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editSong) return
+    setSaving(true)
+    setError('')
+    const res = await fetch(`/api/groupes/${groupId}/morceaux/${editSong.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(songForm),
+    })
+    setSaving(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error || 'Erreur.')
+      return
+    }
+    setEditSong(null)
+    fetchData()
+  }
+
   const handleDeleteResource = async (resourceId: number) => {
     if (!confirm('Supprimer cette ressource ?')) return
     await fetch(`/api/ressources/${resourceId}`, { method: 'DELETE' })
@@ -119,20 +146,25 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
         <div className="space-y-4">
           {songs.map((song) => (
             <Card key={song.id} padding={false} className="overflow-hidden">
-              <div className="px-6 py-4 flex items-center justify-between">
-                <div>
+              <div className="px-6 py-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
                   <h3 className="font-semibold text-gray-900">{song.title}</h3>
                   {song.artist && <p className="text-sm text-gray-500">{song.artist}</p>}
                   {song.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{song.notes}</p>}
                 </div>
                 {isChef && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setUploadSongId(song.id === uploadSongId ? null : song.id)}
-                  >
-                    + Ressource
-                  </Button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>
+                      Éditer
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setUploadSongId(song.id === uploadSongId ? null : song.id)}
+                    >
+                      + Ressource
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -190,6 +222,29 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           ))}
         </div>
       )}
+
+      {/* Edit song modal */}
+      <Modal isOpen={!!editSong} onClose={() => setEditSong(null)} title="Modifier le morceau">
+        <form onSubmit={handleEditSong} className="space-y-4">
+          {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          <div>
+            <label className="form-label">Titre *</label>
+            <input type="text" required value={songForm.title} onChange={(e) => setSongForm({ ...songForm, title: e.target.value })} className="form-input" />
+          </div>
+          <div>
+            <label className="form-label">Artiste / Compositeur</label>
+            <input type="text" value={songForm.artist} onChange={(e) => setSongForm({ ...songForm, artist: e.target.value })} className="form-input" />
+          </div>
+          <div>
+            <label className="form-label">Notes</label>
+            <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setEditSong(null)}>Annuler</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Sauvegarder'}</Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Add song modal */}
       <Modal isOpen={addSongOpen} onClose={() => setAddSongOpen(false)} title="Ajouter un morceau">
