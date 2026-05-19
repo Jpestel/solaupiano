@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-export function InvitePanel({ groupId, onInvited }: { groupId: number; onInvited: () => void }) {
+export function InvitePanel({ groupId }: { groupId: number }) {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
@@ -29,7 +31,7 @@ export function InvitePanel({ groupId, onInvited }: { groupId: number; onInvited
     } else {
       setSuccess(`${data.name} a été ajouté au groupe.`)
       setEmail('')
-      onInvited()
+      router.refresh()
     }
   }
 

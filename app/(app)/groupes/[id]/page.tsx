@@ -192,7 +192,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
             <p className="text-sm text-gray-500 mb-3">
               Ce groupe est privé. Invitez des musiciens inscrits sur la plateforme par leur adresse email.
             </p>
-            <InvitePanel groupId={groupId} onInvited={() => {}} />
+            <InvitePanel groupId={groupId} />
           </Card>
         )}
 
