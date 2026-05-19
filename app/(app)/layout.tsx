@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Sidebar } from '@/components/Sidebar'
+import { BottomNav } from '@/components/BottomNav'
 import { SettingsProvider, useSettings } from '@/components/SettingsProvider'
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
@@ -33,11 +34,14 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className="flex-1 overflow-auto">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          {/* pb-20 on mobile to clear the bottom nav bar */}
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 lg:pb-8">
             {children}
           </div>
         </main>
       </div>
+
+      <BottomNav />
     </div>
   )
 }

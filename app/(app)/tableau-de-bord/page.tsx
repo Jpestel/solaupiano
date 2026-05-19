@@ -103,7 +103,6 @@ export default async function TableauDeBordPage() {
     where: {
       isPublic: true,
       lookingFor: { not: null },
-      id: { notIn: memberGroupIds },
     },
     select: {
       id: true,
@@ -120,7 +119,10 @@ export default async function TableauDeBordPage() {
     take: 8,
   })
 
-  const validGroupsLooking = groupsLooking.filter((g) => g.lookingFor !== null) as Array<typeof groupsLooking[0] & { lookingFor: string }>
+  const memberGroupIdSet = new Set(memberGroupIds)
+  const validGroupsLooking = groupsLooking
+    .filter((g) => g.lookingFor !== null)
+    .map((g) => ({ ...g, lookingFor: g.lookingFor as string, isMember: memberGroupIdSet.has(g.id) }))
 
   return (
     <div>
