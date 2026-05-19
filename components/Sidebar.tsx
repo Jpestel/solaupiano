@@ -69,23 +69,27 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={clsx(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              isActive(item.href)
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-gray-700 hover:bg-gray-200'
-            )}
-          >
-            <span className={isActive(item.href) ? 'text-white' : 'text-gray-500'}>
-              {item.icon}
-            </span>
-            {item.label}
-          </Link>
-        ))}
+        {navItems
+          .filter((item) =>
+            item.href === '/groupes' ? session?.user?.siteRole !== 'ADMIN' : true
+          )
+          .map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={clsx(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                isActive(item.href)
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-gray-700 hover:bg-gray-200'
+              )}
+            >
+              <span className={isActive(item.href) ? 'text-white' : 'text-gray-500'}>
+                {item.icon}
+              </span>
+              {item.label}
+            </Link>
+          ))}
 
         {session?.user?.siteRole === 'ADMIN' && (
           <>
