@@ -69,6 +69,71 @@ export async function sendRehearsalNotification(
   )
 }
 
+export async function sendInvitationEmail(to: string, fromName: string, personalMessage: string | null, signupUrl: string) {
+  await resend.emails.send({
+    from: 'Solaupiano <noreply@solaupiano.fr>',
+    to,
+    subject: `${fromName} vous invite à rejoindre Solaupiano 🎶`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
+        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 28px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: #4f46e5; border-radius: 16px; margin-bottom: 14px;">
+              <span style="font-size: 28px;">🎶</span>
+            </div>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
+            <p style="margin: 6px 0 0; font-size: 14px; color: #6b7280;">La plateforme pour les musiciens en groupe</p>
+          </div>
+
+          <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 12px;">
+            ${fromName} vous invite à rejoindre Solaupiano !
+          </h2>
+
+          <p style="color: #4b5563; font-size: 14px; line-height: 1.7; margin-bottom: 20px;">
+            Bonjour,<br/><br/>
+            <strong>${fromName}</strong> vous invite à découvrir <strong>Solaupiano</strong>, la plateforme pensée pour les musiciens qui répètent en groupe.
+          </p>
+
+          ${personalMessage ? `
+          <div style="background: #f5f3ff; border-left: 4px solid #7c3aed; border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 24px;">
+            <p style="margin: 0; font-size: 14px; color: #4c1d95; font-style: italic;">"${personalMessage}"</p>
+            <p style="margin: 8px 0 0; font-size: 12px; color: #7c3aed; font-weight: 600;">— ${fromName}</p>
+          </div>
+          ` : ''}
+
+          <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+            <p style="margin: 0 0 12px; font-size: 13px; font-weight: 600; color: #374151;">Avec Solaupiano, vous pouvez :</p>
+            <ul style="margin: 0; padding: 0; list-style: none; space-y: 8px;">
+              <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                🗓️ &nbsp;Organiser et planifier vos répétitions
+              </li>
+              <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px;">
+                🎵 &nbsp;Gérer le répertoire de vos morceaux
+              </li>
+              <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px;">
+                📁 &nbsp;Partager partitions, grilles et fichiers audio
+              </li>
+              <li style="font-size: 13px; color: #4b5563;">
+                ✅ &nbsp;Suivre votre préparation morceau par morceau
+              </li>
+            </ul>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 28px;">
+            <a href="${signupUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-size: 15px; font-weight: 600; letter-spacing: 0.01em;">
+              Créer mon compte gratuitement
+            </a>
+          </div>
+
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+            Si vous n'êtes pas musicien ou ne souhaitez pas rejoindre Solaupiano, ignorez simplement cet email.
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
 export async function sendEmailVerification(to: string, name: string, verifyUrl: string) {
   await resend.emails.send({
     from: 'Solaupiano <noreply@solaupiano.fr>',

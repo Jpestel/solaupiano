@@ -5,6 +5,7 @@ import { formatDateWithDay } from '@/lib/utils'
 import Link from 'next/link'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { DashboardCards } from './DashboardCards'
+import { InviteButton } from './InviteButton'
 
 export default async function TableauDeBordPage() {
   const session = await getServerSession(authOptions)
@@ -63,13 +64,16 @@ export default async function TableauDeBordPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Bonjour, {session.user.name} 👋
-        </h1>
-        <p className="text-gray-500 mt-1">
-          {isAdmin ? 'Vue d\'ensemble des concerts à venir sur la plateforme.' : 'Voici un résumé de vos prochaines activités musicales.'}
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Bonjour, {session.user.name} 👋
+          </h1>
+          <p className="text-gray-500 mt-1">
+            {isAdmin ? 'Vue d\'ensemble des concerts à venir sur la plateforme.' : 'Voici un résumé de vos prochaines activités musicales.'}
+          </p>
+        </div>
+        <InviteButton />
       </div>
 
       {isAdmin ? (
