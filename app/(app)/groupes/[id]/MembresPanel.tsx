@@ -59,7 +59,12 @@ export default function MembresPanel({
         return
       }
     }
-    const label = isSelf ? 'Voulez-vous vraiment quitter ce groupe ?' : 'Retirer ce membre du groupe ?'
+    const isSoleMember = members.length === 1 && isSelf
+    const label = isSoleMember
+      ? 'Vous êtes le seul membre. Quitter supprimera définitivement ce groupe. Confirmer ?'
+      : isSelf
+        ? 'Voulez-vous vraiment quitter ce groupe ?'
+        : 'Retirer ce membre du groupe ?'
     if (!confirm(label)) return
     setProcessing(targetUserId)
     const res = await fetch(`/api/groupes/${groupId}/membres`, {
@@ -69,7 +74,8 @@ export default function MembresPanel({
     })
     setProcessing(null)
     if (res.ok) {
-      if (isSelf) {
+      const data = await res.json()
+      if (isSelf || data.groupDeleted) {
         router.push('/groupes')
       } else {
         setMembers((prev) => prev.filter((m) => m.userId !== targetUserId))

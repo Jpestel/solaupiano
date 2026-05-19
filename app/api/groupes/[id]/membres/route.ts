@@ -74,18 +74,24 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
+  const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } })
+
   await prisma.groupMember.delete({
     where: { userId_groupId: { userId: targetUserId, groupId } },
   })
 
+  // Check if group is now empty — delete it if so
+  const remaining = await prisma.groupMember.count({ where: { groupId } })
+  if (remaining === 0) {
+    await prisma.group.delete({ where: { id: groupId } })
+    return NextResponse.json({ success: true, groupDeleted: true })
+  }
+
   // Record history only for voluntary departures
-  if (isSelf) {
-    const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } })
-    if (group) {
-      await prisma.groupMemberHistory.create({
-        data: { userId: targetUserId, groupId, groupName: group.name },
-      })
-    }
+  if (isSelf && group) {
+    await prisma.groupMemberHistory.create({
+      data: { userId: targetUserId, groupId, groupName: group.name },
+    })
   }
 
   return NextResponse.json({ success: true })
