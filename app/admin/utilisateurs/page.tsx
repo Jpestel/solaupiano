@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 
 interface User {
   id: number
@@ -18,6 +20,10 @@ export default function AdminUtilisateursPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', email: '' })
+  const [editError, setEditError] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   const fetchUsers = async () => {
     const res = await fetch('/api/admin/utilisateurs')
@@ -27,10 +33,35 @@ export default function AdminUtilisateursPage() {
 
   useEffect(() => { fetchUsers() }, [])
 
+  const openEdit = (user: User) => {
+    setEditUser(user)
+    setEditForm({ name: user.name, email: user.email })
+    setEditError('')
+  }
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editUser) return
+    setEditSaving(true)
+    setEditError('')
+    const res = await fetch(`/api/admin/utilisateurs/${editUser.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editForm.name, email: editForm.email }),
+    })
+    setEditSaving(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setEditError(d.error || 'Erreur.')
+      return
+    }
+    setEditUser(null)
+    fetchUsers()
+  }
+
   const toggleRole = async (user: User) => {
     const newRole = user.siteRole === 'ADMIN' ? 'USER' : 'ADMIN'
     if (!confirm(`Changer le rôle de ${user.name} en ${newRole} ?`)) return
-
     setUpdatingId(user.id)
     await fetch(`/api/admin/utilisateurs/${user.id}`, {
       method: 'PATCH',
@@ -38,6 +69,19 @@ export default function AdminUtilisateursPage() {
       body: JSON.stringify({ siteRole: newRole }),
     })
     setUpdatingId(null)
+    fetchUsers()
+  }
+
+  const deleteUser = async (user: User) => {
+    if (!confirm(`Supprimer définitivement le compte de ${user.name} ?`)) return
+    setUpdatingId(user.id)
+    const res = await fetch(`/api/admin/utilisateurs/${user.id}`, { method: 'DELETE' })
+    setUpdatingId(null)
+    if (!res.ok) {
+      const d = await res.json()
+      alert(d.error || 'Erreur.')
+      return
+    }
     fetchUsers()
   }
 
@@ -63,72 +107,123 @@ export default function AdminUtilisateursPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold flex-shrink-0">
-                        {user.name.charAt(0).toUpperCase()}
+              {users.map((user) => {
+                const hasNoGroups = user.groups.length === 0
+                const isAdmin = user.siteRole === 'ADMIN'
+                return (
+                  <tr key={user.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold flex-shrink-0">
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{user.name}</p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.email}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {user.instruments.length === 0 ? (
+                          <span className="text-gray-400 text-xs">—</span>
+                        ) : (
+                          user.instruments.slice(0, 3).map((ui, i) => (
+                            <span key={i} className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">
+                              {ui.instrument.name}
+                            </span>
+                          ))
+                        )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {user.instruments.length === 0 ? (
-                        <span className="text-gray-400 text-xs">—</span>
-                      ) : (
-                        user.instruments.slice(0, 3).map((ui, i) => (
-                          <span key={i} className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">
-                            {ui.instrument.name}
-                          </span>
-                        ))
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {user.groups.length === 0 ? (
-                        <span className="text-gray-400 text-xs">—</span>
-                      ) : (
-                        user.groups.slice(0, 2).map((gm) => (
-                          <span key={gm.group.id} className="text-xs bg-indigo-50 text-indigo-700 rounded-full px-2 py-0.5">
-                            {gm.group.name}
-                          </span>
-                        ))
-                      )}
-                      {user.groups.length > 2 && (
-                        <span className="text-xs text-gray-500">+{user.groups.length - 2}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge variant={user.siteRole === 'ADMIN' ? 'admin' : 'default'}>
-                      {user.siteRole === 'ADMIN' ? 'Admin' : 'Utilisateur'}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => toggleRole(user)}
-                      disabled={updatingId === user.id}
-                      className="text-xs font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
-                    >
-                      {updatingId === user.id
-                        ? '...'
-                        : user.siteRole === 'ADMIN'
-                        ? 'Rétrograder'
-                        : 'Promouvoir admin'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {user.groups.length === 0 ? (
+                          <span className="text-gray-400 text-xs">—</span>
+                        ) : (
+                          user.groups.slice(0, 2).map((gm) => (
+                            <span key={gm.group.id} className="text-xs bg-indigo-50 text-indigo-700 rounded-full px-2 py-0.5">
+                              {gm.group.name}
+                            </span>
+                          ))
+                        )}
+                        {user.groups.length > 2 && (
+                          <span className="text-xs text-gray-500">+{user.groups.length - 2}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={isAdmin ? 'admin' : 'default'}>
+                        {isAdmin ? 'Admin' : 'Utilisateur'}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <button
+                          onClick={() => openEdit(user)}
+                          disabled={updatingId === user.id}
+                          className="text-xs font-medium text-gray-600 hover:text-indigo-600 disabled:opacity-50"
+                        >
+                          Éditer
+                        </button>
+                        <button
+                          onClick={() => toggleRole(user)}
+                          disabled={updatingId === user.id}
+                          className="text-xs font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
+                        >
+                          {updatingId === user.id ? '...' : isAdmin ? 'Rétrograder' : 'Promouvoir admin'}
+                        </button>
+                        {!isAdmin && hasNoGroups && (
+                          <button
+                            onClick={() => deleteUser(user)}
+                            disabled={updatingId === user.id}
+                            className="text-xs font-medium text-red-500 hover:text-red-700 disabled:opacity-50"
+                          >
+                            Supprimer
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {/* Edit modal */}
+      <Modal isOpen={!!editUser} onClose={() => setEditUser(null)} title="Modifier le compte">
+        <form onSubmit={handleEditSave} className="space-y-4">
+          {editError && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{editError}</div>
+          )}
+          <div>
+            <label className="form-label">Nom complet</label>
+            <input
+              type="text"
+              required
+              value={editForm.name}
+              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              className="form-input"
+            />
+          </div>
+          <div>
+            <label className="form-label">Email</label>
+            <input
+              type="email"
+              required
+              value={editForm.email}
+              onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              className="form-input"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setEditUser(null)}>Annuler</Button>
+            <Button type="submit" disabled={editSaving}>{editSaving ? 'Enregistrement...' : 'Sauvegarder'}</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }
