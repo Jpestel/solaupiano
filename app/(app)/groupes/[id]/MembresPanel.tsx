@@ -81,6 +81,7 @@ export default function MembresPanel({
     }
     const data = await res.json()
     if (isSelf || data.groupDeleted) {
+      router.refresh()
       router.push('/groupes')
     } else {
       setMembers((prev) => prev.filter((m) => m.userId !== targetUserId))
