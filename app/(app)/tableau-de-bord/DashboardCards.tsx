@@ -192,7 +192,7 @@ export function DashboardCards({ rehearsals, concerts, memberships }: Props) {
                 <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${
                   m.groupRole === 'CHEF' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'
                 }`}>
-                  {m.groupRole === 'CHEF' ? 'Chef' : 'Membre'}
+                  {m.groupRole === 'CHEF' ? "Chef d'orchestre" : 'Membre'}
                 </span>
               </Link>
             ))}

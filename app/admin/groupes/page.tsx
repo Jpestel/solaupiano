@@ -128,7 +128,7 @@ export default function AdminGroupesPage() {
                 <tr className="border-b border-gray-100">
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupe</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Visibilité</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Chef</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Chef d'orchestre</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Membres</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
                 </tr>
@@ -267,7 +267,7 @@ export default function AdminGroupesPage() {
             </div>
           </div>
           <div>
-            <label className="form-label">Chef du groupe *</label>
+            <label className="form-label">Chef d'orchestre *</label>
             <select
               required
               value={form.chefId}

@@ -61,7 +61,7 @@ export function AttendanceBadge({ status }: { status: string }) {
 
 export function RoleBadge({ role }: { role: string }) {
   const map: Record<string, { variant: BadgeVariant; label: string }> = {
-    CHEF: { variant: 'chef', label: 'Chef' },
+    CHEF: { variant: 'chef', label: "Chef d'orchestre" },
     MEMBRE: { variant: 'membre', label: 'Membre' },
     ADMIN: { variant: 'admin', label: 'Admin' },
   }

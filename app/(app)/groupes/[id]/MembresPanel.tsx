@@ -122,7 +122,7 @@ export default function MembresPanel({
                 <p className="text-sm font-medium text-gray-900 truncate">{member.user.name}</p>
                 {member.groupRole === 'CHEF' && (
                   <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                    Chef
+                    Chef d&apos;orchestre
                   </span>
                 )}
                 {isSelf && (
