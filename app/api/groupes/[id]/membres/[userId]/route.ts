@@ -31,6 +31,12 @@ export async function PATCH(
     return NextResponse.json({ error: 'Rôle invalide.' }, { status: 400 })
   }
 
+  const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } })
+  if (!targetUser) return NextResponse.json({ error: 'Utilisateur introuvable.' }, { status: 404 })
+  if (targetUser.siteRole === 'ADMIN') {
+    return NextResponse.json({ error: 'Un administrateur ne peut pas être chef de groupe.' }, { status: 400 })
+  }
+
   const target = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId: targetUserId, groupId } },
   })
