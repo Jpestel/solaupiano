@@ -27,7 +27,7 @@ export async function sendRehearsalNotification(
   await Promise.all(
     members.map(({ email, name }) =>
       resend.emails.send({
-        from: 'Sol au Piano <noreply@solaupiano.fr>',
+        from: 'Solaupiano <noreply@solaupiano.fr>',
         to: email,
         subject: `Nouvelle répétition — ${groupName}`,
         html: `
@@ -37,7 +37,7 @@ export async function sendRehearsalNotification(
                 <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
                   <span style="font-size: 24px;">🎹</span>
                 </div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au Piano</h1>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
               </div>
 
               <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${name},</h2>
@@ -71,7 +71,7 @@ export async function sendRehearsalNotification(
 
 export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string) {
   await resend.emails.send({
-    from: 'Sol au Piano <noreply@solaupiano.fr>',
+    from: 'Solaupiano <noreply@solaupiano.fr>',
     to,
     subject: 'Réinitialisation de votre mot de passe',
     html: `
@@ -81,7 +81,7 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
             <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
               <span style="font-size: 24px;">🎹</span>
             </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au Piano</h1>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
           </div>
 
           <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 8px;">Bonjour ${name},</h2>

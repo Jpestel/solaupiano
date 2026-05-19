@@ -26,7 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-sm">🎹</span>
             </div>
-            <span className="font-bold text-indigo-900 text-base">Sol au Piano</span>
+            <span className="font-bold text-indigo-900 text-base">Solaupiano</span>
           </div>
         </header>
 

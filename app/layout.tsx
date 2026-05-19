@@ -3,7 +3,7 @@ import './globals.css'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'Sol au Piano',
+  title: 'Solaupiano',
   description: 'Plateforme de gestion de répétitions musicales',
 }
 
