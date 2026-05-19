@@ -27,6 +27,11 @@ export default async function GroupesPage() {
 
   const memberGroupIds = memberships.map((m) => m.groupId)
 
+  const formerGroups = await prisma.groupMemberHistory.findMany({
+    where: { userId },
+    orderBy: { leftAt: 'desc' },
+  })
+
   const publicGroups = await prisma.group.findMany({
     where: { isPublic: true, id: { notIn: memberGroupIds } },
     select: {
@@ -85,6 +90,29 @@ export default async function GroupesPage() {
               </Card>
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* Former groups */}
+      {formerGroups.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Anciens groupes</h2>
+          <p className="text-sm text-gray-500 mb-4">Groupes que vous avez quittés.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {formerGroups.map((entry) => (
+              <div key={entry.id} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-center gap-3 opacity-70">
+                <div className="w-9 h-9 rounded-xl bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-base flex-shrink-0">
+                  {entry.groupName.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-700 truncate">{entry.groupName}</p>
+                  <p className="text-xs text-gray-400">
+                    Quitté le {new Date(entry.leftAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

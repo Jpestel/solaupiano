@@ -78,5 +78,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     where: { userId_groupId: { userId: targetUserId, groupId } },
   })
 
+  // Record history only for voluntary departures
+  if (isSelf) {
+    const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } })
+    if (group) {
+      await prisma.groupMemberHistory.create({
+        data: { userId: targetUserId, groupId, groupName: group.name },
+      })
+    }
+  }
+
   return NextResponse.json({ success: true })
 }

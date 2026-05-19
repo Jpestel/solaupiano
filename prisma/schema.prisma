@@ -47,11 +47,12 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  instruments  UserInstrument[]
-  groups       GroupMember[]
-  attendances  Attendance[]
-  resources    Resource[]
-  joinRequests JoinRequest[]
+  instruments        UserInstrument[]
+  groups             GroupMember[]
+  attendances        Attendance[]
+  resources          Resource[]
+  joinRequests       JoinRequest[]
+  groupHistory       GroupMemberHistory[]
 }
 
 model Instrument {
@@ -154,6 +155,16 @@ model Song {
   group      Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
   resources  Resource[]
   rehearsals RehearsalSong[]
+}
+
+model GroupMemberHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  groupId   Int
+  groupName String
+  leftAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model JoinRequest {
