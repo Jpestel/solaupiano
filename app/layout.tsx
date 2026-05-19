@@ -15,10 +15,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="fr">
-      <head>
-        {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
-      </head>
       <body className="bg-gray-50 text-gray-900 antialiased">
+        {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
         <Providers>{children}</Providers>
       </body>
     </html>
