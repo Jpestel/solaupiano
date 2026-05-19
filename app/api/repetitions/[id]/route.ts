@@ -20,6 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             include: { resources: { orderBy: { createdAt: 'asc' } } },
           },
         },
+        orderBy: [{ position: 'asc' }, { songId: 'asc' }],
       },
       attendances: { include: { user: { select: { id: true, name: true } } } },
     },
@@ -32,7 +33,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
   if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
-  return NextResponse.json(rehearsal)
+  const songIds = rehearsal.songs.map((rs) => rs.songId)
+  const progress = await prisma.userSongProgress.findMany({
+    where: { userId, songId: { in: songIds } },
+  })
+  const progressMap = Object.fromEntries(progress.map((p) => [p.songId, p.done]))
+
+  return NextResponse.json({
+    ...rehearsal,
+    songs: rehearsal.songs.map((rs) => ({ ...rs, userDone: progressMap[rs.songId] ?? false })),
+  })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

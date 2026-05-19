@@ -23,10 +23,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const { songId } = await req.json()
 
+  const count = await prisma.rehearsalSong.count({ where: { rehearsalId } })
+
   const link = await prisma.rehearsalSong.upsert({
     where: { rehearsalId_songId: { rehearsalId, songId: Number(songId) } },
     update: {},
-    create: { rehearsalId, songId: Number(songId) },
+    create: { rehearsalId, songId: Number(songId), position: count },
   })
 
   return NextResponse.json(link, { status: 201 })

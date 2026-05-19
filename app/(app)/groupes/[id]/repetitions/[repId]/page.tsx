@@ -1,70 +1,156 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove, SortableContext, verticalListSortingStrategy, useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { formatDateWithDay, getResourceIcon } from '@/lib/utils'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { AttendanceBadge } from '@/components/ui/Badge'
 import { AttendanceButton } from '@/components/AttendanceButton'
 
-interface Resource {
-  id: number
-  name: string
-  type: string
-  filePath: string
-  fileSize?: number
-}
-
-interface Song {
-  id: number
-  title: string
-  artist?: string
-  resources: Resource[]
-}
-
-interface Attendance {
-  userId: number
-  status: 'PRESENT' | 'ABSENT' | 'INCERTAIN'
-  user: { id: number; name: string }
-}
-
+interface Resource { id: number; name: string; type: string; filePath: string }
+interface Song { id: number; title: string; artist?: string; resources: Resource[] }
+interface RehearsalSongEntry { song: Song; position: number; userDone: boolean }
+interface Attendance { userId: number; status: 'PRESENT' | 'ABSENT' | 'INCERTAIN'; user: { id: number; name: string } }
 interface Rehearsal {
-  id: number
-  date: string
-  location: string
-  startTime: string
-  endTime?: string
-  notes?: string
-  groupId: number
-  songs: { song: Song }[]
-  attendances: Attendance[]
+  id: number; date: string; location: string; startTime: string; endTime?: string; notes?: string; groupId: number
+  songs: RehearsalSongEntry[]; attendances: Attendance[]
+}
+interface GroupSong { id: number; title: string; artist?: string }
+
+function DragHandle() {
+  return (
+    <svg className="w-4 h-4 text-gray-300 group-hover:text-indigo-400 transition-colors flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+      <circle cx="5" cy="4" r="1.2" /><circle cx="5" cy="8" r="1.2" /><circle cx="5" cy="12" r="1.2" />
+      <circle cx="11" cy="4" r="1.2" /><circle cx="11" cy="8" r="1.2" /><circle cx="11" cy="12" r="1.2" />
+    </svg>
+  )
 }
 
-interface GroupInfo {
-  name: string
-  groupRole: string
-}
-
-interface GroupSong {
-  id: number
-  title: string
-  artist?: string
-}
-
-export default function RepetitionDetailPage({
-  params,
+function SortableSongRow({
+  entry, index, isChef, expandedSongIds, toggleResources, removingId, removeSong, toggleDone,
 }: {
-  params: { id: string; repId: string }
+  entry: RehearsalSongEntry
+  index: number
+  isChef: boolean
+  expandedSongIds: Set<number>
+  toggleResources: (id: number) => void
+  removingId: number | null
+  removeSong: (id: number) => void
+  toggleDone: (id: number, current: boolean) => void
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: entry.song.id,
+    disabled: !isChef,
+  })
+  const { song } = entry
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`rounded-xl border border-gray-100 bg-gray-50 overflow-hidden ${isDragging ? 'shadow-lg ring-2 ring-indigo-300 z-50 opacity-90' : ''}`}
+    >
+      <div className="flex items-center gap-3 px-4 py-3 group">
+        {isChef && (
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
+            <DragHandle />
+          </div>
+        )}
+        <span className="text-sm font-semibold text-gray-400 w-5 flex-shrink-0 select-none">{index + 1}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900">{song.title}</p>
+          {song.artist && <p className="text-xs text-gray-500">{song.artist}</p>}
+        </div>
+
+        {/* Progress checkbox */}
+        <button
+          onClick={() => toggleDone(song.id, entry.userDone)}
+          title={entry.userDone ? 'Marquer comme non travaillé' : 'Marquer comme travaillé'}
+          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border transition-all flex-shrink-0 ${
+            entry.userDone
+              ? 'bg-green-100 border-green-300 text-green-700'
+              : 'bg-white border-gray-200 text-gray-400 hover:border-indigo-300 hover:text-indigo-600'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+          {entry.userDone ? 'Travaillé' : 'À travailler'}
+        </button>
+
+        {isChef && (
+          <button
+            onClick={() => removeSong(song.id)}
+            disabled={removingId === song.id}
+            className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40 flex-shrink-0"
+            title="Retirer de la setlist"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {song.resources.length > 0 && (
+        <div className="border-t border-gray-100">
+          <button
+            onClick={() => toggleResources(song.id)}
+            className="w-full flex items-center justify-between px-4 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+          >
+            <span>{song.resources.length} fichier{song.resources.length > 1 ? 's' : ''}</span>
+            <svg className={`w-4 h-4 transition-transform ${expandedSongIds.has(song.id) ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {expandedSongIds.has(song.id) && (
+            <div className="border-t border-gray-100 px-4 py-3 space-y-2">
+              {song.resources.map((res) => (
+                <div key={res.id}>
+                  {res.type === 'AUDIO' ? (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-base">{getResourceIcon(res.type)}</span>
+                        <span className="text-xs font-medium text-gray-700">{res.name}</span>
+                      </div>
+                      <audio controls src={res.filePath} className="w-full" style={{ height: '32px' }} />
+                    </div>
+                  ) : (
+                    <a href={res.filePath} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
+                    >
+                      <span className="text-base">{getResourceIcon(res.type)}</span>
+                      <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 flex-1 truncate">{res.name}</span>
+                      <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function RepetitionDetailPage({ params }: { params: { id: string; repId: string } }) {
   const { data: session } = useSession()
   const [rehearsal, setRehearsal] = useState<Rehearsal | null>(null)
-  const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null)
+  const [songs, setSongs] = useState<RehearsalSongEntry[]>([])
+  const [groupInfo, setGroupInfo] = useState<{ name: string; groupRole: string } | null>(null)
   const [groupSongs, setGroupSongs] = useState<GroupSong[]>([])
   const [loading, setLoading] = useState(true)
   const [addingId, setAddingId] = useState<number | null>(null)
   const [removingId, setRemovingId] = useState<number | null>(null)
-  const [playingId, setPlayingId] = useState<number | null>(null)
   const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
 
   const toggleResources = (songId: number) => {
@@ -75,13 +161,17 @@ export default function RepetitionDetailPage({
     })
   }
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const [repRes, grpRes, songsRes] = await Promise.all([
       fetch(`/api/repetitions/${params.repId}`),
       fetch(`/api/groupes/${params.id}`),
       fetch(`/api/groupes/${params.id}/morceaux`),
     ])
-    if (repRes.ok) setRehearsal(await repRes.json())
+    if (repRes.ok) {
+      const r: Rehearsal = await repRes.json()
+      setRehearsal(r)
+      setSongs(r.songs)
+    }
     if (grpRes.ok) {
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
@@ -90,9 +180,25 @@ export default function RepetitionDetailPage({
     }
     if (songsRes.ok) setGroupSongs(await songsRes.json())
     setLoading(false)
-  }
+  }, [session, params.repId, params.id])
 
-  useEffect(() => { if (session) fetchData() }, [session, params.repId])
+  useEffect(() => { if (session) fetchData() }, [session, fetchData])
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = songs.findIndex((s) => s.song.id === Number(active.id))
+    const newIndex = songs.findIndex((s) => s.song.id === Number(over.id))
+    const newSongs = arrayMove(songs, oldIndex, newIndex)
+    setSongs(newSongs)
+    fetch(`/api/repetitions/${params.repId}/morceaux/order`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ songIds: newSongs.map((s) => s.song.id) }),
+    })
+  }
 
   const addSong = async (songId: number) => {
     setAddingId(songId)
@@ -116,6 +222,16 @@ export default function RepetitionDetailPage({
     fetchData()
   }
 
+  const toggleDone = async (songId: number, current: boolean) => {
+    // Optimistic update
+    setSongs((prev) => prev.map((s) => s.song.id === songId ? { ...s, userDone: !current } : s))
+    await fetch(`/api/morceaux/${songId}/progress`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: !current }),
+    })
+  }
+
   if (loading) return <div className="text-gray-500">Chargement...</div>
   if (!rehearsal) return <div className="text-gray-500">Répétition introuvable.</div>
 
@@ -123,8 +239,10 @@ export default function RepetitionDetailPage({
   const myAttendance = rehearsal.attendances.find((a) => a.userId === myUserId)
   const isChef = groupInfo?.groupRole === 'CHEF'
 
-  const setlistIds = new Set(rehearsal.songs.map((s) => s.song.id))
+  const setlistIds = new Set(songs.map((s) => s.song.id))
   const availableSongs = groupSongs.filter((s) => !setlistIds.has(s.id))
+
+  const doneCount = songs.filter((s) => s.userDone).length
 
   return (
     <div>
@@ -139,101 +257,45 @@ export default function RepetitionDetailPage({
       </div>
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 capitalize">
-          {formatDateWithDay(rehearsal.date)}
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900 capitalize">{formatDateWithDay(rehearsal.date)}</h1>
         <p className="text-gray-500 mt-1">
           {rehearsal.startTime}{rehearsal.endTime ? ` - ${rehearsal.endTime}` : ''} · {rehearsal.location}
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Setlist — col large */}
+        {/* Setlist */}
         <div className="lg:col-span-2 space-y-4">
           <Card>
-            <CardHeader title={`Morceaux à préparer (${rehearsal.songs.length})`} />
+            <CardHeader
+              title={`Morceaux à préparer (${songs.length})`}
+              subtitle={songs.length > 0 ? `${doneCount}/${songs.length} travaillé${doneCount > 1 ? 's' : ''}` : undefined}
+            />
 
-            {rehearsal.songs.length === 0 ? (
+            {songs.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">Aucun morceau au programme.</p>
             ) : (
-              <div className="space-y-4">
-                {rehearsal.songs.map(({ song }, index) => (
-                  <div key={song.id} className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden">
-                    {/* Song header */}
-                    <div className="flex items-center gap-3 px-4 py-3">
-                      <span className="text-sm font-semibold text-gray-400 w-5 flex-shrink-0">{index + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">{song.title}</p>
-                        {song.artist && <p className="text-xs text-gray-500">{song.artist}</p>}
-                      </div>
-                      {isChef && (
-                        <button
-                          onClick={() => removeSong(song.id)}
-                          disabled={removingId === song.id}
-                          className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40 flex-shrink-0"
-                          title="Retirer de la setlist"
-                        >
-                          ✕ Retirer
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Resources toggle */}
-                    {song.resources.length > 0 && (
-                      <div className="border-t border-gray-100">
-                        <button
-                          onClick={() => toggleResources(song.id)}
-                          className="w-full flex items-center justify-between px-4 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
-                        >
-                          <span>{song.resources.length} fichier{song.resources.length > 1 ? 's' : ''}</span>
-                          <svg
-                            className={`w-4 h-4 transition-transform ${expandedSongIds.has(song.id) ? 'rotate-180' : ''}`}
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        {expandedSongIds.has(song.id) && (
-                          <div className="border-t border-gray-100 px-4 py-3 space-y-2">
-                            {song.resources.map((res) => (
-                              <div key={res.id}>
-                                {res.type === 'AUDIO' ? (
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="text-base">{getResourceIcon(res.type)}</span>
-                                      <span className="text-xs font-medium text-gray-700">{res.name}</span>
-                                    </div>
-                                    <audio controls src={res.filePath} className="w-full" style={{ height: '32px' }} />
-                                  </div>
-                                ) : (
-                                  <a
-                                    href={res.filePath}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
-                                  >
-                                    <span className="text-base">{getResourceIcon(res.type)}</span>
-                                    <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 flex-1 truncate">
-                                      {res.name}
-                                    </span>
-                                    <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                  </a>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={songs.map((s) => s.song.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-3">
+                    {songs.map((entry, index) => (
+                      <SortableSongRow
+                        key={entry.song.id}
+                        entry={entry}
+                        index={index}
+                        isChef={isChef}
+                        expandedSongIds={expandedSongIds}
+                        toggleResources={toggleResources}
+                        removingId={removingId}
+                        removeSong={removeSong}
+                        toggleDone={toggleDone}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
 
-            {/* Chef: add song to setlist */}
             {isChef && availableSongs.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <p className="text-xs font-medium text-gray-500 mb-2">Ajouter un morceau au programme</p>
@@ -263,8 +325,7 @@ export default function RepetitionDetailPage({
               <p className="text-xs text-gray-400 mt-4 pt-4 border-t border-gray-100 text-center">
                 <Link href={`/groupes/${params.id}/morceaux`} className="text-indigo-600 hover:underline">
                   Ajoutez des morceaux au répertoire
-                </Link>{' '}
-                pour les programmer ici.
+                </Link>{' '}pour les programmer ici.
               </p>
             )}
           </Card>
@@ -272,7 +333,6 @@ export default function RepetitionDetailPage({
 
         {/* Right column */}
         <div className="space-y-6">
-          {/* My attendance */}
           <Card>
             <CardHeader title="Ma présence" />
             <p className="text-sm text-gray-600 mb-3">Indiquez votre disponibilité.</p>
@@ -286,7 +346,6 @@ export default function RepetitionDetailPage({
             </div>
           </Card>
 
-          {/* Notes */}
           {rehearsal.notes && (
             <Card>
               <CardHeader title="Notes" />
@@ -294,7 +353,6 @@ export default function RepetitionDetailPage({
             </Card>
           )}
 
-          {/* Attendances */}
           <Card>
             <CardHeader title={`Présences (${rehearsal.attendances.length})`} />
             {rehearsal.attendances.length === 0 ? (
@@ -302,10 +360,7 @@ export default function RepetitionDetailPage({
             ) : (
               <div className="space-y-2">
                 {rehearsal.attendances.map((att) => (
-                  <div
-                    key={att.userId}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
-                  >
+                  <div key={att.userId} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold">
                         {att.user.name.charAt(0).toUpperCase()}
