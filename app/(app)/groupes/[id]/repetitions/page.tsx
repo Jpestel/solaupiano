@@ -22,11 +22,17 @@ interface GroupInfo {
   groupRole: string
 }
 
+interface Member {
+  userId: number
+  user: { name: string }
+}
+
 export default function RepetitionsPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
   const groupId = params.id
   const [rehearsals, setRehearsals] = useState<Rehearsal[]>([])
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null)
+  const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({
@@ -36,6 +42,8 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
     endTime: '',
     notes: '',
   })
+  const [inviteAll, setInviteAll] = useState(true)
+  const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -50,6 +58,9 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
       setGroupInfo({ name: g.name, groupRole: role })
+      const otherMembers = (g.members || []).filter((m: { userId: number }) => m.userId !== Number(session?.user?.id))
+      setMembers(otherMembers)
+      setSelectedMemberIds(otherMembers.map((m: Member) => m.userId))
     }
     setLoading(false)
   }
@@ -66,7 +77,10 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
     const res = await fetch(`/api/groupes/${groupId}/repetitions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        invitedMemberIds: inviteAll ? [] : selectedMemberIds,
+      }),
     })
 
     setSaving(false)
@@ -78,6 +92,8 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
 
     setModalOpen(false)
     setForm({ date: '', location: '', startTime: '', endTime: '', notes: '' })
+    setInviteAll(true)
+    setSelectedMemberIds(members.map((m) => m.userId))
     fetchData()
   }
 
@@ -216,6 +232,53 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
               />
             </div>
           </div>
+          {members.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="form-label mb-0">Membres invités</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !inviteAll
+                    setInviteAll(next)
+                    if (next) setSelectedMemberIds(members.map((m) => m.userId))
+                    else setSelectedMemberIds([])
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
+                >
+                  {inviteAll ? 'Personnaliser' : 'Tous sélectionner'}
+                </button>
+              </div>
+              {inviteAll ? (
+                <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                  Tous les membres seront invités ({members.length})
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {members.map((m) => {
+                    const selected = selectedMemberIds.includes(m.userId)
+                    return (
+                      <button
+                        key={m.userId}
+                        type="button"
+                        onClick={() => setSelectedMemberIds((prev) =>
+                          selected ? prev.filter((id) => id !== m.userId) : [...prev, m.userId]
+                        )}
+                        className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
+                          selected
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                        }`}
+                      >
+                        {m.user.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
               Annuler

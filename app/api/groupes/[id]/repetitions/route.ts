@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const body = await req.json()
-  const { date, location, startTime, endTime, notes } = body
+  const { date, location, startTime, endTime, notes, invitedMemberIds } = body
 
   if (!date || !location || !startTime) {
     return NextResponse.json({ error: 'Date, lieu et heure de début sont requis.' }, { status: 400 })
@@ -58,13 +58,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   })
 
-  // Create attendance entries for all group members
-  const members = await prisma.groupMember.findMany({
+  const allMembers = await prisma.groupMember.findMany({
     where: { groupId },
     include: { user: { select: { email: true, name: true } } },
   })
+
+  // Invited members = selected ones + always the creator
+  const invitedIds: number[] = Array.isArray(invitedMemberIds) && invitedMemberIds.length > 0
+    ? [...new Set([...invitedMemberIds.map(Number), userId])]
+    : allMembers.map((m) => m.userId)
+
+  const invitedMembers = allMembers.filter((m) => invitedIds.includes(m.userId))
+
   await prisma.attendance.createMany({
-    data: members.map((m) => ({
+    data: invitedMembers.map((m) => ({
       userId: m.userId,
       rehearsalId: rehearsal.id,
       status: 'INCERTAIN' as const,
@@ -72,12 +79,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     skipDuplicates: true,
   })
 
-  // Send email notifications (non-blocking)
+  // Send email notifications to invited members (excluding creator)
   const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } })
   if (group) {
     const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
     sendRehearsalNotification(
-      members.filter((m) => m.userId !== userId).map((m) => ({ email: m.user.email, name: m.user.name })),
+      invitedMembers.filter((m) => m.userId !== userId).map((m) => ({ email: m.user.email, name: m.user.name })),
       group.name,
       groupId,
       rehearsal,
