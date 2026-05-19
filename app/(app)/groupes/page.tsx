@@ -32,19 +32,20 @@ export default async function GroupesPage() {
     orderBy: { leftAt: 'desc' },
   })
 
-  const publicGroups = await prisma.group.findMany({
-    where: { isPublic: true, id: { notIn: memberGroupIds } },
+  const availableGroups = await prisma.group.findMany({
+    where: { id: { notIn: memberGroupIds } },
     select: {
       id: true,
       name: true,
       description: true,
+      isPublic: true,
       _count: { select: { members: true } },
       joinRequests: {
         where: { userId },
         select: { id: true, status: true },
       },
     },
-    orderBy: { name: 'asc' },
+    orderBy: [{ isPublic: 'desc' }, { name: 'asc' }],
   })
 
   return (
@@ -116,12 +117,12 @@ export default async function GroupesPage() {
         </div>
       )}
 
-      {/* Public groups to discover */}
-      {publicGroups.length > 0 && (
+      {/* All groups not yet joined */}
+      {availableGroups.length > 0 && (
         <div className="mt-10">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Groupes publics</h2>
-          <p className="text-sm text-gray-500 mb-4">Demandez à rejoindre un groupe ouvert à tous les musiciens.</p>
-          <JoinPublicGroupsSection groups={publicGroups} />
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Groupes disponibles</h2>
+          <p className="text-sm text-gray-500 mb-4">Groupes publics ouverts aux demandes, et groupes privés sur invitation uniquement.</p>
+          <JoinPublicGroupsSection groups={availableGroups} />
         </div>
       )}
     </div>
