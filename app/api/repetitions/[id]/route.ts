@@ -13,7 +13,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const rehearsal = await prisma.rehearsal.findUnique({
     where: { id: rehearsalId },
     include: {
-      songs: { include: { song: true } },
+      songs: {
+        include: {
+          song: {
+            include: { resources: { orderBy: { createdAt: 'asc' } } },
+          },
+        },
+      },
       attendances: { include: { user: { select: { id: true, name: true } } } },
     },
   })

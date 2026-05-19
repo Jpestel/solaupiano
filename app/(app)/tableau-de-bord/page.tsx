@@ -24,6 +24,9 @@ export default async function TableauDeBordPage() {
             where: { date: { gte: now, lte: in30Days } },
             orderBy: { date: 'asc' },
             take: 3,
+            include: {
+              songs: { include: { song: { select: { title: true, artist: true } } } },
+            },
           },
           concerts: {
             where: { date: { gte: now } },
@@ -82,6 +85,11 @@ export default async function TableauDeBordPage() {
                         {formatDateWithDay(rep.date)} · {rep.startTime}{rep.endTime ? ` - ${rep.endTime}` : ''}
                       </p>
                       <p className="text-xs text-gray-400">{rep.location}</p>
+                      {rep.songs.length > 0 && (
+                        <p className="text-xs text-indigo-500 mt-1">
+                          Morceaux : {rep.songs.map((s) => s.song.title).join(', ')}
+                        </p>
+                      )}
                     </div>
                     <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
