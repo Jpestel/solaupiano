@@ -8,6 +8,7 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/ui/Badge'
 import JoinRequestsPanel from './JoinRequestsPanel'
 import MembresPanel from './MembresPanel'
+import { InvitePanel } from './InvitePanel'
 
 export default async function GroupePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -24,6 +25,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
+    // @ts-ignore isPublic added via db push
     include: {
       members: {
         include: {
@@ -77,14 +79,23 @@ export default async function GroupePage({ params }: { params: { id: string } })
           <span>/</span>
           <span className="text-gray-900">{group.name}</span>
         </div>
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{group.name}</h1>
             {group.description && (
               <p className="text-gray-500 mt-1">{group.description}</p>
             )}
           </div>
-          <RoleBadge role={membership.groupRole} />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+              (group as any).isPublic
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-600'
+            }`}>
+              {(group as any).isPublic ? '🌐 Public' : '🔒 Privé'}
+            </span>
+            <RoleBadge role={membership.groupRole} />
+          </div>
         </div>
       </div>
 
@@ -96,7 +107,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
       )}
 
       {/* Quick links */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-3 mb-8">
         {[
           { href: 'repetitions', label: 'Répétitions', icon: '🎵', color: 'bg-blue-50 text-blue-700 border-blue-200' },
           { href: 'concerts', label: 'Concerts', icon: '🎭', color: 'bg-purple-50 text-purple-700 border-purple-200' },
@@ -105,7 +116,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
           <Link
             key={link.href}
             href={`/groupes/${groupId}/${link.href}`}
-            className={`flex flex-col items-center justify-center rounded-xl border p-5 text-center hover:shadow-md transition-all ${link.color}`}
+            className={`flex flex-col items-center justify-center rounded-xl border p-3 sm:p-5 text-center hover:shadow-md transition-all ${link.color}`}
           >
             <span className="text-3xl mb-2">{link.icon}</span>
             <span className="font-semibold text-sm">{link.label}</span>
@@ -164,6 +175,17 @@ export default async function GroupePage({ params }: { params: { id: string } })
             <p className="text-sm text-gray-500 text-center py-4">Aucun concert prévu.</p>
           )}
         </Card>
+
+        {/* Invite by email — private group, chef only */}
+        {isChef && !(group as any).isPublic && (
+          <Card className="lg:col-span-2">
+            <CardHeader title="Inviter un musicien" />
+            <p className="text-sm text-gray-500 mb-3">
+              Ce groupe est privé. Invitez des musiciens inscrits sur la plateforme par leur adresse email.
+            </p>
+            <InvitePanel groupId={groupId} onInvited={() => {}} />
+          </Card>
+        )}
 
         {/* Members */}
         <Card className="lg:col-span-2">

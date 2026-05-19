@@ -26,7 +26,7 @@ export default function AdminGroupesPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '', chefId: '' })
+  const [form, setForm] = useState({ name: '', description: '', chefId: '', isPublic: true })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -54,6 +54,7 @@ export default function AdminGroupesPage() {
         name: form.name,
         description: form.description,
         chefId: Number(form.chefId),
+        isPublic: form.isPublic,
       }),
     })
 
@@ -64,7 +65,7 @@ export default function AdminGroupesPage() {
       return
     }
     setModalOpen(false)
-    setForm({ name: '', description: '', chefId: '' })
+    setForm({ name: '', description: '', chefId: '', isPublic: true })
     fetchData()
   }
 
@@ -92,49 +93,57 @@ export default function AdminGroupesPage() {
         </Card>
       ) : (
         <Card padding={false}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupe</th>
-                <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Chef</th>
-                <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Membres</th>
-                <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Répétitions</th>
-                <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((group) => {
-                const chef = group.members.find((m) => m.groupRole === 'CHEF')
-                return (
-                  <tr key={group.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{group.name}</p>
-                      {group.description && (
-                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{group.description}</p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {chef ? (
-                        <span className="text-sm text-gray-700">{chef.user.name}</span>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{group._count.members}</td>
-                    <td className="px-6 py-4 text-gray-600">{group._count.rehearsals}</td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleDelete(group.id, group.name)}
-                        className="text-xs font-medium text-red-600 hover:text-red-500"
-                      >
-                        Supprimer
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupe</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Visibilité</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Chef</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Membres</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((group: any) => {
+                  const chef = group.members.find((m: any) => m.groupRole === 'CHEF')
+                  return (
+                    <tr key={group.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-gray-900">{group.name}</p>
+                        {group.description && (
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{group.description}</p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                          group.isPublic ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {group.isPublic ? '🌐 Public' : '🔒 Privé'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {chef ? (
+                          <span className="text-sm text-gray-700">{chef.user.name}</span>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{group._count.members}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleDelete(group.id, group.name)}
+                          className="text-xs font-medium text-red-600 hover:text-red-500"
+                        >
+                          Supprimer
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 
@@ -161,6 +170,26 @@ export default function AdminGroupesPage() {
               rows={2}
               placeholder="Description optionnelle..."
             />
+          </div>
+          <div>
+            <label className="form-label">Visibilité</label>
+            <div className="flex gap-3 mt-1">
+              {[{ value: true, label: '🌐 Public', desc: 'Visible par tous' }, { value: false, label: '🔒 Privé', desc: 'Invitation uniquement' }].map((opt) => (
+                <button
+                  key={String(opt.value)}
+                  type="button"
+                  onClick={() => setForm({ ...form, isPublic: opt.value })}
+                  className={`flex-1 rounded-lg border-2 p-2.5 text-sm text-center transition-colors ${
+                    form.isPublic === opt.value
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <div>{opt.label}</div>
+                  <div className="text-xs text-gray-500 font-normal">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
           </div>
           <div>
             <label className="form-label">Chef du groupe *</label>

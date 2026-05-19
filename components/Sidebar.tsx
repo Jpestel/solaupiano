@@ -46,7 +46,12 @@ const adminItem = {
   ),
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  open?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
 
@@ -55,16 +60,23 @@ export function Sidebar() {
 
   const userInitial = session?.user?.name?.charAt(0).toUpperCase() || '?'
 
-  return (
+  const content = (
     <aside className="w-64 min-h-screen bg-gray-100 border-r border-gray-200 flex flex-col">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-gray-200">
-        <Link href="/tableau-de-bord" className="flex items-center gap-3">
+      <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+        <Link href="/tableau-de-bord" className="flex items-center gap-3" onClick={onClose}>
           <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow">
             <span className="text-lg">🎹</span>
           </div>
           <span className="font-bold text-indigo-900 text-lg leading-tight">Sol au Piano</span>
         </Link>
+        {onClose && (
+          <button onClick={onClose} className="lg:hidden p-1 rounded-lg hover:bg-gray-200 text-gray-500">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -77,6 +89,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={clsx(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive(item.href)
@@ -98,6 +111,7 @@ export function Sidebar() {
             </div>
             <Link
               href={adminItem.href}
+              onClick={onClose}
               className={clsx(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive(adminItem.href)
@@ -136,5 +150,20 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+  )
+
+  return (
+    <>
+      {/* Desktop: always visible */}
+      <div className="hidden lg:flex">{content}</div>
+
+      {/* Mobile: drawer overlay */}
+      {open && (
+        <div className="lg:hidden fixed inset-0 z-40 flex">
+          <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+          <div className="relative z-50 flex">{content}</div>
+        </div>
+      )}
+    </>
   )
 }

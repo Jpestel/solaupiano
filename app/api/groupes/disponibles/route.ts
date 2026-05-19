@@ -15,7 +15,7 @@ export async function GET() {
   ).map((m) => m.groupId)
 
   const groups = await prisma.group.findMany({
-    where: { id: { notIn: memberGroupIds } },
+    where: { id: { notIn: memberGroupIds }, isPublic: true },
     select: {
       id: true,
       name: true,

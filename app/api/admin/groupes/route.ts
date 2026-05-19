@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
   if (session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
-  const { name, description, chefId } = await req.json()
+  const { name, description, chefId, isPublic } = await req.json()
 
   if (!name?.trim()) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
   if (!chefId) return NextResponse.json({ error: 'Un chef est requis.' }, { status: 400 })
@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     data: {
       name: name.trim(),
       description: description?.trim() || null,
+      isPublic: typeof isPublic === 'boolean' ? isPublic : true,
       members: {
         create: { userId: Number(chefId), groupRole: 'CHEF' },
       },

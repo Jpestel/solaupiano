@@ -69,9 +69,10 @@ model UserInstrument {
 }
 
 model Group {
-  id          Int     @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
-  description String? @db.Text
+  description String?  @db.Text
+  isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
   members      GroupMember[]
