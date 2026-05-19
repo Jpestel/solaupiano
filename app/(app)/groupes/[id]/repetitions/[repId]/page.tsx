@@ -65,6 +65,15 @@ export default function RepetitionDetailPage({
   const [addingId, setAddingId] = useState<number | null>(null)
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [playingId, setPlayingId] = useState<number | null>(null)
+  const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
+
+  const toggleResources = (songId: number) => {
+    setExpandedSongIds((prev) => {
+      const next = new Set(prev)
+      next.has(songId) ? next.delete(songId) : next.add(songId)
+      return next
+    })
+  }
 
   const fetchData = async () => {
     const [repRes, grpRes, songsRes] = await Promise.all([
@@ -170,48 +179,53 @@ export default function RepetitionDetailPage({
                       )}
                     </div>
 
-                    {/* Resources */}
+                    {/* Resources toggle */}
                     {song.resources.length > 0 && (
-                      <div className="border-t border-gray-100 px-4 py-3 space-y-2">
-                        {song.resources.map((res) => (
-                          <div key={res.id}>
-                            {res.type === 'AUDIO' ? (
-                              <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-base">{getResourceIcon(res.type)}</span>
-                                  <span className="text-xs font-medium text-gray-700">{res.name}</span>
-                                </div>
-                                <audio
-                                  controls
-                                  src={res.filePath}
-                                  className="w-full h-8"
-                                  style={{ height: '32px' }}
-                                />
+                      <div className="border-t border-gray-100">
+                        <button
+                          onClick={() => toggleResources(song.id)}
+                          className="w-full flex items-center justify-between px-4 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+                        >
+                          <span>{song.resources.length} fichier{song.resources.length > 1 ? 's' : ''}</span>
+                          <svg
+                            className={`w-4 h-4 transition-transform ${expandedSongIds.has(song.id) ? 'rotate-180' : ''}`}
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {expandedSongIds.has(song.id) && (
+                          <div className="border-t border-gray-100 px-4 py-3 space-y-2">
+                            {song.resources.map((res) => (
+                              <div key={res.id}>
+                                {res.type === 'AUDIO' ? (
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-base">{getResourceIcon(res.type)}</span>
+                                      <span className="text-xs font-medium text-gray-700">{res.name}</span>
+                                    </div>
+                                    <audio controls src={res.filePath} className="w-full" style={{ height: '32px' }} />
+                                  </div>
+                                ) : (
+                                  <a
+                                    href={res.filePath}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
+                                  >
+                                    <span className="text-base">{getResourceIcon(res.type)}</span>
+                                    <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 flex-1 truncate">
+                                      {res.name}
+                                    </span>
+                                    <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                  </a>
+                                )}
                               </div>
-                            ) : (
-                              <a
-                                href={res.filePath}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
-                              >
-                                <span className="text-base">{getResourceIcon(res.type)}</span>
-                                <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 flex-1 truncate">
-                                  {res.name}
-                                </span>
-                                <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                              </a>
-                            )}
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {song.resources.length === 0 && (
-                      <div className="border-t border-gray-100 px-4 py-2">
-                        <p className="text-xs text-gray-400 italic">Aucune ressource attachée à ce morceau.</p>
+                        )}
                       </div>
                     )}
                   </div>
