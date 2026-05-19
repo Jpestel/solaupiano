@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   DndContext,
@@ -93,6 +93,8 @@ export function GroupCards({
 }: Props) {
   const defaultOrder = ['rehearsal', 'concert', 'members', ...(showInvite ? ['invite'] : [])]
 
+  const LS_KEY = `group-card-order-${groupId}`
+
   const parseOrder = (raw: string | null): string[] => {
     if (!raw) return defaultOrder
     try {
@@ -104,7 +106,14 @@ export function GroupCards({
     }
   }
 
+  // Prefer localStorage (survives router cache), fall back to DB value
   const [order, setOrder] = useState<string[]>(() => parseOrder(savedCardOrder))
+
+  useEffect(() => {
+    const local = localStorage.getItem(LS_KEY)
+    if (local) setOrder(parseOrder(local))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -115,6 +124,7 @@ export function GroupCards({
     const newIndex = order.indexOf(String(over.id))
     const newOrder = arrayMove(order, oldIndex, newIndex)
     setOrder(newOrder)
+    localStorage.setItem(LS_KEY, JSON.stringify(newOrder))
     fetch(`/api/groupes/${groupId}/card-order`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
