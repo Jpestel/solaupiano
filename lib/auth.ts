@@ -30,6 +30,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Mot de passe incorrect')
         }
 
+        if (!user.emailVerified) {
+          throw new Error('EMAIL_NOT_VERIFIED')
+        }
+
         return {
           id: String(user.id),
           email: user.email,

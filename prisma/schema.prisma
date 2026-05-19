@@ -39,21 +39,23 @@ enum JoinRequestStatus {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String
-  siteRole  SiteRole @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String
+  name          String
+  siteRole      SiteRole  @default(USER)
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  instruments        UserInstrument[]
-  groups             GroupMember[]
-  attendances        Attendance[]
-  resources          Resource[]
-  joinRequests       JoinRequest[]
-  groupHistory       GroupMemberHistory[]
-  passwordResetTokens PasswordResetToken[]
+  instruments              UserInstrument[]
+  groups                   GroupMember[]
+  attendances              Attendance[]
+  resources                Resource[]
+  joinRequests             JoinRequest[]
+  groupHistory             GroupMemberHistory[]
+  passwordResetTokens      PasswordResetToken[]
+  emailVerificationTokens  EmailVerificationToken[]
 }
 
 model Instrument {
@@ -186,6 +188,17 @@ model JoinRequest {
 model SiteSetting {
   key   String @id
   value String
+}
+
+model EmailVerificationToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PasswordResetToken {

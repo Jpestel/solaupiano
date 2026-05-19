@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { sendEmailVerification } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,11 +48,25 @@ export async function POST(req: NextRequest) {
         email,
         password: hashedPassword,
         siteRole: isFirstUser ? 'ADMIN' : 'USER',
+        emailVerified: isFirstUser ? new Date() : null,
         instruments: {
           create: allInstrumentIds.map((id: number) => ({ instrumentId: id })),
         },
       },
     })
+
+    if (!isFirstUser) {
+      const token = crypto.randomBytes(32).toString('hex')
+      await prisma.emailVerificationToken.create({
+        data: {
+          userId: user.id,
+          token,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      })
+      const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+      await sendEmailVerification(email, name, `${baseUrl}/verifier-email?token=${token}`)
+    }
 
     return NextResponse.json({ id: user.id, name: user.name, email: user.email }, { status: 201 })
   } catch (error) {
