@@ -87,11 +87,16 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ success: true, groupDeleted: true })
   }
 
-  // Record history only for voluntary departures
+  // Record history only for voluntary departures, and clean up join request
   if (isSelf && group) {
-    await prisma.groupMemberHistory.create({
-      data: { userId: targetUserId, groupId, groupName: group.name },
-    })
+    await Promise.all([
+      prisma.groupMemberHistory.create({
+        data: { userId: targetUserId, groupId, groupName: group.name },
+      }),
+      prisma.joinRequest.deleteMany({
+        where: { userId: targetUserId, groupId },
+      }),
+    ])
   }
 
   return NextResponse.json({ success: true })
