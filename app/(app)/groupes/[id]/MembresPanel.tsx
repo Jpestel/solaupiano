@@ -30,6 +30,7 @@ export default function MembresPanel({
   const [members, setMembers] = useState(initialMembers)
   const [processing, setProcessing] = useState<number | null>(null)
   const [leaveWarning, setLeaveWarning] = useState(false)
+  const [actionError, setActionError] = useState('')
 
   const isChef = currentUserRole === 'CHEF'
 
@@ -73,19 +74,28 @@ export default function MembresPanel({
       body: JSON.stringify({ userId: targetUserId }),
     })
     setProcessing(null)
-    if (res.ok) {
-      const data = await res.json()
-      if (isSelf || data.groupDeleted) {
-        router.push('/groupes')
-      } else {
-        setMembers((prev) => prev.filter((m) => m.userId !== targetUserId))
-        router.refresh()
-      }
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setActionError(d.error || 'Une erreur est survenue. Veuillez réessayer.')
+      return
+    }
+    const data = await res.json()
+    if (isSelf || data.groupDeleted) {
+      router.push('/groupes')
+    } else {
+      setMembers((prev) => prev.filter((m) => m.userId !== targetUserId))
+      router.refresh()
     }
   }
 
   return (
     <div className="space-y-4">
+    {actionError && (
+      <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+        <div className="flex-1 text-sm text-red-800">{actionError}</div>
+        <button onClick={() => setActionError('')} className="text-red-400 hover:text-red-600 flex-shrink-0">✕</button>
+      </div>
+    )}
     {leaveWarning && (
       <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
         <span className="text-amber-500 mt-0.5 flex-shrink-0">⚠️</span>

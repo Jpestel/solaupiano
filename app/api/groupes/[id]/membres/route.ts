@@ -76,28 +76,36 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } })
 
-  await prisma.groupMember.delete({
-    where: { userId_groupId: { userId: targetUserId, groupId } },
+  let groupDeleted = false
+
+  await prisma.$transaction(async (tx) => {
+    await tx.groupMember.delete({
+      where: { userId_groupId: { userId: targetUserId, groupId } },
+    })
+
+    const remaining = await tx.groupMember.count({ where: { groupId } })
+
+    if (remaining === 0) {
+      // Explicitly remove child records before deleting the group
+      const songIds = (await tx.song.findMany({ where: { groupId }, select: { id: true } })).map((s) => s.id)
+      const rehearsalIds = (await tx.rehearsal.findMany({ where: { groupId }, select: { id: true } })).map((r) => r.id)
+
+      await tx.resource.deleteMany({ where: { songId: { in: songIds } } })
+      await tx.rehearsalSong.deleteMany({ where: { rehearsalId: { in: rehearsalIds } } })
+      await tx.attendance.deleteMany({ where: { rehearsalId: { in: rehearsalIds } } })
+      await tx.rehearsal.deleteMany({ where: { groupId } })
+      await tx.song.deleteMany({ where: { groupId } })
+      await tx.concert.deleteMany({ where: { groupId } })
+      await tx.joinRequest.deleteMany({ where: { groupId } })
+      await tx.group.delete({ where: { id: groupId } })
+      groupDeleted = true
+    } else if (isSelf && group) {
+      await tx.groupMemberHistory.create({
+        data: { userId: targetUserId, groupId, groupName: group.name },
+      })
+      await tx.joinRequest.deleteMany({ where: { userId: targetUserId, groupId } })
+    }
   })
 
-  // Check if group is now empty — delete it if so
-  const remaining = await prisma.groupMember.count({ where: { groupId } })
-  if (remaining === 0) {
-    await prisma.group.delete({ where: { id: groupId } })
-    return NextResponse.json({ success: true, groupDeleted: true })
-  }
-
-  // Record history only for voluntary departures, and clean up join request
-  if (isSelf && group) {
-    await Promise.all([
-      prisma.groupMemberHistory.create({
-        data: { userId: targetUserId, groupId, groupName: group.name },
-      }),
-      prisma.joinRequest.deleteMany({
-        where: { userId: targetUserId, groupId },
-      }),
-    ])
-  }
-
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, groupDeleted })
 }
