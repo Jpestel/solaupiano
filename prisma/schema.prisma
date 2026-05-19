@@ -92,6 +92,7 @@ model GroupMember {
   groupId   Int
   groupRole GroupRole @default(MEMBRE)
   joinedAt  DateTime  @default(now())
+  cardOrder String?
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)

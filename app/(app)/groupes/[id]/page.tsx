@@ -19,6 +19,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
+    select: { groupRole: true, cardOrder: true },
   })
 
   if (!membership && !isAdminUser) notFound()
@@ -149,6 +150,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         canManage={canManageMembers}
         currentUserId={userId}
         currentUserRole={membership?.groupRole ?? 'CHEF'}
+        savedCardOrder={membership?.cardOrder ?? null}
       />
     </div>
   )

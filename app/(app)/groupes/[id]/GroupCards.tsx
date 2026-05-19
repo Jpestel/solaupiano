@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import {
   DndContext,
@@ -57,6 +57,7 @@ interface Props {
   canManage: boolean
   currentUserId: number
   currentUserRole: string
+  savedCardOrder: string | null
 }
 
 function SortableCard({ id, children, spanFull }: { id: string; children: React.ReactNode; spanFull?: boolean }) {
@@ -88,26 +89,22 @@ function SortableCard({ id, children, spanFull }: { id: string; children: React.
 
 export function GroupCards({
   groupId, rehearsal, concert, members, showInvite,
-  isChef, canManage, currentUserId, currentUserRole,
+  isChef, canManage, currentUserId, currentUserRole, savedCardOrder,
 }: Props) {
-  const STORAGE_KEY = `group-card-order-${groupId}`
   const defaultOrder = ['rehearsal', 'concert', 'members', ...(showInvite ? ['invite'] : [])]
 
-  const [order, setOrder] = useState<string[]>(defaultOrder)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        const parsed: string[] = JSON.parse(saved)
-        const valid = defaultOrder.filter((id) => parsed.includes(id))
-        const merged = [...valid, ...defaultOrder.filter((id) => !valid.includes(id))]
-        setOrder(merged)
-      } catch {}
+  const parseOrder = (raw: string | null): string[] => {
+    if (!raw) return defaultOrder
+    try {
+      const parsed: string[] = JSON.parse(raw)
+      const valid = defaultOrder.filter((id) => parsed.includes(id))
+      return [...valid, ...defaultOrder.filter((id) => !valid.includes(id))]
+    } catch {
+      return defaultOrder
     }
-    setMounted(true)
-  }, [])
+  }
+
+  const [order, setOrder] = useState<string[]>(() => parseOrder(savedCardOrder))
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -118,7 +115,11 @@ export function GroupCards({
     const newIndex = order.indexOf(String(over.id))
     const newOrder = arrayMove(order, oldIndex, newIndex)
     setOrder(newOrder)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder))
+    fetch(`/api/groupes/${groupId}/card-order`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: newOrder }),
+    })
   }
 
   const cardContent: Record<string, { node: React.ReactNode; spanFull: boolean }> = {
@@ -206,8 +207,6 @@ export function GroupCards({
       ),
     },
   }
-
-  if (!mounted) return null
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
