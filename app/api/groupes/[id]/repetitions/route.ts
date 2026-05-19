@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendRehearsalNotification } from '@/lib/email'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -58,7 +59,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
 
   // Create attendance entries for all group members
-  const members = await prisma.groupMember.findMany({ where: { groupId } })
+  const members = await prisma.groupMember.findMany({
+    where: { groupId },
+    include: { user: { select: { email: true, name: true } } },
+  })
   await prisma.attendance.createMany({
     data: members.map((m) => ({
       userId: m.userId,
@@ -67,6 +71,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     })),
     skipDuplicates: true,
   })
+
+  // Send email notifications (non-blocking)
+  const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } })
+  if (group) {
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+    sendRehearsalNotification(
+      members.map((m) => ({ email: m.user.email, name: m.user.name })),
+      group.name,
+      groupId,
+      rehearsal,
+      baseUrl
+    ).catch(console.error)
+  }
 
   return NextResponse.json(rehearsal, { status: 201 })
 }
