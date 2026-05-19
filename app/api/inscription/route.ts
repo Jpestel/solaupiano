@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { sendEmailVerification } from '@/lib/email'
+import { sendEmailVerification, sendNewUserNotification } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,7 +65,11 @@ export async function POST(req: NextRequest) {
         },
       })
       const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
-      await sendEmailVerification(email, name, `${baseUrl}/verifier-email?token=${token}`)
+      const admin = await prisma.user.findFirst({ where: { siteRole: 'ADMIN' }, select: { email: true } })
+      await Promise.all([
+        sendEmailVerification(email, name, `${baseUrl}/verifier-email?token=${token}`),
+        admin ? sendNewUserNotification(admin.email, { name, email }) : Promise.resolve(),
+      ])
     }
 
     return NextResponse.json({ id: user.id, name: user.name, email: user.email }, { status: 201 })

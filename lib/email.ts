@@ -170,6 +170,48 @@ export async function sendEmailVerification(to: string, name: string, verifyUrl:
   })
 }
 
+export async function sendNewUserNotification(adminEmail: string, newUser: { name: string; email: string }) {
+  await resend.emails.send({
+    from: 'Solaupiano <noreply@solaupiano.fr>',
+    to: adminEmail,
+    subject: `Nouvelle inscription — ${newUser.name}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
+        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
+              <span style="font-size: 24px;">🎹</span>
+            </div>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
+            <p style="margin: 0 0 4px; font-size: 15px; font-weight: 600; color: #166534;">Nouvelle inscription 🎉</p>
+            <p style="margin: 0; font-size: 13px; color: #15803d;">Un nouveau musicien vient de rejoindre la plateforme.</p>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; width: 40%;">Nom</td>
+              <td style="padding: 8px 0; color: #111827; font-weight: 500;">${newUser.name}</td>
+            </tr>
+            <tr style="border-top: 1px solid #f3f4f6;">
+              <td style="padding: 8px 0; color: #6b7280;">Email</td>
+              <td style="padding: 8px 0; color: #111827; font-weight: 500;">${newUser.email}</td>
+            </tr>
+          </table>
+
+          <div style="text-align: center; margin-top: 24px;">
+            <a href="https://solaupiano.fr/admin/utilisateurs" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 600;">
+              Voir les utilisateurs
+            </a>
+          </div>
+        </div>
+      </div>
+    `,
+  })
+}
+
 export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string) {
   await resend.emails.send({
     from: 'Solaupiano <noreply@solaupiano.fr>',
