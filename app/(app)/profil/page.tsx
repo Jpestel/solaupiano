@@ -236,13 +236,6 @@ export default function ProfilPage() {
           </Card>
         )}
 
-        {profile.siteRole !== 'ADMIN' && availableGroups.length === 0 && !loading && (
-          <Card>
-            <p className="text-sm text-gray-500 text-center py-2">
-              Vous êtes membre de tous les groupes disponibles.
-            </p>
-          </Card>
-        )}
       </div>
     </div>
   )
