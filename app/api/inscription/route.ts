@@ -20,6 +20,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Un compte avec cet email existe déjà.' }, { status: 409 })
     }
 
+    const userCount = await prisma.user.count()
+    const isFirstUser = userCount === 0
+
     const hashedPassword = await bcrypt.hash(password, 12)
 
     const user = await prisma.user.create({
@@ -27,6 +30,7 @@ export async function POST(req: NextRequest) {
         name,
         email,
         password: hashedPassword,
+        siteRole: isFirstUser ? 'ADMIN' : 'USER',
         instruments: {
           create: Array.isArray(instrumentIds)
             ? instrumentIds.map((id: number) => ({ instrumentId: id }))
