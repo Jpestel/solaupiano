@@ -16,7 +16,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: rehearsal.groupId } },
   })
-  if (!membership || membership.groupRole !== 'CHEF') {
+  const isAdmin = session.user.siteRole === 'ADMIN'
+  if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
@@ -44,7 +45,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: rehearsal.groupId } },
   })
-  if (!membership || membership.groupRole !== 'CHEF') {
+  const isAdmin = session.user.siteRole === 'ADMIN'
+  if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 

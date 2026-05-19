@@ -8,6 +8,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const rehearsalId = Number(params.id)
 
   const rehearsal = await prisma.rehearsal.findUnique({
@@ -26,11 +27,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   if (!rehearsal) return NextResponse.json({ error: 'Répétition introuvable.' }, { status: 404 })
 
-  // Verify membership
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: rehearsal.groupId } },
   })
-  if (!membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   return NextResponse.json(rehearsal)
 }
@@ -40,6 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const rehearsalId = Number(params.id)
 
   const rehearsal = await prisma.rehearsal.findUnique({ where: { id: rehearsalId } })
@@ -48,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: rehearsal.groupId } },
   })
-  if (!membership || membership.groupRole !== 'CHEF') {
+  if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
@@ -72,6 +73,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const rehearsalId = Number(params.id)
 
   const rehearsal = await prisma.rehearsal.findUnique({ where: { id: rehearsalId } })
@@ -80,7 +82,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: rehearsal.groupId } },
   })
-  if (!membership || membership.groupRole !== 'CHEF') {
+  if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 

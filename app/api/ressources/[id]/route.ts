@@ -20,10 +20,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!resource) return NextResponse.json({ error: 'Ressource introuvable.' }, { status: 404 })
 
   // Check group membership
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: resource.song.groupId } },
   })
-  if (!membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   // Serve file
   const filePath = resource.filePath.startsWith('/')

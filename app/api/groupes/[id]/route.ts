@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     where: { userId_groupId: { userId, groupId } },
   })
 
-  if (!membership || (membership.groupRole !== 'CHEF' && session.user.siteRole !== 'ADMIN')) {
+  if (session.user.siteRole !== 'ADMIN' && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 

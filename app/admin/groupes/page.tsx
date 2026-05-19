@@ -16,6 +16,7 @@ interface Group {
   id: number
   name: string
   description?: string
+  isPublic: boolean
   createdAt: string
   _count: { members: number; rehearsals: number }
   members: { user: User; groupRole: string }[]
@@ -27,6 +28,8 @@ export default function AdminGroupesPage() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', chefId: '', isPublic: true })
+  const [editGroup, setEditGroup] = useState<Group | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', description: '', isPublic: true })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -66,6 +69,32 @@ export default function AdminGroupesPage() {
     }
     setModalOpen(false)
     setForm({ name: '', description: '', chefId: '', isPublic: true })
+    fetchData()
+  }
+
+  const openEdit = (group: Group) => {
+    setEditGroup(group)
+    setEditForm({ name: group.name, description: group.description || '', isPublic: group.isPublic })
+    setError('')
+  }
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editGroup) return
+    setSaving(true)
+    setError('')
+    const res = await fetch(`/api/groupes/${editGroup.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editForm),
+    })
+    setSaving(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error || 'Erreur.')
+      return
+    }
+    setEditGroup(null)
     fetchData()
   }
 
@@ -131,12 +160,26 @@ export default function AdminGroupesPage() {
                       </td>
                       <td className="px-6 py-4 text-gray-600">{group._count.members}</td>
                       <td className="px-6 py-4">
-                        <button
-                          onClick={() => handleDelete(group.id, group.name)}
-                          className="text-xs font-medium text-red-600 hover:text-red-500"
-                        >
-                          Supprimer
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={`/groupes/${group.id}`}
+                            className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+                          >
+                            Voir
+                          </a>
+                          <button
+                            onClick={() => openEdit(group)}
+                            className="text-xs font-medium text-gray-600 hover:text-gray-900"
+                          >
+                            Éditer
+                          </button>
+                          <button
+                            onClick={() => handleDelete(group.id, group.name)}
+                            className="text-xs font-medium text-red-600 hover:text-red-500"
+                          >
+                            Supprimer
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -146,6 +189,38 @@ export default function AdminGroupesPage() {
           </div>
         </Card>
       )}
+
+      {/* Edit group modal */}
+      <Modal isOpen={!!editGroup} onClose={() => setEditGroup(null)} title="Modifier le groupe">
+        <form onSubmit={handleEdit} className="space-y-4">
+          {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          <div>
+            <label className="form-label">Nom du groupe *</label>
+            <input type="text" required value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="form-input" />
+          </div>
+          <div>
+            <label className="form-label">Description</label>
+            <textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} className="form-input" rows={2} />
+          </div>
+          <div>
+            <label className="form-label">Visibilité</label>
+            <div className="flex gap-3 mt-1">
+              {[{ value: true, label: '🌐 Public' }, { value: false, label: '🔒 Privé' }].map((opt) => (
+                <button key={String(opt.value)} type="button" onClick={() => setEditForm({ ...editForm, isPublic: opt.value })}
+                  className={`flex-1 rounded-lg border-2 p-2.5 text-sm text-center transition-colors ${
+                    editForm.isPublic === opt.value ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setEditGroup(null)}>Annuler</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Sauvegarder'}</Button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Créer un groupe">
         <form onSubmit={handleCreate} className="space-y-4">

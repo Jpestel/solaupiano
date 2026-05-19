@@ -10,10 +10,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const userId = Number(session.user.id)
   const groupId = Number(params.id)
 
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
   })
-  if (!membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   const rehearsals = await prisma.rehearsal.findMany({
     where: { groupId },
@@ -30,10 +31,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const userId = Number(session.user.id)
   const groupId = Number(params.id)
 
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
   })
-  if (!membership || membership.groupRole !== 'CHEF') {
+  if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Réservé au chef du groupe.' }, { status: 403 })
   }
 

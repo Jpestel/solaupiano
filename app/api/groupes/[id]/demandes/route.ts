@@ -11,10 +11,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const userId = Number(session.user.id)
   const groupId = Number(params.id)
 
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
   })
-  if (!membership || membership.groupRole !== 'CHEF') {
+  if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 

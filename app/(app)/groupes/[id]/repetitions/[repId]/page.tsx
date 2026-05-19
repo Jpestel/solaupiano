@@ -76,7 +76,8 @@ export default function RepetitionDetailPage({
     if (grpRes.ok) {
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
-      setGroupInfo({ name: g.name, groupRole: me?.groupRole || 'MEMBRE' })
+      const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
+      setGroupInfo({ name: g.name, groupRole: role })
     }
     if (songsRes.ok) setGroupSongs(await songsRes.json())
     setLoading(false)

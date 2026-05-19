@@ -18,11 +18,13 @@ export default async function GroupePage({ params }: { params: { id: string } })
   const userId = Number(session.user.id)
   const groupId = Number(params.id)
 
+  const isAdminUser = session.user.siteRole === 'ADMIN'
+
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
   })
 
-  if (!membership) notFound()
+  if (!membership && !isAdminUser) notFound()
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -67,9 +69,8 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   if (!group) notFound()
 
-  const isChef = membership.groupRole === 'CHEF'
-  const isAdmin = session.user.siteRole === 'ADMIN'
-  const canManageMembers = isChef || isAdmin
+  const isChef = isAdminUser || membership?.groupRole === 'CHEF'
+  const canManageMembers = isChef
 
   return (
     <div>
@@ -212,7 +213,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
             }))}
             canManage={canManageMembers}
             currentUserId={userId}
-            currentUserRole={membership.groupRole}
+            currentUserRole={membership?.groupRole ?? 'CHEF'}
           />
         </Card>
       </div>

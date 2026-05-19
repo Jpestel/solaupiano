@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 async function requireChef(session: Awaited<ReturnType<typeof getServerSession>>, groupId: number) {
   if (!session) return false
+  if (session.user.siteRole === 'ADMIN') return true
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId: Number(session.user.id), groupId } },
   })

@@ -8,6 +8,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const songId = Number(params.id)
 
   const song = await prisma.song.findUnique({
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: song.groupId } },
   })
-  if (!membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   return NextResponse.json(song)
 }
@@ -32,6 +33,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const songId = Number(params.id)
 
   const song = await prisma.song.findUnique({ where: { id: songId } })
@@ -40,18 +42,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: song.groupId } },
   })
-  if (!membership || membership.groupRole !== 'CHEF') {
+  if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
   const body = await req.json()
   const updated = await prisma.song.update({
     where: { id: songId },
-    data: {
-      title: body.title,
-      artist: body.artist,
-      notes: body.notes,
-    },
+    data: { title: body.title, artist: body.artist, notes: body.notes },
   })
 
   return NextResponse.json(updated)
@@ -62,6 +60,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const songId = Number(params.id)
 
   const song = await prisma.song.findUnique({ where: { id: songId } })
@@ -70,7 +69,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: song.groupId } },
   })
-  if (!membership || membership.groupRole !== 'CHEF') {
+  if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
