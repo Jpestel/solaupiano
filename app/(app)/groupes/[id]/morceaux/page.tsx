@@ -1,0 +1,218 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
+import Link from 'next/link'
+import { getResourceIcon, getResourceTypeLabel, formatFileSize } from '@/lib/utils'
+import { Card, CardHeader } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
+import { ResourceUploader } from '@/components/ResourceUploader'
+
+interface Resource {
+  id: number
+  name: string
+  type: string
+  fileSize?: number
+  filePath: string
+}
+
+interface Song {
+  id: number
+  title: string
+  artist?: string
+  notes?: string
+  resources: Resource[]
+}
+
+interface GroupInfo {
+  name: string
+  groupRole: string
+}
+
+export default function MorceauxPage({ params }: { params: { id: string } }) {
+  const { data: session } = useSession()
+  const groupId = params.id
+  const [songs, setSongs] = useState<Song[]>([])
+  const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [addSongOpen, setAddSongOpen] = useState(false)
+  const [uploadSongId, setUploadSongId] = useState<number | null>(null)
+  const [songForm, setSongForm] = useState({ title: '', artist: '', notes: '' })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const fetchData = useCallback(async () => {
+    const [songsRes, grpRes] = await Promise.all([
+      fetch(`/api/groupes/${groupId}/morceaux`),
+      fetch(`/api/groupes/${groupId}`),
+    ])
+    if (songsRes.ok) setSongs(await songsRes.json())
+    if (grpRes.ok) {
+      const g = await grpRes.json()
+      const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
+      setGroupInfo({ name: g.name, groupRole: me?.groupRole || 'MEMBRE' })
+    }
+    setLoading(false)
+  }, [groupId, session])
+
+  useEffect(() => {
+    if (session) fetchData()
+  }, [session, fetchData])
+
+  const handleAddSong = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    const res = await fetch(`/api/groupes/${groupId}/morceaux`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(songForm),
+    })
+    setSaving(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error || 'Erreur.')
+      return
+    }
+    setAddSongOpen(false)
+    setSongForm({ title: '', artist: '', notes: '' })
+    fetchData()
+  }
+
+  const handleDeleteResource = async (resourceId: number) => {
+    if (!confirm('Supprimer cette ressource ?')) return
+    await fetch(`/api/ressources/${resourceId}`, { method: 'DELETE' })
+    fetchData()
+  }
+
+  if (loading) return <div className="text-gray-500">Chargement...</div>
+
+  const isChef = groupInfo?.groupRole === 'CHEF'
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+        <Link href="/groupes" className="hover:text-indigo-600">Mes groupes</Link>
+        <span>/</span>
+        <Link href={`/groupes/${groupId}`} className="hover:text-indigo-600">{groupInfo?.name}</Link>
+        <span>/</span>
+        <span className="text-gray-900">Répertoire</span>
+      </div>
+
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Répertoire ({songs.length})</h1>
+        {isChef && (
+          <Button onClick={() => setAddSongOpen(true)}>+ Ajouter un morceau</Button>
+        )}
+      </div>
+
+      {songs.length === 0 ? (
+        <Card>
+          <div className="text-center py-12">
+            <div className="text-5xl mb-4">🎼</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Répertoire vide</h3>
+            <p className="text-sm text-gray-500">Aucun morceau dans ce groupe pour l&apos;instant.</p>
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {songs.map((song) => (
+            <Card key={song.id} padding={false} className="overflow-hidden">
+              <div className="px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-gray-900">{song.title}</h3>
+                  {song.artist && <p className="text-sm text-gray-500">{song.artist}</p>}
+                  {song.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{song.notes}</p>}
+                </div>
+                {isChef && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setUploadSongId(song.id === uploadSongId ? null : song.id)}
+                  >
+                    + Ressource
+                  </Button>
+                )}
+              </div>
+
+              {/* Upload panel */}
+              {isChef && uploadSongId === song.id && (
+                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                  <ResourceUploader
+                    songId={song.id}
+                    onUpload={() => { setUploadSongId(null); fetchData() }}
+                  />
+                </div>
+              )}
+
+              {/* Resources */}
+              {song.resources.length > 0 && (
+                <div className="border-t border-gray-100">
+                  {song.resources.map((res) => (
+                    <div
+                      key={res.id}
+                      className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{getResourceIcon(res.type)}</span>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{res.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {getResourceTypeLabel(res.type)}
+                            {res.fileSize ? ` · ${formatFileSize(res.fileSize)}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`/api/ressources/${res.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
+                        >
+                          Télécharger
+                        </a>
+                        {isChef && (
+                          <button
+                            onClick={() => handleDeleteResource(res.id)}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium ml-2"
+                          >
+                            Supprimer
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Add song modal */}
+      <Modal isOpen={addSongOpen} onClose={() => setAddSongOpen(false)} title="Ajouter un morceau">
+        <form onSubmit={handleAddSong} className="space-y-4">
+          {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          <div>
+            <label className="form-label">Titre *</label>
+            <input type="text" required value={songForm.title} onChange={(e) => setSongForm({ ...songForm, title: e.target.value })} className="form-input" placeholder="ex: La Vie en Rose" />
+          </div>
+          <div>
+            <label className="form-label">Artiste / Compositeur</label>
+            <input type="text" value={songForm.artist} onChange={(e) => setSongForm({ ...songForm, artist: e.target.value })} className="form-input" placeholder="ex: Édith Piaf" />
+          </div>
+          <div>
+            <label className="form-label">Notes</label>
+            <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} placeholder="Tonalité, tempo, remarques..." />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setAddSongOpen(false)}>Annuler</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Ajouter'}</Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  )
+}

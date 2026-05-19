@@ -1,0 +1,172 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { Card, CardHeader } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+
+interface Instrument {
+  id: number
+  name: string
+}
+
+interface ProfileData {
+  id: number
+  name: string
+  email: string
+  siteRole: string
+  instruments: { instrument: Instrument }[]
+}
+
+export default function ProfilPage() {
+  const { data: session, update } = useSession()
+  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [instruments, setInstruments] = useState<Instrument[]>([])
+  const [name, setName] = useState('')
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [profRes, instrRes] = await Promise.all([
+        fetch('/api/profil'),
+        fetch('/api/instruments'),
+      ])
+      if (profRes.ok) {
+        const p: ProfileData = await profRes.json()
+        setProfile(p)
+        setName(p.name)
+        setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
+      }
+      if (instrRes.ok) setInstruments(await instrRes.json())
+      setLoading(false)
+    }
+    fetchData()
+  }, [])
+
+  const toggleInstrument = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    )
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setSuccess('')
+    setError('')
+
+    const res = await fetch('/api/profil', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, instrumentIds: selectedIds }),
+    })
+
+    setSaving(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error || 'Erreur lors de la sauvegarde.')
+      return
+    }
+
+    setSuccess('Profil mis à jour avec succès.')
+    await update({ name })
+  }
+
+  if (loading) return <div className="text-gray-500">Chargement...</div>
+  if (!profile) return null
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Mon profil</h1>
+        <p className="text-gray-500 mt-1">Gérez vos informations personnelles.</p>
+      </div>
+
+      <div className="max-w-lg">
+        <Card>
+          <CardHeader title="Informations" />
+
+          {/* Avatar */}
+          <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
+            <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-2xl">
+              {profile.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">{profile.name}</p>
+              <p className="text-sm text-gray-500">{profile.email}</p>
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mt-1 ${
+                profile.siteRole === 'ADMIN'
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
+                {profile.siteRole === 'ADMIN' ? 'Administrateur' : 'Utilisateur'}
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSave} className="space-y-4">
+            {success && (
+              <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">{success}</div>
+            )}
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+            )}
+
+            <div>
+              <label className="form-label">Nom complet</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="form-input"
+              />
+            </div>
+
+            <div>
+              <label className="form-label">Email</label>
+              <input
+                type="email"
+                value={profile.email}
+                disabled
+                className="form-input bg-gray-50 text-gray-500 cursor-not-allowed"
+              />
+            </div>
+
+            {instruments.length > 0 && (
+              <div>
+                <label className="form-label">Instrument(s)</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {instruments.map((instr) => (
+                    <button
+                      key={instr.id}
+                      type="button"
+                      onClick={() => toggleInstrument(instr.id)}
+                      className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
+                        selectedIds.includes(instr.id)
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                      }`}
+                    >
+                      {instr.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Button type="submit" disabled={saving} fullWidth>
+                {saving ? 'Enregistrement...' : 'Sauvegarder'}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      </div>
+    </div>
+  )
+}

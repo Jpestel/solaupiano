@@ -1,0 +1,181 @@
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { formatDateWithDay } from '@/lib/utils'
+import { Card, CardHeader } from '@/components/ui/Card'
+import { RoleBadge } from '@/components/ui/Badge'
+
+export default async function GroupePage({ params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  if (!session) return null
+
+  const userId = Number(session.user.id)
+  const groupId = Number(params.id)
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId, groupId } },
+  })
+
+  if (!membership) notFound()
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: {
+      members: {
+        include: {
+          user: {
+            include: {
+              instruments: { include: { instrument: true } },
+            },
+          },
+        },
+        orderBy: { groupRole: 'asc' },
+      },
+      rehearsals: {
+        where: { date: { gte: new Date() } },
+        orderBy: { date: 'asc' },
+        take: 1,
+      },
+      concerts: {
+        where: { date: { gte: new Date() } },
+        orderBy: { date: 'asc' },
+        take: 1,
+      },
+    },
+  })
+
+  if (!group) notFound()
+
+  const isChef = membership.groupRole === 'CHEF'
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+          <Link href="/groupes" className="hover:text-indigo-600">Mes groupes</Link>
+          <span>/</span>
+          <span className="text-gray-900">{group.name}</span>
+        </div>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{group.name}</h1>
+            {group.description && (
+              <p className="text-gray-500 mt-1">{group.description}</p>
+            )}
+          </div>
+          <RoleBadge role={membership.groupRole} />
+        </div>
+      </div>
+
+      {/* Quick links */}
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        {[
+          { href: 'repetitions', label: 'Répétitions', icon: '🎵', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+          { href: 'concerts', label: 'Concerts', icon: '🎭', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+          { href: 'morceaux', label: 'Répertoire', icon: '🎼', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+        ].map((link) => (
+          <Link
+            key={link.href}
+            href={`/groupes/${groupId}/${link.href}`}
+            className={`flex flex-col items-center justify-center rounded-xl border p-5 text-center hover:shadow-md transition-all ${link.color}`}
+          >
+            <span className="text-3xl mb-2">{link.icon}</span>
+            <span className="font-semibold text-sm">{link.label}</span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Next rehearsal */}
+        <Card>
+          <CardHeader
+            title="Prochaine répétition"
+            action={
+              <Link
+                href={`/groupes/${groupId}/repetitions`}
+                className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
+              >
+                Voir tout
+              </Link>
+            }
+          />
+          {group.rehearsals[0] ? (
+            <Link
+              href={`/groupes/${groupId}/repetitions/${group.rehearsals[0].id}`}
+              className="block rounded-xl bg-blue-50 border border-blue-100 p-4 hover:border-blue-300 transition-colors"
+            >
+              <p className="font-medium text-gray-900 capitalize">
+                {formatDateWithDay(group.rehearsals[0].date)}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {group.rehearsals[0].startTime}{group.rehearsals[0].endTime ? ` - ${group.rehearsals[0].endTime}` : ''}
+              </p>
+              <p className="text-sm text-gray-600">{group.rehearsals[0].location}</p>
+            </Link>
+          ) : (
+            <p className="text-sm text-gray-500 text-center py-4">Aucune répétition prévue.</p>
+          )}
+        </Card>
+
+        {/* Next concert */}
+        <Card>
+          <CardHeader
+            title="Prochain concert"
+            action={
+              <Link
+                href={`/groupes/${groupId}/concerts`}
+                className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
+              >
+                Voir tout
+              </Link>
+            }
+          />
+          {group.concerts[0] ? (
+            <div className="rounded-xl bg-purple-50 border border-purple-100 p-4">
+              <p className="font-medium text-gray-900">{group.concerts[0].name}</p>
+              <p className="text-sm text-gray-500 mt-1 capitalize">
+                {formatDateWithDay(group.concerts[0].date)}
+              </p>
+              <p className="text-sm text-gray-600">{group.concerts[0].location}</p>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 text-center py-4">Aucun concert prévu.</p>
+          )}
+        </Card>
+
+        {/* Members */}
+        <Card className="lg:col-span-2">
+          <CardHeader
+            title={`Membres (${group.members.length})`}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {group.members.map(({ user, groupRole }) => (
+              <div
+                key={user.id}
+                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
+              >
+                <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm flex-shrink-0">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                    {groupRole === 'CHEF' && <RoleBadge role="CHEF" />}
+                  </div>
+                  {user.instruments.length > 0 && (
+                    <p className="text-xs text-gray-500 truncate">
+                      {user.instruments.map((ui) => ui.instrument.name).join(', ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  )
+}
