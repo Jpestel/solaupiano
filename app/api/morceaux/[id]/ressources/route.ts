@@ -49,6 +49,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
   if (!membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
+  // JSON body = URL resource
+  const contentType = req.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    const { url, name } = await req.json()
+    if (!url?.trim()) return NextResponse.json({ error: 'L\'URL est requise.' }, { status: 400 })
+    if (!name?.trim()) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
+    const resource = await prisma.resource.create({
+      data: {
+        songId,
+        name: name.trim(),
+        type: 'LIEN',
+        filePath: url.trim(),
+        uploadedById: userId,
+      },
+    })
+    return NextResponse.json(resource, { status: 201 })
+  }
+
   try {
     const uploadDir = process.env.UPLOAD_DIR || './public/uploads'
 

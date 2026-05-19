@@ -166,12 +166,12 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                       </div>
                       <div className="flex items-center gap-2">
                         <a
-                          href={`/api/ressources/${res.id}`}
+                          href={res.type === 'LIEN' ? res.filePath : `/api/ressources/${res.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
                         >
-                          Télécharger
+                          {res.type === 'LIEN' ? 'Ouvrir' : 'Télécharger'}
                         </a>
                         {isChef && (
                           <button

@@ -28,6 +28,7 @@ enum ResourceType {
   AUDIO
   IMAGE
   GRILLE
+  LIEN
   AUTRE
 }
 

@@ -34,6 +34,8 @@ export function getResourceIcon(type: string): string {
       return '🎸'
     case 'IMAGE':
       return '🎼'
+    case 'LIEN':
+      return '🔗'
     case 'AUTRE':
     default:
       return '📎'
@@ -50,10 +52,16 @@ export function getResourceTypeLabel(type: string): string {
       return 'Grille d\'accords'
     case 'IMAGE':
       return 'Partition'
+    case 'LIEN':
+      return 'Lien'
     case 'AUTRE':
     default:
       return 'Autre'
   }
+}
+
+export function isYoutube(url: string): boolean {
+  return /youtube\.com|youtu\.be/i.test(url)
 }
 
 export function detectResourceType(mimeType: string, filename: string): string {
