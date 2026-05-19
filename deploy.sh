@@ -5,7 +5,6 @@
 
 set -e
 
-APP_DIR="/var/www/solaupiano"
 APP_NAME="solaupiano"
 
 echo "==> Mise à jour du code..."
@@ -30,5 +29,5 @@ echo "==> Sauvegarde de la config PM2..."
 pm2 save
 
 echo ""
-echo "✓ Déploiement terminé."
+echo "Déploiement terminé."
 pm2 status $APP_NAME
