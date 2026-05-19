@@ -42,6 +42,11 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [songForm, setSongForm] = useState({ title: '', artist: '', notes: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
+  const [editResource, setEditResource] = useState<Resource | null>(null)
+  const [resourceForm, setResourceForm] = useState({ name: '', filePath: '' })
+  const [resourceError, setResourceError] = useState('')
+  const [resourceSaving, setResourceSaving] = useState(false)
 
   const fetchData = useCallback(async () => {
     const [songsRes, grpRes] = await Promise.all([
@@ -105,6 +110,40 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       return
     }
     setEditSong(null)
+    fetchData()
+  }
+
+  const toggleResources = (songId: number) => {
+    setExpandedSongIds((prev) => {
+      const next = new Set(prev)
+      next.has(songId) ? next.delete(songId) : next.add(songId)
+      return next
+    })
+  }
+
+  const openEditResource = (res: Resource) => {
+    setEditResource(res)
+    setResourceForm({ name: res.name, filePath: res.filePath })
+    setResourceError('')
+  }
+
+  const handleEditResource = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editResource) return
+    setResourceSaving(true)
+    setResourceError('')
+    const res = await fetch(`/api/ressources/${editResource.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(resourceForm),
+    })
+    setResourceSaving(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setResourceError(d.error || 'Erreur.')
+      return
+    }
+    setEditResource(null)
     fetchData()
   }
 
@@ -179,50 +218,110 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                 </div>
               )}
 
-              {/* Resources */}
+              {/* Resources toggle */}
               {song.resources.length > 0 && (
                 <div className="border-t border-gray-100">
-                  {song.resources.map((res) => (
-                    <div
-                      key={res.id}
-                      className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                  <button
+                    onClick={() => toggleResources(song.id)}
+                    className="w-full flex items-center justify-between px-6 py-2.5 text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    <span>
+                      {song.resources.length} fichier{song.resources.length > 1 ? 's' : ''}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 transition-transform ${expandedSongIds.has(song.id) ? 'rotate-180' : ''}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{getResourceIcon(res.type)}</span>
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">{res.name}</p>
-                          <p className="text-xs text-gray-500">
-                            {getResourceTypeLabel(res.type)}
-                            {res.fileSize ? ` · ${formatFileSize(res.fileSize)}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={res.type === 'LIEN' ? res.filePath : `/api/ressources/${res.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {expandedSongIds.has(song.id) && (
+                    <div className="border-t border-gray-100">
+                      {song.resources.map((res) => (
+                        <div
+                          key={res.id}
+                          className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
                         >
-                          {res.type === 'LIEN' ? 'Ouvrir' : 'Télécharger'}
-                        </a>
-                        {isChef && (
-                          <button
-                            onClick={() => handleDeleteResource(res.id)}
-                            className="text-xs text-red-500 hover:text-red-700 font-medium ml-2"
-                          >
-                            Supprimer
-                          </button>
-                        )}
-                      </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{getResourceIcon(res.type)}</span>
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">{res.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {getResourceTypeLabel(res.type)}
+                                {res.fileSize ? ` · ${formatFileSize(res.fileSize)}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <a
+                              href={res.type === 'LIEN' ? res.filePath : `/api/ressources/${res.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
+                            >
+                              {res.type === 'LIEN' ? 'Ouvrir' : 'Télécharger'}
+                            </a>
+                            {isChef && (
+                              <>
+                                <button
+                                  onClick={() => openEditResource(res)}
+                                  className="text-xs text-gray-500 hover:text-indigo-600 font-medium"
+                                >
+                                  Éditer
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteResource(res.id)}
+                                  className="text-xs text-red-500 hover:text-red-700 font-medium"
+                                >
+                                  Supprimer
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </Card>
           ))}
         </div>
       )}
+
+      {/* Edit resource modal */}
+      <Modal isOpen={!!editResource} onClose={() => setEditResource(null)} title="Modifier la ressource">
+        <form onSubmit={handleEditResource} className="space-y-4">
+          {resourceError && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{resourceError}</div>}
+          <div>
+            <label className="form-label">Nom</label>
+            <input
+              type="text"
+              required
+              value={resourceForm.name}
+              onChange={(e) => setResourceForm({ ...resourceForm, name: e.target.value })}
+              className="form-input"
+            />
+          </div>
+          {editResource?.type === 'LIEN' && (
+            <div>
+              <label className="form-label">URL</label>
+              <input
+                type="url"
+                required
+                value={resourceForm.filePath}
+                onChange={(e) => setResourceForm({ ...resourceForm, filePath: e.target.value })}
+                className="form-input"
+                placeholder="https://..."
+              />
+            </div>
+          )}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setEditResource(null)}>Annuler</Button>
+            <Button type="submit" disabled={resourceSaving}>{resourceSaving ? 'Enregistrement...' : 'Sauvegarder'}</Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Edit song modal */}
       <Modal isOpen={!!editSong} onClose={() => setEditSong(null)} title="Modifier le morceau">
