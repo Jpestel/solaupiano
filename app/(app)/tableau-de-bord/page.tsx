@@ -121,39 +121,41 @@ export default async function TableauDeBordPage() {
             )}
           </Card>
 
-          {/* My groups */}
-          <Card>
-            <CardHeader title="Mes groupes" />
-            {memberships.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">
-                Vous n&apos;êtes membre d&apos;aucun groupe.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {memberships.map((m) => (
-                  <Link
-                    key={m.groupId}
-                    href={`/groupes/${m.groupId}`}
-                    className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-semibold">
-                        {m.group.name.charAt(0)}
+          {/* My groups — hidden for admins */}
+          {session.user.siteRole !== 'ADMIN' && (
+            <Card>
+              <CardHeader title="Mes groupes" />
+              {memberships.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  Vous n&apos;êtes membre d&apos;aucun groupe.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {memberships.map((m) => (
+                    <Link
+                      key={m.groupId}
+                      href={`/groupes/${m.groupId}`}
+                      className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-semibold">
+                          {m.group.name.charAt(0)}
+                        </div>
+                        <span className="text-sm font-medium text-gray-800">{m.group.name}</span>
                       </div>
-                      <span className="text-sm font-medium text-gray-800">{m.group.name}</span>
-                    </div>
-                    <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${
-                      m.groupRole === 'CHEF'
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {m.groupRole === 'CHEF' ? 'Chef' : 'Membre'}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </Card>
+                      <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${
+                        m.groupRole === 'CHEF'
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {m.groupRole === 'CHEF' ? 'Chef' : 'Membre'}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
         </div>
       </div>
     </div>
