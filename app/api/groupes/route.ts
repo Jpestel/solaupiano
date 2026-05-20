@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       description: description?.trim() || undefined,
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,
       lookingFor: lookingFor ?? null,
+      lookingForSince: lookingFor ? new Date() : null,
       ...(chefUserId && {
         members: {
           create: { userId: chefUserId, groupRole: 'CHEF' },

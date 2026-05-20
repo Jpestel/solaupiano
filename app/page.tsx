@@ -42,6 +42,7 @@ export default async function PublicHomePage() {
         name: true,
         description: true,
         lookingFor: true,
+        lookingForSince: true,
         _count: { select: { members: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -189,6 +190,9 @@ export default async function PublicHomePage() {
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-gray-900 text-sm leading-tight">{group.name}</p>
                           <p className="text-xs text-gray-400 mt-0.5">{group._count.members} membre{group._count.members > 1 ? 's' : ''}</p>
+                          {group.lookingForSince && (
+                            <p className="text-xs text-gray-400 mt-0.5">Depuis le {format(group.lookingForSince, 'd MMM yyyy', { locale: fr })}</p>
+                          )}
                           {group.description && (
                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{group.description}</p>
                           )}

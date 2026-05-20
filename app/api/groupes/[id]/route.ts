@@ -61,6 +61,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       description: body.description,
       ...(typeof body.isPublic === 'boolean' && { isPublic: body.isPublic }),
       lookingFor: body.lookingFor ?? null,
+      ...('lookingFor' in body && {
+        lookingForSince: (() => {
+          if (!body.lookingFor) return null
+          try { const arr = JSON.parse(body.lookingFor); return arr.length > 0 ? new Date() : null } catch { return null }
+        })(),
+      }),
     },
   })
 

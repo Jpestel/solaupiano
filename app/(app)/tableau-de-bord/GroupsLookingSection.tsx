@@ -8,6 +8,7 @@ interface Group {
   name: string
   description?: string | null
   lookingFor: string
+  lookingForSince?: Date | string | null
   _count: { members: number }
   joinRequests: { id: number; status: string }[]
   isMember: boolean
@@ -58,6 +59,9 @@ export function GroupsLookingSection({ groups }: { groups: Group[] }) {
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-gray-900 text-sm leading-tight">{group.name}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{group._count.members} membre{group._count.members > 1 ? 's' : ''}</p>
+                {group.lookingForSince && (
+                  <p className="text-xs text-gray-400 mt-0.5">Depuis le {new Date(group.lookingForSince).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                )}
                 {group.description && (
                   <p className="text-xs text-gray-500 mt-1 line-clamp-2">{group.description}</p>
                 )}

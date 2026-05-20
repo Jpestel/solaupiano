@@ -9,6 +9,7 @@ interface PublicGroup {
   description?: string | null
   isPublic: boolean
   lookingFor?: string | null
+  lookingForSince?: Date | string | null
   _count: { members: number }
   joinRequests: { id: number; status: string }[]
 }
@@ -63,6 +64,9 @@ export function JoinPublicGroupsSection({ groups }: { groups: PublicGroup[] }) {
                   <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{group.description}</p>
                 )}
                 <p className="text-xs text-gray-400 mt-1">{group._count.members} membre{group._count.members > 1 ? 's' : ''}</p>
+                {group.lookingForSince && (
+                  <p className="text-xs text-gray-400 mt-0.5">Depuis le {new Date(group.lookingForSince).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                )}
               </div>
             </div>
 
