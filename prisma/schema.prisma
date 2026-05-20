@@ -79,8 +79,9 @@ model Group {
   name        String
   description String?  @db.Text
   isPublic    Boolean  @default(true)
-  lookingFor  String?  @db.Text
-  createdAt   DateTime @default(now())
+  lookingFor      String?   @db.Text
+  lookingForSince DateTime?
+  createdAt       DateTime  @default(now())
 
   members      GroupMember[]
   rehearsals   Rehearsal[]

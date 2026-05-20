@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent,
@@ -70,7 +71,6 @@ function SortableSongRow({
           {song.artist && <p className="text-xs text-gray-500">{song.artist}</p>}
         </div>
 
-        {/* Progress checkbox */}
         <button
           onClick={() => toggleDone(song.id, entry.userDone)}
           title={entry.userDone ? 'Marquer comme non travaillé' : 'Marquer comme travaillé'}
@@ -144,6 +144,7 @@ function SortableSongRow({
 
 export default function RepetitionDetailPage({ params }: { params: { id: string; repId: string } }) {
   const { data: session } = useSession()
+  const router = useRouter()
   const [rehearsal, setRehearsal] = useState<Rehearsal | null>(null)
   const [songs, setSongs] = useState<RehearsalSongEntry[]>([])
   const [groupInfo, setGroupInfo] = useState<{ name: string; groupRole: string } | null>(null)
@@ -152,6 +153,16 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const [addingId, setAddingId] = useState<number | null>(null)
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
+
+  // Edit state
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ date: '', location: '', startTime: '', endTime: '', notes: '' })
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  // Delete state
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const toggleResources = (songId: number) => {
     setExpandedSongIds((prev) => {
@@ -183,6 +194,47 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   }, [session, params.repId, params.id])
 
   useEffect(() => { if (session) fetchData() }, [session, fetchData])
+
+  const openEdit = () => {
+    if (!rehearsal) return
+    setEditForm({
+      date: rehearsal.date.slice(0, 10),
+      location: rehearsal.location,
+      startTime: rehearsal.startTime,
+      endTime: rehearsal.endTime || '',
+      notes: rehearsal.notes || '',
+    })
+    setEditError('')
+    setEditOpen(true)
+  }
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEditLoading(true)
+    setEditError('')
+    const res = await fetch(`/api/repetitions/${params.repId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: editForm.date,
+        location: editForm.location,
+        startTime: editForm.startTime,
+        endTime: editForm.endTime || null,
+        notes: editForm.notes || null,
+      }),
+    })
+    setEditLoading(false)
+    if (!res.ok) { setEditError('Erreur lors de la sauvegarde.'); return }
+    setEditOpen(false)
+    fetchData()
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    await fetch(`/api/repetitions/${params.repId}`, { method: 'DELETE' })
+    router.push(`/groupes/${params.id}/repetitions`)
+    router.refresh()
+  }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -223,7 +275,6 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   }
 
   const toggleDone = async (songId: number, current: boolean) => {
-    // Optimistic update
     setSongs((prev) => prev.map((s) => s.song.id === songId ? { ...s, userDone: !current } : s))
     await fetch(`/api/morceaux/${songId}/progress`, {
       method: 'PUT',
@@ -241,7 +292,6 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
 
   const setlistIds = new Set(songs.map((s) => s.song.id))
   const availableSongs = groupSongs.filter((s) => !setlistIds.has(s.id))
-
   const doneCount = songs.filter((s) => s.userDone).length
 
   return (
@@ -256,11 +306,35 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
         <span className="text-gray-900">Détail</span>
       </div>
 
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 capitalize">{formatDateWithDay(rehearsal.date)}</h1>
-        <p className="text-gray-500 mt-1">
-          {rehearsal.startTime}{rehearsal.endTime ? ` - ${rehearsal.endTime}` : ''} · {rehearsal.location}
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 capitalize">{formatDateWithDay(rehearsal.date)}</h1>
+          <p className="text-gray-500 mt-1">
+            {rehearsal.startTime}{rehearsal.endTime ? ` - ${rehearsal.endTime}` : ''} · {rehearsal.location}
+          </p>
+        </div>
+        {isChef && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={openEdit}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Modifier
+            </button>
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Supprimer
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -375,6 +449,122 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
           </Card>
         </div>
       </div>
+
+      {/* Edit modal */}
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setEditOpen(false)}>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Modifier la répétition</h3>
+            {editError && (
+              <p className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{editError}</p>
+            )}
+            <form onSubmit={handleEdit} className="space-y-4">
+              <div>
+                <label className="form-label">Date <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  required
+                  value={editForm.date}
+                  onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
+                  className="form-input"
+                />
+              </div>
+              <div>
+                <label className="form-label">Lieu <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.location}
+                  onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
+                  className="form-input"
+                  placeholder="Salle de répétition..."
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="form-label">Début <span className="text-red-500">*</span></label>
+                  <input
+                    type="time"
+                    required
+                    value={editForm.startTime}
+                    onChange={(e) => setEditForm((f) => ({ ...f, startTime: e.target.value }))}
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Fin <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                  <input
+                    type="time"
+                    value={editForm.endTime}
+                    onChange={(e) => setEditForm((f) => ({ ...f, endTime: e.target.value }))}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                <textarea
+                  rows={3}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                  className="form-input resize-none"
+                  placeholder="Informations complémentaires..."
+                />
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60 transition-colors"
+                >
+                  {editLoading ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(false)}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setDeleteConfirm(false)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Supprimer la répétition ?</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Cette action est irréversible.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60 transition-colors"
+              >
+                {deleting ? 'Suppression...' : 'Oui, supprimer'}
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
