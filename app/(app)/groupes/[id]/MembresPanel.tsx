@@ -30,6 +30,7 @@ export default function MembresPanel({
   const [members, setMembers] = useState(initialMembers)
   const [processing, setProcessing] = useState<number | null>(null)
   const [leaveWarning, setLeaveWarning] = useState(false)
+  const [downgradeWarning, setDowngradeWarning] = useState(false)
   const [actionError, setActionError] = useState('')
 
   const isChef = currentUserRole === 'CHEF'
@@ -49,6 +50,15 @@ export default function MembresPanel({
       )
       router.refresh()
     }
+  }
+
+  const stepDown = () => {
+    const otherChefs = members.filter((m) => m.groupRole === 'CHEF' && m.userId !== currentUserId)
+    if (otherChefs.length === 0) {
+      setDowngradeWarning(true)
+      return
+    }
+    toggleRole({ userId: currentUserId, groupRole: 'CHEF', user: members.find((m) => m.userId === currentUserId)!.user })
   }
 
   const removeMember = async (targetUserId: number, isSelf: boolean) => {
@@ -104,6 +114,33 @@ export default function MembresPanel({
           Vous êtes le seul chef de ce groupe. Nommez un autre membre comme chef avant de pouvoir quitter.
         </div>
         <button onClick={() => setLeaveWarning(false)} className="text-amber-400 hover:text-amber-600 flex-shrink-0">✕</button>
+      </div>
+    )}
+    {downgradeWarning && (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <span className="text-amber-500 mt-0.5 flex-shrink-0">⚠️</span>
+          <p className="text-sm text-amber-800">
+            Vous êtes le seul chef de ce groupe. Si vous passez membre, plus personne ne pourra gérer le groupe. Continuer quand même ?
+          </p>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => setDowngradeWarning(false)}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => {
+              setDowngradeWarning(false)
+              toggleRole({ userId: currentUserId, groupRole: 'CHEF', user: members.find((m) => m.userId === currentUserId)!.user })
+            }}
+            className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500 transition-colors"
+          >
+            Oui, passer membre
+          </button>
+        </div>
       </div>
     )}
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -162,6 +199,18 @@ export default function MembresPanel({
                   className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors disabled:opacity-50"
                 >
                   {processing === member.userId ? '...' : '✕'}
+                </button>
+              )}
+
+              {/* Step down from chef — only on own row when chef */}
+              {isSelf && isChef && (
+                <button
+                  onClick={stepDown}
+                  disabled={processing === currentUserId}
+                  title="Passer membre simple"
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 whitespace-nowrap"
+                >
+                  {processing === currentUserId ? '...' : 'Passer membre'}
                 </button>
               )}
 
