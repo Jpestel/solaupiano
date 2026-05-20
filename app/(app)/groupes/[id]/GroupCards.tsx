@@ -99,7 +99,7 @@ export function GroupCards({
     if (!raw) return defaultOrder
     try {
       const parsed: string[] = JSON.parse(raw)
-      const valid = defaultOrder.filter((id) => parsed.includes(id))
+      const valid = parsed.filter((id) => defaultOrder.includes(id))
       return [...valid, ...defaultOrder.filter((id) => !valid.includes(id))]
     } catch {
       return defaultOrder
