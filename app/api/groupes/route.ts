@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Admin can designate a chef; a musician becomes CHEF of their own group
-  const chefUserId = isAdmin && chefId ? Number(chefId) : (!isAdmin ? Number(session.user.id) : null)
+  // If chefId provided (admin panel), use it — otherwise the creator becomes CHEF
+  const chefUserId = chefId ? Number(chefId) : Number(session.user.id)
 
   const group = await prisma.group.create({
     data: {
