@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -40,25 +39,24 @@ interface AvailableGroup {
   joinRequests: { id: number; status: string }[]
 }
 
-// Deterministic gradient based on name
-function getAvatarGradient(name: string) {
+// Deterministic gradient CSS style based on name
+function getAvatarStyle(name: string): React.CSSProperties {
   const gradients = [
-    'from-violet-400 to-indigo-500',
-    'from-indigo-400 to-blue-500',
-    'from-blue-400 to-cyan-500',
-    'from-emerald-400 to-teal-500',
-    'from-rose-400 to-pink-500',
-    'from-amber-400 to-orange-500',
-    'from-fuchsia-400 to-purple-500',
-    'from-sky-400 to-blue-500',
+    'linear-gradient(135deg, #a78bfa, #6366f1)',
+    'linear-gradient(135deg, #818cf8, #3b82f6)',
+    'linear-gradient(135deg, #60a5fa, #06b6d4)',
+    'linear-gradient(135deg, #34d399, #14b8a6)',
+    'linear-gradient(135deg, #fb7185, #ec4899)',
+    'linear-gradient(135deg, #fbbf24, #f97316)',
+    'linear-gradient(135deg, #e879f9, #a855f7)',
+    'linear-gradient(135deg, #38bdf8, #3b82f6)',
   ]
   const idx = name.charCodeAt(0) % gradients.length
-  return gradients[idx]
+  return { background: gradients[idx] }
 }
 
 export default function ProfilPage() {
   const { data: session, update } = useSession()
-  const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [instruments, setInstruments] = useState<Instrument[]>([])
   const [availableGroups, setAvailableGroups] = useState<AvailableGroup[]>([])
@@ -195,7 +193,7 @@ export default function ProfilPage() {
   }
   if (!profile) return null
 
-  const gradient = getAvatarGradient(profile.name)
+  const avatarStyle = getAvatarStyle(profile.name)
   const isAdmin = profile.siteRole === 'ADMIN'
 
   const statusLabel: Record<string, { label: string; className: string }> = {
@@ -216,7 +214,10 @@ export default function ProfilPage() {
       <div className="rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 p-6 text-white shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center gap-5">
           {/* Avatar */}
-          <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-3xl shadow-lg ring-4 ring-white/30 flex-shrink-0`}>
+          <div
+            style={avatarStyle}
+            className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg ring-4 ring-white/30 flex-shrink-0"
+          >
             {profile.name.charAt(0).toUpperCase()}
           </div>
           {/* Info */}

@@ -74,7 +74,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   const userInitial = session?.user?.name?.charAt(0).toUpperCase() || '?'
 
   const content = (
-    <aside className="w-64 h-screen bg-gray-100 border-r border-gray-200 flex flex-col overflow-hidden">
+    <aside className="w-64 h-screen sticky top-0 bg-gray-100 border-r border-gray-200 flex flex-col overflow-hidden">
       {/* Logo */}
       <div className="flex-shrink-0 px-6 py-5 border-b border-gray-200 flex items-center justify-between">
         <Link href="/tableau-de-bord" className="flex items-center gap-3" onClick={onClose}>
