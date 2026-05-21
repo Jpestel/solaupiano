@@ -108,7 +108,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
             }`}>
               {group.isPublic ? '🌐 Public' : '🔒 Privé'}
             </span>
-            <RoleBadge role={membership.groupRole} />
+            <RoleBadge role={isAdminUser ? 'CHEF' : membership!.groupRole} />
             {isChef && (
               <GroupSettingsButton
                 groupId={groupId}
@@ -164,7 +164,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         isChef={isChef}
         canManage={canManageMembers}
         currentUserId={userId}
-        currentUserRole={membership?.groupRole ?? 'CHEF'}
+        currentUserRole={isAdminUser ? 'CHEF' : (membership?.groupRole ?? 'CHEF')}
         savedCardOrder={membership?.cardOrder ?? null}
       />
     </div>
