@@ -16,6 +16,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const songId = Number(params.id)
 
   const song = await prisma.song.findUnique({ where: { id: songId } })
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: song.groupId } },
   })
-  if (!membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   const resources = await prisma.resource.findMany({
     where: { songId },
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
+  const isAdmin = session.user.siteRole === 'ADMIN'
   const songId = Number(params.id)
 
   const song = await prisma.song.findUnique({ where: { id: songId } })
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: song.groupId } },
   })
-  if (!membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   // Fetch group for storage check
   const group = await prisma.group.findUnique({
