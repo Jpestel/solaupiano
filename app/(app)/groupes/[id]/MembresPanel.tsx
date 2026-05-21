@@ -29,8 +29,6 @@ export default function MembresPanel({
   const router = useRouter()
   const [members, setMembers] = useState(initialMembers)
   const [processing, setProcessing] = useState<number | null>(null)
-  const [leaveWarning, setLeaveWarning] = useState(false)
-  const [downgradeWarning, setDowngradeWarning] = useState(false)
   const [actionError, setActionError] = useState('')
 
   const isChef = currentUserRole === 'CHEF'
@@ -55,7 +53,7 @@ export default function MembresPanel({
   const stepDown = () => {
     const otherChefs = members.filter((m) => m.groupRole === 'CHEF' && m.userId !== currentUserId)
     if (otherChefs.length === 0) {
-      setDowngradeWarning(true)
+      setActionError('Vous êtes le seul chef de ce groupe. Nommez un autre membre chef d\'orchestre avant de pouvoir passer membre simple.')
       return
     }
     toggleRole({ userId: currentUserId, groupRole: 'CHEF', user: members.find((m) => m.userId === currentUserId)!.user })
@@ -63,10 +61,10 @@ export default function MembresPanel({
 
   const removeMember = async (targetUserId: number, isSelf: boolean) => {
     if (isSelf && currentUserRole === 'CHEF') {
-      const otherChefs = members.filter((m) => m.groupRole === 'CHEF' && m.userId !== currentUserId)
       const otherMembers = members.filter((m) => m.userId !== currentUserId)
-      if (otherChefs.length === 0 && otherMembers.length > 0) {
-        setLeaveWarning(true)
+      if (otherMembers.length > 0) {
+        // Chef cannot leave a group that still has members
+        setActionError('En tant que chef d\'orchestre responsable du plan du groupe, vous ne pouvez pas le quitter tant qu\'il y a d\'autres membres. Supprimez le groupe ou transférez le titre de chef à un autre membre avant de partir.')
         return
       }
     }
@@ -105,42 +103,6 @@ export default function MembresPanel({
       <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
         <div className="flex-1 text-sm text-red-800">{actionError}</div>
         <button onClick={() => setActionError('')} className="text-red-400 hover:text-red-600 flex-shrink-0">✕</button>
-      </div>
-    )}
-    {leaveWarning && (
-      <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-        <span className="text-amber-500 mt-0.5 flex-shrink-0">⚠️</span>
-        <div className="flex-1 text-sm text-amber-800">
-          Vous êtes le seul chef de ce groupe. Nommez un autre membre comme chef avant de pouvoir quitter.
-        </div>
-        <button onClick={() => setLeaveWarning(false)} className="text-amber-400 hover:text-amber-600 flex-shrink-0">✕</button>
-      </div>
-    )}
-    {downgradeWarning && (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 space-y-3">
-        <div className="flex items-start gap-3">
-          <span className="text-amber-500 mt-0.5 flex-shrink-0">⚠️</span>
-          <p className="text-sm text-amber-800">
-            Vous êtes le seul chef de ce groupe. Si vous passez membre, plus personne ne pourra gérer le groupe. Continuer quand même ?
-          </p>
-        </div>
-        <div className="flex gap-2 justify-end">
-          <button
-            onClick={() => setDowngradeWarning(false)}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={() => {
-              setDowngradeWarning(false)
-              toggleRole({ userId: currentUserId, groupRole: 'CHEF', user: members.find((m) => m.userId === currentUserId)!.user })
-            }}
-            className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500 transition-colors"
-          >
-            Oui, passer membre
-          </button>
-        </div>
       </div>
     )}
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { LookingForSelector } from '@/components/ui/LookingForSelector'
+import { PLANS, GroupPlan } from '@/lib/plans'
 
 export function CreateGroupButton() {
   const router = useRouter()
@@ -133,6 +134,36 @@ export function CreateGroupButton() {
             <p className="text-xs text-gray-400 mb-2">Si votre groupe est public, ces informations seront visibles par les autres musiciens.</p>
             <LookingForSelector value={lookingFor} onChange={setLookingFor} />
           </div>
+          {/* Plan selection */}
+          <div>
+            <label className="form-label">Plan</label>
+            <p className="text-xs text-gray-400 mb-2">Tous les groupes démarrent sur le plan Gratuit. Les plans payants seront bientôt disponibles.</p>
+            <div className="grid grid-cols-3 gap-2">
+              {(Object.keys(PLANS) as GroupPlan[]).map((key) => {
+                const p = PLANS[key]
+                const isFree = key === 'FREE'
+                return (
+                  <div
+                    key={key}
+                    className={`rounded-xl border-2 p-3 text-center transition-all ${
+                      isFree
+                        ? 'border-indigo-500 bg-indigo-50'
+                        : 'border-gray-200 bg-gray-50 opacity-60'
+                    }`}
+                  >
+                    <p className={`text-xs font-bold ${isFree ? 'text-indigo-700' : 'text-gray-500'}`}>{p.label}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">{p.storageLabel}</p>
+                    {isFree ? (
+                      <span className="inline-block mt-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">Inclus</span>
+                    ) : (
+                      <span className="inline-block mt-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-400">Bientôt dispo</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={handleClose}>Annuler</Button>
             <Button type="submit" disabled={loading || !name.trim()}>

@@ -76,6 +76,24 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } })
 
+  // A CHEF cannot leave while other members still exist
+  if (isSelf) {
+    const targetMembership = await prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId: targetUserId, groupId } },
+    })
+    if (targetMembership?.groupRole === 'CHEF') {
+      const otherMembersCount = await prisma.groupMember.count({
+        where: { groupId, userId: { not: targetUserId } },
+      })
+      if (otherMembersCount > 0) {
+        return NextResponse.json(
+          { error: 'En tant que chef d\'orchestre, vous ne pouvez pas quitter ce groupe tant qu\'il y a d\'autres membres.' },
+          { status: 403 }
+        )
+      }
+    }
+  }
+
   let groupDeleted = false
 
   await prisma.$transaction(async (tx) => {
