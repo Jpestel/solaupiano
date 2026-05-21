@@ -104,9 +104,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
               group.isPublic
                 ? 'bg-green-100 text-green-700'
-                : 'bg-gray-100 text-gray-600'
+                : group.isHidden
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'bg-gray-100 text-gray-600'
             }`}>
-              {group.isPublic ? '🌐 Public' : '🔒 Privé'}
+              {group.isPublic ? '🌐 Public' : group.isHidden ? '🙈 Masqué' : '🔒 Privé'}
             </span>
             <RoleBadge role={isAdminUser ? 'CHEF' : membership!.groupRole} />
             {isChef && (
@@ -115,6 +117,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
                 initialName={group.name}
                 initialDescription={group.description ?? null}
                 initialIsPublic={group.isPublic}
+                initialIsHidden={group.isHidden}
                 initialLookingFor={parseLookingFor(group.lookingFor)}
               />
             )}

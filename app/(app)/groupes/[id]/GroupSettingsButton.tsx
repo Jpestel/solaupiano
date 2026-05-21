@@ -4,20 +4,29 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LookingForSelector } from '@/components/ui/LookingForSelector'
 
+type Visibility = 'public' | 'private' | 'hidden'
+
+function toVisibility(isPublic: boolean, isHidden: boolean): Visibility {
+  if (isPublic) return 'public'
+  if (isHidden) return 'hidden'
+  return 'private'
+}
+
 interface Props {
   groupId: number
   initialName: string
   initialDescription: string | null
   initialIsPublic: boolean
+  initialIsHidden: boolean
   initialLookingFor: string[]
 }
 
-export function GroupSettingsButton({ groupId, initialName, initialDescription, initialIsPublic, initialLookingFor }: Props) {
+export function GroupSettingsButton({ groupId, initialName, initialDescription, initialIsPublic, initialIsHidden, initialLookingFor }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(initialName)
   const [description, setDescription] = useState(initialDescription || '')
-  const [isPublic, setIsPublic] = useState(initialIsPublic)
+  const [visibility, setVisibility] = useState<Visibility>(toVisibility(initialIsPublic, initialIsHidden))
   const [lookingFor, setLookingFor] = useState<string[]>(initialLookingFor)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -34,7 +43,8 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
       body: JSON.stringify({
         name: name.trim(),
         description: description.trim() || null,
-        isPublic,
+        isPublic: visibility === 'public',
+        isHidden: visibility === 'hidden',
         lookingFor: lookingFor.length > 0 ? JSON.stringify(lookingFor) : null,
       }),
     })
@@ -53,7 +63,7 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
     setOpen(false)
     setName(initialName)
     setDescription(initialDescription || '')
-    setIsPublic(initialIsPublic)
+    setVisibility(toVisibility(initialIsPublic, initialIsHidden))
     setLookingFor(initialLookingFor)
     setError('')
   }
@@ -102,24 +112,25 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
               </div>
               <div>
                 <label className="form-label">Visibilité</label>
-                <div className="grid grid-cols-2 gap-3 mt-1">
-                  {[
-                    { value: true, icon: '🌐', label: 'Public', desc: 'Visible par tous les musiciens' },
-                    { value: false, icon: '🔒', label: 'Privé', desc: 'Invitation par email uniquement' },
-                  ].map((opt) => (
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  {([
+                    { value: 'public',  icon: '🌐', label: 'Public',  desc: 'Visible et ouvert aux demandes' },
+                    { value: 'private', icon: '🔒', label: 'Privé',   desc: 'Visible, invitation uniquement' },
+                    { value: 'hidden',  icon: '🙈', label: 'Masqué',  desc: 'Invisible, invitation uniquement' },
+                  ] as const).map((opt) => (
                     <button
-                      key={String(opt.value)}
+                      key={opt.value}
                       type="button"
-                      onClick={() => setIsPublic(opt.value)}
+                      onClick={() => setVisibility(opt.value)}
                       className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-colors ${
-                        isPublic === opt.value
+                        visibility === opt.value
                           ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                           : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                       }`}
                     >
                       <span className="text-xl">{opt.icon}</span>
-                      <span className="text-sm font-semibold">{opt.label}</span>
-                      <span className="text-xs text-gray-500 leading-tight">{opt.desc}</span>
+                      <span className="text-xs font-semibold">{opt.label}</span>
+                      <span className="text-[10px] text-gray-500 leading-tight">{opt.desc}</span>
                     </button>
                   ))}
                 </div>

@@ -93,7 +93,7 @@ export default async function GroupesPage() {
   })
 
   const availableGroups = await prisma.group.findMany({
-    where: { id: { notIn: memberGroupIds } },
+    where: { id: { notIn: memberGroupIds }, isHidden: false },
     select: {
       id: true,
       name: true,

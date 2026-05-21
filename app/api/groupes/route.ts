@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const body = await req.json()
-  const { name, description, chefId, isPublic, lookingFor } = body
+  const { name, description, chefId, isPublic, isHidden, lookingFor } = body
 
   if (!name?.trim()) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
 
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       name: name.trim(),
       description: description?.trim() || undefined,
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,
+      isHidden: typeof isHidden === 'boolean' ? isHidden : false,
       lookingFor: lookingFor ?? null,
       lookingForSince: lookingFor ? new Date() : null,
       ...(chefUserId && {

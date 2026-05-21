@@ -9,7 +9,7 @@ export function CreateGroupButton() {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [isPublic, setIsPublic] = useState(true)
+  const [visibility, setVisibility] = useState<'public' | 'private' | 'hidden'>('public')
   const [lookingFor, setLookingFor] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -26,7 +26,8 @@ export function CreateGroupButton() {
       body: JSON.stringify({
         name: name.trim(),
         description: description.trim() || undefined,
-        isPublic,
+        isPublic: visibility === 'public',
+        isHidden: visibility === 'hidden',
         lookingFor: lookingFor.length > 0 ? JSON.stringify(lookingFor) : null,
       }),
     })
@@ -44,7 +45,7 @@ export function CreateGroupButton() {
     router.refresh()
   }
 
-  const reset = () => { setOpen(false); setName(''); setDescription(''); setLookingFor([]); setError('') }
+  const reset = () => { setOpen(false); setName(''); setDescription(''); setVisibility('public'); setLookingFor([]); setError('') }
 
   if (!open) {
     return (
@@ -92,33 +93,27 @@ export function CreateGroupButton() {
         </div>
         <div>
           <label className="form-label">Visibilité</label>
-          <div className="grid grid-cols-2 gap-3 mt-1">
-            <button
-              type="button"
-              onClick={() => setIsPublic(true)}
-              className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-colors ${
-                isPublic
-                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              <span className="text-xl">🌐</span>
-              <span className="text-sm font-semibold">Public</span>
-              <span className="text-xs text-gray-500 leading-tight">Visible par tous les musiciens inscrits</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsPublic(false)}
-              className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-colors ${
-                !isPublic
-                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              <span className="text-xl">🔒</span>
-              <span className="text-sm font-semibold">Privé</span>
-              <span className="text-xs text-gray-500 leading-tight">Invitation par email uniquement</span>
-            </button>
+          <div className="grid grid-cols-3 gap-2 mt-1">
+            {([
+              { value: 'public',  icon: '🌐', label: 'Public',  desc: 'Visible et ouvert aux demandes' },
+              { value: 'private', icon: '🔒', label: 'Privé',   desc: 'Visible, invitation uniquement' },
+              { value: 'hidden',  icon: '🙈', label: 'Masqué',  desc: 'Invisible, invitation uniquement' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setVisibility(opt.value)}
+                className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-colors ${
+                  visibility === opt.value
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                <span className="text-xl">{opt.icon}</span>
+                <span className="text-xs font-semibold">{opt.label}</span>
+                <span className="text-[10px] text-gray-500 leading-tight">{opt.desc}</span>
+              </button>
+            ))}
           </div>
         </div>
         <div>

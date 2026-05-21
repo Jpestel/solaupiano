@@ -60,6 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       name: body.name,
       description: body.description,
       ...(typeof body.isPublic === 'boolean' && { isPublic: body.isPublic }),
+      ...(typeof body.isHidden === 'boolean' && { isHidden: body.isHidden }),
       lookingFor: body.lookingFor ?? null,
       ...('lookingFor' in body && {
         lookingForSince: (() => {

@@ -79,6 +79,7 @@ model Group {
   name        String
   description String?  @db.Text
   isPublic    Boolean  @default(true)
+  isHidden    Boolean  @default(false)
   lookingFor      String?   @db.Text
   lookingForSince DateTime?
   createdAt       DateTime  @default(now())
