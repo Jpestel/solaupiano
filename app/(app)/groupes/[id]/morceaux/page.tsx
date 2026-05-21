@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { getResourceIcon, getResourceTypeLabel, formatFileSize } from '@/lib/utils'
+import { getResourceIcon, getResourceTypeLabel, formatFileSize, getVideoEmbedUrl } from '@/lib/utils'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { ResourceUploader } from '@/components/ResourceUploader'
+import { VideoModal } from '@/components/ui/VideoModal'
 
 interface Resource {
   id: number
@@ -47,6 +48,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [resourceForm, setResourceForm] = useState({ name: '', filePath: '' })
   const [resourceError, setResourceError] = useState('')
   const [resourceSaving, setResourceSaving] = useState(false)
+  const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string } | null>(null)
 
   const fetchData = useCallback(async () => {
     const [songsRes, grpRes] = await Promise.all([
@@ -253,14 +255,30 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <a
-                              href={res.type === 'LIEN' ? res.filePath : `/api/ressources/${res.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
-                            >
-                              {res.type === 'LIEN' ? 'Ouvrir' : 'Télécharger'}
-                            </a>
+                            {res.type === 'LIEN' ? (() => {
+                              const embedUrl = getVideoEmbedUrl(res.filePath)
+                              return embedUrl ? (
+                                <button
+                                  onClick={() => setVideoModal({ embedUrl, title: res.name })}
+                                  className="text-xs text-indigo-600 hover:text-indigo-500 font-medium flex items-center gap-1"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                  Lire
+                                </button>
+                              ) : (
+                                <a href={res.filePath} target="_blank" rel="noopener noreferrer"
+                                  className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">
+                                  Ouvrir
+                                </a>
+                              )
+                            })() : (
+                              <a href={`/api/ressources/${res.id}`} target="_blank" rel="noopener noreferrer"
+                                className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">
+                                Télécharger
+                              </a>
+                            )}
                             {isChef && (
                               <>
                                 <button
@@ -368,6 +386,14 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           </div>
         </form>
       </Modal>
+
+      {videoModal && (
+        <VideoModal
+          url={videoModal.embedUrl}
+          title={videoModal.title}
+          onClose={() => setVideoModal(null)}
+        />
+      )}
     </div>
   )
 }

@@ -11,10 +11,11 @@ import {
   arrayMove, SortableContext, verticalListSortingStrategy, useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { formatDateWithDay, getResourceIcon } from '@/lib/utils'
+import { formatDateWithDay, getResourceIcon, getVideoEmbedUrl } from '@/lib/utils'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { AttendanceBadge } from '@/components/ui/Badge'
 import { AttendanceButton } from '@/components/AttendanceButton'
+import { VideoModal } from '@/components/ui/VideoModal'
 
 interface Resource { id: number; name: string; type: string; filePath: string }
 interface Song { id: number; title: string; artist?: string; resources: Resource[] }
@@ -95,7 +96,7 @@ const PROGRESS_CONFIG: Record<SongProgressStatus, { label: string; className: st
 }
 
 function SortableSongRow({
-  entry, index, isChef, expandedSongIds, toggleResources, removingId, removeSong, cycleProgress,
+  entry, index, isChef, expandedSongIds, toggleResources, removingId, removeSong, cycleProgress, onVideoClick,
 }: {
   entry: RehearsalSongEntry
   index: number
@@ -105,6 +106,7 @@ function SortableSongRow({
   removingId: number | null
   removeSong: (id: number) => void
   cycleProgress: (id: number, current: SongProgressStatus) => void
+  onVideoClick: (embedUrl: string, title: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.song.id,
@@ -180,16 +182,30 @@ function SortableSongRow({
                       </div>
                       <audio controls src={res.filePath} className="w-full" style={{ height: '32px' }} />
                     </div>
-                  ) : (
-                    <a href={res.filePath} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
-                    >
-                      <span className="text-base">{getResourceIcon(res.type)}</span>
-                      <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 flex-1 truncate">{res.name}</span>
-                      <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </a>
+                  ) : (() => {
+                    const embedUrl = res.type === 'LIEN' ? getVideoEmbedUrl(res.filePath) : null
+                    return embedUrl ? (
+                      <button
+                        onClick={() => onVideoClick(embedUrl, res.name)}
+                        className="w-full flex items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 hover:border-indigo-400 hover:bg-indigo-50 transition-colors group text-left"
+                      >
+                        <span className="text-base">▶️</span>
+                        <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 flex-1 truncate">{res.name}</span>
+                        <span className="text-[10px] font-semibold text-indigo-500 group-hover:text-indigo-700 flex-shrink-0">Lire</span>
+                      </button>
+                    ) : (
+                      <a href={res.type === 'LIEN' ? res.filePath : `/api/ressources/${res.id}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
+                      >
+                        <span className="text-base">{getResourceIcon(res.type)}</span>
+                        <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 flex-1 truncate">{res.name}</span>
+                        <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </a>
+                    )
+                  })()
                   )}
                 </div>
               ))}
@@ -212,6 +228,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const [addingId, setAddingId] = useState<number | null>(null)
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
+  const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string } | null>(null)
 
   // Edit state
   const [editOpen, setEditOpen] = useState(false)
@@ -474,6 +491,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                         removingId={removingId}
                         removeSong={removeSong}
                         cycleProgress={cycleProgress}
+                        onVideoClick={(embedUrl, title) => setVideoModal({ embedUrl, title })}
                       />
                     ))}
                   </div>
@@ -675,6 +693,14 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
             </div>
           </div>
         </div>
+      )}
+
+      {videoModal && (
+        <VideoModal
+          url={videoModal.embedUrl}
+          title={videoModal.title}
+          onClose={() => setVideoModal(null)}
+        />
       )}
     </div>
   )
