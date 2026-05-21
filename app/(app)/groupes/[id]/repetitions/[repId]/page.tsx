@@ -381,12 +381,15 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const cycleProgress = async (songId: number, current: SongProgressStatus) => {
     const nextIndex = (PROGRESS_CYCLE.indexOf(current) + 1) % PROGRESS_CYCLE.length
     const next = PROGRESS_CYCLE[nextIndex]
+    // Optimistic update du bouton
     setSongs((prev) => prev.map((s) => s.song.id === songId ? { ...s, userProgress: next } : s))
     await fetch(`/api/morceaux/${songId}/progress`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: next }),
     })
+    // Rafraîchir pour mettre à jour membersProgress et les compteurs
+    fetchData()
   }
 
   const sendReminder = async () => {
