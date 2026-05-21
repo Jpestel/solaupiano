@@ -147,7 +147,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const router = useRouter()
   const [rehearsal, setRehearsal] = useState<Rehearsal | null>(null)
   const [songs, setSongs] = useState<RehearsalSongEntry[]>([])
-  const [groupInfo, setGroupInfo] = useState<{ name: string; groupRole: string } | null>(null)
+  const [groupInfo, setGroupInfo] = useState<{ name: string; groupRole: string; memberCount: number } | null>(null)
   const [groupSongs, setGroupSongs] = useState<GroupSong[]>([])
   const [loading, setLoading] = useState(true)
   const [addingId, setAddingId] = useState<number | null>(null)
@@ -163,6 +163,10 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   // Delete state
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Reminder state
+  const [reminderSending, setReminderSending] = useState(false)
+  const [reminderResult, setReminderResult] = useState<{ sent: number } | { error: string } | null>(null)
 
   const toggleResources = (songId: number) => {
     setExpandedSongIds((prev) => {
@@ -187,7 +191,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role })
+      setGroupInfo({ name: g.name, groupRole: role, memberCount: g.members?.length ?? 0 })
     }
     if (songsRes.ok) setGroupSongs(await songsRes.json())
     setLoading(false)
@@ -283,6 +287,19 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
     })
   }
 
+  const sendReminder = async () => {
+    setReminderSending(true)
+    setReminderResult(null)
+    const res = await fetch(`/api/repetitions/${params.repId}/rappel`, { method: 'POST' })
+    setReminderSending(false)
+    if (res.ok) {
+      const data = await res.json()
+      setReminderResult({ sent: data.sent })
+    } else {
+      setReminderResult({ error: 'Erreur lors de l\'envoi.' })
+    }
+  }
+
   if (loading) return <div className="text-gray-500">Chargement...</div>
   if (!rehearsal) return <div className="text-gray-500">Répétition introuvable.</div>
 
@@ -293,6 +310,9 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const setlistIds = new Set(songs.map((s) => s.song.id))
   const availableSongs = groupSongs.filter((s) => !setlistIds.has(s.id))
   const doneCount = songs.filter((s) => s.userDone).length
+
+  const respondedCount = rehearsal.attendances.filter((a) => a.status === 'PRESENT' || a.status === 'ABSENT').length
+  const notRespondedCount = (groupInfo?.memberCount ?? 0) - respondedCount
 
   return (
     <div>
@@ -314,25 +334,55 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
           </p>
         </div>
         {isChef && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={openEdit}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Modifier
-            </button>
-            <button
-              onClick={() => setDeleteConfirm(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Supprimer
-            </button>
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              {/* Reminder button */}
+              <button
+                onClick={sendReminder}
+                disabled={reminderSending || notRespondedCount === 0}
+                title={notRespondedCount === 0 ? 'Tous les membres ont répondu' : `Envoyer un rappel aux ${notRespondedCount} membre${notRespondedCount > 1 ? 's' : ''} sans réponse`}
+                className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {reminderSending ? 'Envoi...' : `Rappel${notRespondedCount > 0 ? ` (${notRespondedCount})` : ''}`}
+              </button>
+              <button
+                onClick={openEdit}
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Modifier
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Supprimer
+              </button>
+            </div>
+            {/* Reminder feedback */}
+            {reminderResult && (
+              <div className={`text-xs px-3 py-1.5 rounded-lg border ${'sent' in reminderResult
+                ? reminderResult.sent === 0
+                  ? 'bg-gray-50 border-gray-200 text-gray-500'
+                  : 'bg-green-50 border-green-200 text-green-700'
+                : 'bg-red-50 border-red-200 text-red-700'
+              }`}>
+                {'sent' in reminderResult
+                  ? reminderResult.sent === 0
+                    ? 'Tous les membres ont déjà répondu.'
+                    : `✓ ${reminderResult.sent} rappel${reminderResult.sent > 1 ? 's' : ''} envoyé${reminderResult.sent > 1 ? 's' : ''}`
+                  : reminderResult.error
+                }
+              </div>
+            )}
           </div>
         )}
       </div>
