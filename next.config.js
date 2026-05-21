@@ -4,6 +4,10 @@ const path = require('path')
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['formidable'],
+    staleTimes: {
+      dynamic: 0,   // pages dynamiques toujours fraîches
+      static: 180,  // pages statiques cachées 3 min
+    },
   },
   typescript: {
     ignoreBuildErrors: true,
