@@ -13,7 +13,8 @@ export default async function GroupesPage() {
 
   const userId = Number(session.user.id)
   const isAdmin = session.user.siteRole === 'ADMIN'
-  const canCreateGroup = isAdmin || session.user.userPlan === 'CREATEUR'
+  // Treat missing userPlan (old sessions) as CREATEUR to avoid blocking existing users
+  const canCreateGroup = isAdmin || !session.user.userPlan || session.user.userPlan === 'CREATEUR'
 
   // ── Vue admin : tous les groupes avec droits chef ──────────────────────
   if (isAdmin) {

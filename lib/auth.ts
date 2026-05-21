@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
+import type { JWT } from 'next-auth/jwt'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -45,11 +46,22 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         token.siteRole = (user as any).siteRole
         token.userPlan = (user as any).userPlan
+      }
+      // Re-fetch from DB on explicit update() call OR when userPlan is missing (old sessions)
+      if (trigger === 'update' || !token.userPlan) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: Number(token.id) },
+          select: { siteRole: true, userPlan: true },
+        })
+        if (dbUser) {
+          token.siteRole = dbUser.siteRole
+          token.userPlan = dbUser.userPlan
+        }
       }
       return token
     },
