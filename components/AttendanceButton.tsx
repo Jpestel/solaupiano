@@ -10,29 +10,39 @@ interface AttendanceButtonProps {
   onUpdate?: (status: AttendanceStatus) => void
 }
 
-const options: { value: AttendanceStatus; label: string; colors: string }[] = [
+const OPTIONS: {
+  value: AttendanceStatus
+  label: string
+  emoji: string
+  activeClass: string
+  hoverClass: string
+  labelClass: string
+}[] = [
   {
     value: 'PRESENT',
     label: 'Présent',
-    colors: 'bg-green-600 text-white ring-green-500',
+    emoji: '✅',
+    activeClass: 'bg-green-500 border-green-500 shadow-green-100 shadow-md',
+    hoverClass: 'hover:bg-green-50 hover:border-green-400',
+    labelClass: 'text-green-700',
   },
   {
     value: 'ABSENT',
     label: 'Absent',
-    colors: 'bg-red-600 text-white ring-red-500',
+    emoji: '❌',
+    activeClass: 'bg-red-500 border-red-500 shadow-red-100 shadow-md',
+    hoverClass: 'hover:bg-red-50 hover:border-red-400',
+    labelClass: 'text-red-700',
   },
   {
     value: 'INCERTAIN',
-    label: 'Incertain',
-    colors: 'bg-yellow-500 text-white ring-yellow-400',
+    label: 'Peut-être',
+    emoji: '🤔',
+    activeClass: 'bg-amber-400 border-amber-400 shadow-amber-100 shadow-md',
+    hoverClass: 'hover:bg-amber-50 hover:border-amber-300',
+    labelClass: 'text-amber-700',
   },
 ]
-
-const inactiveColors: Record<AttendanceStatus, string> = {
-  PRESENT: 'text-green-700 bg-green-50 hover:bg-green-100 ring-green-300',
-  ABSENT: 'text-red-700 bg-red-50 hover:bg-red-100 ring-red-300',
-  INCERTAIN: 'text-yellow-700 bg-yellow-50 hover:bg-yellow-100 ring-yellow-300',
-}
 
 export function AttendanceButton({ rehearsalId, currentStatus, onUpdate }: AttendanceButtonProps) {
   const [status, setStatus] = useState<AttendanceStatus>(currentStatus)
@@ -41,14 +51,12 @@ export function AttendanceButton({ rehearsalId, currentStatus, onUpdate }: Atten
   const handleChange = async (newStatus: AttendanceStatus) => {
     if (newStatus === status || loading) return
     setLoading(true)
-
     try {
       const res = await fetch(`/api/repetitions/${rehearsalId}/presences`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
-
       if (res.ok) {
         setStatus(newStatus)
         onUpdate?.(newStatus)
@@ -60,23 +68,54 @@ export function AttendanceButton({ rehearsalId, currentStatus, onUpdate }: Atten
     }
   }
 
+  const isUnanswered = status === 'INCERTAIN'
+
   return (
-    <div className="inline-flex rounded-lg ring-1 ring-gray-200 overflow-hidden" role="group">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => handleChange(option.value)}
-          disabled={loading}
-          className={`px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none ${
-            status === option.value
-              ? `${option.colors} ring-1`
-              : `${inactiveColors[option.value]} ring-0`
-          } disabled:opacity-60`}
-        >
-          {option.label}
-        </button>
-      ))}
+    <div className="space-y-3">
+      {/* Prompt when unanswered */}
+      {isUnanswered && (
+        <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+          <span className="text-amber-500 text-base flex-shrink-0">⚠️</span>
+          <p className="text-xs font-medium text-amber-700">Votre réponse est attendue</p>
+        </div>
+      )}
+
+      {/* Big choice cards */}
+      <div className="grid grid-cols-3 gap-2">
+        {OPTIONS.map((opt) => {
+          const isActive = status === opt.value
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => handleChange(opt.value)}
+              disabled={loading}
+              className={`
+                relative flex flex-col items-center gap-1.5 rounded-xl border-2 px-2 py-3
+                transition-all duration-150 disabled:opacity-60
+                ${isActive
+                  ? `${opt.activeClass} text-white`
+                  : `bg-white border-gray-200 ${opt.hoverClass}`
+                }
+              `}
+            >
+              <span className="text-xl leading-none">{opt.emoji}</span>
+              <span className={`text-[11px] font-semibold ${isActive ? 'text-white' : opt.labelClass}`}>
+                {opt.label}
+              </span>
+              {isActive && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white border-2 border-current flex items-center justify-center">
+                  <span className="text-[8px]">✓</span>
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {loading && (
+        <p className="text-xs text-center text-gray-400">Enregistrement...</p>
+      )}
     </div>
   )
 }

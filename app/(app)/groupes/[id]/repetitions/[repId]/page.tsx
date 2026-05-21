@@ -564,18 +564,27 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
 
         {/* Right column */}
         <div className="space-y-6">
-          <Card>
-            <CardHeader title="Ma présence" />
-            <p className="text-sm text-gray-600 mb-3">Indiquez votre disponibilité.</p>
-            {myAttendance && <AttendanceBadge status={myAttendance.status} />}
-            <div className="mt-3">
-              <AttendanceButton
-                rehearsalId={rehearsal.id}
-                currentStatus={myAttendance?.status || 'INCERTAIN'}
-                onUpdate={fetchData}
-              />
-            </div>
-          </Card>
+          <div className={`rounded-xl border-2 shadow-sm p-6 bg-white ${
+            myAttendance?.status === 'PRESENT'
+              ? 'border-green-300'
+              : myAttendance?.status === 'ABSENT'
+                ? 'border-red-300'
+                : 'border-amber-300'
+          }`}>
+            <CardHeader
+              title="Serez-vous présent(e) ?"
+              subtitle={
+                myAttendance?.status === 'PRESENT' ? '✓ Vous avez confirmé votre présence'
+                : myAttendance?.status === 'ABSENT' ? 'Vous avez déclaré votre absence'
+                : undefined
+              }
+            />
+            <AttendanceButton
+              rehearsalId={rehearsal.id}
+              currentStatus={myAttendance?.status || 'INCERTAIN'}
+              onUpdate={fetchData}
+            />
+          </div>
 
           {rehearsal.notes && (
             <Card>
