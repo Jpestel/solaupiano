@@ -140,7 +140,10 @@ export default function InscriptionPage() {
                 </div>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   userPlan === 'CREATEUR' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
-                }`}>Gratuit</span>
+                }`}>Gratuit jusqu'à 1 Go</span>
+                <p className="text-[10px] text-gray-400 leading-tight">
+                  Stockage partagé avec les membres du groupe
+                </p>
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-2 text-center">
