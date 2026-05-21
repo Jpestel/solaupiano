@@ -55,6 +55,7 @@ interface Props {
   showInvite: boolean
   isChef: boolean
   canManage: boolean
+  isAdmin: boolean
   currentUserId: number
   currentUserRole: string
   savedCardOrder: string | null
@@ -89,7 +90,7 @@ function SortableCard({ id, children, spanFull }: { id: string; children: React.
 
 export function GroupCards({
   groupId, rehearsal, concert, members, showInvite,
-  isChef, canManage, currentUserId, currentUserRole, savedCardOrder,
+  isChef, canManage, isAdmin, currentUserId, currentUserRole, savedCardOrder,
 }: Props) {
   const defaultOrder = ['rehearsal', 'concert', 'members', ...(showInvite ? ['invite'] : [])]
 
@@ -197,6 +198,7 @@ export function GroupCards({
             groupId={groupId}
             members={members}
             canManage={canManage}
+            isAdmin={isAdmin}
             currentUserId={currentUserId}
             currentUserRole={currentUserRole}
           />

@@ -175,6 +175,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         showInvite={isChef && !group.isPublic}
         isChef={isChef}
         canManage={canManageMembers}
+        isAdmin={isAdminUser}
         currentUserId={userId}
         currentUserRole={isAdminUser ? 'CHEF' : (membership?.groupRole ?? 'CHEF')}
         savedCardOrder={membership?.cardOrder ?? null}

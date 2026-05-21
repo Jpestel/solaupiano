@@ -17,12 +17,14 @@ export default function MembresPanel({
   groupId,
   members: initialMembers,
   canManage,
+  isAdmin,
   currentUserId,
   currentUserRole,
 }: {
   groupId: number
   members: Member[]
   canManage: boolean
+  isAdmin: boolean
   currentUserId: number
   currentUserRole: string
 }) {
@@ -48,15 +50,6 @@ export default function MembresPanel({
       )
       router.refresh()
     }
-  }
-
-  const stepDown = () => {
-    const otherChefs = members.filter((m) => m.groupRole === 'CHEF' && m.userId !== currentUserId)
-    if (otherChefs.length === 0) {
-      setActionError('Vous êtes le seul chef de ce groupe. Nommez un autre membre chef d\'orchestre avant de pouvoir passer membre simple.')
-      return
-    }
-    toggleRole({ userId: currentUserId, groupRole: 'CHEF', user: members.find((m) => m.userId === currentUserId)!.user })
   }
 
   const removeMember = async (targetUserId: number, isSelf: boolean) => {
@@ -136,8 +129,8 @@ export default function MembresPanel({
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Role toggle — chef only, not on self */}
-              {canManage && !isSelf && (
+              {/* Role toggle — admin only */}
+              {isAdmin && !isSelf && (
                 <button
                   onClick={() => toggleRole(member)}
                   disabled={processing === member.userId}
@@ -161,18 +154,6 @@ export default function MembresPanel({
                   className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors disabled:opacity-50"
                 >
                   {processing === member.userId ? '...' : '✕'}
-                </button>
-              )}
-
-              {/* Step down from chef — only on own row when chef */}
-              {isSelf && isChef && (
-                <button
-                  onClick={stepDown}
-                  disabled={processing === currentUserId}
-                  title="Passer membre simple"
-                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 whitespace-nowrap"
-                >
-                  {processing === currentUserId ? '...' : 'Passer membre'}
                 </button>
               )}
 

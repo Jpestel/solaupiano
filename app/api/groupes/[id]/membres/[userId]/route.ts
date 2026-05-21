@@ -17,13 +17,9 @@ export async function PATCH(
   const requesterId = Number(session.user.id)
 
   const isAdmin = session.user.siteRole === 'ADMIN'
+  // Only site admins can change group roles — chefs cannot promote/demote members
   if (!isAdmin) {
-    const requesterMembership = await prisma.groupMember.findUnique({
-      where: { userId_groupId: { userId: requesterId, groupId } },
-    })
-    if (!requesterMembership || requesterMembership.groupRole !== 'CHEF') {
-      return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
-    }
+    return NextResponse.json({ error: 'Seul un administrateur peut modifier les rôles dans un groupe.' }, { status: 403 })
   }
 
   const { groupRole } = await req.json()
