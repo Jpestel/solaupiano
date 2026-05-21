@@ -11,6 +11,7 @@ interface Instrument {
 
 export default function InscriptionPage() {
   const router = useRouter()
+  const [userPlan, setUserPlan] = useState<'MUSICIEN' | 'CREATEUR'>('MUSICIEN')
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -64,6 +65,7 @@ export default function InscriptionPage() {
         password: form.password,
         instrumentIds: form.instrumentIds,
         otherInstrument: form.otherInstrument.trim() || undefined,
+        userPlan,
       }),
     })
 
@@ -91,6 +93,60 @@ export default function InscriptionPage() {
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Créer un compte</h2>
+
+          {/* Plan choice */}
+          <div className="mb-6">
+            <p className="text-sm font-medium text-gray-700 mb-3">Comment souhaitez-vous utiliser Solaupiano ?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setUserPlan('MUSICIEN')}
+                className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all ${
+                  userPlan === 'MUSICIEN'
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <span className="text-3xl">🎵</span>
+                <div>
+                  <p className={`text-sm font-bold ${userPlan === 'MUSICIEN' ? 'text-indigo-700' : 'text-gray-800'}`}>
+                    Musicien
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">
+                    Je rejoins des groupes existants
+                  </p>
+                </div>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  userPlan === 'MUSICIEN' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                }`}>Gratuit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserPlan('CREATEUR')}
+                className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all ${
+                  userPlan === 'CREATEUR'
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <span className="text-3xl">🎼</span>
+                <div>
+                  <p className={`text-sm font-bold ${userPlan === 'CREATEUR' ? 'text-indigo-700' : 'text-gray-800'}`}>
+                    Créateur
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">
+                    Je crée et gère mon groupe
+                  </p>
+                </div>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  userPlan === 'CREATEUR' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                }`}>Gratuit</span>
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Vous pourrez changer de plan depuis votre profil à tout moment.
+            </p>
+          </div>
 
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">

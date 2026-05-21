@@ -39,6 +39,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           siteRole: user.siteRole,
+          userPlan: user.userPlan,
         }
       },
     }),
@@ -47,7 +48,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.siteRole = (user as { siteRole?: string }).siteRole
+        token.siteRole = (user as any).siteRole
+        token.userPlan = (user as any).userPlan
       }
       return token
     },
@@ -55,6 +57,7 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         session.user.id = token.id as string
         session.user.siteRole = token.siteRole as string
+        session.user.userPlan = token.userPlan as string
       }
       return session
     },
@@ -79,11 +82,13 @@ declare module 'next-auth' {
       email?: string | null
       image?: string | null
       siteRole: string
+      userPlan: string
     }
   }
 
   interface User {
     siteRole?: string
+    userPlan?: string
   }
 }
 
@@ -91,5 +96,6 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string
     siteRole?: string
+    userPlan?: string
   }
 }

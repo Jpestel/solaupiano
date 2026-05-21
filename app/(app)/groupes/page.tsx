@@ -13,6 +13,7 @@ export default async function GroupesPage() {
 
   const userId = Number(session.user.id)
   const isAdmin = session.user.siteRole === 'ADMIN'
+  const canCreateGroup = isAdmin || session.user.userPlan === 'CREATEUR'
 
   // ── Vue admin : tous les groupes avec droits chef ──────────────────────
   if (isAdmin) {
@@ -32,7 +33,7 @@ export default async function GroupesPage() {
               En tant qu&apos;administrateur, vous avez les droits chef sur tous les groupes.
             </p>
           </div>
-          <CreateGroupButton />
+          {canCreateGroup && <CreateGroupButton />}
         </div>
 
         {allGroups.length === 0 ? (
@@ -117,7 +118,7 @@ export default async function GroupesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Mes groupes</h1>
           <p className="text-gray-500 mt-1 text-sm">Groupes musicaux dont vous êtes membre.</p>
         </div>
-        <CreateGroupButton />
+        {canCreateGroup && <CreateGroupButton />}
       </div>
 
       {memberships.length === 0 ? (

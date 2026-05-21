@@ -12,6 +12,11 @@ enum SiteRole {
   USER
 }
 
+enum UserPlan {
+  MUSICIEN
+  CREATEUR
+}
+
 enum GroupRole {
   CHEF
   MEMBRE
@@ -50,6 +55,7 @@ model User {
   password      String
   name          String
   siteRole      SiteRole  @default(USER)
+  userPlan      UserPlan  @default(CREATEUR)
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

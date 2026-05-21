@@ -7,7 +7,7 @@ import { sendEmailVerification, sendNewUserNotification } from '@/lib/email'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, email, password, instrumentIds, otherInstrument } = body
+    const { name, email, password, instrumentIds, otherInstrument, userPlan } = body
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Tous les champs obligatoires doivent être remplis.' }, { status: 400 })
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
         email,
         password: hashedPassword,
         siteRole: isFirstUser ? 'ADMIN' : 'USER',
+        userPlan: isFirstUser ? 'CREATEUR' : (userPlan === 'CREATEUR' ? 'CREATEUR' : 'MUSICIEN'),
         emailVerified: isFirstUser ? new Date() : null,
         instruments: {
           create: allInstrumentIds.map((id: number) => ({ instrumentId: id })),

@@ -27,17 +27,20 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
-  const { name, instrumentIds } = await req.json()
+  const { name, instrumentIds, userPlan } = await req.json()
 
   if (!name?.trim()) {
     return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
   }
 
+  const validPlans = ['MUSICIEN', 'CREATEUR']
+  const planData = userPlan && validPlans.includes(userPlan) ? { userPlan } : {}
+
   // Update user and instruments in a transaction
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
-      data: { name: name.trim() },
+      data: { name: name.trim(), ...planData },
     }),
     prisma.userInstrument.deleteMany({ where: { userId } }),
     ...(Array.isArray(instrumentIds) && instrumentIds.length > 0

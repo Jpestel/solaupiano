@@ -34,6 +34,14 @@ export async function POST(req: NextRequest) {
 
   const isAdmin = session.user.siteRole === 'ADMIN'
 
+  // Musiciens (non-créateurs) cannot create groups
+  if (!isAdmin && session.user.userPlan !== 'CREATEUR') {
+    return NextResponse.json(
+      { error: 'Votre plan Musicien ne permet pas de créer un groupe. Passez au plan Créateur depuis votre profil.' },
+      { status: 403 }
+    )
+  }
+
   // Admin can designate a chef; a musician becomes CHEF of their own group
   const chefUserId = isAdmin && chefId ? Number(chefId) : (!isAdmin ? Number(session.user.id) : null)
 

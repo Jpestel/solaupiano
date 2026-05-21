@@ -15,6 +15,7 @@ interface ProfileData {
   name: string
   email: string
   siteRole: string
+  userPlan: string
   instruments: { instrument: Instrument }[]
 }
 
@@ -37,6 +38,8 @@ export default function ProfilPage() {
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [requestingGroup, setRequestingGroup] = useState<number | null>(null)
+  const [planSaving, setPlanSaving] = useState(false)
+  const [planSuccess, setPlanSuccess] = useState('')
 
   const fetchData = async () => {
     const [profRes, instrRes, groupsRes] = await Promise.all([
@@ -85,6 +88,24 @@ export default function ProfilPage() {
     await update({ name })
   }
 
+  const handlePlanChange = async (newPlan: 'MUSICIEN' | 'CREATEUR') => {
+    if (!profile || profile.userPlan === newPlan) return
+    setPlanSaving(true)
+    setPlanSuccess('')
+    const res = await fetch('/api/profil', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: profile.name, instrumentIds: selectedIds, userPlan: newPlan }),
+    })
+    setPlanSaving(false)
+    if (res.ok) {
+      const updated = await res.json()
+      setProfile(updated)
+      setPlanSuccess('Plan mis à jour avec succès.')
+      await update({ userPlan: newPlan })
+    }
+  }
+
   const handleJoinRequest = async (groupId: number) => {
     setRequestingGroup(groupId)
     const res = await fetch(`/api/groupes/${groupId}/demandes`, {
@@ -115,6 +136,50 @@ export default function ProfilPage() {
       </div>
 
       <div className="max-w-lg space-y-6">
+
+        {/* User plan — hidden for admins */}
+        {profile.siteRole !== 'ADMIN' && (
+          <Card>
+            <CardHeader title="Mon plan" subtitle="Choisissez comment vous utilisez Solaupiano." />
+            {planSuccess && (
+              <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">{planSuccess}</div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                { value: 'MUSICIEN', icon: '🎵', label: 'Musicien', desc: 'Je rejoins des groupes existants', badge: 'Gratuit' },
+                { value: 'CREATEUR', icon: '🎼', label: 'Créateur', desc: 'Je crée et gère mon groupe', badge: 'Gratuit' },
+              ] as const).map((opt) => {
+                const isActive = profile.userPlan === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={planSaving || isActive}
+                    onClick={() => handlePlanChange(opt.value)}
+                    className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all disabled:cursor-default ${
+                      isActive
+                        ? 'border-indigo-500 bg-indigo-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-2xl">{opt.icon}</span>
+                    <div>
+                      <p className={`text-sm font-bold ${isActive ? 'text-indigo-700' : 'text-gray-700'}`}>{opt.label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-tight">{opt.desc}</p>
+                    </div>
+                    {isActive && (
+                      <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">Plan actuel</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs text-gray-400 mt-3">
+              ⚠️ Passer en plan Musicien vous empêchera de créer de nouveaux groupes.
+            </p>
+          </Card>
+        )}
+
         {/* Profile form */}
         <Card>
           <CardHeader title="Informations" />
