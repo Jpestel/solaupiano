@@ -75,6 +75,8 @@ model User {
   passwordResetTokens      PasswordResetToken[]
   emailVerificationTokens  EmailVerificationToken[]
   songProgress             UserSongProgress[]
+  remindersReceived        ReminderLog[]            @relation("RemindedUser")
+  remindersSent            ReminderLog[]            @relation("ReminderSender")
 }
 
 model Instrument {
@@ -134,9 +136,10 @@ model Rehearsal {
   notes     String?  @db.Text
   createdAt DateTime @default(now())
 
-  group       Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  songs       RehearsalSong[]
-  attendances Attendance[]
+  group        Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  songs        RehearsalSong[]
+  attendances  Attendance[]
+  reminderLogs ReminderLog[]
 }
 
 model RehearsalSong {
@@ -263,4 +266,19 @@ model Resource {
 
   song       Song @relation(fields: [songId], references: [id], onDelete: Cascade)
   uploadedBy User @relation(fields: [uploadedById], references: [id])
+}
+
+model ReminderLog {
+  id          Int      @id @default(autoincrement())
+  rehearsalId Int
+  userId      Int
+  sentById    Int
+  sentAt      DateTime @default(now())
+
+  rehearsal Rehearsal @relation(fields: [rehearsalId], references: [id], onDelete: Cascade)
+  user      User      @relation("RemindedUser", fields: [userId], references: [id], onDelete: Cascade)
+  sentBy    User      @relation("ReminderSender", fields: [sentById], references: [id], onDelete: Cascade)
+
+  @@index([rehearsalId])
+  @@index([userId])
 }

@@ -41,18 +41,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const respondedUserIds = new Set(existingAttendances.map((a) => a.userId))
 
   // Garder uniquement les membres qui n'ont pas encore répondu (INCERTAIN ou sans enregistrement)
-  const membersToRemind = groupMembers
-    .filter((m) => !respondedUserIds.has(m.userId))
-    .map((m) => ({ email: m.user.email, name: m.user.name }))
+  const membersToRemind = groupMembers.filter((m) => !respondedUserIds.has(m.userId))
 
   if (membersToRemind.length === 0) {
     return NextResponse.json({ sent: 0, message: 'Tous les membres ont déjà répondu.' })
   }
 
   const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+  const senderId = Number(session.user.id)
 
   await sendAttendanceReminder(
-    membersToRemind,
+    membersToRemind.map((m) => ({ email: m.user.email, name: m.user.name })),
     rehearsal.group.name,
     {
       id: rehearsal.id,
@@ -64,6 +63,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
     baseUrl
   )
+
+  // Log chaque rappel envoyé
+  await prisma.reminderLog.createMany({
+    data: membersToRemind.map((m) => ({
+      rehearsalId,
+      userId: m.userId,
+      sentById: senderId,
+    })),
+  })
 
   return NextResponse.json({ sent: membersToRemind.length })
 }
