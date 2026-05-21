@@ -33,15 +33,53 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
   if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
+  const isChef = isAdmin || membership?.groupRole === 'CHEF'
   const songIds = rehearsal.songs.map((rs) => rs.songId)
+
+  // My own progress
   const progress = await prisma.userSongProgress.findMany({
     where: { userId, songId: { in: songIds } },
   })
   const progressMap = Object.fromEntries(progress.map((p) => [p.songId, p.status]))
 
+  // Chef: also fetch all members' progress for each song
+  let memberProgressBySong: Record<number, { userId: number; userName: string; status: string }[]> = {}
+  if (isChef && songIds.length > 0) {
+    const [members, allProgress] = await Promise.all([
+      prisma.groupMember.findMany({
+        where: { groupId: rehearsal.groupId },
+        include: { user: { select: { id: true, name: true } } },
+      }),
+      prisma.userSongProgress.findMany({
+        where: { songId: { in: songIds } },
+        select: { userId: true, songId: true, status: true },
+      }),
+    ])
+    // Build a map: userId → name
+    const memberMap = Object.fromEntries(members.map((m) => [m.userId, m.user.name]))
+    // Build progress map by song
+    const progressBySong: Record<number, Record<number, string>> = {}
+    for (const p of allProgress) {
+      if (!progressBySong[p.songId]) progressBySong[p.songId] = {}
+      progressBySong[p.songId][p.userId] = p.status
+    }
+    // For each song, combine all members with their status (default A_TRAVAILLER)
+    for (const songId of songIds) {
+      memberProgressBySong[songId] = members.map((m) => ({
+        userId: m.userId,
+        userName: m.user.name,
+        status: progressBySong[songId]?.[m.userId] ?? 'A_TRAVAILLER',
+      }))
+    }
+  }
+
   return NextResponse.json({
     ...rehearsal,
-    songs: rehearsal.songs.map((rs) => ({ ...rs, userProgress: progressMap[rs.songId] ?? 'A_TRAVAILLER' })),
+    songs: rehearsal.songs.map((rs) => ({
+      ...rs,
+      userProgress: progressMap[rs.songId] ?? 'A_TRAVAILLER',
+      membersProgress: memberProgressBySong[rs.songId] ?? null,
+    })),
   })
 }
 

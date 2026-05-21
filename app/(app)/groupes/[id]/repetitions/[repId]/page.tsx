@@ -19,7 +19,8 @@ import { AttendanceButton } from '@/components/AttendanceButton'
 interface Resource { id: number; name: string; type: string; filePath: string }
 interface Song { id: number; title: string; artist?: string; resources: Resource[] }
 type SongProgressStatus = 'A_TRAVAILLER' | 'EN_COURS' | 'MAITRISE'
-interface RehearsalSongEntry { song: Song; position: number; userProgress: SongProgressStatus }
+interface MemberProgress { userId: number; userName: string; status: SongProgressStatus }
+interface RehearsalSongEntry { song: Song; position: number; userProgress: SongProgressStatus; membersProgress: MemberProgress[] | null }
 interface Attendance { userId: number; status: 'PRESENT' | 'ABSENT' | 'INCERTAIN'; user: { id: number; name: string } }
 interface Rehearsal {
   id: number; date: string; location: string; startTime: string; endTime?: string; notes?: string; groupId: number
@@ -33,6 +34,43 @@ function DragHandle() {
       <circle cx="5" cy="4" r="1.2" /><circle cx="5" cy="8" r="1.2" /><circle cx="5" cy="12" r="1.2" />
       <circle cx="11" cy="4" r="1.2" /><circle cx="11" cy="8" r="1.2" /><circle cx="11" cy="12" r="1.2" />
     </svg>
+  )
+}
+
+const STATUS_DOT: Record<SongProgressStatus, { bg: string; border: string; text: string; label: string }> = {
+  A_TRAVAILLER: { bg: 'bg-gray-100',   border: 'border-gray-300',  text: 'text-gray-500',  label: 'À travailler' },
+  EN_COURS:     { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-600', label: 'En cours...' },
+  MAITRISE:     { bg: 'bg-green-100',  border: 'border-green-300',  text: 'text-green-700', label: 'Je maîtrise' },
+}
+
+function MembersProgressPanel({ members }: { members: MemberProgress[] }) {
+  const total = members.length
+  const mastered = members.filter((m) => m.status === 'MAITRISE').length
+  const allMastered = mastered === total
+
+  return (
+    <div className={`border-t px-4 py-2.5 ${allMastered ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center flex-wrap gap-1.5">
+          {members.map((m) => {
+            const s = STATUS_DOT[m.status as SongProgressStatus] ?? STATUS_DOT.A_TRAVAILLER
+            return (
+              <div
+                key={m.userId}
+                title={`${m.userName} — ${s.label}`}
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.border} ${s.text}`}
+              >
+                <span className="font-bold">{m.userName.charAt(0).toUpperCase()}</span>
+                <span className="hidden sm:inline truncate max-w-[80px]">{m.userName.split(' ')[0]}</span>
+              </div>
+            )
+          })}
+        </div>
+        <div className={`flex-shrink-0 text-xs font-semibold ${allMastered ? 'text-green-700' : 'text-gray-400'}`}>
+          {allMastered ? '✓ Tous maîtrisent' : `${mastered}/${total} maîtrisent`}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -113,6 +151,11 @@ function SortableSongRow({
           </button>
         )}
       </div>
+
+      {/* Chef: members progress panel */}
+      {isChef && entry.membersProgress && entry.membersProgress.length > 0 && (
+        <MembersProgressPanel members={entry.membersProgress} />
+      )}
 
       {song.resources.length > 0 && (
         <div className="border-t border-gray-100">
