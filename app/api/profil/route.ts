@@ -9,17 +9,36 @@ export async function GET() {
 
   const userId = Number(session.user.id)
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      instruments: { include: { instrument: true } },
-    },
-  })
+  const [user, groupCount, masterCount, nextRehearsal] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      include: { instruments: { include: { instrument: true } } },
+    }),
+    prisma.groupMember.count({ where: { userId } }),
+    prisma.userSongProgress.count({ where: { userId, status: 'MAITRISE' } }),
+    prisma.rehearsal.findFirst({
+      where: {
+        date: { gte: new Date() },
+        group: { members: { some: { userId } } },
+      },
+      orderBy: { date: 'asc' },
+      select: { id: true, date: true, location: true, groupId: true, group: { select: { name: true } } },
+    }),
+  ])
 
   if (!user) return NextResponse.json({ error: 'Introuvable.' }, { status: 404 })
 
   const { password, ...safeUser } = user
-  return NextResponse.json(safeUser)
+  return NextResponse.json({
+    ...safeUser,
+    stats: {
+      groupCount,
+      masterCount,
+      nextRehearsal: nextRehearsal
+        ? { ...nextRehearsal, date: nextRehearsal.date.toISOString() }
+        : null,
+    },
+  })
 }
 
 export async function PATCH(req: NextRequest) {
