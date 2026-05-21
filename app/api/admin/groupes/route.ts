@@ -18,7 +18,13 @@ export async function GET() {
     orderBy: { createdAt: 'desc' },
   })
 
-  return NextResponse.json(groups)
+  // BigInt cannot be JSON-serialised — convert to string
+  const serializable = groups.map((g) => ({
+    ...g,
+    storageUsedBytes: String(g.storageUsedBytes),
+  }))
+
+  return NextResponse.json(serializable)
 }
 
 export async function POST(req: NextRequest) {

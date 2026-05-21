@@ -154,7 +154,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
       <PlanSection
         plan={group.plan as any}
-        storageUsedBytes={group.storageUsedBytes}
+        storageUsedBytes={Number(group.storageUsedBytes)}
         isChef={isChef}
       />
 

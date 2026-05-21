@@ -4,7 +4,7 @@ import { PLANS, GroupPlan, formatBytes, storagePercent } from '@/lib/plans'
 
 interface PlanSectionProps {
   plan: GroupPlan
-  storageUsedBytes: bigint | number
+  storageUsedBytes: number
   isChef: boolean
 }
 
