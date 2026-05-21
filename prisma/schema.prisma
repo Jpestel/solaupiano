@@ -34,6 +34,12 @@ enum AttendanceStatus {
   INCERTAIN
 }
 
+enum SongProgressStatus {
+  A_TRAVAILLER
+  EN_COURS
+  MAITRISE
+}
+
 enum ResourceType {
   PDF
   AUDIO
@@ -146,8 +152,8 @@ model RehearsalSong {
 model UserSongProgress {
   userId    Int
   songId    Int
-  done      Boolean  @default(false)
-  updatedAt DateTime @updatedAt
+  status    SongProgressStatus @default(A_TRAVAILLER)
+  updatedAt DateTime           @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   song Song @relation(fields: [songId], references: [id], onDelete: Cascade)

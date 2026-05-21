@@ -9,12 +9,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   const userId = Number(session.user.id)
   const songId = Number(params.id)
-  const { done } = await req.json()
+  const { status } = await req.json()
 
   const result = await prisma.userSongProgress.upsert({
     where: { userId_songId: { userId, songId } },
-    update: { done },
-    create: { userId, songId, done },
+    update: { status },
+    create: { userId, songId, status },
   })
 
   return NextResponse.json(result)

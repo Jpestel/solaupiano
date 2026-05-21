@@ -18,7 +18,8 @@ import { AttendanceButton } from '@/components/AttendanceButton'
 
 interface Resource { id: number; name: string; type: string; filePath: string }
 interface Song { id: number; title: string; artist?: string; resources: Resource[] }
-interface RehearsalSongEntry { song: Song; position: number; userDone: boolean }
+type SongProgressStatus = 'A_TRAVAILLER' | 'EN_COURS' | 'MAITRISE'
+interface RehearsalSongEntry { song: Song; position: number; userProgress: SongProgressStatus }
 interface Attendance { userId: number; status: 'PRESENT' | 'ABSENT' | 'INCERTAIN'; user: { id: number; name: string } }
 interface Rehearsal {
   id: number; date: string; location: string; startTime: string; endTime?: string; notes?: string; groupId: number
@@ -35,8 +36,28 @@ function DragHandle() {
   )
 }
 
+const PROGRESS_CYCLE: SongProgressStatus[] = ['A_TRAVAILLER', 'EN_COURS', 'MAITRISE']
+
+const PROGRESS_CONFIG: Record<SongProgressStatus, { label: string; className: string; icon: string }> = {
+  A_TRAVAILLER: {
+    label: 'À travailler',
+    className: 'bg-white border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500',
+    icon: '○',
+  },
+  EN_COURS: {
+    label: 'En cours...',
+    className: 'bg-orange-50 border-orange-300 text-orange-600',
+    icon: '◑',
+  },
+  MAITRISE: {
+    label: 'Je maîtrise',
+    className: 'bg-green-100 border-green-300 text-green-700',
+    icon: '●',
+  },
+}
+
 function SortableSongRow({
-  entry, index, isChef, expandedSongIds, toggleResources, removingId, removeSong, toggleDone,
+  entry, index, isChef, expandedSongIds, toggleResources, removingId, removeSong, cycleProgress,
 }: {
   entry: RehearsalSongEntry
   index: number
@@ -45,13 +66,14 @@ function SortableSongRow({
   toggleResources: (id: number) => void
   removingId: number | null
   removeSong: (id: number) => void
-  toggleDone: (id: number, current: boolean) => void
+  cycleProgress: (id: number, current: SongProgressStatus) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.song.id,
     disabled: !isChef,
   })
   const { song } = entry
+  const prog = PROGRESS_CONFIG[entry.userProgress]
 
   return (
     <div
@@ -72,18 +94,12 @@ function SortableSongRow({
         </div>
 
         <button
-          onClick={() => toggleDone(song.id, entry.userDone)}
-          title={entry.userDone ? 'Marquer comme non travaillé' : 'Marquer comme travaillé'}
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border transition-all flex-shrink-0 ${
-            entry.userDone
-              ? 'bg-green-100 border-green-300 text-green-700'
-              : 'bg-white border-gray-200 text-gray-400 hover:border-indigo-300 hover:text-indigo-600'
-          }`}
+          onClick={() => cycleProgress(song.id, entry.userProgress)}
+          title="Changer le statut de travail"
+          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border transition-all flex-shrink-0 ${prog.className}`}
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
-          {entry.userDone ? 'Travaillé' : 'À travailler'}
+          <span className="text-sm leading-none">{prog.icon}</span>
+          {prog.label}
         </button>
 
         {isChef && (
@@ -278,12 +294,14 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
     fetchData()
   }
 
-  const toggleDone = async (songId: number, current: boolean) => {
-    setSongs((prev) => prev.map((s) => s.song.id === songId ? { ...s, userDone: !current } : s))
+  const cycleProgress = async (songId: number, current: SongProgressStatus) => {
+    const nextIndex = (PROGRESS_CYCLE.indexOf(current) + 1) % PROGRESS_CYCLE.length
+    const next = PROGRESS_CYCLE[nextIndex]
+    setSongs((prev) => prev.map((s) => s.song.id === songId ? { ...s, userProgress: next } : s))
     await fetch(`/api/morceaux/${songId}/progress`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ done: !current }),
+      body: JSON.stringify({ status: next }),
     })
   }
 
@@ -309,7 +327,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
 
   const setlistIds = new Set(songs.map((s) => s.song.id))
   const availableSongs = groupSongs.filter((s) => !setlistIds.has(s.id))
-  const doneCount = songs.filter((s) => s.userDone).length
+  const doneCount = songs.filter((s) => s.userProgress === 'MAITRISE').length
 
   const respondedCount = rehearsal.attendances.filter((a) => a.status === 'PRESENT' || a.status === 'ABSENT').length
   const notRespondedCount = (groupInfo?.memberCount ?? 0) - respondedCount
@@ -393,7 +411,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
           <Card>
             <CardHeader
               title={`Morceaux à préparer (${songs.length})`}
-              subtitle={songs.length > 0 ? `${doneCount}/${songs.length} travaillé${doneCount > 1 ? 's' : ''}` : undefined}
+              subtitle={songs.length > 0 ? `${doneCount}/${songs.length} maîtrisé${doneCount > 1 ? 's' : ''}` : undefined}
             />
 
             {songs.length === 0 ? (
@@ -412,7 +430,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                         toggleResources={toggleResources}
                         removingId={removingId}
                         removeSong={removeSong}
-                        toggleDone={toggleDone}
+                        cycleProgress={cycleProgress}
                       />
                     ))}
                   </div>

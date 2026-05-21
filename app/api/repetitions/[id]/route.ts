@@ -37,11 +37,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const progress = await prisma.userSongProgress.findMany({
     where: { userId, songId: { in: songIds } },
   })
-  const progressMap = Object.fromEntries(progress.map((p) => [p.songId, p.done]))
+  const progressMap = Object.fromEntries(progress.map((p) => [p.songId, p.status]))
 
   return NextResponse.json({
     ...rehearsal,
-    songs: rehearsal.songs.map((rs) => ({ ...rs, userDone: progressMap[rs.songId] ?? false })),
+    songs: rehearsal.songs.map((rs) => ({ ...rs, userProgress: progressMap[rs.songId] ?? 'A_TRAVAILLER' })),
   })
 }
 
