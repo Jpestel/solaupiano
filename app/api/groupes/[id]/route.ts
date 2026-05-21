@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
 
-  return NextResponse.json(group)
+  return NextResponse.json({ ...group, storageUsedBytes: String(group.storageUsedBytes) })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -71,7 +71,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     },
   })
 
-  return NextResponse.json(group)
+  return NextResponse.json({ ...group, storageUsedBytes: String(group.storageUsedBytes) })
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {

@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     where: { id: Number(params.id) },
     data: { plan },
   })
-  return NextResponse.json(group)
+  return NextResponse.json({ ...group, storageUsedBytes: String(group.storageUsedBytes) })
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {

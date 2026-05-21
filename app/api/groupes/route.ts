@@ -53,5 +53,5 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  return NextResponse.json(group, { status: 201 })
+  return NextResponse.json({ ...group, storageUsedBytes: String(group.storageUsedBytes) }, { status: 201 })
 }
