@@ -42,6 +42,24 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // FREE creators can only manage 1 group — enforce limit
+  if (!isAdmin) {
+    const existingGroupsCount = await prisma.groupMember.count({
+      where: { userId: Number(session.user.id), groupRole: 'CHEF' },
+    })
+    // FREE plan limit = 1 group (PRO/PREMIUM = 5, coming soon)
+    const FREE_MAX_GROUPS = 1
+    if (existingGroupsCount >= FREE_MAX_GROUPS) {
+      return NextResponse.json(
+        {
+          error: `Votre plan Gratuit vous permet de créer et gérer ${FREE_MAX_GROUPS} groupe maximum. Passez au plan Pro ou Premium pour gérer jusqu'à 5 groupes.`,
+          code: 'GROUP_LIMIT_REACHED',
+        },
+        { status: 403 }
+      )
+    }
+  }
+
   // Admin can designate a chef; a musician becomes CHEF of their own group
   const chefUserId = isAdmin && chefId ? Number(chefId) : (!isAdmin ? Number(session.user.id) : null)
 

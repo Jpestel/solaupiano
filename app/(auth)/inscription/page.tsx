@@ -98,6 +98,7 @@ export default function InscriptionPage() {
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700 mb-3">Comment souhaitez-vous utiliser Solaupiano ?</p>
             <div className="grid grid-cols-2 gap-3">
+              {/* Musicien */}
               <button
                 type="button"
                 onClick={() => setUserPlan('MUSICIEN')}
@@ -108,18 +109,20 @@ export default function InscriptionPage() {
                 }`}
               >
                 <span className="text-3xl">🎵</span>
-                <div>
-                  <p className={`text-sm font-bold ${userPlan === 'MUSICIEN' ? 'text-indigo-700' : 'text-gray-800'}`}>
-                    Musicien
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">
-                    Je rejoins des groupes existants
-                  </p>
-                </div>
+                <p className={`text-sm font-bold ${userPlan === 'MUSICIEN' ? 'text-indigo-700' : 'text-gray-800'}`}>
+                  Musicien
+                </p>
+                <ul className="text-[11px] text-gray-500 text-left space-y-0.5 w-full px-1">
+                  <li>✓ Rejoindre un ou plusieurs groupes</li>
+                  <li>✓ Répétitions, répertoire, concerts</li>
+                  <li className="text-red-400">✗ Créer un groupe</li>
+                </ul>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   userPlan === 'MUSICIEN' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
                 }`}>Gratuit</span>
               </button>
+
+              {/* Créateur */}
               <button
                 type="button"
                 onClick={() => setUserPlan('CREATEUR')}
@@ -130,20 +133,18 @@ export default function InscriptionPage() {
                 }`}
               >
                 <span className="text-3xl">🎼</span>
-                <div>
-                  <p className={`text-sm font-bold ${userPlan === 'CREATEUR' ? 'text-indigo-700' : 'text-gray-800'}`}>
-                    Créateur
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">
-                    Je crée et gère mon groupe
-                  </p>
-                </div>
+                <p className={`text-sm font-bold ${userPlan === 'CREATEUR' ? 'text-indigo-700' : 'text-gray-800'}`}>
+                  Créateur
+                </p>
+                <ul className="text-[11px] text-gray-500 text-left space-y-0.5 w-full px-1">
+                  <li>✓ Rejoindre un ou plusieurs groupes</li>
+                  <li>✓ Créer et gérer <strong>1 groupe</strong></li>
+                  <li>✓ 1 Go stockage partagé avec les membres</li>
+                  <li className="text-indigo-500 text-[10px]">↑ Pro/Premium : jusqu'à 5 groupes</li>
+                </ul>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   userPlan === 'CREATEUR' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
-                }`}>Gratuit jusqu'à 1 Go</span>
-                <p className="text-[10px] text-gray-400 leading-tight">
-                  Stockage partagé avec les membres du groupe
-                </p>
+                }`}>Gratuit</span>
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-2 text-center">

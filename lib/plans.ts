@@ -5,6 +5,7 @@ export const PLANS: Record<GroupPlan, {
   storageBytes: number
   storageLabel: string
   priceMonthly: number | null
+  maxGroups: number
   color: string
   bgColor: string
   borderColor: string
@@ -16,12 +17,14 @@ export const PLANS: Record<GroupPlan, {
     storageBytes: 1 * 1024 * 1024 * 1024, // 1 Go
     storageLabel: '1 Go',
     priceMonthly: null,
+    maxGroups: 1,
     color: 'gray',
     bgColor: 'bg-gray-50',
     borderColor: 'border-gray-200',
     textColor: 'text-gray-700',
     features: [
-      '1 Go de stockage',
+      '1 groupe créé et géré',
+      '1 Go de stockage partagé avec les membres',
       'Répétitions illimitées',
       'Gestion du répertoire',
       'Suivi des présences',
@@ -32,12 +35,14 @@ export const PLANS: Record<GroupPlan, {
     storageBytes: 5 * 1024 * 1024 * 1024, // 5 Go
     storageLabel: '5 Go',
     priceMonthly: 5.99,
+    maxGroups: 5,
     color: 'indigo',
     bgColor: 'bg-indigo-50',
     borderColor: 'border-indigo-300',
     textColor: 'text-indigo-700',
     features: [
-      '5 Go de stockage',
+      'Jusqu\'à 5 groupes créés et gérés',
+      '5 Go de stockage partagé avec les membres',
       'Répétitions illimitées',
       'Gestion du répertoire',
       'Suivi des présences',
@@ -49,12 +54,14 @@ export const PLANS: Record<GroupPlan, {
     storageBytes: 10 * 1024 * 1024 * 1024, // 10 Go
     storageLabel: '10 Go',
     priceMonthly: 9.90,
+    maxGroups: 5,
     color: 'purple',
     bgColor: 'bg-purple-50',
     borderColor: 'border-purple-300',
     textColor: 'text-purple-700',
     features: [
-      '10 Go de stockage',
+      'Jusqu\'à 5 groupes créés et gérés',
+      '10 Go de stockage partagé avec les membres',
       'Répétitions illimitées',
       'Gestion du répertoire',
       'Suivi des présences',

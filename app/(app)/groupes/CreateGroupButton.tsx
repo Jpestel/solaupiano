@@ -137,7 +137,7 @@ export function CreateGroupButton() {
           {/* Plan selection */}
           <div>
             <label className="form-label">Plan</label>
-            <p className="text-xs text-gray-400 mb-2">Tous les groupes démarrent sur le plan Gratuit. Les plans payants seront bientôt disponibles.</p>
+            <p className="text-xs text-gray-400 mb-2">Votre groupe démarre sur le plan Gratuit. Les plans payants (Pro, Premium) seront bientôt disponibles.</p>
             <div className="grid grid-cols-3 gap-2">
               {(Object.keys(PLANS) as GroupPlan[]).map((key) => {
                 const p = PLANS[key]
@@ -152,9 +152,9 @@ export function CreateGroupButton() {
                     }`}
                   >
                     <p className={`text-xs font-bold ${isFree ? 'text-indigo-700' : 'text-gray-500'}`}>{p.label}</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">{p.storageLabel}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">{p.storageLabel} · {p.maxGroups === 1 ? '1 groupe' : `${p.maxGroups} groupes max`}</p>
                     {isFree ? (
-                      <span className="inline-block mt-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">Inclus</span>
+                      <span className="inline-block mt-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">Actuel</span>
                     ) : (
                       <span className="inline-block mt-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-400">Bientôt dispo</span>
                     )}
