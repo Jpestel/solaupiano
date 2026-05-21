@@ -16,6 +16,7 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { AttendanceBadge } from '@/components/ui/Badge'
 import { AttendanceButton } from '@/components/AttendanceButton'
 import { VideoModal } from '@/components/ui/VideoModal'
+import { PdfModal } from '@/components/ui/PdfModal'
 
 interface Resource { id: number; name: string; type: string; filePath: string }
 interface Song { id: number; title: string; artist?: string; resources: Resource[] }
@@ -96,7 +97,7 @@ const PROGRESS_CONFIG: Record<SongProgressStatus, { label: string; className: st
 }
 
 function SortableSongRow({
-  entry, index, isChef, expandedSongIds, toggleResources, removingId, removeSong, cycleProgress, onVideoClick,
+  entry, index, isChef, expandedSongIds, toggleResources, removingId, removeSong, cycleProgress, onVideoClick, onPdfClick,
 }: {
   entry: RehearsalSongEntry
   index: number
@@ -107,6 +108,7 @@ function SortableSongRow({
   removeSong: (id: number) => void
   cycleProgress: (id: number, current: SongProgressStatus) => void
   onVideoClick: (embedUrl: string, title: string) => void
+  onPdfClick: (url: string, title: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.song.id,
@@ -184,6 +186,20 @@ function SortableSongRow({
                     </div>
                   )
                 }
+                if (res.type === 'PDF') {
+                  return (
+                    <div key={res.id}>
+                      <button
+                        onClick={() => onPdfClick(`/api/ressources/${res.id}`, res.name)}
+                        className="w-full flex items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 hover:border-indigo-400 hover:bg-indigo-50 transition-colors group text-left"
+                      >
+                        <span className="text-base">📄</span>
+                        <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 flex-1 truncate">{res.name}</span>
+                        <span className="text-[10px] font-semibold text-indigo-500 group-hover:text-indigo-700 flex-shrink-0">Lire</span>
+                      </button>
+                    </div>
+                  )
+                }
                 const embedUrl = res.type === 'LIEN' ? getVideoEmbedUrl(res.filePath) : null
                 if (embedUrl) {
                   return (
@@ -236,6 +252,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
   const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string } | null>(null)
+  const [pdfModal, setPdfModal] = useState<{ url: string; title: string } | null>(null)
 
   // Edit state
   const [editOpen, setEditOpen] = useState(false)
@@ -499,6 +516,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                         removeSong={removeSong}
                         cycleProgress={cycleProgress}
                         onVideoClick={(embedUrl, title) => setVideoModal({ embedUrl, title })}
+                        onPdfClick={(url, title) => setPdfModal({ url, title })}
                       />
                     ))}
                   </div>
@@ -707,6 +725,14 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
           url={videoModal.embedUrl}
           title={videoModal.title}
           onClose={() => setVideoModal(null)}
+        />
+      )}
+
+      {pdfModal && (
+        <PdfModal
+          url={pdfModal.url}
+          title={pdfModal.title}
+          onClose={() => setPdfModal(null)}
         />
       )}
     </div>

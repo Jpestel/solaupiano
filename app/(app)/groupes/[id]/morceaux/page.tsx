@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { ResourceUploader } from '@/components/ResourceUploader'
 import { VideoModal } from '@/components/ui/VideoModal'
+import { PdfModal } from '@/components/ui/PdfModal'
 
 interface Resource {
   id: number
@@ -49,6 +50,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [resourceError, setResourceError] = useState('')
   const [resourceSaving, setResourceSaving] = useState(false)
   const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string } | null>(null)
+  const [pdfModal, setPdfModal] = useState<{ url: string; title: string } | null>(null)
 
   const fetchData = useCallback(async () => {
     const [songsRes, grpRes] = await Promise.all([
@@ -255,7 +257,17 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            {res.type === 'LIEN' ? (() => {
+                            {res.type === 'PDF' ? (
+                              <button
+                                onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name })}
+                                className="text-xs text-indigo-600 hover:text-indigo-500 font-medium flex items-center gap-1"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Lire
+                              </button>
+                            ) : res.type === 'LIEN' ? (() => {
                               const embedUrl = getVideoEmbedUrl(res.filePath)
                               return embedUrl ? (
                                 <button
@@ -392,6 +404,14 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           url={videoModal.embedUrl}
           title={videoModal.title}
           onClose={() => setVideoModal(null)}
+        />
+      )}
+
+      {pdfModal && (
+        <PdfModal
+          url={pdfModal.url}
+          title={pdfModal.title}
+          onClose={() => setPdfModal(null)}
         />
       )}
     </div>
