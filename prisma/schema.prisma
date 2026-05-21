@@ -17,6 +17,12 @@ enum GroupRole {
   MEMBRE
 }
 
+enum GroupPlan {
+  FREE
+  PRO
+  PREMIUM
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -78,9 +84,11 @@ model Group {
   id          Int      @id @default(autoincrement())
   name        String
   description String?  @db.Text
-  isPublic    Boolean  @default(true)
-  isHidden    Boolean  @default(false)
-  lookingFor      String?   @db.Text
+  isPublic         Boolean   @default(true)
+  isHidden         Boolean   @default(false)
+  plan             GroupPlan @default(FREE)
+  storageUsedBytes BigInt    @default(0)
+  lookingFor       String?   @db.Text
   lookingForSince DateTime?
   createdAt       DateTime  @default(now())
 

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { detectResourceType } from '@/lib/utils'
+import { PLANS, GroupPlan } from '@/lib/plans'
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'
@@ -48,6 +49,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     where: { userId_groupId: { userId, groupId: song.groupId } },
   })
   if (!membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+
+  // Fetch group for storage check
+  const group = await prisma.group.findUnique({
+    where: { id: song.groupId },
+    select: { plan: true, storageUsedBytes: true },
+  })
+  if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
 
   // JSON body = URL resource
   const contentType = req.headers.get('content-type') || ''
@@ -103,6 +111,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Aucun fichier reçu.' }, { status: 400 })
     }
 
+    // Check storage quota
+    const fileSize = uploadedFile.size || 0
+    const planLimit = PLANS[group.plan as GroupPlan].storageBytes
+    const currentUsage = Number(group.storageUsedBytes)
+    if (currentUsage + fileSize > planLimit) {
+      fs.unlinkSync(uploadedFile.filepath) // clean up tmp file
+      return NextResponse.json({
+        error: `Quota de stockage dépassé. Votre plan ${PLANS[group.plan as GroupPlan].label} autorise ${PLANS[group.plan as GroupPlan].storageLabel}.`,
+        code: 'STORAGE_QUOTA_EXCEEDED',
+      }, { status: 413 })
+    }
+
     const nameField = Array.isArray(fields.name) ? fields.name[0] : fields.name
     const typeField = Array.isArray(fields.type) ? fields.type[0] : fields.type
 
@@ -115,16 +135,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       ? filePath.replace('./public', '')
       : `/uploads/${path.basename(filePath)}`
 
-    const resource = await prisma.resource.create({
-      data: {
-        songId,
-        name: nameField || originalName,
-        type: resourceType as any,
-        filePath: relativePath,
-        fileSize: uploadedFile.size || null,
-        uploadedById: userId,
-      },
-    })
+    const [resource] = await prisma.$transaction([
+      prisma.resource.create({
+        data: {
+          songId,
+          name: nameField || originalName,
+          type: resourceType as any,
+          filePath: relativePath,
+          fileSize: fileSize || null,
+          uploadedById: userId,
+        },
+      }),
+      prisma.group.update({
+        where: { id: song.groupId },
+        data: { storageUsedBytes: { increment: BigInt(fileSize) } },
+      }),
+    ])
 
     return NextResponse.json(resource, { status: 201 })
   } catch (error) {

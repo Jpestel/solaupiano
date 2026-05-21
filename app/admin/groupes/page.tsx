@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { PLANS, GroupPlan, formatBytes, storagePercent } from '@/lib/plans'
 
 interface User {
   id: number
@@ -17,9 +18,17 @@ interface Group {
   name: string
   description?: string
   isPublic: boolean
+  plan: GroupPlan
+  storageUsedBytes: string // BigInt serialised as string by JSON
   createdAt: string
   _count: { members: number; rehearsals: number }
   members: { user: User; groupRole: string }[]
+}
+
+const PLAN_COLORS: Record<GroupPlan, string> = {
+  FREE: 'bg-gray-100 text-gray-600',
+  PRO: 'bg-indigo-100 text-indigo-700',
+  PREMIUM: 'bg-purple-100 text-purple-700',
 }
 
 export default function AdminGroupesPage() {
@@ -29,7 +38,8 @@ export default function AdminGroupesPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', chefId: '', isPublic: true })
   const [editGroup, setEditGroup] = useState<Group | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', description: '', isPublic: true })
+  const [editForm, setEditForm] = useState({ name: '', description: '', isPublic: true, plan: 'FREE' as GroupPlan })
+  const [planSaving, setPlanSaving] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -74,8 +84,19 @@ export default function AdminGroupesPage() {
 
   const openEdit = (group: Group) => {
     setEditGroup(group)
-    setEditForm({ name: group.name, description: group.description || '', isPublic: group.isPublic })
+    setEditForm({ name: group.name, description: group.description || '', isPublic: group.isPublic, plan: group.plan || 'FREE' })
     setError('')
+  }
+
+  const handlePlanChange = async (groupId: number, plan: GroupPlan) => {
+    setPlanSaving(groupId)
+    await fetch(`/api/admin/groupes/${groupId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan }),
+    })
+    setPlanSaving(null)
+    fetchData()
   }
 
   const handleEdit = async (e: React.FormEvent) => {
@@ -128,6 +149,8 @@ export default function AdminGroupesPage() {
                 <tr className="border-b border-gray-100">
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupe</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Visibilité</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Stockage</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Chef d'orchestre</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Membres</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
@@ -136,6 +159,9 @@ export default function AdminGroupesPage() {
               <tbody>
                 {groups.map((group: any) => {
                   const chef = group.members.find((m: any) => m.groupRole === 'CHEF')
+                  const plan: GroupPlan = group.plan || 'FREE'
+                  const usedBytes = Number(group.storageUsedBytes || 0)
+                  const pct = storagePercent(usedBytes, plan)
                   return (
                     <tr key={group.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                       <td className="px-6 py-4">
@@ -150,6 +176,32 @@ export default function AdminGroupesPage() {
                         }`}>
                           {group.isPublic ? '🌐 Public' : '🔒 Privé'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          value={plan}
+                          disabled={planSaving === group.id}
+                          onChange={(e) => handlePlanChange(group.id, e.target.value as GroupPlan)}
+                          className={`text-xs rounded-full px-2 py-1 font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400 ${PLAN_COLORS[plan]}`}
+                        >
+                          {(Object.keys(PLANS) as GroupPlan[]).map((p) => (
+                            <option key={p} value={p}>{PLANS[p].label}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="min-w-[80px]">
+                          <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                            <span>{formatBytes(usedBytes)}</span>
+                            <span>{pct}%</span>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${pct > 90 ? 'bg-red-400' : pct > 70 ? 'bg-amber-400' : 'bg-indigo-400'}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         {chef ? (

@@ -137,7 +137,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     console.error('Error deleting file:', err)
   }
 
-  await prisma.resource.delete({ where: { id: resourceId } })
+  const ops: Parameters<typeof prisma.$transaction>[0] = [
+    prisma.resource.delete({ where: { id: resourceId } }),
+  ]
+  if (resource.fileSize && resource.fileSize > 0) {
+    ops.push(
+      prisma.$executeRaw`UPDATE \`Group\` SET storageUsedBytes = GREATEST(0, storageUsedBytes - ${resource.fileSize}) WHERE id = ${resource.song.groupId}` as any
+    )
+  }
+  await prisma.$transaction(ops)
 
   return NextResponse.json({ success: true })
 }

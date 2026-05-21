@@ -7,6 +7,7 @@ import { RoleBadge } from '@/components/ui/Badge'
 import JoinRequestsPanel from './JoinRequestsPanel'
 import { GroupSettingsButton } from './GroupSettingsButton'
 import { GroupCards } from './GroupCards'
+import { PlanSection } from './PlanSection'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -150,6 +151,12 @@ export default async function GroupePage({ params }: { params: { id: string } })
           </Link>
         ))}
       </div>
+
+      <PlanSection
+        plan={group.plan as any}
+        storageUsedBytes={group.storageUsedBytes}
+        isChef={isChef}
+      />
 
       <GroupCards
         groupId={groupId}
