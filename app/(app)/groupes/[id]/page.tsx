@@ -135,9 +135,9 @@ export default async function GroupePage({ params }: { params: { id: string } })
       {/* Quick links */}
       <div className="grid grid-cols-3 gap-3 mb-8">
         {[
-          { href: 'repetitions', label: 'Répétitions', icon: '🎵', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-          { href: 'concerts', label: 'Concerts', icon: '🎭', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-          { href: 'morceaux', label: 'Répertoire', icon: '🎼', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+          { href: 'repetitions', label: 'Répétitions', icon: '🎵', color: 'bg-blue-50 text-blue-700 border-blue-200', desc: 'Programmez vos répétitions et suivez les présences' },
+          { href: 'concerts', label: 'Concerts', icon: '🎭', color: 'bg-purple-50 text-purple-700 border-purple-200', desc: 'Communiquez sur vos prochaines dates de concerts' },
+          { href: 'morceaux', label: 'Répertoire', icon: '🎼', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', desc: 'Organisez les titres à travailler pour vos répétitions' },
         ].map((link) => (
           <Link
             key={link.href}
@@ -146,6 +146,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
           >
             <span className="text-3xl mb-2">{link.icon}</span>
             <span className="font-semibold text-sm">{link.label}</span>
+            <span className="text-xs mt-1 opacity-70 leading-tight hidden sm:block">{link.desc}</span>
           </Link>
         ))}
       </div>
