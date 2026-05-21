@@ -18,6 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const concerts = await prisma.concert.findMany({
     where: { groupId },
+    include: { setlist: { select: { id: true, name: true, _count: { select: { songs: true } } } } },
     orderBy: { date: 'asc' },
   })
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const body = await req.json()
-  const { name, date, location, notes } = body
+  const { name, date, location, notes, setlistId } = body
 
   if (!name || !date || !location) {
     return NextResponse.json({ error: 'Nom, date et lieu sont requis.' }, { status: 400 })
@@ -53,7 +54,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       date: new Date(date),
       location,
       notes: notes || null,
+      setlistId: setlistId ? Number(setlistId) : null,
     },
+    include: { setlist: { select: { id: true, name: true, _count: { select: { songs: true } } } } },
   })
 
   return NextResponse.json(concert, { status: 201 })

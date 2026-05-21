@@ -134,11 +134,12 @@ export default async function GroupePage({ params }: { params: { id: string } })
       )}
 
       {/* Quick links */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {[
-          { href: 'repetitions', label: 'Répétitions', icon: '🎵', color: 'bg-blue-50 text-blue-700 border-blue-200', desc: 'Programmez vos répétitions et suivez les présences' },
-          { href: 'concerts', label: 'Concerts', icon: '🎭', color: 'bg-purple-50 text-purple-700 border-purple-200', desc: 'Communiquez sur vos prochaines dates de concerts' },
-          { href: 'morceaux', label: 'Répertoire', icon: '🎼', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', desc: 'Organisez les titres à travailler pour vos répétitions' },
+          { href: 'repetitions', label: 'Répétitions', icon: '🎵', color: 'bg-blue-50 text-blue-700 border-blue-200', desc: 'Programmez vos répétitions' },
+          { href: 'concerts',    label: 'Concerts',    icon: '🎭', color: 'bg-purple-50 text-purple-700 border-purple-200', desc: 'Vos prochaines dates' },
+          { href: 'morceaux',    label: 'Répertoire',  icon: '🎼', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', desc: 'Titres à travailler' },
+          { href: 'setlists',    label: 'Setlists',    icon: '🎶', color: 'bg-green-50 text-green-700 border-green-200', desc: 'Listes de morceaux' },
         ].map((link) => (
           <Link
             key={link.href}

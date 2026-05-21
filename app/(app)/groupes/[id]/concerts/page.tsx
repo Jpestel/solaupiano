@@ -8,48 +8,57 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 
+interface SetlistRef { id: number; name: string; _count: { songs: number } }
 interface Concert {
-  id: number
-  name: string
-  date: string
-  location: string
-  notes?: string
+  id: number; name: string; date: string; location: string; notes?: string
+  setlist?: SetlistRef | null
 }
+interface GroupInfo { name: string; groupRole: string }
 
-interface GroupInfo {
-  name: string
-  groupRole: string
-}
+const EMPTY_FORM = { name: '', date: '', location: '', notes: '', setlistId: '' }
 
 export default function ConcertsPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
   const groupId = params.id
+
   const [concerts, setConcerts] = useState<Concert[]>([])
+  const [setlists, setSetlists] = useState<SetlistRef[]>([])
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null)
   const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', date: '', location: '', notes: '' })
+
+  // Create
+  const [createOpen, setCreateOpen] = useState(false)
+  const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Edit
+  const [editConcert, setEditConcert] = useState<Concert | null>(null)
+  const [editForm, setEditForm] = useState(EMPTY_FORM)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  // Delete
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+
   const fetchData = async () => {
-    const [concRes, grpRes] = await Promise.all([
+    const [concRes, grpRes, slRes] = await Promise.all([
       fetch(`/api/groupes/${groupId}/concerts`),
       fetch(`/api/groupes/${groupId}`),
+      fetch(`/api/groupes/${groupId}/setlists`),
     ])
     if (concRes.ok) setConcerts(await concRes.json())
+    if (slRes.ok) setSetlists(await slRes.json())
     if (grpRes.ok) {
       const g = await grpRes.json()
-      const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
+      const me = g.members?.find((m: any) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
       setGroupInfo({ name: g.name, groupRole: role })
     }
     setLoading(false)
   }
 
-  useEffect(() => {
-    if (session) fetchData()
-  }, [session, groupId])
+  useEffect(() => { if (session) fetchData() }, [session, groupId])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,16 +67,49 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
     const res = await fetch(`/api/groupes/${groupId}/concerts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, setlistId: form.setlistId ? Number(form.setlistId) : null }),
     })
     setSaving(false)
-    if (!res.ok) {
-      const d = await res.json()
-      setError(d.error || 'Erreur lors de la création.')
-      return
-    }
-    setModalOpen(false)
-    setForm({ name: '', date: '', location: '', notes: '' })
+    if (!res.ok) { const d = await res.json(); setError(d.error || 'Erreur.'); return }
+    setCreateOpen(false)
+    setForm(EMPTY_FORM)
+    fetchData()
+  }
+
+  const openEdit = (concert: Concert) => {
+    setEditConcert(concert)
+    setEditForm({
+      name: concert.name,
+      date: concert.date.slice(0, 10),
+      location: concert.location,
+      notes: concert.notes || '',
+      setlistId: concert.setlist?.id ? String(concert.setlist.id) : '',
+    })
+    setEditError('')
+  }
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editConcert) return
+    setEditSaving(true)
+    setEditError('')
+    const res = await fetch(`/api/groupes/${groupId}/concerts/${editConcert.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...editForm,
+        setlistId: editForm.setlistId ? Number(editForm.setlistId) : null,
+      }),
+    })
+    setEditSaving(false)
+    if (!res.ok) { const d = await res.json(); setEditError(d.error || 'Erreur.'); return }
+    setEditConcert(null)
+    fetchData()
+  }
+
+  const handleDelete = async (id: number) => {
+    await fetch(`/api/groupes/${groupId}/concerts/${id}`, { method: 'DELETE' })
+    setDeleteId(null)
     fetchData()
   }
 
@@ -78,6 +120,55 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
   const isChef = groupInfo?.groupRole === 'CHEF'
+
+  const SetlistSelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <div>
+      <label className="form-label">Setlist <span className="text-gray-400 font-normal">(optionnel)</span></label>
+      {setlists.length === 0 ? (
+        <p className="text-xs text-gray-400 mt-1">
+          <Link href={`/groupes/${groupId}/setlists`} className="text-indigo-600 hover:underline">Créez d'abord une setlist</Link> pour l'associer à ce concert.
+        </p>
+      ) : (
+        <select value={value} onChange={(e) => onChange(e.target.value)} className="form-input">
+          <option value="">— Aucune setlist —</option>
+          {setlists.map((sl) => (
+            <option key={sl.id} value={sl.id}>{sl.name} ({sl._count.songs} morceau{sl._count.songs > 1 ? 'x' : ''})</option>
+          ))}
+        </select>
+      )}
+    </div>
+  )
+
+  const ConcertCard = ({ concert, dim = false }: { concert: Concert; dim?: boolean }) => (
+    <Card className={dim ? 'opacity-70' : ''}>
+      <div className="flex items-start justify-between mb-2">
+        <h3 className={`font-semibold ${dim ? 'text-gray-600' : 'text-gray-900'}`}>{concert.name}</h3>
+        <span className="text-2xl flex-shrink-0">🎭</span>
+      </div>
+      <p className={`text-sm font-medium capitalize ${dim ? 'text-gray-400' : 'text-indigo-600'}`}>{formatDateWithDay(concert.date)}</p>
+      <p className="text-sm text-gray-500 mt-1">{concert.location}</p>
+
+      {concert.setlist && (
+        <div className="mt-3 flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700">
+            🎵 {concert.setlist.name}
+            <span className="text-purple-400">· {concert.setlist._count.songs} morceaux</span>
+          </span>
+        </div>
+      )}
+
+      {concert.notes && <p className="text-sm text-gray-600 mt-2 pt-2 border-t border-gray-100">{concert.notes}</p>}
+
+      {isChef && (
+        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
+          <button onClick={() => openEdit(concert)}
+            className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">Modifier</button>
+          <button onClick={() => setDeleteId(concert.id)}
+            className="text-xs text-red-400 hover:text-red-600 font-medium ml-auto">Supprimer</button>
+        </div>
+      )}
+    </Card>
+  )
 
   return (
     <div>
@@ -91,9 +182,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
 
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Concerts</h1>
-        {isChef && (
-          <Button onClick={() => setModalOpen(true)}>+ Nouveau concert</Button>
-        )}
+        {isChef && <Button onClick={() => setCreateOpen(true)}>+ Nouveau concert</Button>}
       </div>
 
       <div className="mb-8">
@@ -102,17 +191,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
           <Card><p className="text-sm text-gray-500 text-center py-6">Aucun concert à venir.</p></Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {upcoming.map((c) => (
-              <Card key={c.id}>
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900">{c.name}</h3>
-                  <span className="text-2xl">🎭</span>
-                </div>
-                <p className="text-sm text-indigo-600 font-medium capitalize">{formatDateWithDay(c.date)}</p>
-                <p className="text-sm text-gray-500 mt-1">{c.location}</p>
-                {c.notes && <p className="text-sm text-gray-600 mt-2 pt-2 border-t border-gray-100">{c.notes}</p>}
-              </Card>
-            ))}
+            {upcoming.map((c) => <ConcertCard key={c.id} concert={c} />)}
           </div>
         )}
       </div>
@@ -120,43 +199,96 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       {past.length > 0 && (
         <div>
           <h2 className="text-base font-semibold text-gray-700 mb-3">Passés ({past.length})</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-70">
-            {past.slice().reverse().map((c) => (
-              <Card key={c.id}>
-                <h3 className="font-semibold text-gray-700">{c.name}</h3>
-                <p className="text-sm text-gray-500 capitalize">{formatDateWithDay(c.date)}</p>
-                <p className="text-sm text-gray-500">{c.location}</p>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {past.slice().reverse().map((c) => <ConcertCard key={c.id} concert={c} dim />)}
           </div>
         </div>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Nouveau concert">
+      {/* Create modal */}
+      <Modal isOpen={createOpen} onClose={() => { setCreateOpen(false); setError('') }} title="Nouveau concert">
         <form onSubmit={handleCreate} className="space-y-4">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
           <div>
-            <label className="form-label">Nom du concert *</label>
-            <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="form-input" placeholder="ex: Concert de fin d'année" />
+            <label className="form-label">Nom du concert <span className="text-red-500">*</span></label>
+            <input type="text" required autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="form-input" placeholder="ex: Concert de fin d'année" />
           </div>
           <div>
-            <label className="form-label">Date *</label>
+            <label className="form-label">Date <span className="text-red-500">*</span></label>
             <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="form-input" />
           </div>
           <div>
-            <label className="form-label">Lieu *</label>
+            <label className="form-label">Lieu <span className="text-red-500">*</span></label>
             <input type="text" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="form-input" placeholder="Salle des fêtes, adresse..." />
           </div>
+          <SetlistSelect value={form.setlistId} onChange={(v) => setForm({ ...form, setlistId: v })} />
           <div>
-            <label className="form-label">Notes</label>
-            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="form-input" rows={3} />
+            <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>
+            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="form-input resize-none" rows={3} />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button>
+            <Button type="button" variant="secondary" onClick={() => { setCreateOpen(false); setError('') }}>Annuler</Button>
             <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Créer le concert'}</Button>
           </div>
         </form>
       </Modal>
+
+      {/* Edit modal */}
+      <Modal isOpen={!!editConcert} onClose={() => setEditConcert(null)} title="Modifier le concert">
+        <form onSubmit={handleEdit} className="space-y-4">
+          {editError && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{editError}</div>}
+          <div>
+            <label className="form-label">Nom <span className="text-red-500">*</span></label>
+            <input type="text" required value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="form-input" />
+          </div>
+          <div>
+            <label className="form-label">Date <span className="text-red-500">*</span></label>
+            <input type="date" required value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="form-input" />
+          </div>
+          <div>
+            <label className="form-label">Lieu <span className="text-red-500">*</span></label>
+            <input type="text" required value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} className="form-input" />
+          </div>
+          <SetlistSelect value={editForm.setlistId} onChange={(v) => setEditForm({ ...editForm, setlistId: v })} />
+          <div>
+            <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>
+            <textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} className="form-input resize-none" rows={3} />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setEditConcert(null)}>Annuler</Button>
+            <Button type="submit" disabled={editSaving}>{editSaving ? 'Enregistrement...' : 'Enregistrer'}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete confirm */}
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setDeleteId(null)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Supprimer ce concert ?</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Cette action est irréversible.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => handleDelete(deleteId)}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 transition-colors">
+                Supprimer
+              </button>
+              <button onClick={() => setDeleteId(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

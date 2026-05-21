@@ -110,6 +110,7 @@ model Group {
   rehearsals   Rehearsal[]
   concerts     Concert[]
   songs        Song[]
+  setlists     Setlist[]
   joinRequests JoinRequest[]
 }
 
@@ -183,9 +184,35 @@ model Concert {
   date      DateTime
   location  String
   notes     String?  @db.Text
+  setlistId Int?
   createdAt DateTime @default(now())
 
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group   Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  setlist Setlist? @relation(fields: [setlistId], references: [id], onDelete: SetNull)
+}
+
+model Setlist {
+  id          Int      @id @default(autoincrement())
+  groupId     Int
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  group    Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  songs    SetlistSong[]
+  concerts Concert[]
+}
+
+model SetlistSong {
+  setlistId Int
+  songId    Int
+  position  Int @default(0)
+
+  setlist Setlist @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+  song    Song    @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@id([setlistId, songId])
 }
 
 model Song {
@@ -196,10 +223,11 @@ model Song {
   notes     String?  @db.Text
   createdAt DateTime @default(now())
 
-  group      Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  resources  Resource[]
-  rehearsals RehearsalSong[]
+  group        Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  resources    Resource[]
+  rehearsals   RehearsalSong[]
   userProgress UserSongProgress[]
+  setlists     SetlistSong[]
 }
 
 model GroupMemberHistory {
