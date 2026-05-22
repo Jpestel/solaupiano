@@ -55,12 +55,17 @@ export default async function AidePage() {
             { href: '#groupes', label: '👥 Mes groupes' },
             { href: '#repetitions', label: '🎵 Répétitions' },
             { href: '#concerts', label: '🎭 Concerts' },
+            { href: '#plan-scene', label: '🗺️ Plan de scène' },
+            { href: '#fiche-technique', label: '📋 Fiche technique' },
+            { href: '#ma-page', label: '🌐 Page publique' },
             { href: '#repertoire', label: '🎼 Répertoire' },
             { href: '#setlists', label: '🎶 Setlists' },
             { href: '#grilles', label: '🎸 Grilles' },
             { href: '#paroles', label: '🎤 Paroles' },
             { href: '#tablatures', label: '🎸 Tablatures' },
             { href: '#accords', label: '🎹 Accords' },
+            { href: '#accordeur', label: '🎙️ Accordeur' },
+            { href: '#metronome', label: '🥁 Métronome' },
             { href: '#plans', label: '📦 Plans' },
             { href: '#faq', label: '❓ FAQ' },
           ].map((item) => (
@@ -259,6 +264,165 @@ export default async function AidePage() {
               <p>La page <strong>Concerts</strong> affiche tous les concerts à venir, triés par date. Si une setlist est associée, vous pouvez la consulter et l&apos;imprimer directement.</p>
               <Tip>Le tableau de bord affiche aussi le prochain concert de chacun de vos groupes, avec un accès rapide.</Tip>
             </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── PLAN DE SCÈNE ─── */}
+        <section id="plan-scene">
+          <SectionTitle icon="🗺️" title="Plan de scène" color="orange" />
+          <div className="space-y-4">
+
+            {isCreateur && (
+              <HelpCard title="Créer un plan de scène" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <p>Chaque concert dispose de son propre plan de scène. Pour y accéder :</p>
+                <ol className="space-y-2 mt-2">
+                  <Step n={1}>Dans votre groupe, cliquez sur <strong>Concerts</strong>.</Step>
+                  <Step n={2}>Sur la carte d&apos;un concert, cliquez sur le badge <strong>🗺️ Plan de scène →</strong>.</Step>
+                  <Step n={3}>Les membres du groupe apparaissent dans le panneau de gauche. Faites-les glisser sur la scène.</Step>
+                  <Step n={4}>Le plan est sauvegardé automatiquement à chaque modification.</Step>
+                </ol>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Placer les musiciens sur scène">
+              <p>Chaque musicien est représenté par un <strong>token coloré</strong> indiquant son nom et son instrument :</p>
+              <ul className="mt-2 space-y-1">
+                <li>Faites glisser un token depuis le panneau gauche pour le <strong>placer sur scène</strong></li>
+                <li>Les tokens déjà sur scène sont <strong>repositionnables librement</strong> par drag &amp; drop</li>
+                <li>Double-cliquez (ou cliquez sur ✕) sur un token pour le <strong>retirer</strong> de la scène</li>
+                <li>La position est enregistrée en <strong>pourcentage</strong> — le plan s&apos;adapte à toutes les tailles d&apos;écran</li>
+              </ul>
+              <Tip>Chaque membre a une couleur distincte. L&apos;icône de son instrument principal s&apos;affiche sur le token pour repérer rapidement la disposition.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Orientation et partage">
+              <ul className="mt-1 space-y-1">
+                <li>La scène est représentée avec une <strong>perspective de profondeur</strong> (avant-scène en bas, fond de scène en haut)</li>
+                <li>Un effet <strong>spotlight</strong> visuel rappelle les conditions réelles</li>
+                <li>Le plan est accessible à <strong>tous les membres</strong> du groupe en lecture — seul le chef peut le modifier</li>
+              </ul>
+            </HelpCard>
+
+          </div>
+        </section>
+
+        {/* ─── FICHE TECHNIQUE ─── */}
+        <section id="fiche-technique">
+          <SectionTitle icon="📋" title="Fiche technique" color="rose" />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi sert la fiche technique ?">
+              <p>La fiche technique est le document indispensable pour les organisateurs de concerts. Elle regroupe toutes les informations techniques dont ils ont besoin : configuration scène, besoins son, lumières et loges.</p>
+              <p className="mt-2">Elle est attachée au <strong>groupe</strong> — un seul document réutilisable pour tous vos concerts.</p>
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Créer et éditer la fiche technique" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Dans votre groupe, cliquez sur <strong>Fiche tech.</strong> dans le menu de navigation.</Step>
+                  <Step n={2}>La fiche est organisée en <strong>5 onglets</strong> :
+                    <ul className="mt-1 ml-4 space-y-0.5">
+                      <li><span className="font-medium">Général</span> — nom du groupe, contact technique, durée du set, besoins électriques</li>
+                      <li><span className="font-medium">Scène</span> — dimensions requises, tableau des musiciens avec leurs instruments et besoins</li>
+                      <li><span className="font-medium">Son</span> — tableau des canaux (instruments, type de micro/DI, monitoring)</li>
+                      <li><span className="font-medium">Lumières</span> — notes d&apos;ambiance, effets souhaités, contre-indications</li>
+                      <li><span className="font-medium">Loges</span> — nombre de personnes, repas, boissons, autres besoins</li>
+                    </ul>
+                  </Step>
+                  <Step n={3}>Cliquez sur <strong>Pré-remplir depuis les membres</strong> pour importer automatiquement les noms et instruments des musiciens du groupe dans les tableaux Scène et Son.</Step>
+                  <Step n={4}>La fiche est sauvegardée en cliquant sur <strong>Enregistrer</strong>.</Step>
+                </ol>
+                <Tip>Les tableaux Scène et Son sont dynamiques : cliquez sur <strong>+ Ligne</strong> pour ajouter des entrées et sur <strong>✕</strong> pour en supprimer.</Tip>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Partager la fiche technique">
+              <p>Trois façons de transmettre la fiche à un organisateur :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
+                  <p className="text-sm font-bold text-blue-700 mb-1">🔗 Lien public</p>
+                  <p className="text-xs text-gray-600">Génère un lien unique et sécurisé, accessible sans connexion. Copiez-le et envoyez-le par e-mail ou messagerie.</p>
+                </div>
+                <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
+                  <p className="text-sm font-bold text-indigo-700 mb-1">📧 Envoi e-mail</p>
+                  <p className="text-xs text-gray-600">Envoyez la fiche directement par e-mail depuis l&apos;application — renseignez l&apos;adresse de l&apos;organisateur et le sujet.</p>
+                </div>
+                <div className="rounded-lg border border-rose-100 bg-rose-50 p-3">
+                  <p className="text-sm font-bold text-rose-700 mb-1">🖨️ Impression PDF</p>
+                  <p className="text-xs text-gray-600">Imprimez ou exportez en PDF via la fenêtre d&apos;impression du navigateur depuis le lien public.</p>
+                </div>
+              </div>
+              <Note>Le lien public peut être <strong>révoqué</strong> à tout moment depuis la fiche — l&apos;ancien lien devient immédiatement inaccessible.</Note>
+            </HelpCard>
+
+          </div>
+        </section>
+
+        {/* ─── PAGE PUBLIQUE ─── */}
+        <section id="ma-page">
+          <SectionTitle icon="🌐" title="Page publique du groupe" color="teal" />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi sert la page publique ?">
+              <p>Chaque groupe peut avoir sa propre <strong>mini-page web</strong> accessible sans connexion, sous l&apos;adresse :</p>
+              <div className="mt-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 font-mono text-sm text-indigo-700">
+                https://solaupiano.fr/<span className="font-bold">nom-du-groupe</span>
+              </div>
+              <p className="mt-2 text-gray-600">Cette page sert de <strong>vitrine</strong> pour présenter le groupe au public, aux organisateurs et aux futurs membres.</p>
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Créer et configurer la page" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Dans votre groupe, cliquez sur <strong>🌐 Ma page</strong> dans le menu de navigation.</Step>
+                  <Step n={2}>Onglet <strong>Config</strong> — choisissez votre URL personnalisée (slug), publiez la page et personnalisez les 4 couleurs (primaire, accent, fond, texte). Un aperçu du dégradé de bannière s&apos;affiche en temps réel.</Step>
+                  <Step n={3}>Onglet <strong>Contenu</strong> — rédigez la bannière (titre, sous-titre) et la biographie du groupe.</Step>
+                  <Step n={4}>Onglet <strong>Membres</strong> — uploadez une photo pour chaque musicien, ajoutez un nom d&apos;affichage, un instrument et une courte bio. Réordonnez-les avec les flèches ↑↓ et masquez/affichez chacun individuellement.</Step>
+                  <Step n={5}>Onglet <strong>Options</strong> — activez/désactivez la section concerts à venir, le formulaire de contact, et renseignez les liens réseaux sociaux.</Step>
+                </ol>
+                <Note>La page reste en <strong>mode brouillon</strong> tant que vous n&apos;avez pas activé le bouton <em>&quot;Publier la page&quot;</em>. Seul un chef peut la voir en mode brouillon.</Note>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Contenu de la page publique">
+              <p>Une fois publiée, la page affiche :</p>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  { icon: '🎨', label: 'Bannière', desc: 'Dégradé personnalisé avec titre et sous-titre' },
+                  { icon: '📖', label: 'Bio', desc: 'Histoire du groupe en texte libre' },
+                  { icon: '👥', label: 'Membres', desc: 'Photos, instruments et présentations' },
+                  { icon: '🎭', label: 'Concerts', desc: 'Prochaines dates à venir automatiques' },
+                  { icon: '✉️', label: 'Contact', desc: 'Formulaire pour envoyer un message au chef' },
+                  { icon: '📱', label: 'Réseaux', desc: 'Instagram, Facebook, YouTube, Spotify…' },
+                ].map((s) => (
+                  <div key={s.label} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    <p className="text-sm font-medium">{s.icon} {s.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <Tip>Les prochains concerts sont alimentés <strong>automatiquement</strong> depuis les concerts de votre groupe — pas besoin de les saisir à nouveau.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Formulaire de contact intégré">
+              <p>Les visiteurs peuvent envoyer un message directement depuis la page sans avoir de compte Sol au piano :</p>
+              <ul className="mt-2 space-y-1">
+                <li>Le message est transmis par <strong>e-mail aux chefs du groupe</strong></li>
+                <li>L&apos;adresse e-mail de l&apos;expéditeur est en <strong>répondre-à</strong> pour une réponse directe</li>
+                <li>Un filtre anti-spam est intégré (honeypot)</li>
+              </ul>
+            </HelpCard>
+
+            <HelpCard title="URL et gestion des doublons">
+              <p>L&apos;URL est générée automatiquement depuis le nom du groupe (caractères spéciaux supprimés, espaces remplacés par des tirets). Si un slug est déjà pris, un suffixe est ajouté :</p>
+              <div className="mt-2 font-mono text-xs space-y-1 text-gray-600">
+                <div>solaupiano.fr/<span className="text-indigo-700">les-aigles</span></div>
+                <div>solaupiano.fr/<span className="text-indigo-700">les-aigles-2</span></div>
+                <div>solaupiano.fr/<span className="text-indigo-700">les-aigles-3</span></div>
+              </div>
+              <Tip>Vous pouvez personnaliser le slug dans l&apos;onglet Config — choisissez une URL mémorisable pour faciliter le partage.</Tip>
+            </HelpCard>
+
           </div>
         </section>
 
@@ -743,6 +907,157 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── ACCORDEUR ─── */}
+        <section id="accordeur">
+          <SectionTitle icon="🎙️" title="Accordeur" color="green" />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi ça sert ?">
+              <p>L&apos;accordeur intégré utilise le <strong>microphone de votre appareil</strong> pour détecter la note que vous jouez en temps réel — sans installation, directement dans le navigateur.</p>
+              <p className="mt-2">Il est compatible <strong>guitare</strong> (6 cordes), <strong>basse 4 cordes</strong> et <strong>basse 5 cordes</strong>.</p>
+              <Tip>Accessible via <strong>Accordeur</strong> dans la barre de navigation — aucune connexion réseau requise après le chargement de la page.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Comment utiliser l'accordeur">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Sélectionnez votre instrument en haut de la page : <strong>Guitare</strong>, <strong>Basse 4</strong> ou <strong>Basse 5</strong>.</Step>
+                <Step n={2}>Cliquez sur <strong>Démarrer l&apos;accordeur</strong> — votre navigateur vous demandera d&apos;autoriser l&apos;accès au microphone.</Step>
+                <Step n={3}>Jouez une note et maintenez-la. La note détectée s&apos;affiche en grand avec la déviation en centièmes.</Step>
+                <Step n={4}>Accordez jusqu&apos;à ce que l&apos;aiguille soit <strong>au centre</strong> et le badge <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold" style={{ background: '#22c55e22', color: '#22c55e', border: '1px solid #22c55e44' }}>✓ Accordé</span> apparaisse.</Step>
+              </ol>
+              <Tip>Pour une meilleure précision, jouez dans un endroit calme et tenez la note. L&apos;accordeur lisse les mesures sur 6 échantillons pour éviter les fluctuations parasites.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Lire l'affichage">
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-center">
+                  <p className="text-2xl font-black text-green-600 mb-1">±5¢</p>
+                  <p className="text-xs font-semibold text-green-700">Vert — Accordé</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Déviation ≤ 5 centièmes</p>
+                </div>
+                <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-center">
+                  <p className="text-2xl font-black text-amber-600 mb-1">±15¢</p>
+                  <p className="text-xs font-semibold text-amber-700">Ambre — Proche</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Déviation entre 5 et 15¢</p>
+                </div>
+                <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-center">
+                  <p className="text-2xl font-black text-red-600 mb-1">&gt;15¢</p>
+                  <p className="text-xs font-semibold text-red-700">Rouge — Désaccordé</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Déviation supérieure à 15¢</p>
+                </div>
+              </div>
+              <p className="mt-3 text-gray-600">La valeur affichée (<strong>+12¢</strong>, <strong>−8¢</strong>…) indique si la note est trop haute (♯) ou trop basse (♭). Un centième = 1/100e de demi-ton.</p>
+            </HelpCard>
+
+            <HelpCard title="Cordes de référence">
+              <p>Le panneau du bas affiche toutes les cordes de l&apos;instrument sélectionné avec leur fréquence. La corde la plus proche de la note jouée est <strong>mise en surbrillance</strong> avec la couleur correspondant à votre déviation.</p>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {[
+                  { name: 'Guitare', strings: 'E4 B3 G3 D3 A2 E2' },
+                  { name: 'Basse 4', strings: 'G2 D2 A1 E1' },
+                  { name: 'Basse 5', strings: 'G2 D2 A1 E1 B0' },
+                ].map((i) => (
+                  <div key={i.name} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    <p className="text-xs font-bold text-gray-700 mb-1">{i.name}</p>
+                    <p className="text-xs font-mono text-gray-500">{i.strings}</p>
+                  </div>
+                ))}
+              </div>
+            </HelpCard>
+
+            <HelpCard title="Problème de microphone ?">
+              <p>Si votre navigateur refuse l&apos;accès au microphone :</p>
+              <ol className="space-y-1 mt-2">
+                <Step n={1}>Cliquez sur l&apos;icône 🔒 dans la barre d&apos;adresse du navigateur.</Step>
+                <Step n={2}>Allez dans <strong>Paramètres du site</strong> → <strong>Microphone</strong> → sélectionnez <strong>Autoriser</strong>.</Step>
+                <Step n={3}>Rechargez la page.</Step>
+              </ol>
+              <Note>L&apos;accordeur nécessite une connexion HTTPS sécurisée (ce qui est le cas sur solaupiano.fr) et un microphone connecté à votre appareil.</Note>
+            </HelpCard>
+
+          </div>
+        </section>
+
+        {/* ─── MÉTRONOME ─── */}
+        <section id="metronome">
+          <SectionTitle icon="🥁" title="Métronome" color="indigo" />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi ça sert ?">
+              <p>Le métronome intégré vous aide à travailler votre tempo pendant les répétitions ou l&apos;entraînement individuel — de <strong>20 à 300 BPM</strong>, sans installation.</p>
+              <p className="mt-2">Il utilise la <strong>Web Audio API</strong> avec un algorithme de scheduling avancé pour une précision maximale, immune aux variations du moteur JavaScript.</p>
+            </HelpCard>
+
+            <HelpCard title="Régler le tempo">
+              <p>Plusieurs façons de définir le BPM :</p>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                  <span className="text-lg leading-none mt-0.5 flex-shrink-0">±</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Boutons − / +</p>
+                    <p className="text-xs text-gray-500">Cliquez pour ±1 BPM. <strong>Maintenez appuyé</strong> pour une variation continue et rapide.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                  <span className="text-lg leading-none mt-0.5 flex-shrink-0">⟵⟶</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Slider</p>
+                    <p className="text-xs text-gray-500">Faites glisser la barre sous l&apos;affichage BPM pour régler le tempo d&apos;un geste.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                  <span className="text-lg leading-none mt-0.5 flex-shrink-0">👆</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Tap Tempo</p>
+                    <p className="text-xs text-gray-500">Tapez plusieurs fois au rythme de la musique — le BPM est calculé automatiquement sur les 8 derniers taps (fenêtre de 3 secondes).</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                  <span className="text-lg leading-none mt-0.5 flex-shrink-0">⚡</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Presets de tempo</p>
+                    <p className="text-xs text-gray-500">Cliquez sur un preset pour l&apos;appliquer instantanément.</p>
+                  </div>
+                </div>
+              </div>
+            </HelpCard>
+
+            <HelpCard title="Presets de tempo">
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {[
+                  { name: 'Largo', bpm: '50', desc: 'Très lent' },
+                  { name: 'Andante', bpm: '80', desc: 'Allant' },
+                  { name: 'Moderato', bpm: '108', desc: 'Modéré' },
+                  { name: 'Allegro', bpm: '132', desc: 'Vif' },
+                  { name: 'Presto', bpm: '180', desc: 'Très vite' },
+                ].map((p) => (
+                  <div key={p.name} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-center">
+                    <p className="text-sm font-bold text-indigo-700">{p.name}</p>
+                    <p className="text-xs text-gray-400">{p.bpm} BPM</p>
+                    <p className="text-[10px] text-gray-400">{p.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </HelpCard>
+
+            <HelpCard title="Mesure et indicateurs visuels">
+              <p>Choisissez votre <strong>signature rythmique</strong> dans le panneau Mesure :</p>
+              <div className="mt-2 grid grid-cols-4 gap-2 mb-3">
+                {['2/4', '3/4', '4/4', '6/8'].map((s) => (
+                  <div key={s} className="rounded-xl bg-indigo-50 border border-indigo-200 px-2 py-2 text-center text-sm font-bold text-indigo-700">{s}</div>
+                ))}
+              </div>
+              <p>Les <strong>indicateurs de temps</strong> s&apos;allument en rythme :</p>
+              <ul className="mt-2 space-y-1">
+                <li><span className="inline-block w-3 h-3 rounded-full mr-1 align-middle" style={{ background: '#f59e0b' }} /> <strong>Ambre</strong> — premier temps (accent)</li>
+                <li><span className="inline-block w-3 h-3 rounded-full mr-1 align-middle" style={{ background: '#6366f1' }} /> <strong>Indigo</strong> — temps normaux</li>
+              </ul>
+              <Tip>Activez les <strong>Sous-divisions (croches)</strong> pour entendre les 8<sup>es</sup> notes intercalées à volume réduit — utile pour travailler les passages rapides.</Tip>
+            </HelpCard>
+
+          </div>
+        </section>
+
         {/* ─── PLANS ─── */}
         <section id="plans">
           <SectionTitle icon="📦" title="Plans et stockage" color="purple" />
@@ -752,7 +1067,7 @@ export default async function AidePage() {
               <p>Chaque groupe dispose d&apos;un plan qui détermine son espace de stockage. Le stockage est <strong>partagé</strong> entre tous les membres pour les ressources (partitions, fichiers audio…).</p>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <PlanDetailCard name="Gratuit" icon="🆓" storage="1 Go" price="Gratuit" groups="1 groupe" color="gray"
-                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène', 'Tablatures', 'Dictionnaire d\'accords']} />
+                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène', 'Tablatures', 'Dictionnaire d\'accords', 'Plan de scène', 'Fiche technique', 'Page publique', 'Accordeur & Métronome']} />
                 <PlanDetailCard name="Pro" icon="⭐" storage="5 Go" price="5,99 €/mois" groups="5 groupes" color="indigo"
                   features={['Tout du plan Gratuit', 'Support prioritaire', 'Bientôt disponible']} comingSoon />
                 <PlanDetailCard name="Premium" icon="👑" storage="10 Go" price="9,90 €/mois" groups="5 groupes" color="purple"
@@ -822,6 +1137,21 @@ export default async function AidePage() {
             <FaqItem question="Mes ressources sont-elles visibles par tous les membres ?">
               Oui, toutes les ressources attachées à un morceau sont visibles par l&apos;ensemble des membres du groupe. Seul le chef peut en ajouter ou supprimer.
             </FaqItem>
+            <FaqItem question="L'accordeur fonctionne-t-il avec tous les instruments ?">
+              L&apos;accordeur détecte n&apos;importe quelle note entre 20 Hz et 1 400 Hz, ce qui couvre guitare, basse, voix et la plupart des instruments acoustiques. Les cordes de référence affichées sont celles de la guitare ou basse sélectionnée, mais la note détectée est toujours affichée quelle que soit la source.
+            </FaqItem>
+            <FaqItem question="Le métronome continue-t-il si je change d'onglet ?">
+              Oui, le métronome utilise un scheduler audio avancé qui s&apos;exécute indépendamment de l&apos;affichage. Le son continue même si vous naviguez dans un autre onglet. En revanche, les indicateurs visuels ne s&apos;animent qu&apos;en premier plan.
+            </FaqItem>
+            <FaqItem question="Le plan de scène est-il spécifique à chaque concert ?">
+              Oui. Chaque concert dispose de son propre plan de scène indépendant, ce qui permet d&apos;avoir des configurations différentes selon la salle ou la formation.
+            </FaqItem>
+            <FaqItem question="Puis-je partager la page publique de mon groupe sur les réseaux sociaux ?">
+              Oui, il suffit de copier l&apos;URL (ex : solaupiano.fr/mon-groupe) et de la partager. La page est accessible à tous sans compte. Vous pouvez aussi renseigner vos liens Instagram, Facebook, YouTube, Spotify et site web dans l&apos;onglet Options de votre page.
+            </FaqItem>
+            <FaqItem question="La fiche technique est-elle la même pour tous les concerts ?">
+              Oui, la fiche technique est attachée au groupe et non à un concert particulier — c&apos;est un document de référence réutilisable. Vous pouvez la mettre à jour avant chaque concert si nécessaire, puis regénérer un lien de partage.
+            </FaqItem>
             <FaqItem question="Comment quitter un groupe ?">
               Depuis la page du groupe, section Membres, cliquez sur votre nom puis <strong>Quitter le groupe</strong>. Attention, si vous êtes le seul chef, vous devrez d&apos;abord promouvoir un autre membre.
             </FaqItem>
@@ -880,6 +1210,7 @@ function SectionTitle({ icon, title, color }: { icon: string; title: string; col
     green: 'border-green-200 bg-green-50 text-green-700',
     orange: 'border-orange-200 bg-orange-50 text-orange-700',
     rose:   'border-rose-200 bg-rose-50 text-rose-700',
+    teal:   'border-teal-200 bg-teal-50 text-teal-700',
     gray: 'border-gray-200 bg-gray-100 text-gray-700',
   }
   return (
