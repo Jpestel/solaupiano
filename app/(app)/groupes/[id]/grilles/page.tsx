@@ -114,7 +114,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
         <span className="text-gray-900">Grilles</span>
       </div>
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Grilles d&apos;accords</h1>
           <p className="text-gray-500 text-sm mt-1">Créez et partagez vos grilles d&apos;accords.</p>

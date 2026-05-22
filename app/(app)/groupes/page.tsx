@@ -27,7 +27,7 @@ export default async function GroupesPage() {
 
     return (
       <div>
-        <div className="flex items-center justify-between mb-6 gap-4">
+        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Tous les groupes</h1>
             <p className="text-gray-500 mt-1 text-sm">
@@ -117,7 +117,7 @@ export default async function GroupesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6 gap-4">
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mes groupes</h1>
           <p className="text-gray-500 mt-1 text-sm">Groupes musicaux dont vous êtes membre.</p>

@@ -204,7 +204,7 @@ export default function CalendrierPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             📅 Calendrier
@@ -286,7 +286,7 @@ export default function CalendrierPage() {
         <div className="grid grid-cols-7 divide-x divide-y divide-gray-100">
           {grid.map((day, idx) => {
             if (!day) {
-              return <div key={`empty-${idx}`} className="min-h-[80px] bg-gray-50/60" />
+              return <div key={`empty-${idx}`} className="min-h-[60px] sm:min-h-[80px] bg-gray-50/60" />
             }
             const key = isoDate(day)
             const dayEvents = eventsByDate[key] ?? []
@@ -298,7 +298,7 @@ export default function CalendrierPage() {
               <button
                 key={key}
                 onClick={() => setSelectedDate(isSelected ? null : day)}
-                className={`min-h-[80px] p-1.5 text-left transition-colors w-full ${
+                className={`min-h-[60px] sm:min-h-[80px] p-1 sm:p-1.5 text-left transition-colors w-full ${
                   isSelected
                     ? 'bg-indigo-50 ring-2 ring-inset ring-indigo-300'
                     : isToday
@@ -313,11 +313,11 @@ export default function CalendrierPage() {
                   {day.getDate()}
                 </div>
 
-                {/* Events (max 3 shown, rest as "+N") */}
+                {/* Events (max 2 shown on mobile, 3 on sm+, rest as "+N") */}
                 <div className="space-y-0.5">
-                  {dayEvents.slice(0, 3).map((e, i) => (
+                  {dayEvents.slice(0, 2).map((e, i) => (
                     <div key={i} className="pointer-events-none">
-                      <div className={`truncate rounded px-1 py-0.5 text-[9px] font-semibold leading-tight ${
+                      <div className={`truncate rounded px-0.5 sm:px-1 py-0.5 text-[8px] sm:text-[9px] font-semibold leading-tight ${
                         e.type === 'repetition'
                           ? 'bg-indigo-100 text-indigo-700'
                           : 'bg-purple-100 text-purple-700'
@@ -328,9 +328,9 @@ export default function CalendrierPage() {
                       </div>
                     </div>
                   ))}
-                  {dayEvents.length > 3 && (
-                    <div className="text-[9px] text-gray-400 font-medium pl-1">
-                      +{dayEvents.length - 3} de plus
+                  {dayEvents.length > 2 && (
+                    <div className="text-[8px] sm:text-[9px] text-gray-400 font-medium pl-0.5 sm:pl-1">
+                      +{dayEvents.length - 2}
                     </div>
                   )}
                 </div>

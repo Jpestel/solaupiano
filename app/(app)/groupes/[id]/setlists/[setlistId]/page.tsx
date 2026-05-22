@@ -224,13 +224,13 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-8">
+      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{setlist.name}</h1>
           {setlist.description && <p className="text-gray-500 mt-1 text-sm">{setlist.description}</p>}
           <p className="text-sm text-gray-400 mt-1">{songs.length} morceau{songs.length > 1 ? 'x' : ''}</p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Print button — visible for all members */}
           <button
             onClick={() => {

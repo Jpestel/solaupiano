@@ -431,7 +431,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
         <span className="text-gray-900">Détail</span>
       </div>
 
-      <div className="mb-8 flex items-start justify-between gap-4">
+      <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 capitalize">{formatDateWithDay(rehearsal.date)}</h1>
           <p className="text-gray-500 mt-1">
@@ -439,8 +439,8 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
           </p>
         </div>
         {isChef && (
-          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {/* Reminder button */}
               <button
                 onClick={sendReminder}

@@ -110,7 +110,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
               group.isPublic
                 ? 'bg-green-100 text-green-700'

@@ -200,7 +200,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
         <span className="text-gray-900">Répertoire</span>
       </div>
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Répertoire ({songs.length})</h1>
         {isChef && (
           <Button onClick={() => setAddSongOpen(true)}>+ Ajouter un morceau</Button>
@@ -219,56 +219,51 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
         <div className="space-y-4">
           {songs.map((song) => (
             <Card key={song.id} padding={false} className="overflow-hidden">
-              <div className="px-6 py-4 flex items-center justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-gray-900">{song.title}</h3>
-                    {song.durationSeconds ? (
-                      <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-600">
-                        ⏱ {formatDuration(song.durationSeconds)}
-                      </span>
-                    ) : null}
-                    {song.lyrics && (
-                      <span className="inline-flex items-center rounded-full bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600">
-                        🎤 Paroles
-                      </span>
-                    )}
-                    {song.tab && (
-                      <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-600">
-                        🎸 Tablature
-                      </span>
-                    )}
-                  </div>
-                  {song.artist && <p className="text-sm text-gray-500">{song.artist}</p>}
-                  {song.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{song.notes}</p>}
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Link
-                    href={`/groupes/${groupId}/morceaux/${song.id}/paroles`}
-                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-rose-300 hover:text-rose-600 transition-colors"
-                  >
-                    🎤 Paroles
-                  </Link>
-                  <Link
-                    href={`/groupes/${groupId}/morceaux/${song.id}/tablature`}
-                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
-                  >
-                    🎸 Tablature
-                  </Link>
-                  {isChef && (
-                    <>
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>
-                        Éditer
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setUploadSongId(song.id === uploadSongId ? null : song.id)}
+              <div className="px-4 sm:px-6 py-4">
+                <div className="flex items-start gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-gray-900">{song.title}</h3>
+                      {song.durationSeconds ? (
+                        <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-600">
+                          ⏱ {formatDuration(song.durationSeconds)}
+                        </span>
+                      ) : null}
+                    </div>
+                    {song.artist && <p className="text-sm text-gray-500 mt-0.5">{song.artist}</p>}
+                    {song.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{song.notes}</p>}
+                    {/* Boutons déplacés sous le titre/artiste sur mobile */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      <Link
+                        href={`/groupes/${groupId}/morceaux/${song.id}/paroles`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-rose-300 hover:text-rose-600 transition-colors"
                       >
-                        + Ressource
-                      </Button>
-                    </>
-                  )}
+                        🎤 Paroles
+                        {song.lyrics && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 ml-0.5" />}
+                      </Link>
+                      <Link
+                        href={`/groupes/${groupId}/morceaux/${song.id}/tablature`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                      >
+                        🎸 Tablature
+                        {song.tab && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 ml-0.5" />}
+                      </Link>
+                      {isChef && (
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>
+                            Éditer
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setUploadSongId(song.id === uploadSongId ? null : song.id)}
+                          >
+                            + Ressource
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

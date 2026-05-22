@@ -293,27 +293,27 @@ export default function TablaturePage({
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-2 flex-wrap">
-        <Link href="/groupes" className="hover:text-indigo-600">Mes groupes</Link>
-        <span>/</span>
-        <Link href={`/groupes/${groupId}`} className="hover:text-indigo-600">{groupName}</Link>
-        <span>/</span>
-        <Link href={`/groupes/${groupId}/morceaux`} className="hover:text-indigo-600">Répertoire</Link>
-        <span>/</span>
-        <span className="text-gray-900 truncate max-w-[140px]">{songTitle}</span>
-        <span>/</span>
-        <span className="text-gray-900">Tablature</span>
+      <div className="flex flex-wrap items-center gap-1.5 text-sm text-gray-500 mb-2 min-w-0">
+        <Link href="/groupes" className="hover:text-indigo-600 shrink-0">Mes groupes</Link>
+        <span className="shrink-0">/</span>
+        <Link href={`/groupes/${groupId}`} className="hover:text-indigo-600 truncate max-w-[100px] sm:max-w-[160px]">{groupName}</Link>
+        <span className="shrink-0">/</span>
+        <Link href={`/groupes/${groupId}/morceaux`} className="hover:text-indigo-600 shrink-0">Répertoire</Link>
+        <span className="shrink-0">/</span>
+        <span className="text-gray-900 truncate max-w-[100px] sm:max-w-[140px]">{songTitle}</span>
+        <span className="shrink-0">/</span>
+        <span className="text-gray-900 shrink-0">Tablature</span>
       </div>
 
       {/* Title row */}
-      <div className="flex items-start justify-between gap-4 mb-5">
+      <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             🎸 {songTitle}
           </h1>
           {songArtist && <p className="text-gray-500 text-sm mt-0.5">{songArtist}</p>}
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           {isChef && (
             <span className={`text-xs font-medium ${
               saveStatus === 'saved' ? 'text-green-600' :

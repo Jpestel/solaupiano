@@ -86,7 +86,7 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
         <span className="text-gray-900">Setlists</span>
       </div>
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Setlists</h1>
           <p className="text-gray-500 text-sm mt-1">Créez des listes de morceaux à associer à vos concerts.</p>

@@ -115,7 +115,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
         <span className="text-gray-900">Répétitions</span>
       </div>
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Répétitions</h1>
         {isChef && (
           <Button onClick={() => setModalOpen(true)}>
