@@ -37,7 +37,10 @@ const MONTHS_FR = [
 ]
 
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 /** Returns monday-aligned grid for the month (6 × 7 cells, some null = filler) */
@@ -60,7 +63,8 @@ function buildGrid(year: number, month: number): (Date | null)[] {
 }
 
 function getEventDate(e: CalEvent): string {
-  return e.data.date.slice(0, 10)
+  // Use local date components to avoid UTC offset shifting the day
+  return isoDate(new Date(e.data.date))
 }
 
 // ─── EventChip ───────────────────────────────────────────────────────────────
@@ -191,10 +195,10 @@ export default function CalendrierPage() {
   const selectedEvents = selectedKey ? (eventsByDate[selectedKey] ?? []) : []
 
   // Count upcoming events (next 30 days)
-  const in30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+  const in30Key = isoDate(new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000))
   const upcomingCount = events.filter((e) => {
-    const d = new Date(e.data.date)
-    return d >= today && d <= in30
+    const k = getEventDate(e)
+    return k >= todayKey && k <= in30Key
   }).length
 
   return (
@@ -348,7 +352,7 @@ export default function CalendrierPage() {
           <p className="text-sm text-gray-400">Chargement...</p>
         ) : (() => {
           const upcoming = events
-            .filter((e) => new Date(e.data.date) >= new Date(todayKey))
+            .filter((e) => getEventDate(e) >= todayKey)
             .sort((a, b) => new Date(a.data.date).getTime() - new Date(b.data.date).getTime())
             .slice(0, 10)
 
