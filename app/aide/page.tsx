@@ -59,6 +59,7 @@ export default async function AidePage() {
             { href: '#setlists', label: '🎶 Setlists' },
             { href: '#grilles', label: '🎸 Grilles' },
             { href: '#paroles', label: '🎤 Paroles' },
+            { href: '#tablatures', label: '🎸 Tablatures' },
             { href: '#plans', label: '📦 Plans' },
             { href: '#faq', label: '❓ FAQ' },
           ].map((item) => (
@@ -113,6 +114,7 @@ export default async function AidePage() {
                     'Planifier répétitions & concerts',
                     'Gérer le répertoire et les setlists',
                     'Créer et éditer les grilles d\'accords',
+                    'Créer et éditer les tablatures',
                   ]}
                   active={isLoggedIn && isCreateur}
                 />
@@ -192,6 +194,7 @@ export default async function AidePage() {
                     <li>✓ Consulte le répertoire et les ressources</li>
                     <li>✓ Voit et imprime les setlists</li>
                     <li>✓ Consulte les grilles d&apos;accords</li>
+                    <li>✓ Consulte les tablatures</li>
                   </ul>
                 </div>
               </div>
@@ -541,6 +544,128 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── TABLATURES ─── */}
+        <section id="tablatures">
+          <SectionTitle icon="🎸" title="Tablatures" color="indigo" />
+          <div className="space-y-4">
+
+            {isCreateur && (
+              <HelpCard title="Ouvrir l'éditeur de tablature" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Dans le <strong>Répertoire</strong>, cliquez sur le bouton <strong>🎸 Tablature</strong> à droite du morceau souhaité.</Step>
+                  <Step n={2}>Choisissez l&apos;instrument dans la barre de contrôle :
+                    <ul className="mt-1 ml-4 space-y-0.5">
+                      <li><span className="font-medium">Guitare</span> — 6 cordes (E A D G B e)</li>
+                      <li><span className="font-medium">Basse</span> — 4 cordes (E A D G)</li>
+                      <li><span className="font-medium">Ukulélé</span> — 4 cordes (G C E A)</li>
+                    </ul>
+                  </Step>
+                  <Step n={3}>Sélectionnez le nombre de <strong>cases par mesure</strong> (4, 8 ou 16) selon la densité rythmique du morceau.</Step>
+                  <Step n={4}>Cliquez sur une cellule et tapez le numéro de case ou une technique. Naviguez avec les flèches.</Step>
+                </ol>
+                <Note>La sauvegarde est <strong>automatique</strong> — 800 ms après la dernière frappe. Un badge <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-600">🎸 Tablature</span> apparaît sur le morceau dans le répertoire une fois enregistrée.</Note>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Instruments supportés">
+              <p>La grille de tablature s&apos;adapte automatiquement à l&apos;instrument sélectionné :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { name: 'Guitare', emoji: '🎸', strings: ['e', 'B', 'G', 'D', 'A', 'E'], color: 'indigo' },
+                  { name: 'Basse', emoji: '🎵', strings: ['G', 'D', 'A', 'E'], color: 'blue' },
+                  { name: 'Ukulélé', emoji: '🌺', strings: ['A', 'E', 'C', 'G'], color: 'amber' },
+                ].map((instr) => {
+                  const bgColors: Record<string, string> = { indigo: 'bg-indigo-50 border-indigo-100', blue: 'bg-blue-50 border-blue-100', amber: 'bg-amber-50 border-amber-100' }
+                  const textColors: Record<string, string> = { indigo: 'text-indigo-700', blue: 'text-blue-700', amber: 'text-amber-700' }
+                  return (
+                    <div key={instr.name} className={`rounded-lg border p-3 ${bgColors[instr.color]}`}>
+                      <p className={`text-sm font-bold mb-1.5 ${textColors[instr.color]}`}>{instr.emoji} {instr.name}</p>
+                      <div className="flex gap-1 font-mono text-xs">
+                        {instr.strings.map((s, i) => (
+                          <span key={i} className="flex flex-col items-center gap-0.5">
+                            <span className={`font-bold ${textColors[instr.color]}`}>{s}</span>
+                            <span className="text-gray-300 text-[10px]">─</span>
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1.5">{instr.strings.length} cordes · du haut vers le bas</p>
+                    </div>
+                  )
+                })}
+              </div>
+              <Tip>Changer d&apos;instrument efface toutes les notes saisies — une confirmation est demandée avant de réinitialiser.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Techniques de jeu disponibles">
+              <p>Chaque cellule accepte jusqu&apos;à 3 caractères. Les notations courantes sont supportées :</p>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { sym: '0–24',  desc: 'Case (frette)',       ex: '7' },
+                  { sym: 'x',     desc: 'Corde étouffée',      ex: 'x' },
+                  { sym: 'hN',    desc: 'Hammer-on',           ex: 'h9' },
+                  { sym: 'pN',    desc: 'Pull-off',            ex: 'p7' },
+                  { sym: '/N',    desc: 'Slide montant',       ex: '/9' },
+                  { sym: '\\N',   desc: 'Slide descendant',    ex: '\\5' },
+                  { sym: 'bN',    desc: 'Bend (montée de ton)',ex: 'b9' },
+                  { sym: '──',    desc: 'Case vide (silence)', ex: '' },
+                ].map((t) => (
+                  <div key={t.sym} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    <p className="text-sm font-bold font-mono text-indigo-700 mb-0.5">{t.sym}</p>
+                    <p className="text-xs text-gray-600">{t.desc}</p>
+                    {t.ex && <p className="text-[10px] text-gray-400 mt-0.5">ex : <code className="bg-white rounded px-1">{t.ex}</code></p>}
+                  </div>
+                ))}
+              </div>
+            </HelpCard>
+
+            <HelpCard title="Navigation clavier" badge={isCreateur ? { label: "Chef seulement", color: "indigo" } : undefined}>
+              {isCreateur ? (
+                <>
+                  <p>L&apos;éditeur est entièrement navigable au clavier pour saisir rapidement :</p>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { key: '← →', action: 'Case précédente / suivante' },
+                      { key: '↑ ↓', action: 'Corde plus haute / plus basse' },
+                      { key: 'Tab', action: 'Avancer d\'une case (même corde)' },
+                      { key: 'Maj+Tab', action: 'Reculer d\'une case' },
+                      { key: '⌫ Delete', action: 'Effacer la cellule active' },
+                      { key: 'Clic', action: 'Sélectionner directement une cellule' },
+                    ].map((k) => (
+                      <div key={k.key} className="flex items-center gap-3 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
+                        <kbd className="flex-shrink-0 rounded bg-white border border-gray-300 px-2 py-0.5 font-mono text-xs font-semibold text-gray-700 shadow-sm whitespace-nowrap">{k.key}</kbd>
+                        <span className="text-xs text-gray-600">{k.action}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Tip>La cellule sélectionnée s&apos;affiche en fond <span className="inline-block rounded bg-indigo-500 text-white px-1 text-xs">bleu</span>. Tapez directement la valeur pour la remplacer.</Tip>
+                </>
+              ) : (
+                <p>La tablature est consultable en lecture seule. Cliquez sur les cellules pour les voir — la saisie est réservée au chef du groupe.</p>
+              )}
+            </HelpCard>
+
+            <HelpCard title="Gérer les mesures" badge={{ label: "Chef seulement", color: "indigo" }}>
+              <p>Utilisez les boutons de la barre de contrôle pour ajuster la structure :</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>+ Mesure</strong> — ajoute une mesure vide à la fin</li>
+                <li><strong>− Mesure</strong> — supprime la dernière mesure (désactivé si une seule mesure)</li>
+                <li><strong>Cases/mesure</strong> — 4, 8 ou 16 subdivisions par mesure (⚠ efface les notes)</li>
+              </ul>
+              <Tip>La grille défile horizontalement si elle dépasse la largeur de l&apos;écran — pratique sur mobile ou tablette.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Impression de la tablature">
+              <p>Le bouton <strong>🖨️ Imprimer</strong> (accessible à tous) génère une feuille A4 au format standard :</p>
+              <ul className="mt-2 space-y-1">
+                <li>En-tête : titre, artiste, nom du groupe et instrument</li>
+                <li>Grille avec cordes identifiées et barres de mesure</li>
+                <li>Optimisé pour impression monochrome (police monospace Courier)</li>
+              </ul>
+            </HelpCard>
+
+          </div>
+        </section>
+
         {/* ─── PLANS ─── */}
         <section id="plans">
           <SectionTitle icon="📦" title="Plans et stockage" color="purple" />
@@ -550,7 +675,7 @@ export default async function AidePage() {
               <p>Chaque groupe dispose d&apos;un plan qui détermine son espace de stockage. Le stockage est <strong>partagé</strong> entre tous les membres pour les ressources (partitions, fichiers audio…).</p>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <PlanDetailCard name="Gratuit" icon="🆓" storage="1 Go" price="Gratuit" groups="1 groupe" color="gray"
-                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène']} />
+                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène', 'Tablatures']} />
                 <PlanDetailCard name="Pro" icon="⭐" storage="5 Go" price="5,99 €/mois" groups="5 groupes" color="indigo"
                   features={['Tout du plan Gratuit', 'Support prioritaire', 'Bientôt disponible']} comingSoon />
                 <PlanDetailCard name="Premium" icon="👑" storage="10 Go" price="9,90 €/mois" groups="5 groupes" color="purple"
@@ -598,6 +723,15 @@ export default async function AidePage() {
             </FaqItem>
             <FaqItem question="Les membres peuvent-ils voir les paroles sans être chef ?">
               Oui. Tous les membres du groupe ont accès à la lecture des paroles (onglet Aperçu) et au mode scène. Seul le chef peut saisir, modifier ou supprimer les paroles.
+            </FaqItem>
+            <FaqItem question="Un morceau peut-il avoir plusieurs tablatures ?">
+              Non, chaque morceau dispose d&apos;une seule tablature. En revanche, vous pouvez changer l&apos;instrument (guitare, basse, ukulélé) à tout moment depuis la barre de contrôle. Si vous avez besoin de versions différentes, dupliquez le morceau dans le répertoire.
+            </FaqItem>
+            <FaqItem question="Les membres peuvent-ils consulter la tablature sans être chef ?">
+              Oui. Tous les membres du groupe peuvent consulter la tablature en lecture seule et l&apos;imprimer. Seul le chef peut saisir, modifier ou réinitialiser les notes.
+            </FaqItem>
+            <FaqItem question="Puis-je saisir des techniques complexes comme les bends ou les slides ?">
+              Oui. L&apos;éditeur accepte les notations courantes : <strong>h5</strong> (hammer-on case 5), <strong>p5</strong> (pull-off), <strong>/7</strong> et <strong>\7</strong> (slides montant/descendant), <strong>b9</strong> (bend vers la case 9), et <strong>x</strong> (corde étouffée). Chaque cellule accepte jusqu&apos;à 3 caractères.
             </FaqItem>
             <FaqItem question="Puis-je utiliser le mode scène sur mon téléphone ?">
               Oui, le mode scène est conçu pour fonctionner sur tous les écrans. Sur téléphone ou tablette, le texte est grand, le fond est sombre et le défilement tactile est fluide. Pensez à passer votre appareil en mode ne pas déranger avant de monter sur scène.
