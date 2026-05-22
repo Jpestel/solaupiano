@@ -141,8 +141,11 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       {/* User footer */}
       <div className="flex-shrink-0 px-4 py-4 border-t border-gray-200">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 font-semibold text-sm flex-shrink-0">
-            {userInitial}
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-indigo-200 flex items-center justify-center text-indigo-700 font-semibold text-sm flex-shrink-0">
+            {session?.user?.image
+              ? <img src={session.user.image} alt={session.user.name || ''} className="w-full h-full object-cover" />
+              : userInitial
+            }
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">{session?.user?.name}</p>

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { formatDateWithDay } from '@/lib/utils'
@@ -16,6 +17,7 @@ interface ProfileData {
   id: number
   name: string
   email: string
+  avatarUrl?: string | null
   siteRole: string
   userPlan: string
   instruments: { instrument: Instrument }[]
@@ -68,6 +70,11 @@ export default function ProfilPage() {
   const [error, setError] = useState('')
   const [requestingGroup, setRequestingGroup] = useState<number | null>(null)
   const [planSaving, setPlanSaving] = useState(false)
+  // Avatar
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [planSuccess, setPlanSuccess] = useState('')
 
   // Password change state
@@ -154,6 +161,45 @@ export default function ProfilPage() {
     if (res.ok) await fetchData()
   }
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Le fichier doit être une image (JPG, PNG, WebP…)')
+      return
+    }
+    // Show local preview immediately
+    const reader = new FileReader()
+    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+
+    setAvatarUploading(true)
+    setAvatarError('')
+    const formData = new FormData()
+    formData.append('avatar', file)
+    const res = await fetch('/api/profil/avatar', { method: 'POST', body: formData })
+    setAvatarUploading(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setAvatarError(d.error || 'Erreur lors de l\'upload.')
+      setAvatarPreview(null)
+      return
+    }
+    const { avatarUrl } = await res.json()
+    setProfile((prev) => prev ? { ...prev, avatarUrl } : prev)
+    setAvatarPreview(null)
+    await update({})
+  }
+
+  const handleAvatarDelete = async () => {
+    if (!confirm('Supprimer la photo de profil ?')) return
+    setAvatarUploading(true)
+    await fetch('/api/profil/avatar', { method: 'DELETE' })
+    setAvatarUploading(false)
+    setProfile((prev) => prev ? { ...prev, avatarUrl: null } : prev)
+    await update({})
+  }
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
     setPwError('')
@@ -212,15 +258,66 @@ export default function ProfilPage() {
       {/* Hero card */}
       <div className="rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 p-6 text-white shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-          {/* Avatar */}
-          <div
-            style={avatarStyle}
-            className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg ring-4 ring-white/30 flex-shrink-0"
-          >
-            {profile.name.charAt(0).toUpperCase()}
+          {/* Avatar — cliquable pour modifier */}
+          <div className="relative flex-shrink-0 group">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-lg ring-4 ring-white/30 focus:outline-none"
+              title="Changer la photo de profil"
+            >
+              {avatarPreview || profile.avatarUrl ? (
+                <img
+                  src={avatarPreview || profile.avatarUrl!}
+                  alt={profile.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div
+                  style={avatarStyle}
+                  className="w-full h-full flex items-center justify-center text-white font-bold text-3xl"
+                >
+                  {profile.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              {/* Overlay on hover */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {avatarUploading
+                  ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                }
+              </div>
+            </button>
+            {/* Supprimer si photo existante */}
+            {profile.avatarUrl && !avatarUploading && (
+              <button
+                type="button"
+                onClick={handleAvatarDelete}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center shadow hover:bg-red-600 transition-colors"
+                title="Supprimer la photo"
+              >
+                ✕
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
           </div>
           {/* Info */}
           <div className="flex-1 min-w-0">
+            {avatarError && (
+              <p className="text-xs text-red-200 bg-red-500/30 rounded-lg px-3 py-1.5 mb-2">{avatarError}</p>
+            )}
+            {!profile.avatarUrl && !avatarPreview && (
+              <p className="text-xs text-indigo-200 mb-1.5">
+                📷 <button type="button" onClick={() => fileInputRef.current?.click()} className="underline hover:text-white transition-colors">Ajouter une photo</button>
+              </p>
+            )}
             <h2 className="text-xl font-bold">{profile.name}</h2>
             <p className="text-indigo-200 text-sm mt-0.5">{profile.email}</p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">

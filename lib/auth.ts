@@ -56,11 +56,12 @@ export const authOptions: NextAuthOptions = {
       if (trigger === 'update' || !token.userPlan) {
         const dbUser = await prisma.user.findUnique({
           where: { id: Number(token.id) },
-          select: { siteRole: true, userPlan: true },
+          select: { siteRole: true, userPlan: true, avatarUrl: true },
         })
         if (dbUser) {
           token.siteRole = dbUser.siteRole
           token.userPlan = dbUser.userPlan
+          token.picture = dbUser.avatarUrl ?? undefined
         }
       }
       return token
@@ -70,6 +71,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.siteRole = token.siteRole as string
         session.user.userPlan = token.userPlan as string
+        session.user.image = (token.picture as string | undefined) ?? null
       }
       return session
     },

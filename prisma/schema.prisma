@@ -60,6 +60,7 @@ model User {
   email         String    @unique
   password      String
   name          String
+  avatarUrl     String?
   siteRole      SiteRole  @default(USER)
   userPlan      UserPlan  @default(CREATEUR)
   emailVerified DateTime?
