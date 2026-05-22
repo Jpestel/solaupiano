@@ -142,22 +142,50 @@ export default async function GroupePage({ params }: { params: { id: string } })
         </div>
       )}
 
-      {/* Quick links */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        {[
-          { href: 'repetitions', label: 'Répétitions', icon: '🎵', color: 'bg-blue-50 text-blue-700 border-blue-200', desc: 'Programmez vos répétitions' },
-          { href: 'concerts',    label: 'Concerts',    icon: '🎭', color: 'bg-purple-50 text-purple-700 border-purple-200', desc: 'Vos prochaines dates' },
-          { href: 'morceaux',    label: 'Répertoire',  icon: '🎼', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', desc: 'Titres à travailler' },
-          { href: 'setlists',    label: 'Setlists',    icon: '🎶', color: 'bg-green-50 text-green-700 border-green-200', desc: 'Listes de morceaux' },
-        ].map((link) => (
+      {/* Navigation sections */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+        {([
+          {
+            href: 'repetitions', label: 'Répétitions', icon: '🎵',
+            iconBg: 'bg-blue-100',   textColor: 'text-blue-700',   border: 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/60',
+            chefDesc: 'Planifier & gérer', memberDesc: 'Voir le planning',
+          },
+          {
+            href: 'concerts',    label: 'Concerts',    icon: '🎭',
+            iconBg: 'bg-purple-100', textColor: 'text-purple-700', border: 'border-purple-200 hover:border-purple-400 hover:bg-purple-50/60',
+            chefDesc: 'Organiser les dates', memberDesc: 'Voir les dates',
+          },
+          {
+            href: 'morceaux',    label: 'Répertoire',  icon: '🎼',
+            iconBg: 'bg-indigo-100', textColor: 'text-indigo-700', border: 'border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/60',
+            chefDesc: 'Gérer les morceaux', memberDesc: 'Voir les morceaux',
+          },
+          {
+            href: 'setlists',    label: 'Setlists',    icon: '🎶',
+            iconBg: 'bg-green-100',  textColor: 'text-green-700',  border: 'border-green-200 hover:border-green-400 hover:bg-green-50/60',
+            chefDesc: 'Créer les setlists', memberDesc: 'Voir les setlists',
+          },
+        ] as const).map((link) => (
           <Link
             key={link.href}
             href={`/groupes/${groupId}/${link.href}`}
-            className={`flex flex-col items-center justify-center rounded-xl border p-3 sm:p-5 text-center hover:shadow-md transition-all ${link.color}`}
+            className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all group ${link.border}`}
           >
-            <span className="text-3xl mb-2">{link.icon}</span>
-            <span className="font-semibold text-sm">{link.label}</span>
-            <span className="text-xs mt-1 opacity-70 leading-tight hidden sm:block">{link.desc}</span>
+            <div className={`w-8 h-8 rounded-lg ${link.iconBg} flex items-center justify-center text-base flex-shrink-0`}>
+              {link.icon}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className={`text-sm font-semibold ${link.textColor} leading-tight`}>{link.label}</p>
+              <p className="text-[11px] text-gray-400 leading-tight mt-0.5 truncate">
+                {isChef ? link.chefDesc : link.memberDesc}
+              </p>
+            </div>
+            <svg className={`w-3.5 h-3.5 flex-shrink-0 opacity-30 group-hover:opacity-60 group-hover:translate-x-0.5 transition-all ${link.textColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            {isChef && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white text-[9px] font-bold flex items-center justify-center shadow-sm">+</span>
+            )}
           </Link>
         ))}
       </div>
