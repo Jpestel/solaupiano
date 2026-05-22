@@ -58,6 +58,7 @@ export default async function AidePage() {
             { href: '#repertoire', label: '🎼 Répertoire' },
             { href: '#setlists', label: '🎶 Setlists' },
             { href: '#grilles', label: '🎸 Grilles' },
+            { href: '#paroles', label: '🎤 Paroles' },
             { href: '#plans', label: '📦 Plans' },
             { href: '#faq', label: '❓ FAQ' },
           ].map((item) => (
@@ -471,6 +472,75 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── PAROLES ─── */}
+        <section id="paroles">
+          <SectionTitle icon="🎤" title="Paroles" color="rose" />
+          <div className="space-y-4">
+
+            {isCreateur && (
+              <HelpCard title="Saisir les paroles d'un morceau" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Dans le <strong>Répertoire</strong>, cliquez sur le bouton <strong>🎤 Paroles</strong> à droite de n&apos;importe quel morceau.</Step>
+                  <Step n={2}>L&apos;onglet <strong>✏️ Éditeur</strong> s&apos;ouvre. Tapez les paroles directement dans la zone de texte.</Step>
+                  <Step n={3}>Structurez les paroles en cliquant sur les boutons de marqueurs : <span className="inline-flex items-center rounded-full bg-rose-100 border border-rose-200 px-2 py-0.5 text-xs font-bold text-rose-700">Refrain</span> <span className="inline-flex items-center rounded-full bg-blue-100 border border-blue-200 px-2 py-0.5 text-xs font-bold text-blue-700">Couplet 1</span> <span className="inline-flex items-center rounded-full bg-purple-100 border border-purple-200 px-2 py-0.5 text-xs font-bold text-purple-700">Bridge</span>…</Step>
+                </ol>
+                <Note>La sauvegarde est <strong>automatique</strong> — 800 ms après la dernière frappe. L&apos;indicateur &quot;✓ Sauvegardé&quot; le confirme.</Note>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Marqueurs de structure">
+              <p>Les marqueurs permettent de repérer instantanément les sections d&apos;un morceau. Chaque type a sa couleur :</p>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  { label: 'Intro',       bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' },
+                  { label: 'Couplet 1/2', bg: 'bg-blue-100',   text: 'text-blue-700',   border: 'border-blue-200'   },
+                  { label: 'Pré-refrain', bg: 'bg-amber-100',  text: 'text-amber-700',  border: 'border-amber-200'  },
+                  { label: 'Refrain',     bg: 'bg-rose-100',   text: 'text-rose-700',   border: 'border-rose-200'   },
+                  { label: 'Bridge',      bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+                  { label: 'Outro',       bg: 'bg-gray-100',   text: 'text-gray-600',   border: 'border-gray-200'   },
+                  { label: 'Spoken',      bg: 'bg-teal-100',   text: 'text-teal-700',   border: 'border-teal-200'   },
+                  { label: '×2 / ×3',    bg: 'bg-green-100',  text: 'text-green-700',  border: 'border-green-200'  },
+                ].map((m) => (
+                  <div key={m.label} className={`inline-flex items-center rounded-lg border px-3 py-2 text-xs font-semibold ${m.bg} ${m.text} ${m.border}`}>
+                    {m.label}
+                  </div>
+                ))}
+              </div>
+              <Tip>
+                Vous pouvez aussi taper les marqueurs directement au clavier entre crochets :{' '}
+                <code className="bg-gray-100 rounded px-1">[Refrain]</code>{' '}
+                <code className="bg-gray-100 rounded px-1">[Couplet 2]</code>
+              </Tip>
+            </HelpCard>
+
+            <HelpCard title="Aperçu et lecture">
+              <p>L&apos;onglet <strong>👁 Aperçu</strong> affiche les paroles mises en forme avec les badges de section colorés — accessible à <strong>tous les membres</strong> du groupe, même sans droit d&apos;édition.</p>
+              <p className="mt-2">Un badge <span className="inline-flex items-center rounded-full bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600">🎤 Paroles</span> apparaît sur les morceaux du répertoire qui ont déjà des paroles saisies.</p>
+            </HelpCard>
+
+            <HelpCard title="Mode scène 🎭">
+              <p>Le bouton <strong>Mode scène</strong> (accessible à tous) ouvre un affichage plein écran optimisé pour la scène ou les répétitions :</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>Fond noir</strong>, texte blanc grande taille — lisible de loin</li>
+                <li><strong>Badges de section</strong> bien visibles pour se repérer rapidement</li>
+                <li><strong>Défilement tactile</strong> — parfait sur tablette en coulisse</li>
+              </ul>
+              <p className="mt-2 text-gray-600">Appuyez sur <kbd className="rounded bg-gray-200 px-1.5 py-0.5 font-mono text-xs">Échap</kbd> ou le bouton <em>Quitter</em> pour revenir à la vue normale.</p>
+              <Tip>Pensez à passer le téléphone ou la tablette en mode ne pas déranger avant de monter sur scène !</Tip>
+            </HelpCard>
+
+            <HelpCard title="Impression des paroles">
+              <p>Le bouton <strong>🖨️ Imprimer</strong> génère une feuille A4 propre avec :</p>
+              <ul className="mt-2 space-y-1">
+                <li>En-tête : titre, artiste et nom du groupe</li>
+                <li>Les paroles structurées — marqueurs en couleur, texte en police de lecture</li>
+              </ul>
+              <Tip>Pratique pour distribuer les paroles en répétition ou les avoir en main pendant un concert.</Tip>
+            </HelpCard>
+
+          </div>
+        </section>
+
         {/* ─── PLANS ─── */}
         <section id="plans">
           <SectionTitle icon="📦" title="Plans et stockage" color="purple" />
@@ -480,7 +550,7 @@ export default async function AidePage() {
               <p>Chaque groupe dispose d&apos;un plan qui détermine son espace de stockage. Le stockage est <strong>partagé</strong> entre tous les membres pour les ressources (partitions, fichiers audio…).</p>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <PlanDetailCard name="Gratuit" icon="🆓" storage="1 Go" price="Gratuit" groups="1 groupe" color="gray"
-                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords']} />
+                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène']} />
                 <PlanDetailCard name="Pro" icon="⭐" storage="5 Go" price="5,99 €/mois" groups="5 groupes" color="indigo"
                   features={['Tout du plan Gratuit', 'Support prioritaire', 'Bientôt disponible']} comingSoon />
                 <PlanDetailCard name="Premium" icon="👑" storage="10 Go" price="9,90 €/mois" groups="5 groupes" color="purple"
@@ -525,6 +595,12 @@ export default async function AidePage() {
             </FaqItem>
             <FaqItem question="Comment créer une grille personnalisée par musicien ?">
               Utilisez le bouton <strong>Dupliquer</strong> (visible sur chaque carte de la liste des grilles). Vous obtenez une copie complète que vous pouvez renommer et annoter librement — par exemple une version &quot;Pianiste&quot;, une version &quot;Chanteur&quot;, etc. Chaque copie est totalement indépendante.
+            </FaqItem>
+            <FaqItem question="Les membres peuvent-ils voir les paroles sans être chef ?">
+              Oui. Tous les membres du groupe ont accès à la lecture des paroles (onglet Aperçu) et au mode scène. Seul le chef peut saisir, modifier ou supprimer les paroles.
+            </FaqItem>
+            <FaqItem question="Puis-je utiliser le mode scène sur mon téléphone ?">
+              Oui, le mode scène est conçu pour fonctionner sur tous les écrans. Sur téléphone ou tablette, le texte est grand, le fond est sombre et le défilement tactile est fluide. Pensez à passer votre appareil en mode ne pas déranger avant de monter sur scène.
             </FaqItem>
             <FaqItem question="Mes ressources sont-elles visibles par tous les membres ?">
               Oui, toutes les ressources attachées à un morceau sont visibles par l&apos;ensemble des membres du groupe. Seul le chef peut en ajouter ou supprimer.
@@ -586,6 +662,7 @@ function SectionTitle({ icon, title, color }: { icon: string; title: string; col
     purple: 'border-purple-200 bg-purple-50 text-purple-700',
     green: 'border-green-200 bg-green-50 text-green-700',
     orange: 'border-orange-200 bg-orange-50 text-orange-700',
+    rose:   'border-rose-200 bg-rose-50 text-rose-700',
     gray: 'border-gray-200 bg-gray-100 text-gray-700',
   }
   return (
