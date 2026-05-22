@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
@@ -15,6 +15,7 @@ interface User {
   id: number
   name: string
   email: string
+  avatarUrl?: string | null
   siteRole: string
   createdAt: string
   groups: { group: { id: number; name: string }; groupRole: string }[]
@@ -30,6 +31,9 @@ export default function AdminUtilisateursPage() {
   const [editForm, setEditForm] = useState({ name: '', email: '', instrumentIds: [] as number[] })
   const [editError, setEditError] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchUsers = async () => {
     const [usrRes, instrRes] = await Promise.all([
@@ -51,6 +55,33 @@ export default function AdminUtilisateursPage() {
       instrumentIds: user.instruments.map((ui) => ui.instrument.id),
     })
     setEditError('')
+    setAvatarError('')
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !editUser) return
+    if (!file.type.startsWith('image/')) { setAvatarError('Image requise.'); return }
+    setAvatarUploading(true)
+    setAvatarError('')
+    const formData = new FormData()
+    formData.append('avatar', file)
+    const res = await fetch(`/api/admin/utilisateurs/${editUser.id}/avatar`, { method: 'POST', body: formData })
+    setAvatarUploading(false)
+    if (!res.ok) { const d = await res.json(); setAvatarError(d.error || 'Erreur upload.'); return }
+    const { avatarUrl } = await res.json()
+    setEditUser((prev) => prev ? { ...prev, avatarUrl } : prev)
+    setUsers((prev) => prev.map((u) => u.id === editUser.id ? { ...u, avatarUrl } : u))
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleAvatarDelete = async () => {
+    if (!editUser || !confirm('Supprimer la photo de profil ?')) return
+    setAvatarUploading(true)
+    await fetch(`/api/admin/utilisateurs/${editUser.id}/avatar`, { method: 'DELETE' })
+    setAvatarUploading(false)
+    setEditUser((prev) => prev ? { ...prev, avatarUrl: null } : prev)
+    setUsers((prev) => prev.map((u) => u.id === editUser.id ? { ...u, avatarUrl: null } : u))
   }
 
   const toggleInstrument = (id: number) => {
@@ -137,8 +168,11 @@ export default function AdminUtilisateursPage() {
                   <tr key={user.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold flex-shrink-0">
-                          {user.name.charAt(0).toUpperCase()}
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold flex-shrink-0">
+                          {user.avatarUrl
+                            ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                            : user.name.charAt(0).toUpperCase()
+                          }
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{user.name}</p>
@@ -221,6 +255,57 @@ export default function AdminUtilisateursPage() {
           {editError && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{editError}</div>
           )}
+
+          {/* Avatar upload */}
+          <div>
+            <label className="form-label">Photo de profil</label>
+            <div className="flex items-center gap-4">
+              <div className="relative group/av flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="w-16 h-16 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xl ring-2 ring-gray-200 hover:ring-indigo-400 transition-all focus:outline-none"
+                  title="Changer la photo"
+                >
+                  {editUser?.avatarUrl
+                    ? <img src={editUser.avatarUrl} alt={editUser.name} className="w-full h-full object-cover" />
+                    : <span>{editUser?.name.charAt(0).toUpperCase()}</span>
+                  }
+                  <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover/av:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    {avatarUploading
+                      ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      : <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    }
+                  </div>
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50 text-left"
+                >
+                  {avatarUploading ? 'Upload en cours...' : 'Choisir une photo'}
+                </button>
+                {editUser?.avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleAvatarDelete}
+                    disabled={avatarUploading}
+                    className="text-sm font-medium text-red-500 hover:text-red-700 disabled:opacity-50 text-left"
+                  >
+                    Supprimer la photo
+                  </button>
+                )}
+                {avatarError && <p className="text-xs text-red-500">{avatarError}</p>}
+                <p className="text-xs text-gray-400">JPG, PNG, WebP — max 10 Mo</p>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label className="form-label">Nom complet</label>
             <input
