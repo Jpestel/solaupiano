@@ -11,8 +11,45 @@ interface Song { id: number; title: string; artist?: string }
 interface ChartData {
   id: number; groupId: number; title: string; tempo?: string | null
   keySignature?: string | null; timeSignature: string
-  barsPerRow: number; totalBars: number; cells: string[]
+  barsPerRow: number; totalBars: number; cells: unknown
   sons?: string | null; song?: { id: number; title: string } | null
+}
+
+/* ─── Helpers ─── */
+/** Nombre de temps par mesure selon la signature */
+function beatsPerBar(timeSig: string): number {
+  const map: Record<string, number> = {
+    '4/4': 4, '3/4': 3, '6/8': 2, '2/4': 2, '5/4': 5, '12/8': 4, '2/2': 2,
+  }
+  return map[timeSig] ?? 4
+}
+
+/**
+ * Normalise les données de cellules :
+ * - Ancien format (string[]) → string[][] en mettant la valeur sur le 1er temps
+ * - Nouveau format (string[][]) → ajuste la longueur des sous-tableaux
+ */
+function normalizeCells(raw: unknown, totalBars: number, bpb: number): string[][] {
+  const result: string[][] = []
+  const src = Array.isArray(raw) ? raw : []
+
+  for (let i = 0; i < totalBars; i++) {
+    const item = src[i]
+    if (Array.isArray(item)) {
+      // Nouveau format : ajuste la taille au bon nombre de temps
+      const bar = item.map((v) => (typeof v === 'string' ? v : ''))
+      if (bar.length < bpb) result.push([...bar, ...Array(bpb - bar.length).fill('')])
+      else result.push(bar.slice(0, bpb))
+    } else if (typeof item === 'string') {
+      // Ancien format : place la valeur sur le 1er temps
+      const bar = Array(bpb).fill('')
+      bar[0] = item
+      result.push(bar)
+    } else {
+      result.push(Array(bpb).fill(''))
+    }
+  }
+  return result
 }
 
 /* ─── Palette data ─── */
@@ -64,20 +101,20 @@ const BARS_PER_ROW_OPTIONS = [2, 3, 4, 6]
 const TOTAL_BARS_OPTIONS = [8, 16, 24, 32, 48, 64, 80]
 const SYMBOL_TOKENS = new Set(['||:', ':||', ':|:', '%', '/', '-', '𝄌', '𝄋', 'D.C.', 'D.S.', 'Fine', '⌢', '(x2)'])
 
-/* ─── Cell content renderer ─── */
-function CellContent({ content }: { content: string }) {
+/* ─── Beat content renderer ─── */
+function BeatContent({ content }: { content: string }) {
   const tokens = content.trim().split(/\s+/).filter(Boolean)
-  if (!tokens.length) return <span className="text-gray-200 text-xs select-none">·</span>
+  if (!tokens.length) return <span className="text-gray-200 text-[10px] select-none">·</span>
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 px-1">
+    <div className="flex flex-col items-center justify-center gap-0.5 px-0.5 w-full">
       {tokens.map((token, i) => {
         const isRepeat = token === '||:' || token === ':||' || token === ':|:'
         const isSym = SYMBOL_TOKENS.has(token)
         return (
           <span key={i} className={
-            isRepeat ? 'text-indigo-700 font-black text-lg leading-none' :
-            isSym    ? 'text-orange-600 font-semibold text-xs italic' :
-                       'text-gray-900 font-bold text-sm leading-none'
+            isRepeat ? 'text-indigo-700 font-black text-base leading-none' :
+            isSym    ? 'text-orange-600 font-semibold text-[9px] italic leading-none' :
+                       'text-gray-900 font-bold text-xs leading-none'
           }>{token}</span>
         )
       })}
@@ -92,15 +129,16 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const grilleId = params.grilleId
 
   const [chart, setChart] = useState<ChartData | null>(null)
-  const [cells, setCells] = useState<string[]>([])
+  const [cells, setCells] = useState<string[][]>([])
   const [sons, setSons] = useState('')
   const [groupRole, setGroupRole] = useState('MEMBRE')
   const [groupName, setGroupName] = useState('')
   const [groupSongs, setGroupSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Editing state
-  const [activeIdx, setActiveIdx] = useState<number | null>(null)
+  // Editing state: active bar + beat
+  const [activeBar, setActiveBar] = useState<number | null>(null)
+  const [activeBeat, setActiveBeat] = useState<number | null>(null)
   const [inputVal, setInputVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -108,7 +146,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pendingCellsRef = useRef<string[]>([])
+  const pendingCellsRef = useRef<string[][]>([])
 
   // Settings modal
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -128,7 +166,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     if (chartRes.ok) {
       const data: ChartData = await chartRes.json()
       setChart(data)
-      setCells(Array.isArray(data.cells) ? data.cells : Array(data.totalBars).fill(''))
+      const bpb = beatsPerBar(data.timeSignature)
+      setCells(normalizeCells(data.cells, data.totalBars, bpb))
       setSons(data.sons ?? '')
     }
     if (grpRes.ok) {
@@ -145,7 +184,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   useEffect(() => { if (session) fetchData() }, [session, fetchData])
 
   /* Auto-save cells */
-  const scheduleSave = (newCells: string[]) => {
+  const scheduleSave = (newCells: string[][]) => {
     pendingCellsRef.current = newCells
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
@@ -176,66 +215,69 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
   const isChef = groupRole === 'CHEF'
 
-  /* Cell selection */
-  const openCell = (idx: number) => {
-    setActiveIdx(idx)
-    setInputVal(cells[idx] || '')
+  /* Open a specific beat */
+  const openBeat = (barIdx: number, beatIdx: number) => {
+    setActiveBar(barIdx)
+    setActiveBeat(beatIdx)
+    setInputVal(cells[barIdx]?.[beatIdx] || '')
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
-  const closeCell = () => setActiveIdx(null)
+  const closeCell = () => { setActiveBar(null); setActiveBeat(null) }
 
-  /* Update a cell value */
+  /* Update the active beat value */
   const applyValue = (val: string) => {
-    if (activeIdx === null) return
+    if (activeBar === null || activeBeat === null) return
     setInputVal(val)
-    const newCells = [...cells]
-    newCells[activeIdx] = val
+    const newCells = cells.map((bar, i) =>
+      i === activeBar ? bar.map((beat, j) => j === activeBeat ? val : beat) : bar
+    )
     setCells(newCells)
     scheduleSave(newCells)
   }
 
-  /* Palette: append root note */
+  /* Palette: append root note (with space separator) */
   const appendRoot = (root: string) => {
     const cur = inputVal
-    const next = cur && !cur.endsWith(' ') ? cur + ' ' + root : cur + root
-    applyValue(next)
+    applyValue(cur && !cur.endsWith(' ') ? cur + ' ' + root : cur + root)
   }
 
-  /* Palette: append quality to last chord token (no space) */
+  /* Palette: append quality directly (no space) */
   const appendQuality = (quality: string) => {
-    if (!quality) return // major = nothing
+    if (!quality) return
     applyValue(inputVal + quality)
   }
 
-  /* Palette: append symbol */
+  /* Palette: append symbol (with space separator) */
   const appendSymbol = (sym: string) => {
     const cur = inputVal
-    const next = cur && !cur.endsWith(' ') ? cur + ' ' + sym : cur + sym
-    applyValue(next)
+    applyValue(cur && !cur.endsWith(' ') ? cur + ' ' + sym : cur + sym)
   }
 
   /* Backspace last token */
   const backspaceLast = () => {
     const trimmed = inputVal.trimEnd()
     const lastSpace = trimmed.lastIndexOf(' ')
-    const next = lastSpace >= 0 ? trimmed.slice(0, lastSpace) : ''
-    applyValue(next)
+    applyValue(lastSpace >= 0 ? trimmed.slice(0, lastSpace) : '')
   }
 
-  /* Keyboard nav */
+  /* Keyboard navigation */
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (activeBar === null || activeBeat === null || !chart) return
+    const bpb = beatsPerBar(chart.timeSignature)
+
     if (e.key === 'Tab') {
       e.preventDefault()
-      if (activeIdx !== null) {
-        const next = e.shiftKey
-          ? Math.max(0, activeIdx - 1)
-          : Math.min(cells.length - 1, activeIdx + 1)
-        openCell(next)
+      if (e.shiftKey) {
+        // Précédent
+        if (activeBeat > 0) openBeat(activeBar, activeBeat - 1)
+        else if (activeBar > 0) openBeat(activeBar - 1, bpb - 1)
+      } else {
+        // Suivant
+        if (activeBeat < bpb - 1) openBeat(activeBar, activeBeat + 1)
+        else if (activeBar < cells.length - 1) openBeat(activeBar + 1, 0)
       }
-    } else if (e.key === 'Escape') {
-      closeCell()
-    } else if (e.key === 'Enter') {
+    } else if (e.key === 'Escape' || e.key === 'Enter') {
       e.preventDefault()
       closeCell()
     }
@@ -246,12 +288,20 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     e.preventDefault()
     setSettingsSaving(true)
     const newTotal = Number(settingsForm.totalBars)
-    const currentCells = cells
-    let newCells = currentCells
-    if (newTotal > currentCells.length) {
-      newCells = [...currentCells, ...Array(newTotal - currentCells.length).fill('')]
-    } else if (newTotal < currentCells.length) {
-      newCells = currentCells.slice(0, newTotal)
+    const newBpb = beatsPerBar(settingsForm.timeSignature)
+    const oldBpb = chart ? beatsPerBar(chart.timeSignature) : newBpb
+
+    // Adapter les temps de chaque mesure si la signature change
+    let newCells: string[][] = cells.map((bar) => {
+      if (newBpb > oldBpb) return [...bar, ...Array(newBpb - bar.length).fill('')]
+      return bar.slice(0, newBpb)
+    })
+
+    // Adapter le nombre total de mesures
+    if (newTotal > newCells.length) {
+      newCells = [...newCells, ...Array(newTotal - newCells.length).fill(null).map(() => Array(newBpb).fill(''))]
+    } else if (newTotal < newCells.length) {
+      newCells = newCells.slice(0, newTotal)
     }
 
     await fetch(`/api/grilles/${grilleId}`, {
@@ -278,12 +328,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     if (!chart) return
     setSettingsForm({
       title: chart.title,
-      tempo: chart.tempo ?? '',
-      keySignature: chart.keySignature ?? '',
+      tempo: (chart.tempo as string) ?? '',
+      keySignature: (chart.keySignature as string) ?? '',
       timeSignature: chart.timeSignature,
       barsPerRow: chart.barsPerRow,
       totalBars: chart.totalBars,
-      songId: chart.songId ? String(chart.songId) : '',
+      songId: (chart as any).songId ? String((chart as any).songId) : '',
     })
     setSettingsOpen(true)
   }
@@ -292,18 +342,22 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const handlePrint = () => {
     if (!chart) return
     const bpr = chart.barsPerRow
+    const bpb = beatsPerBar(chart.timeSignature)
     const totalPrint = cells.length
     let rowsHtml = ''
     for (let i = 0; i < totalPrint; i += bpr) {
       const rowBg = Math.floor(i / bpr) % 2 === 0 ? '#ffffff' : '#f5f5f5'
       let tds = ''
       for (let j = 0; j < bpr; j++) {
-        const idx = i + j
-        const cellContent = idx < cells.length ? cells[idx] : ''
-        const barNum = idx + 1
-        tds += `<td style="border:1px solid #bbb;padding:5px 8px 22px;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${rowBg}">
-          <div style="font-size:9px;color:#aaa;line-height:1;">${barNum}</div>
-          <div style="font-size:15px;font-weight:700;color:#111;margin-top:4px;min-height:20px;">${cellContent || ''}</div>
+        const barIdx = i + j
+        const barBeats = barIdx < cells.length ? cells[barIdx] : Array(bpb).fill('')
+        const barNum = barIdx + 1
+        const beatsHtml = barBeats.map((beat, bi) =>
+          `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #ddd;' : ''}font-size:12px;font-weight:700;color:#111;min-height:18px;">${beat || ''}</div>`
+        ).join('')
+        tds += `<td style="border:1px solid #bbb;padding:4px 0 0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${rowBg}">
+          <div style="font-size:9px;color:#aaa;line-height:1;padding:0 5px 3px;">${barNum}</div>
+          <div style="display:flex;border-top:1px solid #e5e5e5;">${beatsHtml}</div>
         </td>`
       }
       rowsHtml += `<tr>${tds}</tr>`
@@ -361,11 +415,13 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   if (!chart) return <div className="text-gray-500">Grille introuvable.</div>
 
   const bpr = chart.barsPerRow
+  const bpb = beatsPerBar(chart.timeSignature)
+
   // Build rows
-  const rows: { idx: number }[][] = []
+  const rows: number[][] = []
   for (let i = 0; i < cells.length; i += bpr) {
-    const row: { idx: number }[] = []
-    for (let j = 0; j < bpr; j++) row.push({ idx: i + j })
+    const row: number[] = []
+    for (let j = 0; j < bpr; j++) row.push(i + j)
     rows.push(row)
   }
 
@@ -396,12 +452,11 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{chart.timeSignature}</span>
             <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{chart.totalBars} mesures · {bpr}/ligne</span>
             {chart.song && (
-              <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700">↳ {chart.song.title}</span>
+              <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700">↳ {(chart.song as any).title}</span>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
-          {/* Save indicator */}
           <span className={`text-xs transition-opacity ${saving ? 'text-orange-500 opacity-100' : savedAt ? 'text-green-600 opacity-100' : 'opacity-0'}`}>
             {saving ? '💾 Sauvegarde...' : '✓ Sauvegardé'}
           </span>
@@ -428,29 +483,44 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           <tbody>
             {rows.map((row, rowIdx) => (
               <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/80'}>
-                {row.map(({ idx }) => {
-                  const isActive = activeIdx === idx
-                  const isOccupied = idx < cells.length
-                  if (!isOccupied) return <td key={idx} className="border border-gray-200 bg-gray-50/30" />
+                {row.map((barIdx) => {
+                  const isValidBar = barIdx < cells.length
+                  if (!isValidBar) return (
+                    <td key={barIdx} className="border border-gray-200 bg-gray-50/30"
+                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '68px' }} />
+                  )
+                  const isActiveBar = activeBar === barIdx
                   return (
                     <td
-                      key={idx}
-                      onClick={() => isChef && openCell(idx)}
-                      className={`
-                        border border-gray-200 relative
-                        ${isChef ? 'cursor-pointer hover:bg-orange-50/60 hover:border-orange-200' : ''}
-                        ${isActive ? 'ring-2 ring-inset ring-orange-400 bg-orange-50/40 border-orange-300' : ''}
-                        transition-colors
-                      `}
-                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '60px', verticalAlign: 'top', padding: '4px 4px 2px' }}
+                      key={barIdx}
+                      className={`border border-gray-200 relative transition-colors ${isActiveBar ? 'border-orange-300' : ''}`}
+                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '68px', verticalAlign: 'top', padding: 0 }}
                     >
-                      {/* Bar number */}
-                      <span className="absolute top-1 left-1.5 text-[9px] text-gray-300 leading-none select-none font-medium">
-                        {idx + 1}
+                      {/* Numéro de mesure */}
+                      <span className="absolute top-0.5 left-1 text-[9px] text-gray-300 leading-none select-none font-medium z-10">
+                        {barIdx + 1}
                       </span>
-                      {/* Content */}
-                      <div className="flex items-center justify-center h-full pt-3">
-                        <CellContent content={cells[idx] || ''} />
+
+                      {/* Sous-zones par temps */}
+                      <div className="flex h-full pt-3.5">
+                        {Array.from({ length: bpb }).map((_, beatIdx) => {
+                          const isActiveBeat = isActiveBar && activeBeat === beatIdx
+                          return (
+                            <div
+                              key={beatIdx}
+                              onClick={() => isChef && openBeat(barIdx, beatIdx)}
+                              className={`
+                                flex-1 flex items-center justify-center relative min-w-0
+                                ${beatIdx < bpb - 1 ? 'border-r border-gray-100' : ''}
+                                ${isChef ? 'cursor-pointer hover:bg-orange-50/60' : ''}
+                                ${isActiveBeat ? 'bg-orange-50/80 ring-2 ring-inset ring-orange-400' : ''}
+                                transition-colors
+                              `}
+                            >
+                              <BeatContent content={cells[barIdx]?.[beatIdx] || ''} />
+                            </div>
+                          )
+                        })}
                       </div>
                     </td>
                   )
@@ -475,14 +545,18 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       </div>
 
       {/* Sticky editing palette */}
-      {isChef && activeIdx !== null && (
+      {isChef && activeBar !== null && activeBeat !== null && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-orange-200 shadow-2xl">
           <div className="max-w-6xl mx-auto px-3 py-2">
             {/* Top bar: indicator + input + controls */}
             <div className="flex items-center gap-2 mb-2">
-              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center text-xs font-bold text-orange-700">
-                {activeIdx + 1}
-              </span>
+              {/* Indicateur mesure / temps */}
+              <div className="flex-shrink-0 flex items-center gap-1">
+                <span className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center text-xs font-bold text-orange-700">
+                  {activeBar + 1}
+                </span>
+                <span className="text-[10px] text-gray-400 font-medium">t{activeBeat + 1}</span>
+              </div>
               <input
                 ref={inputRef}
                 type="text"
@@ -555,17 +629,25 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
             {/* Nav hint */}
             <div className="flex items-center justify-between mt-1">
-              <p className="text-[10px] text-gray-400">Tab → mesure suivante · Maj+Tab ← précédente · Entrée / Échap pour fermer</p>
+              <p className="text-[10px] text-gray-400">Tab → temps suivant · Maj+Tab ← précédent · Entrée / Échap pour fermer</p>
               <div className="flex gap-1">
                 <button
-                  onClick={() => activeIdx > 0 && openCell(activeIdx - 1)}
-                  disabled={activeIdx <= 0}
+                  onClick={() => {
+                    if (activeBar === null || activeBeat === null) return
+                    if (activeBeat > 0) openBeat(activeBar, activeBeat - 1)
+                    else if (activeBar > 0) openBeat(activeBar - 1, bpb - 1)
+                  }}
+                  disabled={activeBar === 0 && activeBeat === 0}
                   className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors">
                   ← Préc
                 </button>
                 <button
-                  onClick={() => activeIdx < cells.length - 1 && openCell(activeIdx + 1)}
-                  disabled={activeIdx >= cells.length - 1}
+                  onClick={() => {
+                    if (activeBar === null || activeBeat === null) return
+                    if (activeBeat < bpb - 1) openBeat(activeBar, activeBeat + 1)
+                    else if (activeBar < cells.length - 1) openBeat(activeBar + 1, 0)
+                  }}
+                  disabled={activeBar === cells.length - 1 && activeBeat === bpb - 1}
                   className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors">
                   Suiv →
                 </button>
