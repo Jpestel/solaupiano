@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendGroupWelcomeEmail } from '@/lib/email'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -30,9 +31,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
   if (existing) return NextResponse.json({ error: 'Ce musicien est déjà membre du groupe.' }, { status: 409 })
 
-  await prisma.groupMember.create({
-    data: { userId: target.id, groupId, groupRole: 'MEMBRE' },
-  })
+  const [group] = await Promise.all([
+    prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+    prisma.groupMember.create({ data: { userId: target.id, groupId, groupRole: 'MEMBRE' } }),
+  ])
+
+  const adder = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } })
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+  if (group && adder) {
+    sendGroupWelcomeEmail(target.email, target.name, group.name, groupId, adder.name, baseUrl).catch(() => {})
+  }
 
   return NextResponse.json({ success: true, name: target.name })
 }

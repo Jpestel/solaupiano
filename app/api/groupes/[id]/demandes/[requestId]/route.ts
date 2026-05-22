@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendGroupWelcomeEmail } from '@/lib/email'
 
 // PATCH — chef accepts or rejects a join request
 export async function PATCH(
@@ -44,6 +45,18 @@ export async function PATCH(
     await prisma.groupMember.create({
       data: { userId: joinRequest.userId, groupId, groupRole: 'MEMBRE' },
     })
+
+    // Send welcome email
+    if (requester) {
+      const [group, chef] = await Promise.all([
+        prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+        prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
+      ])
+      const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+      if (group && chef) {
+        sendGroupWelcomeEmail(requester.email, requester.name, group.name, groupId, chef.name, baseUrl).catch(() => {})
+      }
+    }
   }
 
   return NextResponse.json({ success: true })

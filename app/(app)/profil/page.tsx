@@ -21,6 +21,7 @@ interface ProfileData {
   avatarUrl?: string | null
   siteRole: string
   userPlan: string
+  weeklyDigestOptOut: boolean
   instruments: { instrument: Instrument }[]
   stats: {
     groupCount: number
@@ -79,6 +80,9 @@ export default function ProfilPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [planSuccess, setPlanSuccess] = useState('')
 
+  const [weeklyDigestOptOut, setWeeklyDigestOptOut] = useState(false)
+  const [digestSaving, setDigestSaving] = useState(false)
+
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -99,6 +103,7 @@ export default function ProfilPage() {
       setProfile(p)
       setName(p.name)
       setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
+      setWeeklyDigestOptOut(p.weeklyDigestOptOut ?? false)
     }
     if (instrRes.ok) setInstruments(await instrRes.json())
     if (groupsRes.ok) setAvailableGroups(await groupsRes.json())
@@ -133,6 +138,17 @@ export default function ProfilPage() {
     await fetchData()
     setSuccess('Profil mis à jour avec succès.')
     await update({ name })
+  }
+
+  const handleDigestToggle = async (newValue: boolean) => {
+    setWeeklyDigestOptOut(newValue)
+    setDigestSaving(true)
+    await fetch('/api/profil', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, instrumentIds: selectedIds, weeklyDigestOptOut: newValue }),
+    })
+    setDigestSaving(false)
   }
 
   const handlePlanChange = async (newPlan: 'MUSICIEN' | 'CREATEUR') => {
@@ -540,6 +556,40 @@ export default function ProfilPage() {
                 </button>
               </div>
             </form>
+          </Card>
+
+          {/* Notifications */}
+          <Card>
+            <CardHeader title="Notifications" subtitle="Gérez les emails que vous recevez de Sol au piano." />
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">Résumé hebdomadaire</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Reçu chaque vendredi si vous ne vous êtes pas connecté(e) depuis 7 jours — grilles, fichiers, morceaux ajoutés et prochaines répétitions.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!weeklyDigestOptOut}
+                  onClick={() => handleDigestToggle(!weeklyDigestOptOut)}
+                  disabled={digestSaving}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
+                    !weeklyDigestOptOut ? 'bg-indigo-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      !weeklyDigestOptOut ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 border-t border-gray-100 pt-3">
+                Les emails transactionnels (ajout à un groupe, rappels de répétition, mot de passe) sont toujours envoyés.
+              </p>
+            </div>
           </Card>
 
         </div>

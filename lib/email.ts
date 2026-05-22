@@ -277,6 +277,183 @@ export async function sendAttendanceReminder(
   )
 }
 
+export async function sendGroupWelcomeEmail(
+  to: string,
+  memberName: string,
+  groupName: string,
+  groupId: number,
+  addedByName: string,
+  baseUrl: string
+) {
+  const groupUrl = `${baseUrl}/groupes/${groupId}`
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject: `Bienvenue dans le groupe "${groupName}" 🎶`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
+        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
+              <span style="font-size: 24px;">🎹</span>
+            </div>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
+          </div>
+
+          <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${memberName} !</h2>
+          <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+            <strong>${addedByName}</strong> vous a ajouté(e) au groupe <strong>${groupName}</strong> sur Sol au piano.
+            Vous avez maintenant accès au répertoire, aux répétitions, aux setlists et aux grilles d'accords du groupe.
+          </p>
+
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
+            <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #1e3a8a;">🎵 ${groupName}</p>
+            <p style="margin: 0; font-size: 13px; color: #3b82f6;">Ajouté(e) par ${addedByName}</p>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 20px;">
+            <a href="${groupUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
+              Accéder au groupe →
+            </a>
+          </div>
+
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+            Vous recevrez un résumé hebdomadaire des nouveautés du groupe chaque vendredi.
+            Vous pouvez vous désabonner depuis votre <a href="${baseUrl}/profil" style="color: #6b7280;">profil</a>.
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
+export interface DigestGroup {
+  id: number
+  name: string
+  newGrilles: { id: number; title: string }[]
+  newResources: { id: number; name: string; type: string; songTitle: string }[]
+  newSongs: { id: number; title: string; artist?: string | null }[]
+  upcomingRehearsals: { id: number; date: Date; location: string; startTime: string }[]
+}
+
+export async function sendWeeklyDigestEmail(
+  to: string,
+  memberName: string,
+  groups: DigestGroup[],
+  baseUrl: string
+) {
+  const groupsWithActivity = groups.filter(
+    (g) => g.newGrilles.length > 0 || g.newResources.length > 0 || g.newSongs.length > 0 || g.upcomingRehearsals.length > 0
+  )
+  if (groupsWithActivity.length === 0) return
+
+  const typeLabel: Record<string, string> = {
+    PDF: '📄 PDF',
+    AUDIO: '🎵 Audio',
+    IMAGE: '🖼️ Image',
+    GRILLE: '🎸 Grille',
+    LIEN: '🔗 Lien',
+    AUTRE: '📎 Fichier',
+  }
+
+  const groupsHtml = groupsWithActivity.map((g) => {
+    const sections: string[] = []
+
+    if (g.newGrilles.length > 0) {
+      sections.push(`
+        <p style="margin: 12px 0 6px; font-size: 12px; font-weight: 600; color: #92400e; text-transform: uppercase; letter-spacing: 0.05em;">🎸 Nouvelles grilles</p>
+        ${g.newGrilles.map((gr) => `
+          <p style="margin: 0 0 4px; font-size: 13px; color: #374151;">
+            <a href="${baseUrl}/groupes/${g.id}/grilles/${gr.id}" style="color: #4f46e5; text-decoration: none;">${gr.title}</a>
+          </p>
+        `).join('')}
+      `)
+    }
+
+    if (g.newResources.length > 0) {
+      sections.push(`
+        <p style="margin: 12px 0 6px; font-size: 12px; font-weight: 600; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">📁 Nouveaux fichiers & liens</p>
+        ${g.newResources.map((r) => `
+          <p style="margin: 0 0 4px; font-size: 13px; color: #374151;">
+            ${typeLabel[r.type] || '📎'} <strong>${r.name}</strong>
+            <span style="color: #9ca3af;"> — ${r.songTitle}</span>
+          </p>
+        `).join('')}
+      `)
+    }
+
+    if (g.newSongs.length > 0) {
+      sections.push(`
+        <p style="margin: 12px 0 6px; font-size: 12px; font-weight: 600; color: #065f46; text-transform: uppercase; letter-spacing: 0.05em;">🎼 Nouveaux morceaux au répertoire</p>
+        ${g.newSongs.map((s) => `
+          <p style="margin: 0 0 4px; font-size: 13px; color: #374151;">
+            ${s.title}${s.artist ? ` <span style="color: #9ca3af;">— ${s.artist}</span>` : ''}
+          </p>
+        `).join('')}
+      `)
+    }
+
+    if (g.upcomingRehearsals.length > 0) {
+      sections.push(`
+        <p style="margin: 12px 0 6px; font-size: 12px; font-weight: 600; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.05em;">🗓️ Prochaines répétitions</p>
+        ${g.upcomingRehearsals.map((r) => {
+          const d = new Date(r.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+          return `<p style="margin: 0 0 4px; font-size: 13px; color: #374151; text-transform: capitalize;">
+            <a href="${baseUrl}/groupes/${g.id}/repetitions/${r.id}" style="color: #4f46e5; text-decoration: none;">${d}</a>
+            à ${r.startTime} · ${r.location}
+          </p>`
+        }).join('')}
+      `)
+    }
+
+    return `
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px;">
+        <a href="${baseUrl}/groupes/${g.id}" style="text-decoration: none;">
+          <p style="margin: 0 0 2px; font-size: 16px; font-weight: 700; color: #1e1b4b;">🎵 ${g.name}</p>
+        </a>
+        ${sections.join('')}
+      </div>
+    `
+  }).join('')
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject: `Résumé de la semaine — Sol au piano 🎹`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
+        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
+              <span style="font-size: 24px;">🎹</span>
+            </div>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
+            <p style="margin: 6px 0 0; font-size: 13px; color: #6b7280;">Résumé de la semaine</p>
+          </div>
+
+          <h2 style="font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${memberName},</h2>
+          <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+            Voici ce qui s'est passé cette semaine dans vos groupes :
+          </p>
+
+          ${groupsHtml}
+
+          <div style="text-align: center; margin-top: 24px; margin-bottom: 8px;">
+            <a href="${baseUrl}/tableau-de-bord" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
+              Accéder à la plateforme →
+            </a>
+          </div>
+
+          <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 20px;">
+            Vous recevez cet email car vous n'êtes pas connecté(e) depuis plus de 7 jours.<br/>
+            <a href="${baseUrl}/profil" style="color: #6b7280;">Se désabonner du résumé hebdomadaire</a>
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
 export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string) {
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',

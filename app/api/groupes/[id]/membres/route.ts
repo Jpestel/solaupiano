@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendGroupWelcomeEmail } from '@/lib/email'
 
 async function checkAccess(session: Awaited<ReturnType<typeof getServerSession>>, groupId: number) {
   if (!session) return false
@@ -50,11 +51,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'L\'administrateur du site ne peut pas être membre d\'un groupe.' }, { status: 400 })
   }
 
+  const existingMember = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: Number(userId), groupId } },
+  })
+
   const member = await prisma.groupMember.upsert({
     where: { userId_groupId: { userId: Number(userId), groupId } },
     update: { groupRole },
     create: { userId: Number(userId), groupId, groupRole },
   })
+
+  // Send welcome email only on first addition (not on role change)
+  if (!existingMember && targetUser) {
+    const [group, adder] = await Promise.all([
+      prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+      prisma.user.findUnique({ where: { id: Number(session!.user.id) }, select: { name: true } }),
+    ])
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+    if (group && adder) {
+      sendGroupWelcomeEmail(targetUser.email, targetUser.name, group.name, groupId, adder.name, baseUrl).catch(() => {})
+    }
+  }
 
   return NextResponse.json(member, { status: 201 })
 }
