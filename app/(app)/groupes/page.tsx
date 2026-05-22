@@ -51,8 +51,11 @@ export default async function GroupesPage() {
               <Link key={group.id} href={`/groupes/${group.id}`}>
                 <Card className="h-full hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-11 h-11 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
-                      {group.name.charAt(0)}
+                    <div className="w-11 h-11 rounded-xl overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
+                      {group.coverUrl
+                        ? <img src={group.coverUrl} alt={group.name} className="w-full h-full object-cover" />
+                        : group.name.charAt(0)
+                      }
                     </div>
                     <RoleBadge role="CHEF" />
                   </div>
@@ -138,8 +141,11 @@ export default async function GroupesPage() {
             <Link key={group.id} href={`/groupes/${group.id}`}>
               <Card className="h-full hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-11 h-11 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
-                    {group.name.charAt(0)}
+                  <div className="w-11 h-11 rounded-xl overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
+                    {group.coverUrl
+                      ? <img src={group.coverUrl} alt={group.name} className="w-full h-full object-cover" />
+                      : group.name.charAt(0)
+                    }
                   </div>
                   <RoleBadge role={groupRole} />
                 </div>
