@@ -14,16 +14,20 @@ export async function POST(req: NextRequest) {
 
   const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const force = req.nextUrl.searchParams.get('force') === 'true'
 
   // Members who haven't logged in for 7+ days AND haven't opted out
+  // In force mode, bypass the lastLoginAt filter (useful for testing)
   const members = await prisma.user.findMany({
     where: {
       weeklyDigestOptOut: false,
       emailVerified: { not: null },
-      OR: [
-        { lastLoginAt: null },
-        { lastLoginAt: { lt: sevenDaysAgo } },
-      ],
+      ...(force ? {} : {
+        OR: [
+          { lastLoginAt: null },
+          { lastLoginAt: { lt: sevenDaysAgo } },
+        ],
+      }),
     },
     select: {
       id: true,
