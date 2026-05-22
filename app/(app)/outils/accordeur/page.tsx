@@ -188,7 +188,13 @@ export default function AccordeurPage() {
       setRunning(true)
       rafRef.current = requestAnimationFrame(analyse)
     } catch (e: any) {
-      setPermError('Accès au microphone refusé. Autorisez le micro dans les paramètres du navigateur.')
+      if (e?.name === 'NotAllowedError' || e?.name === 'PermissionDeniedError') {
+        setPermError('🔒 Microphone bloqué — cliquez sur l\'icône 🔒 dans la barre d\'adresse, puis sur "Paramètres du site" → Microphone → Autoriser, et rechargez la page.')
+      } else if (e?.name === 'NotFoundError') {
+        setPermError('Aucun microphone détecté. Branchez un micro ou vérifiez les paramètres audio de votre appareil.')
+      } else {
+        setPermError('Impossible d\'accéder au microphone. Vérifiez les permissions dans votre navigateur.')
+      }
     }
   }, [analyse])
 
