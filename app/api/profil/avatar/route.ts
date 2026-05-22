@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
 
     do {
       outputBuffer = await sharp(inputBuffer)
+        .rotate()  // auto-rotation selon les métadonnées EXIF (photos téléphone)
         .resize(400, 400, { fit: 'cover', position: 'attention' })
         .webp({ quality })
         .toBuffer()
