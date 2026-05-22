@@ -3,7 +3,7 @@ const path = require('path')
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['formidable'],
+    serverComponentsExternalPackages: ['formidable', 'sharp'],
     staleTimes: {
       dynamic: 0,   // pages dynamiques toujours fraîches
       static: 180,  // pages statiques cachées 3 min
