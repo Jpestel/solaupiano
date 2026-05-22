@@ -16,8 +16,10 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Public home page is always accessible
-        if (req.nextUrl.pathname === '/') return true
+        const pathname = req.nextUrl.pathname
+        // Public pages accessible without login
+        if (pathname === '/') return true
+        if (pathname === '/aide' || pathname.startsWith('/aide/')) return true
         return !!token
       },
     },
@@ -26,6 +28,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!connexion|inscription|mot-de-passe-oublie|reinitialiser-mot-de-passe|verifier-email|mentions-legales|api/auth|api/inscription|api/instruments|api/settings|_next/static|_next/image|favicon.ico).*)',
+    '/((?!connexion|inscription|mot-de-passe-oublie|reinitialiser-mot-de-passe|verifier-email|mentions-legales|aide|api/auth|api/inscription|api/instruments|api/settings|_next/static|_next/image|favicon.ico).*)',
   ],
 }

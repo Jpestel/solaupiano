@@ -5,30 +5,45 @@ import { BackToTop } from './BackToTop'
 
 export default async function AidePage() {
   const session = await getServerSession(authOptions)
-  if (!session) return null
 
-  const isCreateur = session.user.userPlan === 'CREATEUR'
-  const planLabel = isCreateur ? "Chef d'orchestre" : 'Musicien'
-  const planColor = isCreateur ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-blue-100 text-blue-700 border-blue-200'
+  const isLoggedIn = !!session
+  // Visiteur non connecté : on lui montre tout (comme un chef) pour découvrir l'app
+  const isCreateur = !isLoggedIn || session.user.userPlan === 'CREATEUR'
+  const planLabel = !isLoggedIn ? 'Visiteur' : isCreateur ? "Chef d'orchestre" : 'Musicien'
+  const planColor = !isLoggedIn
+    ? 'bg-gray-100 text-gray-600 border-gray-200'
+    : isCreateur
+      ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
+      : 'bg-blue-100 text-blue-700 border-blue-200'
 
   return (
     <div className="max-w-3xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-          <Link href="/tableau-de-bord" className="hover:text-indigo-600">Accueil</Link>
-          <span>/</span>
-          <span className="text-gray-900">Aide</span>
-        </div>
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Centre d&apos;aide</h1>
             <p className="text-gray-500 mt-1">Tout ce qu&apos;il faut savoir pour utiliser Sol au piano.</p>
           </div>
           <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold flex-shrink-0 ${planColor}`}>
-            {isCreateur ? '🎼' : '🎵'} {planLabel}
+            {!isLoggedIn ? '👀' : isCreateur ? '🎼' : '🎵'} {planLabel}
           </span>
         </div>
+
+        {/* CTA visiteur */}
+        {!isLoggedIn && (
+          <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-sm text-indigo-800">
+              <span className="font-semibold">Sol au piano</span> est gratuit — rejoignez votre groupe et gérez vos répétitions en quelques clics.
+            </p>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link href="/connexion" className="text-xs font-medium text-indigo-600 hover:underline">Se connecter</Link>
+              <Link href="/inscription" className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors">
+                Créer un compte →
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick navigation */}
@@ -42,6 +57,7 @@ export default async function AidePage() {
             { href: '#concerts', label: '🎭 Concerts' },
             { href: '#repertoire', label: '🎼 Répertoire' },
             { href: '#setlists', label: '🎶 Setlists' },
+            { href: '#grilles', label: '🎸 Grilles' },
             { href: '#plans', label: '📦 Plans' },
             { href: '#faq', label: '❓ FAQ' },
           ].map((item) => (
@@ -81,8 +97,9 @@ export default async function AidePage() {
                     'Participer aux répétitions',
                     'Consulter le répertoire',
                     'Voir et imprimer les setlists',
+                    'Consulter les grilles d\'accords',
                   ]}
-                  active={!isCreateur}
+                  active={isLoggedIn && !isCreateur}
                 />
                 <PlanBadgeCard
                   icon="🎼"
@@ -94,8 +111,9 @@ export default async function AidePage() {
                     'Inviter des membres',
                     'Planifier répétitions & concerts',
                     'Gérer le répertoire et les setlists',
+                    'Créer et éditer les grilles d\'accords',
                   ]}
-                  active={isCreateur}
+                  active={isLoggedIn && isCreateur}
                 />
               </div>
             </HelpCard>
@@ -157,7 +175,7 @@ export default async function AidePage() {
                   <ul className="space-y-1 text-xs text-gray-700">
                     <li>✓ Planifie les répétitions et concerts</li>
                     <li>✓ Gère le répertoire de morceaux</li>
-                    <li>✓ Crée et édite les setlists</li>
+                    <li>✓ Crée et édite les setlists et grilles</li>
                     <li>✓ Invite et gère les membres</li>
                     <li>✓ Accède aux paramètres du groupe</li>
                   </ul>
@@ -172,7 +190,7 @@ export default async function AidePage() {
                     <li>✓ Déclare sa présence / absence</li>
                     <li>✓ Consulte le répertoire et les ressources</li>
                     <li>✓ Voit et imprime les setlists</li>
-                    <li>✓ Consulte les dates de concerts</li>
+                    <li>✓ Consulte les grilles d&apos;accords</li>
                   </ul>
                 </div>
               </div>
@@ -314,7 +332,7 @@ export default async function AidePage() {
             )}
 
             <HelpCard title="Imprimer une setlist">
-              <p>Le bouton <strong>🖨️ Imprimer</strong> est accessible à tous les membres (chefs comme musiciens). Il ouvre une fenêtre d&apos;impression propre avec :</p>
+              <p>Le bouton <strong>🖨️ Imprimer</strong> est accessible à tous les membres. Il ouvre une fenêtre d&apos;impression propre avec :</p>
               <ul className="mt-2 space-y-1">
                 <li>Le nom du groupe et de la setlist</li>
                 <li>Les concerts associés</li>
@@ -326,6 +344,114 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── GRILLES D'ACCORDS ─── */}
+        <section id="grilles">
+          <SectionTitle icon="🎸" title="Grilles d'accords" color="orange" />
+          <div className="space-y-4">
+
+            {isCreateur && (
+              <HelpCard title="Créer une grille" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Dans votre groupe, cliquez sur <strong>Grilles</strong> puis <strong>+ Nouvelle grille</strong>.</Step>
+                  <Step n={2}>Renseignez le titre, le tempo, la tonalité (optionnels) et les paramètres de la grille :
+                    <ul className="mt-1 ml-4 space-y-0.5">
+                      <li><span className="font-medium">Mesure</span> — 4/4, 3/4, 6/8, 5/4…</li>
+                      <li><span className="font-medium">Mesures par ligne</span> — 2, 3, 4 ou 6</li>
+                      <li><span className="font-medium">Nombre de mesures</span> — de 8 à 80</li>
+                    </ul>
+                  </Step>
+                  <Step n={3}>Optionnellement, liez la grille à un morceau de votre répertoire.</Step>
+                  <Step n={4}>Cliquez sur <strong>Créer et éditer</strong> — vous êtes redirigé directement vers l&apos;éditeur.</Step>
+                </ol>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Éditeur de grille" badge={isCreateur ? { label: "Chef pour l'édition", color: "indigo" } : undefined}>
+              <p>La grille affiche chaque mesure divisée en <strong>zones de temps</strong> selon la signature rythmique :</p>
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                {[
+                  { sig: '4/4', beats: '4 temps' }, { sig: '3/4', beats: '3 temps' },
+                  { sig: '6/8', beats: '2 temps' }, { sig: '5/4', beats: '5 temps' },
+                ].map((s) => (
+                  <div key={s.sig} className="rounded-lg border border-orange-100 bg-orange-50 px-3 py-2 text-center">
+                    <p className="text-sm font-bold text-orange-700">{s.sig}</p>
+                    <p className="text-xs text-gray-500">{s.beats}</p>
+                  </div>
+                ))}
+              </div>
+              {isCreateur ? (
+                <>
+                  <p>Cliquez sur une zone de temps pour l&apos;activer. Une <strong>palette</strong> apparaît en bas de l&apos;écran avec :</p>
+                  <ul className="mt-2 space-y-1">
+                    <li><span className="font-medium">Racines</span> — C, C#, Db, D, D#… toutes les notes</li>
+                    <li><span className="font-medium">Qualités</span> — M, m, 7, M7, m7, dim, aug, sus2, sus4, 9…</li>
+                    <li><span className="font-medium">Symboles</span> — répétitions (||:, :||), simile (%), coda, segno, D.C., Fine…</li>
+                  </ul>
+                  <Tip>
+                    Utilisez <kbd className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px]">Tab</kbd> pour passer au temps suivant,{' '}
+                    <kbd className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px]">Maj+Tab</kbd> pour revenir en arrière,{' '}
+                    <kbd className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px]">Échap</kbd> ou{' '}
+                    <kbd className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px]">Entrée</kbd> pour fermer la palette.
+                  </Tip>
+                  <Note>La grille se sauvegarde <strong>automatiquement</strong> 800 ms après chaque modification. L&apos;indicateur &quot;✓ Sauvegardé&quot; confirme la mise à jour.</Note>
+                </>
+              ) : (
+                <p className="mt-2 text-gray-600">En tant que membre, vous pouvez consulter toutes les grilles créées par le chef.</p>
+              )}
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Symboles musicaux disponibles">
+                <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    { sym: '||:', desc: 'Début de répétition' },
+                    { sym: ':||', desc: 'Fin de répétition' },
+                    { sym: ':|:', desc: 'Double répétition' },
+                    { sym: '%', desc: 'Simile (répéter la mesure)' },
+                    { sym: '/', desc: 'Temps vide / silence' },
+                    { sym: '-', desc: 'Tenir / prolonger' },
+                    { sym: '𝄌', desc: 'Coda' },
+                    { sym: '𝄋', desc: 'Segno' },
+                    { sym: 'D.C.', desc: 'Da Capo (retour au début)' },
+                    { sym: 'D.S.', desc: 'Dal Segno' },
+                    { sym: 'Fine', desc: 'Fin' },
+                    { sym: '⌢', desc: 'Fermate (point d\'orgue)' },
+                  ].map((s) => (
+                    <div key={s.sym} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                      <span className="text-base font-black text-indigo-700 w-8 text-center flex-shrink-0">{s.sym}</span>
+                      <span className="text-xs text-gray-600">{s.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Section SONS & impression">
+              <p>En bas de chaque grille, un champ <strong>SONS</strong> permet de noter les instruments, arrangements ou indications sonores liés au morceau.</p>
+              <p className="mt-2">Le bouton <strong>🖨️ Imprimer</strong> génère une feuille propre reprenant le format standard :</p>
+              <ul className="mt-1 space-y-1">
+                <li>En-tête : <span className="font-medium">Tempo</span> (gauche) · <span className="font-medium">Titre + Tonalité</span> (centre) · <span className="font-medium">Mesure</span> (droite)</li>
+                <li>Grille numérotée avec <strong>les zones de temps</strong> par mesure</li>
+                <li>Pied de page : ligne <span className="font-medium">SONS</span></li>
+              </ul>
+              <Tip>La fenêtre d&apos;impression est optimisée pour A4 et fonctionne aussi depuis un mobile.</Tip>
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Paramètres d'une grille" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <p>Le bouton <strong>Paramètres</strong> permet de modifier à tout moment :</p>
+                <ul className="mt-2 space-y-1">
+                  <li>Le titre, tempo, tonalité</li>
+                  <li>La signature rythmique — les zones de temps de chaque mesure sont automatiquement redimensionnées</li>
+                  <li>Le nombre de mesures par ligne et le total</li>
+                  <li>Le lien avec un morceau du répertoire</li>
+                </ul>
+                <Note>Si vous changez la signature rythmique, les accords déjà saisies sont conservés sur les premiers temps.</Note>
+              </HelpCard>
+            )}
+          </div>
+        </section>
+
         {/* ─── PLANS ─── */}
         <section id="plans">
           <SectionTitle icon="📦" title="Plans et stockage" color="purple" />
@@ -334,35 +460,12 @@ export default async function AidePage() {
             <HelpCard title="Plans de groupe">
               <p>Chaque groupe dispose d&apos;un plan qui détermine son espace de stockage. Le stockage est <strong>partagé</strong> entre tous les membres pour les ressources (partitions, fichiers audio…).</p>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <PlanDetailCard
-                  name="Gratuit"
-                  icon="🆓"
-                  storage="1 Go"
-                  price="Gratuit"
-                  groups="1 groupe"
-                  color="gray"
-                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences']}
-                />
-                <PlanDetailCard
-                  name="Pro"
-                  icon="⭐"
-                  storage="5 Go"
-                  price="5,99 €/mois"
-                  groups="5 groupes"
-                  color="indigo"
-                  features={['Tout du plan Gratuit', 'Support prioritaire', 'Bientôt disponible']}
-                  comingSoon
-                />
-                <PlanDetailCard
-                  name="Premium"
-                  icon="👑"
-                  storage="10 Go"
-                  price="9,90 €/mois"
-                  groups="5 groupes"
-                  color="purple"
-                  features={['Tout du plan Pro', 'Statistiques avancées', 'Bientôt disponible']}
-                  comingSoon
-                />
+                <PlanDetailCard name="Gratuit" icon="🆓" storage="1 Go" price="Gratuit" groups="1 groupe" color="gray"
+                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords']} />
+                <PlanDetailCard name="Pro" icon="⭐" storage="5 Go" price="5,99 €/mois" groups="5 groupes" color="indigo"
+                  features={['Tout du plan Gratuit', 'Support prioritaire', 'Bientôt disponible']} comingSoon />
+                <PlanDetailCard name="Premium" icon="👑" storage="10 Go" price="9,90 €/mois" groups="5 groupes" color="purple"
+                  features={['Tout du plan Pro', 'Statistiques avancées', 'Bientôt disponible']} comingSoon />
               </div>
             </HelpCard>
 
@@ -398,6 +501,9 @@ export default async function AidePage() {
                 ? 'Depuis la page du groupe, section Membres, cliquez sur les … à côté du membre et sélectionnez "Promouvoir chef".'
                 : 'Seul le chef du groupe peut modifier les rôles des membres.'}
             </FaqItem>
+            <FaqItem question="Une grille d'accords peut-elle être liée à un morceau ?">
+              Oui ! Lors de la création ou depuis les paramètres d&apos;une grille, vous pouvez l&apos;associer à un morceau de votre répertoire. Son titre apparaîtra sur la carte de la grille.
+            </FaqItem>
             <FaqItem question="Mes ressources sont-elles visibles par tous les membres ?">
               Oui, toutes les ressources attachées à un morceau sont visibles par l&apos;ensemble des membres du groupe. Seul le chef peut en ajouter ou supprimer.
             </FaqItem>
@@ -406,9 +512,6 @@ export default async function AidePage() {
             </FaqItem>
             <FaqItem question="Les répétitions passées sont-elles conservées ?">
               Oui, toutes les répétitions passées restent accessibles. Seules les répétitions futures sont mises en avant sur le tableau de bord et la page du groupe.
-            </FaqItem>
-            <FaqItem question="Comment imprimer une setlist sans ordinateur ?">
-              La fenêtre d&apos;impression est optimisée pour mobile et tablette. Utilisez la fonction impression de votre navigateur mobile, ou partagez l&apos;URL de la setlist avec un autre appareil.
             </FaqItem>
             <FaqItem question="J'ai oublié mon mot de passe, que faire ?">
               Sur la page de connexion, cliquez sur <strong>&quot;Mot de passe oublié&quot;</strong>. Un lien de réinitialisation vous sera envoyé par e-mail.
@@ -428,6 +531,23 @@ export default async function AidePage() {
           </p>
         </div>
 
+        {/* CTA visiteur en bas */}
+        {!isLoggedIn && (
+          <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center">
+            <p className="text-2xl mb-2">🚀</p>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Prêt à gérer vos répétitions ?</h3>
+            <p className="text-sm text-gray-600 mb-4">Sol au piano est gratuit. Créez votre compte en quelques secondes.</p>
+            <div className="flex items-center justify-center gap-3">
+              <Link href="/connexion" className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white transition-colors">
+                Se connecter
+              </Link>
+              <Link href="/inscription" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
+                Créer un compte gratuit →
+              </Link>
+            </div>
+          </div>
+        )}
+
       </div>
 
       <BackToTop />
@@ -443,6 +563,7 @@ function SectionTitle({ icon, title, color }: { icon: string; title: string; col
     indigo: 'border-indigo-200 bg-indigo-50 text-indigo-700',
     purple: 'border-purple-200 bg-purple-50 text-purple-700',
     green: 'border-green-200 bg-green-50 text-green-700',
+    orange: 'border-orange-200 bg-orange-50 text-orange-700',
     gray: 'border-gray-200 bg-gray-100 text-gray-700',
   }
   return (
@@ -557,16 +678,8 @@ function PlanDetailCard({ name, icon, storage, price, groups, color, features, c
   name: string; icon: string; storage: string; price: string; groups: string
   color: string; features: string[]; comingSoon?: boolean
 }) {
-  const colors: Record<string, string> = {
-    gray: 'border-gray-200',
-    indigo: 'border-indigo-200',
-    purple: 'border-purple-200',
-  }
-  const textColors: Record<string, string> = {
-    gray: 'text-gray-700',
-    indigo: 'text-indigo-700',
-    purple: 'text-purple-700',
-  }
+  const colors: Record<string, string> = { gray: 'border-gray-200', indigo: 'border-indigo-200', purple: 'border-purple-200' }
+  const textColors: Record<string, string> = { gray: 'text-gray-700', indigo: 'text-indigo-700', purple: 'text-purple-700' }
   return (
     <div className={`rounded-xl border-2 ${colors[color]} bg-white p-4`}>
       <div className="flex items-center gap-1.5 mb-1">
