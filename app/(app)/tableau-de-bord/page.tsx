@@ -158,7 +158,7 @@ export default async function TableauDeBordPage() {
                   <Link
                     key={concert.id}
                     href={`/groupes/${concert.group.id}/concerts`}
-                    className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-indigo-300 hover:shadow-sm transition-all"
+                    className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-indigo-300 hover:shadow-sm transition-all"
                   >
                     <ConcertDateBox date={concert.date} />
                     <div className="min-w-0 flex-1">
@@ -166,9 +166,11 @@ export default async function TableauDeBordPage() {
                       <p className="text-xs text-gray-500 mt-0.5">{concert.group.name}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{concert.location}</p>
                     </div>
-                    <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
+                      <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
                   </Link>
                 ))}
               </div>
@@ -195,7 +197,7 @@ export default async function TableauDeBordPage() {
                     <Link
                       key={rep.id}
                       href={`/groupes/${rep.group.id}/repetitions/${rep.id}`}
-                      className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-indigo-300 hover:shadow-sm transition-all"
+                      className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-indigo-300 hover:shadow-sm transition-all"
                     >
                       <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex flex-col items-center justify-center text-blue-600">
                         <span className="text-xs font-medium leading-none capitalize">{format(rep.date, 'MMM', { locale: fr })}</span>
@@ -211,9 +213,11 @@ export default async function TableauDeBordPage() {
                           </p>
                         )}
                       </div>
-                      <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
+                        <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </span>
                     </Link>
                   )
                 })}
