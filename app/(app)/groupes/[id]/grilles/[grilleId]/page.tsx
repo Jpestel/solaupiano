@@ -15,8 +15,21 @@ interface ChartData {
   sons?: string | null; song?: { id: number; title: string } | null
 }
 
+/**
+ * Structure d'une mesure :
+ *   l = symbole de début de mesure (||:, 𝄋…)
+ *   b = tableau de temps (un accord/contenu par temps)
+ *   r = symbole de fin de mesure (:||, 𝄌, Fine…)
+ */
+type BarData = { l: string; b: string[]; r: string }
+
+/** Cible active dans la palette */
+type ActiveTarget =
+  | { bar: number; type: 'beat'; beat: number }
+  | { bar: number; type: 'left' }
+  | { bar: number; type: 'right' }
+
 /* ─── Helpers ─── */
-/** Nombre de temps par mesure selon la signature */
 function beatsPerBar(timeSig: string): number {
   const map: Record<string, number> = {
     '4/4': 4, '3/4': 3, '6/8': 2, '2/4': 2, '5/4': 5, '12/8': 4, '2/2': 2,
@@ -24,29 +37,39 @@ function beatsPerBar(timeSig: string): number {
   return map[timeSig] ?? 4
 }
 
-/**
- * Normalise les données de cellules :
- * - Ancien format (string[]) → string[][] en mettant la valeur sur le 1er temps
- * - Nouveau format (string[][]) → ajuste la longueur des sous-tableaux
- */
-function normalizeCells(raw: unknown, totalBars: number, bpb: number): string[][] {
-  const result: string[][] = []
+/** Convertit n'importe quel format de données (string[], string[][], BarData[]) → BarData[] */
+function normalizeCells(raw: unknown, totalBars: number, bpb: number): BarData[] {
   const src = Array.isArray(raw) ? raw : []
+  const result: BarData[] = []
 
   for (let i = 0; i < totalBars; i++) {
     const item = src[i]
-    if (Array.isArray(item)) {
-      // Nouveau format : ajuste la taille au bon nombre de temps
-      const bar = item.map((v) => (typeof v === 'string' ? v : ''))
-      if (bar.length < bpb) result.push([...bar, ...Array(bpb - bar.length).fill('')])
-      else result.push(bar.slice(0, bpb))
+
+    if (item && typeof item === 'object' && !Array.isArray(item) && 'b' in item) {
+      // Format BarData { l, b, r }
+      const bar = item as any
+      const beats = (Array.isArray(bar.b) ? bar.b : []).map((v: any) => typeof v === 'string' ? v : '')
+      const paddedBeats = beats.length < bpb
+        ? [...beats, ...Array(bpb - beats.length).fill('')]
+        : beats.slice(0, bpb)
+      result.push({ l: bar.l || '', b: paddedBeats, r: bar.r || '' })
+
+    } else if (Array.isArray(item)) {
+      // Ancien format string[]
+      const beats = item.map((v: any) => typeof v === 'string' ? v : '')
+      const paddedBeats = beats.length < bpb
+        ? [...beats, ...Array(bpb - beats.length).fill('')]
+        : beats.slice(0, bpb)
+      result.push({ l: '', b: paddedBeats, r: '' })
+
     } else if (typeof item === 'string') {
-      // Ancien format : place la valeur sur le 1er temps
-      const bar = Array(bpb).fill('')
-      bar[0] = item
-      result.push(bar)
+      // Très ancien format (string par mesure)
+      const beats = Array(bpb).fill('')
+      beats[0] = item
+      result.push({ l: '', b: beats, r: '' })
+
     } else {
-      result.push(Array(bpb).fill(''))
+      result.push({ l: '', b: Array(bpb).fill(''), r: '' })
     }
   }
   return result
@@ -80,15 +103,19 @@ const QUALITIES = [
   { label: '7b9', val: '7b9', title: 'Dom 7b9' },
   { label: '7#9', val: '7#9', title: 'Dom 7#9' },
 ]
-const MUSICAL_SYMBOLS = [
-  { label: '||:', val: '||:', title: 'Début répétition' },
-  { label: ':||', val: ':||', title: 'Fin répétition' },
-  { label: ':|:', val: ':|:', title: 'Double répétition' },
+const BEAT_SYMBOLS = [
   { label: '%', val: '%', title: 'Simile (répéter la mesure)' },
   { label: '/', val: '/', title: 'Temps vide' },
   { label: '-', val: '-', title: 'Tenir / prolonger' },
-  { label: '𝄌', val: '𝄌', title: 'Coda' },
+]
+const LEFT_MARKERS = [
+  { label: '||:', val: '||:', title: 'Début de répétition' },
   { label: '𝄋', val: '𝄋', title: 'Segno' },
+]
+const RIGHT_MARKERS = [
+  { label: ':||', val: ':||', title: 'Fin de répétition' },
+  { label: ':|:', val: ':|:', title: 'Double répétition' },
+  { label: '𝄌', val: '𝄌', title: 'Coda' },
   { label: 'D.C.', val: 'D.C.', title: 'Da Capo' },
   { label: 'D.S.', val: 'D.S.', title: 'Dal Segno' },
   { label: 'Fine', val: 'Fine', title: 'Fine (fin)' },
@@ -99,7 +126,6 @@ const MUSICAL_SYMBOLS = [
 const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '5/4', '12/8', '2/2']
 const BARS_PER_ROW_OPTIONS = [2, 3, 4, 6]
 const TOTAL_BARS_OPTIONS = [8, 16, 24, 32, 48, 64, 80]
-const SYMBOL_TOKENS = new Set(['||:', ':||', ':|:', '%', '/', '-', '𝄌', '𝄋', 'D.C.', 'D.S.', 'Fine', '⌢', '(x2)'])
 
 /* ─── Beat content renderer ─── */
 function BeatContent({ content }: { content: string }) {
@@ -107,18 +133,23 @@ function BeatContent({ content }: { content: string }) {
   if (!tokens.length) return <span className="text-gray-200 text-[10px] select-none">·</span>
   return (
     <div className="flex flex-col items-center justify-center gap-0.5 px-0.5 w-full">
-      {tokens.map((token, i) => {
-        const isRepeat = token === '||:' || token === ':||' || token === ':|:'
-        const isSym = SYMBOL_TOKENS.has(token)
-        return (
-          <span key={i} className={
-            isRepeat ? 'text-indigo-700 font-black text-base leading-none' :
-            isSym    ? 'text-orange-600 font-semibold text-[9px] italic leading-none' :
-                       'text-gray-900 font-bold text-xs leading-none'
-          }>{token}</span>
-        )
-      })}
+      {tokens.map((token, i) => (
+        <span key={i} className="text-gray-900 font-bold text-xs leading-none">{token}</span>
+      ))}
     </div>
+  )
+}
+
+/* ─── Marker renderer (barre de mesure gauche ou droite) ─── */
+function MarkerContent({ value, side }: { value: string; side: 'left' | 'right' }) {
+  if (!value) return null
+  const isRepeat = value === '||:' || value === ':||' || value === ':|:'
+  return (
+    <span className={`text-indigo-700 font-black leading-none select-none ${
+      isRepeat ? 'text-base' : 'text-[9px] font-semibold italic'
+    } ${side === 'right' ? 'text-right' : 'text-left'}`}>
+      {value}
+    </span>
   )
 }
 
@@ -129,16 +160,15 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const grilleId = params.grilleId
 
   const [chart, setChart] = useState<ChartData | null>(null)
-  const [cells, setCells] = useState<string[][]>([])
+  const [cells, setCells] = useState<BarData[]>([])
   const [sons, setSons] = useState('')
   const [groupRole, setGroupRole] = useState('MEMBRE')
   const [groupName, setGroupName] = useState('')
   const [groupSongs, setGroupSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Editing state: active bar + beat
-  const [activeBar, setActiveBar] = useState<number | null>(null)
-  const [activeBeat, setActiveBeat] = useState<number | null>(null)
+  // Active target
+  const [active, setActive] = useState<ActiveTarget | null>(null)
   const [inputVal, setInputVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -146,7 +176,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pendingCellsRef = useRef<string[][]>([])
+  const pendingCellsRef = useRef<BarData[]>([])
 
   // Settings modal
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -183,8 +213,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
   useEffect(() => { if (session) fetchData() }, [session, fetchData])
 
-  /* Auto-save cells */
-  const scheduleSave = (newCells: string[][]) => {
+  /* Auto-save */
+  const scheduleSave = (newCells: BarData[]) => {
     pendingCellsRef.current = newCells
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
@@ -215,67 +245,77 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
   const isChef = groupRole === 'CHEF'
 
-  /* Open a specific beat */
-  const openBeat = (barIdx: number, beatIdx: number) => {
-    setActiveBar(barIdx)
-    setActiveBeat(beatIdx)
-    setInputVal(cells[barIdx]?.[beatIdx] || '')
+  /* Ouvrir une cible dans la palette */
+  const openTarget = (target: ActiveTarget) => {
+    setActive(target)
+    if (target.type === 'beat') {
+      setInputVal(cells[target.bar]?.b[target.beat] || '')
+    } else if (target.type === 'left') {
+      setInputVal(cells[target.bar]?.l || '')
+    } else {
+      setInputVal(cells[target.bar]?.r || '')
+    }
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
-  const closeCell = () => { setActiveBar(null); setActiveBeat(null) }
+  const closeCell = () => setActive(null)
 
-  /* Update the active beat value */
+  /* Mettre à jour la valeur active */
   const applyValue = (val: string) => {
-    if (activeBar === null || activeBeat === null) return
+    if (!active) return
     setInputVal(val)
-    const newCells = cells.map((bar, i) =>
-      i === activeBar ? bar.map((beat, j) => j === activeBeat ? val : beat) : bar
-    )
+    const newCells = cells.map((bar, i) => {
+      if (i !== active.bar) return bar
+      if (active.type === 'left') return { ...bar, l: val }
+      if (active.type === 'right') return { ...bar, r: val }
+      return { ...bar, b: bar.b.map((beat, j) => j === (active as any).beat ? val : beat) }
+    })
     setCells(newCells)
     scheduleSave(newCells)
   }
 
-  /* Palette: append root note (with space separator) */
+  /* Palette : ajouter une racine */
   const appendRoot = (root: string) => {
     const cur = inputVal
     applyValue(cur && !cur.endsWith(' ') ? cur + ' ' + root : cur + root)
   }
 
-  /* Palette: append quality directly (no space) */
+  /* Palette : ajouter une qualité (sans espace) */
   const appendQuality = (quality: string) => {
     if (!quality) return
     applyValue(inputVal + quality)
   }
 
-  /* Palette: append symbol (with space separator) */
-  const appendSymbol = (sym: string) => {
+  /* Palette : ajouter un symbole de temps */
+  const appendBeatSym = (sym: string) => {
     const cur = inputVal
     applyValue(cur && !cur.endsWith(' ') ? cur + ' ' + sym : cur + sym)
   }
 
-  /* Backspace last token */
+  /* Backspace dernier token */
   const backspaceLast = () => {
     const trimmed = inputVal.trimEnd()
     const lastSpace = trimmed.lastIndexOf(' ')
     applyValue(lastSpace >= 0 ? trimmed.slice(0, lastSpace) : '')
   }
 
-  /* Keyboard navigation */
+  /* Navigation clavier */
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (activeBar === null || activeBeat === null || !chart) return
+    if (!active || !chart) return
     const bpb = beatsPerBar(chart.timeSignature)
 
     if (e.key === 'Tab') {
       e.preventDefault()
-      if (e.shiftKey) {
-        // Précédent
-        if (activeBeat > 0) openBeat(activeBar, activeBeat - 1)
-        else if (activeBar > 0) openBeat(activeBar - 1, bpb - 1)
-      } else {
-        // Suivant
-        if (activeBeat < bpb - 1) openBeat(activeBar, activeBeat + 1)
-        else if (activeBar < cells.length - 1) openBeat(activeBar + 1, 0)
+      if (active.type === 'beat') {
+        if (e.shiftKey) {
+          // Précédent
+          if (active.beat > 0) openTarget({ bar: active.bar, type: 'beat', beat: active.beat - 1 })
+          else if (active.bar > 0) openTarget({ bar: active.bar - 1, type: 'beat', beat: bpb - 1 })
+        } else {
+          // Suivant
+          if (active.beat < bpb - 1) openTarget({ bar: active.bar, type: 'beat', beat: active.beat + 1 })
+          else if (active.bar < cells.length - 1) openTarget({ bar: active.bar + 1, type: 'beat', beat: 0 })
+        }
       }
     } else if (e.key === 'Escape' || e.key === 'Enter') {
       e.preventDefault()
@@ -283,7 +323,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     }
   }
 
-  /* Settings save */
+  /* Sauvegarde paramètres */
   const handleSettingsSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSettingsSaving(true)
@@ -291,15 +331,15 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     const newBpb = beatsPerBar(settingsForm.timeSignature)
     const oldBpb = chart ? beatsPerBar(chart.timeSignature) : newBpb
 
-    // Adapter les temps de chaque mesure si la signature change
-    let newCells: string[][] = cells.map((bar) => {
-      if (newBpb > oldBpb) return [...bar, ...Array(newBpb - bar.length).fill('')]
-      return bar.slice(0, newBpb)
+    let newCells: BarData[] = cells.map((bar) => {
+      let newBeats = bar.b
+      if (newBpb > oldBpb) newBeats = [...newBeats, ...Array(newBpb - newBeats.length).fill('')]
+      else newBeats = newBeats.slice(0, newBpb)
+      return { ...bar, b: newBeats }
     })
 
-    // Adapter le nombre total de mesures
     if (newTotal > newCells.length) {
-      newCells = [...newCells, ...Array(newTotal - newCells.length).fill(null).map(() => Array(newBpb).fill(''))]
+      newCells = [...newCells, ...Array(newTotal - newCells.length).fill(null).map(() => ({ l: '', b: Array(newBpb).fill(''), r: '' }))]
     } else if (newTotal < newCells.length) {
       newCells = newCells.slice(0, newTotal)
     }
@@ -338,26 +378,30 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     setSettingsOpen(true)
   }
 
-  /* Print */
+  /* Impression */
   const handlePrint = () => {
     if (!chart) return
     const bpr = chart.barsPerRow
     const bpb = beatsPerBar(chart.timeSignature)
-    const totalPrint = cells.length
     let rowsHtml = ''
-    for (let i = 0; i < totalPrint; i += bpr) {
+    for (let i = 0; i < cells.length; i += bpr) {
       const rowBg = Math.floor(i / bpr) % 2 === 0 ? '#ffffff' : '#f5f5f5'
       let tds = ''
       for (let j = 0; j < bpr; j++) {
         const barIdx = i + j
-        const barBeats = barIdx < cells.length ? cells[barIdx] : Array(bpb).fill('')
+        const bar = barIdx < cells.length ? cells[barIdx] : { l: '', b: Array(bpb).fill(''), r: '' }
         const barNum = barIdx + 1
-        const beatsHtml = barBeats.map((beat, bi) =>
+        const beatsHtml = bar.b.map((beat, bi) =>
           `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #ddd;' : ''}font-size:12px;font-weight:700;color:#111;min-height:18px;">${beat || ''}</div>`
         ).join('')
-        tds += `<td style="border:1px solid #bbb;padding:4px 0 0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${rowBg}">
-          <div style="font-size:9px;color:#aaa;line-height:1;padding:0 5px 3px;">${barNum}</div>
-          <div style="display:flex;border-top:1px solid #e5e5e5;">${beatsHtml}</div>
+        tds += `<td style="border:1px solid #bbb;padding:0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${rowBg}">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;padding:2px 5px 1px;border-bottom:1px solid #e5e5e5;">
+            <span style="font-size:9px;color:#aaa;">${barNum}</span>
+            ${bar.l ? `<span style="font-size:13px;font-weight:900;color:#4338ca;">${bar.l}</span>` : ''}
+            <span style="flex:1;"></span>
+            ${bar.r ? `<span style="font-size:13px;font-weight:900;color:#4338ca;">${bar.r}</span>` : ''}
+          </div>
+          <div style="display:flex;">${beatsHtml}</div>
         </td>`
       }
       rowsHtml += `<tr>${tds}</tr>`
@@ -370,7 +414,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Arial,Helvetica,sans-serif;padding:20px;background:white}
         table{width:100%;border-collapse:collapse}
-        .actions{text-align:center;margin-bottom:16px;display:flex;gap:8px;justify-content:center}
+        .actions{margin-bottom:16px;display:flex;gap:8px;justify-content:center}
         .actions button{padding:9px 22px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700}
         .btn-print{background:#ea580c;color:white}.btn-close{background:#f3f4f6;color:#374151}
         @media print{.actions{display:none!important}body{padding:8px}}
@@ -417,7 +461,6 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const bpr = chart.barsPerRow
   const bpb = beatsPerBar(chart.timeSignature)
 
-  // Build rows
   const rows: number[][] = []
   for (let i = 0; i < cells.length; i += bpr) {
     const row: number[] = []
@@ -460,8 +503,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           <span className={`text-xs transition-opacity ${saving ? 'text-orange-500 opacity-100' : savedAt ? 'text-green-600 opacity-100' : 'opacity-0'}`}>
             {saving ? '💾 Sauvegarde...' : '✓ Sauvegardé'}
           </span>
-          <button
-            onClick={handlePrint}
+          <button onClick={handlePrint}
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
             🖨️ Imprimer
           </button>
@@ -487,28 +529,67 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                   const isValidBar = barIdx < cells.length
                   if (!isValidBar) return (
                     <td key={barIdx} className="border border-gray-200 bg-gray-50/30"
-                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '68px' }} />
+                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '72px' }} />
                   )
-                  const isActiveBar = activeBar === barIdx
+                  const bar = cells[barIdx]
+                  const isActiveBar = active?.bar === barIdx
+
                   return (
                     <td
                       key={barIdx}
-                      className={`border border-gray-200 relative transition-colors ${isActiveBar ? 'border-orange-300' : ''}`}
-                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '68px', verticalAlign: 'top', padding: 0 }}
+                      className={`border border-gray-200 relative transition-colors ${isActiveBar ? 'border-orange-200' : ''}`}
+                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '72px', padding: 0, verticalAlign: 'top' }}
                     >
-                      {/* Numéro de mesure */}
-                      <span className="absolute top-0.5 left-1 text-[9px] text-gray-300 leading-none select-none font-medium z-10">
-                        {barIdx + 1}
-                      </span>
+                      {/* ── Bandelette supérieure : numéro + marqueurs ── */}
+                      <div className="flex items-center border-b border-gray-100 px-1.5 gap-1" style={{ height: '18px' }}>
+                        {/* Numéro de mesure */}
+                        <span className="text-[9px] text-gray-300 font-medium leading-none flex-shrink-0 select-none">
+                          {barIdx + 1}
+                        </span>
 
-                      {/* Sous-zones par temps */}
-                      <div className="flex h-full pt-3.5">
+                        {/* Marqueur gauche */}
+                        <div
+                          onClick={() => isChef && openTarget({ bar: barIdx, type: 'left' })}
+                          className={`flex items-center flex-shrink-0 rounded px-0.5 transition-colors leading-none
+                            ${isChef ? 'cursor-pointer hover:bg-indigo-50' : ''}
+                            ${isActiveBar && active?.type === 'left' ? 'bg-orange-100 ring-1 ring-orange-300' : ''}
+                          `}
+                          style={{ minWidth: '20px', height: '14px' }}
+                          title={isChef ? 'Cliquer pour ajouter un symbole de début' : undefined}
+                        >
+                          {bar.l
+                            ? <MarkerContent value={bar.l} side="left" />
+                            : isChef && <span className="text-[8px] text-gray-200 select-none">+</span>
+                          }
+                        </div>
+
+                        <div className="flex-1" />
+
+                        {/* Marqueur droit */}
+                        <div
+                          onClick={() => isChef && openTarget({ bar: barIdx, type: 'right' })}
+                          className={`flex items-center justify-end flex-shrink-0 rounded px-0.5 transition-colors leading-none
+                            ${isChef ? 'cursor-pointer hover:bg-indigo-50' : ''}
+                            ${isActiveBar && active?.type === 'right' ? 'bg-orange-100 ring-1 ring-orange-300' : ''}
+                          `}
+                          style={{ minWidth: '20px', height: '14px' }}
+                          title={isChef ? 'Cliquer pour ajouter un symbole de fin' : undefined}
+                        >
+                          {bar.r
+                            ? <MarkerContent value={bar.r} side="right" />
+                            : isChef && <span className="text-[8px] text-gray-200 select-none">+</span>
+                          }
+                        </div>
+                      </div>
+
+                      {/* ── Zones de temps ── */}
+                      <div className="flex" style={{ height: '54px' }}>
                         {Array.from({ length: bpb }).map((_, beatIdx) => {
-                          const isActiveBeat = isActiveBar && activeBeat === beatIdx
+                          const isActiveBeat = isActiveBar && active?.type === 'beat' && (active as any).beat === beatIdx
                           return (
                             <div
                               key={beatIdx}
-                              onClick={() => isChef && openBeat(barIdx, beatIdx)}
+                              onClick={() => isChef && openTarget({ bar: barIdx, type: 'beat', beat: beatIdx })}
                               className={`
                                 flex-1 flex items-center justify-center relative min-w-0
                                 ${beatIdx < bpb - 1 ? 'border-r border-gray-100' : ''}
@@ -517,7 +598,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                                 transition-colors
                               `}
                             >
-                              <BeatContent content={cells[barIdx]?.[beatIdx] || ''} />
+                              <BeatContent content={bar.b[beatIdx] || ''} />
                             </div>
                           )
                         })}
@@ -544,18 +625,20 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         />
       </div>
 
-      {/* Sticky editing palette */}
-      {isChef && activeBar !== null && activeBeat !== null && (
+      {/* ── Palette sticky ── */}
+      {isChef && active !== null && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-orange-200 shadow-2xl">
           <div className="max-w-6xl mx-auto px-3 py-2">
-            {/* Top bar: indicator + input + controls */}
+
+            {/* Indicateur + champ + contrôles */}
             <div className="flex items-center gap-2 mb-2">
-              {/* Indicateur mesure / temps */}
               <div className="flex-shrink-0 flex items-center gap-1">
                 <span className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center text-xs font-bold text-orange-700">
-                  {activeBar + 1}
+                  {active.bar + 1}
                 </span>
-                <span className="text-[10px] text-gray-400 font-medium">t{activeBeat + 1}</span>
+                <span className="text-[10px] text-gray-400 font-medium">
+                  {active.type === 'left' ? 'début' : active.type === 'right' ? 'fin' : `t${(active as any).beat + 1}`}
+                </span>
               </div>
               <input
                 ref={inputRef}
@@ -563,96 +646,147 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                 value={inputVal}
                 onChange={(e) => applyValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Tapez un accord ou utilisez la palette…"
+                placeholder={
+                  active.type === 'left' ? 'Symbole de début (||:, 𝄋…)' :
+                  active.type === 'right' ? 'Symbole de fin (:||, Fine…)' :
+                  'Accord ou symbole…'
+                }
                 className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300 font-mono"
               />
-              <button onClick={backspaceLast} title="Effacer dernier token"
-                className="flex-shrink-0 w-8 h-8 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors text-sm">
-                ⌫
-              </button>
-              <button onClick={() => applyValue('')} title="Effacer tout"
+              {active.type === 'beat' && (
+                <button onClick={backspaceLast} title="Effacer dernier token"
+                  className="flex-shrink-0 w-8 h-8 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors text-sm">
+                  ⌫
+                </button>
+              )}
+              <button onClick={() => applyValue('')} title="Effacer"
                 className="flex-shrink-0 w-8 h-8 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors text-xs font-bold">
                 ✕
               </button>
-              <button onClick={closeCell} title="Fermer (Échap)"
+              <button onClick={closeCell} title="Fermer"
                 className="flex-shrink-0 w-8 h-8 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors text-xs">
                 ↓
               </button>
             </div>
 
-            {/* Scrollable palette rows */}
-            <div className="overflow-x-auto">
-              <div className="min-w-max space-y-1.5 pb-1">
-                {/* Root notes */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-semibold text-gray-400 w-14 flex-shrink-0">Racines</span>
-                  <div className="flex gap-1">
-                    {ROOT_NOTES.map((r) => (
-                      <button key={r} onClick={() => appendRoot(r)}
-                        className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-800 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors min-w-[30px]">
-                        {r}
-                      </button>
-                    ))}
+            {/* ── Palette pour temps (accords) ── */}
+            {active.type === 'beat' && (
+              <div className="overflow-x-auto">
+                <div className="min-w-max space-y-1.5 pb-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-semibold text-gray-400 w-14 flex-shrink-0">Racines</span>
+                    <div className="flex gap-1">
+                      {ROOT_NOTES.map((r) => (
+                        <button key={r} onClick={() => appendRoot(r)}
+                          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-800 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors min-w-[30px]">
+                          {r}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-
-                {/* Qualities */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-semibold text-gray-400 w-14 flex-shrink-0">Qualités</span>
-                  <div className="flex flex-wrap gap-1">
-                    {QUALITIES.map((q) => (
-                      <button key={q.label} onClick={() => appendQuality(q.val)} title={q.title}
-                        className={`rounded-md border px-2 py-1 text-xs font-semibold transition-colors min-w-[30px] ${
-                          q.val === '' ? 'border-gray-300 bg-gray-100 text-gray-400 hover:bg-gray-200' :
-                          'border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300'
-                        }`}>
-                        {q.label}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-semibold text-gray-400 w-14 flex-shrink-0">Qualités</span>
+                    <div className="flex flex-wrap gap-1">
+                      {QUALITIES.map((q) => (
+                        <button key={q.label} onClick={() => appendQuality(q.val)} title={q.title}
+                          className={`rounded-md border px-2 py-1 text-xs font-semibold transition-colors min-w-[30px] ${
+                            q.val === '' ? 'border-gray-300 bg-gray-100 text-gray-400 hover:bg-gray-200' :
+                            'border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300'
+                          }`}>
+                          {q.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-
-                {/* Musical symbols */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-semibold text-gray-400 w-14 flex-shrink-0">Symboles</span>
-                  <div className="flex flex-wrap gap-1">
-                    {MUSICAL_SYMBOLS.map((s) => (
-                      <button key={s.label} onClick={() => appendSymbol(s.val)} title={s.title}
-                        className="rounded-md border border-orange-100 bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 hover:border-orange-300 transition-colors min-w-[30px]">
-                        {s.label}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-semibold text-gray-400 w-14 flex-shrink-0">Symboles</span>
+                    <div className="flex flex-wrap gap-1">
+                      {BEAT_SYMBOLS.map((s) => (
+                        <button key={s.label} onClick={() => appendBeatSym(s.val)} title={s.title}
+                          className="rounded-md border border-orange-100 bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 hover:border-orange-300 transition-colors min-w-[30px]">
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Nav hint */}
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-[10px] text-gray-400">Tab → temps suivant · Maj+Tab ← précédent · Entrée / Échap pour fermer</p>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => {
-                    if (activeBar === null || activeBeat === null) return
-                    if (activeBeat > 0) openBeat(activeBar, activeBeat - 1)
-                    else if (activeBar > 0) openBeat(activeBar - 1, bpb - 1)
-                  }}
-                  disabled={activeBar === 0 && activeBeat === 0}
-                  className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors">
-                  ← Préc
-                </button>
-                <button
-                  onClick={() => {
-                    if (activeBar === null || activeBeat === null) return
-                    if (activeBeat < bpb - 1) openBeat(activeBar, activeBeat + 1)
-                    else if (activeBar < cells.length - 1) openBeat(activeBar + 1, 0)
-                  }}
-                  disabled={activeBar === cells.length - 1 && activeBeat === bpb - 1}
-                  className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors">
-                  Suiv →
-                </button>
+            {/* ── Palette pour marqueur gauche ── */}
+            {active.type === 'left' && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-semibold text-gray-400">Début de mesure :</span>
+                {LEFT_MARKERS.map((m) => (
+                  <button key={m.val} onClick={() => applyValue(m.val)} title={m.title}
+                    className={`rounded-md border px-3 py-1 text-sm font-black transition-colors
+                      ${inputVal === m.val
+                        ? 'border-indigo-400 bg-indigo-100 text-indigo-700'
+                        : 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300'
+                      }`}>
+                    {m.label}
+                  </button>
+                ))}
+                {inputVal && (
+                  <button onClick={() => applyValue('')}
+                    className="rounded-md border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
+                    ✕ Supprimer
+                  </button>
+                )}
               </div>
-            </div>
+            )}
+
+            {/* ── Palette pour marqueur droit ── */}
+            {active.type === 'right' && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-semibold text-gray-400">Fin de mesure :</span>
+                {RIGHT_MARKERS.map((m) => (
+                  <button key={m.val} onClick={() => applyValue(m.val)} title={m.title}
+                    className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors
+                      ${inputVal === m.val
+                        ? 'border-indigo-400 bg-indigo-100 text-indigo-700 font-black'
+                        : 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300'
+                      }`}>
+                    {m.label}
+                  </button>
+                ))}
+                {inputVal && (
+                  <button onClick={() => applyValue('')}
+                    className="rounded-md border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
+                    ✕ Supprimer
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Navigation (beats seulement) */}
+            {active.type === 'beat' && (
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-[10px] text-gray-400">Tab → temps suivant · Maj+Tab ← précédent · Entrée / Échap pour fermer</p>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => {
+                      if (active.type !== 'beat') return
+                      if (active.beat > 0) openTarget({ bar: active.bar, type: 'beat', beat: active.beat - 1 })
+                      else if (active.bar > 0) openTarget({ bar: active.bar - 1, type: 'beat', beat: bpb - 1 })
+                    }}
+                    disabled={active.bar === 0 && (active as any).beat === 0}
+                    className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors">
+                    ← Préc
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (active.type !== 'beat') return
+                      if (active.beat < bpb - 1) openTarget({ bar: active.bar, type: 'beat', beat: active.beat + 1 })
+                      else if (active.bar < cells.length - 1) openTarget({ bar: active.bar + 1, type: 'beat', beat: 0 })
+                    }}
+                    disabled={active.bar === cells.length - 1 && (active as any).beat === bpb - 1}
+                    className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors">
+                    Suiv →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
