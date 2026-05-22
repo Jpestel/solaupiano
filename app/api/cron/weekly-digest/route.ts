@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   }
 
   const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
   const force = req.nextUrl.searchParams.get('force') === 'true'
 
   // Members who haven't logged in for 7+ days AND haven't opted out
