@@ -143,7 +143,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
       )}
 
       {/* Navigation sections */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-6">
         {([
           {
             href: 'repetitions', label: 'Répétitions', icon: '🎵',
@@ -164,6 +164,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             href: 'setlists',    label: 'Setlists',    icon: '🎶',
             iconBg: 'bg-green-100',  textColor: 'text-green-700',  border: 'border-green-200 hover:border-green-400 hover:bg-green-50/60',
             chefDesc: 'Créer les setlists', memberDesc: 'Voir les setlists',
+          },
+          {
+            href: 'grilles',     label: 'Grilles',     icon: '🎸',
+            iconBg: 'bg-orange-100', textColor: 'text-orange-700', border: 'border-orange-200 hover:border-orange-400 hover:bg-orange-50/60',
+            chefDesc: 'Créer les grilles', memberDesc: 'Voir les grilles',
           },
         ] as const).map((link) => (
           <Link
