@@ -62,6 +62,15 @@ const navItems = [
     ),
   },
   {
+    href: '/outils/metronome',
+    label: 'Métronome',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2l2 7h5l-4 3 2 7-5-3-5 3 2-7-4-3h5z" />
+      </svg>
+    ),
+  },
+  {
     href: '/aide',
     label: 'Aide',
     icon: (
