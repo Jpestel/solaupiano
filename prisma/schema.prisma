@@ -119,6 +119,39 @@ model Group {
   chordCharts  ChordChart[]
   joinRequests JoinRequest[]
   techRider    TechRider?
+  groupPage    GroupPage?
+}
+
+model GroupPage {
+  id           Int     @id @default(autoincrement())
+  groupId      Int     @unique
+  slug         String  @unique
+  published    Boolean @default(false)
+
+  primaryColor String  @default("#4f46e5")
+  accentColor  String  @default("#7c3aed")
+  bgColor      String  @default("#ffffff")
+  textColor    String  @default("#111827")
+
+  bannerTitle    String?
+  bannerSubtitle String?
+  bio            String? @db.LongText
+  memberCards    Json    @default("[]")
+
+  showConcerts Boolean @default(true)
+  showContact  Boolean @default(true)
+  contactTitle String?
+
+  instagram String?
+  facebook  String?
+  youtube   String?
+  spotify   String?
+  website   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
 
 model TechRider {
