@@ -175,6 +175,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const [inputVal, setInputVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Copy / paste
+  const [copiedBar, setCopiedBar] = useState<BarData | null>(null)
+  const [copiedFromIdx, setCopiedFromIdx] = useState<number | null>(null)
+  const [copyFeedback, setCopyFeedback] = useState(false)
+  const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Save state
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -302,10 +308,51 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     applyValue(lastSpace >= 0 ? trimmed.slice(0, lastSpace) : '')
   }
 
+  /* Copier la mesure active */
+  const copyCurrentBar = () => {
+    if (!active) return
+    const bar = cells[active.bar]
+    setCopiedBar({ l: bar.l, b: [...bar.b], r: bar.r })
+    setCopiedFromIdx(active.bar)
+    setCopyFeedback(true)
+    if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current)
+    copyFeedbackTimer.current = setTimeout(() => setCopyFeedback(false), 1500)
+  }
+
+  /* Coller sur la mesure active */
+  const pasteToCurrentBar = () => {
+    if (!active || !copiedBar || !chart) return
+    const bpb = beatsPerBar(chart.timeSignature)
+    let beats = [...copiedBar.b]
+    if (beats.length < bpb) beats = [...beats, ...Array(bpb - beats.length).fill('')]
+    else beats = beats.slice(0, bpb)
+    const newBar: BarData = { l: copiedBar.l, b: beats, r: copiedBar.r }
+    const newCells = cells.map((bar, i) => i === active.bar ? newBar : bar)
+    setCells(newCells)
+    scheduleSave(newCells)
+    // Mettre à jour l'input si on est sur un temps
+    if (active.type === 'beat') setInputVal(beats[(active as any).beat] || '')
+    else if (active.type === 'left') setInputVal(newBar.l)
+    else setInputVal(newBar.r)
+  }
+
   /* Navigation clavier */
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!active || !chart) return
     const bpb = beatsPerBar(chart.timeSignature)
+
+    // Ctrl+C / Cmd+C : copier la mesure active
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+      e.preventDefault()
+      copyCurrentBar()
+      return
+    }
+    // Ctrl+V / Cmd+V : coller sur la mesure active
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+      e.preventDefault()
+      pasteToCurrentBar()
+      return
+    }
 
     if (e.key === 'Tab') {
       e.preventDefault()
@@ -536,11 +583,16 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                   )
                   const bar = cells[barIdx]
                   const isActiveBar = active?.bar === barIdx
+                  const isCopiedBar = copiedFromIdx === barIdx
 
                   return (
                     <td
                       key={barIdx}
-                      className={`border border-gray-200 relative transition-colors ${isActiveBar ? 'border-orange-200' : ''}`}
+                      className={`border relative transition-colors ${
+                        isActiveBar ? 'border-orange-200' :
+                        isCopiedBar ? 'border-blue-300 bg-blue-50/30' :
+                        'border-gray-200'
+                      }`}
                       style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '72px', padding: 0, verticalAlign: 'top' }}
                     >
                       {/* ── Bandelette supérieure : numéro + marqueurs ── */}
@@ -770,11 +822,31 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
               </div>
             )}
 
-            {/* Navigation (beats seulement) */}
-            {active.type === 'beat' && (
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-[10px] text-gray-400">Tab → temps suivant · Maj+Tab ← précédent · Entrée / Échap pour fermer</p>
-                <div className="flex gap-1">
+            {/* ── Copier / Coller ── */}
+            <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-100">
+              <button
+                onClick={copyCurrentBar}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-semibold transition-all ${
+                  copyFeedback
+                    ? 'border-blue-300 bg-blue-100 text-blue-700'
+                    : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700'
+                }`}
+                title="Copier cette mesure (Ctrl+C)">
+                {copyFeedback ? '✓ Copié !' : '📋 Copier la mesure'}
+              </button>
+              {copiedBar && (
+                <button
+                  onClick={pasteToCurrentBar}
+                  className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                  title="Coller ici (Ctrl+V)">
+                  📋 Coller
+                  {copiedFromIdx !== null && copiedFromIdx !== active.bar && (
+                    <span className="text-blue-400 font-normal">mesure {copiedFromIdx + 1}</span>
+                  )}
+                </button>
+              )}
+              {active.type === 'beat' && (
+                <div className="ml-auto flex items-center gap-1">
                   <button
                     onClick={() => {
                       if (active.type !== 'beat') return
@@ -796,7 +868,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                     Suiv →
                   </button>
                 </div>
-              </div>
+              )}
+            </div>
+            {active.type === 'beat' && (
+              <p className="text-[10px] text-gray-400 mt-0.5">Tab → temps suivant · Maj+Tab ← précédent · Ctrl+C copier · Ctrl+V coller</p>
             )}
           </div>
         </div>
