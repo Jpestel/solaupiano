@@ -366,6 +366,20 @@ export default async function AidePage() {
               </HelpCard>
             )}
 
+            {isCreateur && (
+              <HelpCard title="Dupliquer une grille" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <p>La duplication permet de créer une <strong>copie complète</strong> d&apos;une grille (accords, marqueurs, tempo, tonalité) avec un nouveau titre — idéal pour personnaliser une version par musicien.</p>
+                <ol className="space-y-2 mt-3">
+                  <Step n={1}>Depuis la liste des grilles, cliquez sur <strong>Dupliquer</strong> sur la carte de la grille à copier.</Step>
+                  <Step n={2}>Modifiez le titre proposé (pré-rempli avec <em>&quot;Titre — copie&quot;</em>).
+                    <br /><span className="text-gray-500 text-xs">Exemples : &quot;Autumn Leaves — Pianiste&quot;, &quot;La Vie en Rose — Chanteur&quot;</span>
+                  </Step>
+                  <Step n={3}>Cliquez sur <strong>Dupliquer et ouvrir</strong> — vous êtes redirigé vers l&apos;éditeur de la nouvelle grille.</Step>
+                </ol>
+                <Tip>Chaque copie est indépendante : vous pouvez ajouter des annotations, modifier des accords ou changer le titre sans affecter la grille originale.</Tip>
+              </HelpCard>
+            )}
+
             <HelpCard title="Éditeur de grille" badge={isCreateur ? { label: "Chef pour l'édition", color: "indigo" } : undefined}>
               <p>La grille affiche chaque mesure divisée en <strong>zones de temps</strong> selon la signature rythmique :</p>
               <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
@@ -402,27 +416,32 @@ export default async function AidePage() {
 
             {isCreateur && (
               <HelpCard title="Symboles musicaux disponibles">
+                <p className="mb-2">Les barres de reprise et indications de navigation se placent dans la <strong>bandelette supérieure</strong> de chaque mesure (séparée des accords) :</p>
                 <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
-                    { sym: '||:', desc: 'Début de répétition' },
-                    { sym: ':||', desc: 'Fin de répétition' },
-                    { sym: ':|:', desc: 'Double répétition' },
-                    { sym: '%', desc: 'Simile (répéter la mesure)' },
-                    { sym: '/', desc: 'Temps vide / silence' },
-                    { sym: '-', desc: 'Tenir / prolonger' },
-                    { sym: '𝄌', desc: 'Coda' },
-                    { sym: '𝄋', desc: 'Segno' },
-                    { sym: 'D.C.', desc: 'Da Capo (retour au début)' },
-                    { sym: 'D.S.', desc: 'Dal Segno' },
-                    { sym: 'Fine', desc: 'Fin' },
-                    { sym: '⌢', desc: 'Fermate (point d\'orgue)' },
+                    { sym: '||:', desc: 'Début de répétition', side: 'Gauche mesure' },
+                    { sym: ':||', desc: 'Fin de répétition', side: 'Droite mesure' },
+                    { sym: ':|:', desc: 'Double répétition', side: 'Droite mesure' },
+                    { sym: '%', desc: 'Simile (répéter la mesure)', side: 'Temps' },
+                    { sym: '/', desc: 'Temps vide / silence', side: 'Temps' },
+                    { sym: '-', desc: 'Tenir / prolonger', side: 'Temps' },
+                    { sym: 'Coda', desc: 'Coda', side: 'Droite mesure' },
+                    { sym: 'Segno', desc: 'Segno (renvoi)', side: 'Gauche mesure' },
+                    { sym: 'D.C.', desc: 'Da Capo (retour au début)', side: 'Droite mesure' },
+                    { sym: 'D.S.', desc: 'Dal Segno', side: 'Droite mesure' },
+                    { sym: 'Fine', desc: 'Fin', side: 'Droite mesure' },
+                    { sym: '⌢', desc: 'Fermate (point d\'orgue)', side: 'Droite mesure' },
                   ].map((s) => (
                     <div key={s.sym} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                      <span className="text-base font-black text-indigo-700 w-8 text-center flex-shrink-0">{s.sym}</span>
-                      <span className="text-xs text-gray-600">{s.desc}</span>
+                      <span className="text-sm font-black text-indigo-700 w-10 text-center flex-shrink-0 font-mono">{s.sym}</span>
+                      <div>
+                        <p className="text-xs text-gray-600">{s.desc}</p>
+                        <p className="text-[10px] text-gray-400">{s.side}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
+                <Tip>Les barres de reprise (<strong>||:</strong>, <strong>:||</strong>) n&apos;occupent pas d&apos;espace dans les cases d&apos;accords — elles sont affichées dans une bandelette dédiée en haut de chaque mesure.</Tip>
               </HelpCard>
             )}
 
@@ -503,6 +522,9 @@ export default async function AidePage() {
             </FaqItem>
             <FaqItem question="Une grille d'accords peut-elle être liée à un morceau ?">
               Oui ! Lors de la création ou depuis les paramètres d&apos;une grille, vous pouvez l&apos;associer à un morceau de votre répertoire. Son titre apparaîtra sur la carte de la grille.
+            </FaqItem>
+            <FaqItem question="Comment créer une grille personnalisée par musicien ?">
+              Utilisez le bouton <strong>Dupliquer</strong> (visible sur chaque carte de la liste des grilles). Vous obtenez une copie complète que vous pouvez renommer et annoter librement — par exemple une version &quot;Pianiste&quot;, une version &quot;Chanteur&quot;, etc. Chaque copie est totalement indépendante.
             </FaqItem>
             <FaqItem question="Mes ressources sont-elles visibles par tous les membres ?">
               Oui, toutes les ressources attachées à un morceau sont visibles par l&apos;ensemble des membres du groupe. Seul le chef peut en ajouter ou supprimer.
