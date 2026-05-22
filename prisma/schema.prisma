@@ -194,12 +194,13 @@ model Concert {
 }
 
 model Setlist {
-  id          Int      @id @default(autoincrement())
-  groupId     Int
-  name        String
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  groupId      Int
+  name         String
+  description  String?  @db.Text
+  showDuration Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   group    Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
   songs    SetlistSong[]
@@ -218,12 +219,13 @@ model SetlistSong {
 }
 
 model Song {
-  id        Int      @id @default(autoincrement())
-  groupId   Int
-  title     String
-  artist    String?
-  notes     String?  @db.Text
-  createdAt DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  groupId         Int
+  title           String
+  artist          String?
+  notes           String?  @db.Text
+  durationSeconds Int?
+  createdAt       DateTime @default(now())
 
   group        Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
   resources    Resource[]

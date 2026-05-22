@@ -27,7 +27,7 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '' })
+  const [form, setForm] = useState({ name: '', description: '', showDuration: false })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -61,7 +61,7 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
     setSaving(false)
     if (!res.ok) { const d = await res.json(); setError(d.error || 'Erreur.'); return }
     setModalOpen(false)
-    setForm({ name: '', description: '' })
+    setForm({ name: '', description: '', showDuration: false })
     fetchData()
   }
 
@@ -190,6 +190,19 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
             <textarea rows={2} value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="form-input resize-none" placeholder="Contexte, style musical, durée prévue..." />
+          </div>
+          <div className="flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+            <input
+              id="showDuration"
+              type="checkbox"
+              checked={form.showDuration}
+              onChange={(e) => setForm({ ...form, showDuration: e.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <label htmlFor="showDuration" className="cursor-pointer">
+              <p className="text-sm font-medium text-gray-800">Calculer la durée totale</p>
+              <p className="text-xs text-gray-500 mt-0.5">Affiche la durée de chaque morceau et le total de la setlist. Les morceaux sans durée seront signalés.</p>
+            </label>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => { setModalOpen(false); setError('') }}>Annuler</Button>

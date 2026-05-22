@@ -15,14 +15,29 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 
-interface Song { id: number; title: string; artist?: string }
+interface Song { id: number; title: string; artist?: string; durationSeconds?: number | null }
 interface SetlistEntry { song: Song; position: number }
 interface Concert { id: number; name: string; date: string }
 interface Setlist {
-  id: number; name: string; description?: string; groupId: number
+  id: number; name: string; description?: string; groupId: number; showDuration: boolean
   songs: SetlistEntry[]; concerts: Concert[]
 }
-interface GroupSong { id: number; title: string; artist?: string }
+interface GroupSong { id: number; title: string; artist?: string; durationSeconds?: number | null }
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function formatDurationLong(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const s = totalSeconds % 60
+  if (h > 0) return `${h}h ${m.toString().padStart(2, '0')}min`
+  if (m > 0) return `${m}min ${s.toString().padStart(2, '0')}s`
+  return `${s}s`
+}
 
 function DragHandle() {
   return (
@@ -33,9 +48,9 @@ function DragHandle() {
   )
 }
 
-function SortableSongRow({ entry, index, isChef, removingId, onRemove }: {
+function SortableSongRow({ entry, index, isChef, removingId, onRemove, showDuration }: {
   entry: SetlistEntry; index: number; isChef: boolean
-  removingId: number | null; onRemove: (id: number) => void
+  removingId: number | null; onRemove: (id: number) => void; showDuration: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.song.id, disabled: !isChef,
@@ -56,6 +71,11 @@ function SortableSongRow({ entry, index, isChef, removingId, onRemove }: {
         <p className="text-sm font-semibold text-gray-900">{entry.song.title}</p>
         {entry.song.artist && <p className="text-xs text-gray-500">{entry.song.artist}</p>}
       </div>
+      {showDuration && (
+        <span className={`text-xs font-medium flex-shrink-0 ${entry.song.durationSeconds ? 'text-indigo-500' : 'text-amber-400'}`}>
+          {entry.song.durationSeconds ? formatDuration(entry.song.durationSeconds) : '—'}
+        </span>
+      )}
       {isChef && (
         <button onClick={() => onRemove(entry.song.id)} disabled={removingId === entry.song.id}
           className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40 flex-shrink-0"
@@ -84,7 +104,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
 
   // Rename state
   const [renameOpen, setRenameOpen] = useState(false)
-  const [renameForm, setRenameForm] = useState({ name: '', description: '' })
+  const [renameForm, setRenameForm] = useState({ name: '', description: '', showDuration: false })
   const [renameSaving, setRenameSaving] = useState(false)
 
   // Delete confirm
@@ -156,7 +176,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
   }
 
   const openRename = () => {
-    setRenameForm({ name: setlist?.name || '', description: setlist?.description || '' })
+    setRenameForm({ name: setlist?.name || '', description: setlist?.description || '', showDuration: setlist?.showDuration ?? false })
     setRenameOpen(true)
   }
 
@@ -181,6 +201,11 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
 
   const setlistIds = new Set(songs.map((s) => s.song.id))
   const availableSongs = groupSongs.filter((s) => !setlistIds.has(s.id))
+
+  const showDuration = setlist?.showDuration ?? false
+  const songsWithDuration = songs.filter((s) => s.song.durationSeconds)
+  const songsWithoutDuration = songs.filter((s) => !s.song.durationSeconds)
+  const totalSeconds = songsWithDuration.reduce((acc, s) => acc + (s.song.durationSeconds ?? 0), 0)
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
   if (!setlist) return <div className="text-gray-500">Setlist introuvable.</div>
@@ -210,6 +235,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
           <button
             onClick={() => {
               const sorted = [...songs].sort((a, b) => a.position - b.position)
+              const hasDuration = showDuration && sorted.some(e => e.song.durationSeconds)
               const rows = sorted.map((e, i) => `
                 <tr>
                   <td style="width:36px;text-align:center;font-weight:700;color:#6366f1;padding:10px 8px;font-size:15px;">${i + 1}</td>
@@ -217,6 +243,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
                     <div style="font-size:14px;font-weight:600;color:#111;">${e.song.title}</div>
                     ${e.song.artist ? `<div style="font-size:12px;color:#9ca3af;margin-top:2px;">${e.song.artist}</div>` : ''}
                   </td>
+                  ${hasDuration ? `<td style="padding:10px 0 10px 8px;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap;font-size:13px;color:${e.song.durationSeconds ? '#6366f1' : '#d1d5db'};font-weight:500;">${e.song.durationSeconds ? formatDuration(e.song.durationSeconds) : '—'}</td>` : ''}
                 </tr>`).join('')
               const concertsHtml = setlist.concerts.length > 0 ? `
                 <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin:14px 0 24px">
@@ -254,6 +281,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
                 ${setlist.description ? `<div class="desc">${setlist.description}</div>` : ''}
                 ${concertsHtml}
                 <table>${rows}</table>
+                ${hasDuration && totalSeconds > 0 ? `<div style="margin-top:16px;padding:10px 14px;background:#eef2ff;border-radius:8px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:#4338ca;font-weight:600;">Durée totale</span><span style="font-size:15px;font-weight:800;color:#4338ca;">⏱ ${formatDurationLong(totalSeconds)}</span></div>` : ''}
                 <div class="footer">
                   <span>${sorted.length} morceau${sorted.length > 1 ? 'x' : ''}</span>
                   <span>Imprimé le ${new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</span>
@@ -295,16 +323,40 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
                 {isChef ? 'Ajoutez des morceaux depuis le répertoire ci-dessous.' : 'Aucun morceau dans cette setlist.'}
               </p>
             ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={songs.map((s) => s.song.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-2">
-                    {songs.map((entry, index) => (
-                      <SortableSongRow key={entry.song.id} entry={entry} index={index}
-                        isChef={isChef} removingId={removingId} onRemove={removeSong} />
-                    ))}
+              <>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={songs.map((s) => s.song.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                      {songs.map((entry, index) => (
+                        <SortableSongRow key={entry.song.id} entry={entry} index={index}
+                          isChef={isChef} removingId={removingId} onRemove={removeSong} showDuration={showDuration} />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+
+                {/* Total duration bar */}
+                {showDuration && songs.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    {songsWithoutDuration.length > 0 && (
+                      <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 mb-3 text-xs text-amber-700">
+                        <span className="text-base leading-none mt-0.5">⚠️</span>
+                        <span>
+                          {songsWithoutDuration.length} morceau{songsWithoutDuration.length > 1 ? 'x' : ''} sans durée ({songsWithoutDuration.map(s => s.song.title).join(', ')}) — durée totale partielle.
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-500">
+                        Durée totale{songsWithoutDuration.length > 0 ? ` (${songsWithDuration.length}/${songs.length} morceaux)` : ''}
+                      </span>
+                      <span className="text-sm font-bold text-indigo-600">
+                        ⏱ {totalSeconds > 0 ? formatDurationLong(totalSeconds) : '—'}
+                      </span>
+                    </div>
                   </div>
-                </SortableContext>
-              </DndContext>
+                )}
+              </>
             )}
 
             {isChef && availableSongs.length > 0 && (
@@ -384,6 +436,19 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
             <textarea rows={2} value={renameForm.description}
               onChange={(e) => setRenameForm({ ...renameForm, description: e.target.value })}
               className="form-input resize-none" />
+          </div>
+          <div className="flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+            <input
+              id="editShowDuration"
+              type="checkbox"
+              checked={renameForm.showDuration}
+              onChange={(e) => setRenameForm({ ...renameForm, showDuration: e.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <label htmlFor="editShowDuration" className="cursor-pointer">
+              <p className="text-sm font-medium text-gray-800">Calculer la durée totale</p>
+              <p className="text-xs text-gray-500 mt-0.5">Affiche la durée de chaque morceau et le total de la setlist.</p>
+            </label>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setRenameOpen(false)}>Annuler</Button>

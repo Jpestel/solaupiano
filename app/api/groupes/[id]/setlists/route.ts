@@ -47,11 +47,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { ok, status, error } = await checkAccess(userId, groupId, isAdmin, true)
   if (!ok) return NextResponse.json({ error }, { status })
 
-  const { name, description } = await req.json()
+  const { name, description, showDuration } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
 
   const setlist = await prisma.setlist.create({
-    data: { groupId, name: name.trim(), description: description?.trim() || null },
+    data: { groupId, name: name.trim(), description: description?.trim() || null, showDuration: !!showDuration },
   })
 
   return NextResponse.json(setlist, { status: 201 })

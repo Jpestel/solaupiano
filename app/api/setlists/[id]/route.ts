@@ -54,12 +54,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const result = await getSetlistAndCheckAccess(setlistId, userId, isAdmin, true)
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
 
-  const { name, description } = await req.json()
+  const { name, description, showDuration } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
 
   const updated = await prisma.setlist.update({
     where: { id: setlistId },
-    data: { name: name.trim(), description: description?.trim() || null },
+    data: {
+      name: name.trim(),
+      description: description?.trim() || null,
+      ...(showDuration !== undefined ? { showDuration: !!showDuration } : {}),
+    },
   })
 
   return NextResponse.json(updated)

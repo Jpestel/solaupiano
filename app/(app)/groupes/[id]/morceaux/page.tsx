@@ -24,7 +24,27 @@ interface Song {
   title: string
   artist?: string
   notes?: string
+  durationSeconds?: number | null
   resources: Resource[]
+}
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function parseDuration(val: string): number | null {
+  const trimmed = val.trim()
+  if (!trimmed) return null
+  const match = trimmed.match(/^(\d{1,3}):(\d{2})$/)
+  if (match) {
+    const minutes = parseInt(match[1], 10)
+    const seconds = parseInt(match[2], 10)
+    if (seconds >= 60) return null
+    return minutes * 60 + seconds
+  }
+  return null
 }
 
 interface GroupInfo {
@@ -41,7 +61,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [addSongOpen, setAddSongOpen] = useState(false)
   const [editSong, setEditSong] = useState<Song | null>(null)
   const [uploadSongId, setUploadSongId] = useState<number | null>(null)
-  const [songForm, setSongForm] = useState({ title: '', artist: '', notes: '' })
+  const [songForm, setSongForm] = useState({ title: '', artist: '', notes: '', duration: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
@@ -75,10 +95,11 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     e.preventDefault()
     setSaving(true)
     setError('')
+    const durationSeconds = parseDuration(songForm.duration)
     const res = await fetch(`/api/groupes/${groupId}/morceaux`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(songForm),
+      body: JSON.stringify({ ...songForm, durationSeconds }),
     })
     setSaving(false)
     if (!res.ok) {
@@ -87,13 +108,18 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       return
     }
     setAddSongOpen(false)
-    setSongForm({ title: '', artist: '', notes: '' })
+    setSongForm({ title: '', artist: '', notes: '', duration: '' })
     fetchData()
   }
 
   const openEdit = (song: Song) => {
     setEditSong(song)
-    setSongForm({ title: song.title, artist: song.artist || '', notes: song.notes || '' })
+    setSongForm({
+      title: song.title,
+      artist: song.artist || '',
+      notes: song.notes || '',
+      duration: song.durationSeconds ? formatDuration(song.durationSeconds) : '',
+    })
     setError('')
   }
 
@@ -102,10 +128,11 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     if (!editSong) return
     setSaving(true)
     setError('')
+    const durationSeconds = parseDuration(songForm.duration)
     const res = await fetch(`/api/groupes/${groupId}/morceaux/${editSong.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(songForm),
+      body: JSON.stringify({ ...songForm, durationSeconds }),
     })
     setSaving(false)
     if (!res.ok) {
@@ -191,8 +218,15 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           {songs.map((song) => (
             <Card key={song.id} padding={false} className="overflow-hidden">
               <div className="px-6 py-4 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-gray-900">{song.title}</h3>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-gray-900">{song.title}</h3>
+                    {song.durationSeconds ? (
+                      <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-600">
+                        ⏱ {formatDuration(song.durationSeconds)}
+                      </span>
+                    ) : null}
+                  </div>
                   {song.artist && <p className="text-sm text-gray-500">{song.artist}</p>}
                   {song.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{song.notes}</p>}
                 </div>
@@ -366,6 +400,18 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             <input type="text" value={songForm.artist} onChange={(e) => setSongForm({ ...songForm, artist: e.target.value })} className="form-input" />
           </div>
           <div>
+            <label className="form-label">Durée <span className="text-gray-400 font-normal">(format MM:SS, ex: 3:45)</span></label>
+            <input
+              type="text"
+              value={songForm.duration}
+              onChange={(e) => setSongForm({ ...songForm, duration: e.target.value })}
+              className="form-input"
+              placeholder="3:45"
+              pattern="^\d{1,3}:\d{2}$"
+              title="Format MM:SS (ex: 3:45)"
+            />
+          </div>
+          <div>
             <label className="form-label">Notes</label>
             <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} />
           </div>
@@ -387,6 +433,18 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           <div>
             <label className="form-label">Artiste / Compositeur</label>
             <input type="text" value={songForm.artist} onChange={(e) => setSongForm({ ...songForm, artist: e.target.value })} className="form-input" placeholder="ex: Édith Piaf" />
+          </div>
+          <div>
+            <label className="form-label">Durée <span className="text-gray-400 font-normal">(format MM:SS, ex: 3:45)</span></label>
+            <input
+              type="text"
+              value={songForm.duration}
+              onChange={(e) => setSongForm({ ...songForm, duration: e.target.value })}
+              className="form-input"
+              placeholder="3:45"
+              pattern="^\d{1,3}:\d{2}$"
+              title="Format MM:SS (ex: 3:45)"
+            />
           </div>
           <div>
             <label className="form-label">Notes</label>
