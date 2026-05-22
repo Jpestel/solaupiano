@@ -237,6 +237,17 @@ model Song {
   userProgress UserSongProgress[]
   setlists     SetlistSong[]
   chordCharts  ChordChart[]
+  lyrics       SongLyrics?
+}
+
+model SongLyrics {
+  id        Int      @id @default(autoincrement())
+  songId    Int      @unique
+  content   String   @db.LongText
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
 }
 
 model ChordChart {

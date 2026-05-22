@@ -23,6 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         include: { uploadedBy: { select: { id: true, name: true } } },
         orderBy: { createdAt: 'asc' },
       },
+      lyrics: { select: { id: true } },
     },
     orderBy: { title: 'asc' },
   })

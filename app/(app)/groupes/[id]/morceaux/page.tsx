@@ -26,6 +26,7 @@ interface Song {
   notes?: string
   durationSeconds?: number | null
   resources: Resource[]
+  lyrics?: { id: number } | null
 }
 
 function formatDuration(seconds: number): string {
@@ -226,24 +227,37 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                         ⏱ {formatDuration(song.durationSeconds)}
                       </span>
                     ) : null}
+                    {song.lyrics && (
+                      <span className="inline-flex items-center rounded-full bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600">
+                        🎤 Paroles
+                      </span>
+                    )}
                   </div>
                   {song.artist && <p className="text-sm text-gray-500">{song.artist}</p>}
                   {song.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{song.notes}</p>}
                 </div>
-                {isChef && (
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>
-                      Éditer
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setUploadSongId(song.id === uploadSongId ? null : song.id)}
-                    >
-                      + Ressource
-                    </Button>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Link
+                    href={`/groupes/${groupId}/morceaux/${song.id}/paroles`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-rose-300 hover:text-rose-600 transition-colors"
+                  >
+                    🎤 Paroles
+                  </Link>
+                  {isChef && (
+                    <>
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>
+                        Éditer
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setUploadSongId(song.id === uploadSongId ? null : song.id)}
+                      >
+                        + Ressource
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Upload panel */}
