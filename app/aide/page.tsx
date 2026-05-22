@@ -60,6 +60,7 @@ export default async function AidePage() {
             { href: '#grilles', label: '🎸 Grilles' },
             { href: '#paroles', label: '🎤 Paroles' },
             { href: '#tablatures', label: '🎸 Tablatures' },
+            { href: '#accords', label: '🎹 Accords' },
             { href: '#plans', label: '📦 Plans' },
             { href: '#faq', label: '❓ FAQ' },
           ].map((item) => (
@@ -666,6 +667,82 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── DICTIONNAIRE D'ACCORDS ─── */}
+        <section id="accords">
+          <SectionTitle icon="🎹" title="Dictionnaire d'accords" color="blue" />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi ça sert ?">
+              <p>Le <strong>Dictionnaire d'accords</strong> est un outil de théorie musicale intégré, accessible sans quitter l&apos;application. Il permet à tout musicien de trouver instantanément les notes qui composent n&apos;importe quel accord.</p>
+              <p className="mt-2">Exemples :</p>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {[
+                  { chord: 'F',   notes: 'F – A – C',           solfege: 'Fa – La – Do' },
+                  { chord: 'Am7', notes: 'A – C – E – G',        solfege: 'La – Do – Mi – Sol' },
+                  { chord: 'B♭maj7', notes: 'B♭ – D – F – A',   solfege: 'Si♭ – Ré – Fa – La' },
+                ].map((ex) => (
+                  <div key={ex.chord} className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+                    <p className="text-sm font-black text-blue-700 font-mono">{ex.chord}</p>
+                    <p className="text-xs text-gray-700 font-medium mt-0.5">{ex.notes}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{ex.solfege}</p>
+                  </div>
+                ))}
+              </div>
+              <Tip>Accessible via <strong>Accords</strong> dans la barre de navigation latérale — aucune connexion requise.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Comment utiliser le dictionnaire">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Cliquez sur une <strong>fondamentale</strong> (note racine) parmi les 12 touches : C, C♯, D, E♭, E, F, F♯, G, A♭, A, B♭, B.</Step>
+                <Step n={2}>Choisissez la <strong>qualité de l&apos;accord</strong> dans l&apos;un des 5 groupes disponibles.</Step>
+                <Step n={3}>Le résultat s&apos;affiche instantanément :
+                  <ul className="mt-1 ml-4 space-y-0.5">
+                    <li>Le <span className="font-medium">nom de l&apos;accord</span> en grand (ex : Fm7)</li>
+                    <li>Les <span className="font-medium">notes en lettres</span> (F – A♭ – C – E♭)</li>
+                    <li>Les <span className="font-medium">notes en solfège</span> (Fa – La♭ – Do – Mi♭)</li>
+                    <li>La <span className="font-medium">formule harmonique</span> (1 – ♭3 – 5 – ♭7)</li>
+                    <li>Le <span className="font-medium">clavier de piano</span> avec les touches colorées</li>
+                  </ul>
+                </Step>
+              </ol>
+            </HelpCard>
+
+            <HelpCard title="Types d'accords disponibles (35)">
+              <p>Les accords sont regroupés en 5 catégories :</p>
+              <div className="mt-3 space-y-2">
+                {[
+                  { name: 'Triades (3 notes)',       types: ['Majeur', 'Mineur', 'Diminué', 'Augmenté'] },
+                  { name: 'Suspendus & Power',        types: ['Sus2', 'Sus4', 'Power chord (5)'] },
+                  { name: 'Septièmes (4 notes)',      types: ['Dominante 7', 'Majeur 7', 'Mineur 7', 'Mineur/Maj 7', 'Diminué 7', 'Semi-diminué (m7♭5)', 'Augmenté 7'] },
+                  { name: 'Sixtes & Add',             types: ['Majeur 6', 'Mineur 6', 'Add9'] },
+                  { name: 'Extensions (5–7 notes)',   types: ['9', 'Maj9', 'Min9', '11', '13'] },
+                ].map((group) => (
+                  <div key={group.name} className="flex items-start gap-3">
+                    <span className="text-xs font-semibold text-gray-500 w-40 flex-shrink-0 pt-0.5">{group.name}</span>
+                    <div className="flex flex-wrap gap-1">
+                      {group.types.map((t) => (
+                        <span key={t} className="rounded-md bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs text-gray-600">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </HelpCard>
+
+            <HelpCard title="Tableau de référence">
+              <p>En bas de la page, un <strong>tableau de référence complet</strong> liste tous les accords de la fondamentale sélectionnée en une seule vue :</p>
+              <ul className="mt-2 space-y-1">
+                <li>Nom de l&apos;accord (notation symbolique)</li>
+                <li>Notes en lettres et en solfège</li>
+                <li>Formule harmonique</li>
+              </ul>
+              <p className="mt-2 text-gray-600">Cliquez sur n&apos;importe quelle ligne pour afficher cet accord dans la vue principale avec le clavier de piano.</p>
+              <Tip>Les dièses (♯) et bémols (♭) sont automatiquement appliqués selon la convention musicale de la fondamentale — par exemple F utilise des bémols (A♭, E♭…), D utilise des dièses (F♯, C♯…).</Tip>
+            </HelpCard>
+
+          </div>
+        </section>
+
         {/* ─── PLANS ─── */}
         <section id="plans">
           <SectionTitle icon="📦" title="Plans et stockage" color="purple" />
@@ -675,7 +752,7 @@ export default async function AidePage() {
               <p>Chaque groupe dispose d&apos;un plan qui détermine son espace de stockage. Le stockage est <strong>partagé</strong> entre tous les membres pour les ressources (partitions, fichiers audio…).</p>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <PlanDetailCard name="Gratuit" icon="🆓" storage="1 Go" price="Gratuit" groups="1 groupe" color="gray"
-                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène', 'Tablatures']} />
+                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène', 'Tablatures', 'Dictionnaire d\'accords']} />
                 <PlanDetailCard name="Pro" icon="⭐" storage="5 Go" price="5,99 €/mois" groups="5 groupes" color="indigo"
                   features={['Tout du plan Gratuit', 'Support prioritaire', 'Bientôt disponible']} comingSoon />
                 <PlanDetailCard name="Premium" icon="👑" storage="10 Go" price="9,90 €/mois" groups="5 groupes" color="purple"
@@ -723,6 +800,12 @@ export default async function AidePage() {
             </FaqItem>
             <FaqItem question="Les membres peuvent-ils voir les paroles sans être chef ?">
               Oui. Tous les membres du groupe ont accès à la lecture des paroles (onglet Aperçu) et au mode scène. Seul le chef peut saisir, modifier ou supprimer les paroles.
+            </FaqItem>
+            <FaqItem question="Le dictionnaire d'accords fonctionne-t-il hors ligne ?">
+              Le dictionnaire est entièrement calculé côté navigateur — aucune requête serveur n&apos;est nécessaire. Une fois la page chargée, il fonctionne même sans connexion internet.
+            </FaqItem>
+            <FaqItem question="Puis-je voir les accords en solfège plutôt qu'en lettres ?">
+              Oui, le dictionnaire affiche toujours les deux systèmes simultanément : les lettres anglo-saxonnes (C, D, E, F, G, A, B) et le solfège français (Do, Ré, Mi, Fa, Sol, La, Si) avec leurs altérations.
             </FaqItem>
             <FaqItem question="Un morceau peut-il avoir plusieurs tablatures ?">
               Non, chaque morceau dispose d&apos;une seule tablature. En revanche, vous pouvez changer l&apos;instrument (guitare, basse, ukulélé) à tout moment depuis la barre de contrôle. Si vous avez besoin de versions différentes, dupliquez le morceau dans le répertoire.
