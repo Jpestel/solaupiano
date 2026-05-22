@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
@@ -23,6 +24,7 @@ interface User {
 }
 
 export default function AdminUtilisateursPage() {
+  const { data: session, update: updateSession } = useSession()
   const [users, setUsers] = useState<User[]>([])
   const [allInstruments, setAllInstruments] = useState<Instrument[]>([])
   const [loading, setLoading] = useState(true)
@@ -73,6 +75,8 @@ export default function AdminUtilisateursPage() {
     setEditUser((prev) => prev ? { ...prev, avatarUrl } : prev)
     setUsers((prev) => prev.map((u) => u.id === editUser.id ? { ...u, avatarUrl } : u))
     if (fileInputRef.current) fileInputRef.current.value = ''
+    // Refresh session if admin is editing their own avatar
+    if (editUser.id === Number(session?.user?.id)) await updateSession({})
   }
 
   const handleAvatarDelete = async () => {
@@ -82,6 +86,8 @@ export default function AdminUtilisateursPage() {
     setAvatarUploading(false)
     setEditUser((prev) => prev ? { ...prev, avatarUrl: null } : prev)
     setUsers((prev) => prev.map((u) => u.id === editUser.id ? { ...u, avatarUrl: null } : u))
+    // Refresh session if admin is editing their own avatar
+    if (editUser.id === Number(session?.user?.id)) await updateSession({})
   }
 
   const toggleInstrument = (id: number) => {

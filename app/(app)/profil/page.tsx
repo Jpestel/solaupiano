@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardHeader } from '@/components/ui/Card'
@@ -59,6 +60,7 @@ function getAvatarStyle(name: string): React.CSSProperties {
 
 export default function ProfilPage() {
   const { data: session, update } = useSession()
+  const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [instruments, setInstruments] = useState<Instrument[]>([])
   const [availableGroups, setAvailableGroups] = useState<AvailableGroup[]>([])
@@ -189,6 +191,7 @@ export default function ProfilPage() {
     setProfile((prev) => prev ? { ...prev, avatarUrl } : prev)
     setAvatarPreview(null)
     await update({})
+    router.refresh()
   }
 
   const handleAvatarDelete = async () => {
@@ -198,6 +201,7 @@ export default function ProfilPage() {
     setAvatarUploading(false)
     setProfile((prev) => prev ? { ...prev, avatarUrl: null } : prev)
     await update({})
+    router.refresh()
   }
 
   const handlePasswordChange = async (e: React.FormEvent) => {
