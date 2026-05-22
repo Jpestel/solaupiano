@@ -68,6 +68,12 @@ export default async function PublicHomePage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/aide"
+              className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
+            >
+              Aide
+            </Link>
+            <Link
               href="/connexion"
               className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
             >
@@ -229,6 +235,7 @@ export default async function PublicHomePage() {
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <Link href="/connexion" className="hover:text-indigo-600 transition-colors">Connexion</Link>
             <Link href="/inscription" className="hover:text-indigo-600 transition-colors">Inscription</Link>
+            <Link href="/aide" className="hover:text-indigo-600 transition-colors">Aide</Link>
             <Link href="/mentions-legales" className="hover:text-indigo-600 transition-colors">Mentions légales</Link>
           </div>
         </div>
