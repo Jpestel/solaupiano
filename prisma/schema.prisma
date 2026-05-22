@@ -193,8 +193,19 @@ model Concert {
   setlistId Int?
   createdAt DateTime @default(now())
 
-  group   Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  setlist Setlist? @relation(fields: [setlistId], references: [id], onDelete: SetNull)
+  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  setlist     Setlist?     @relation(fields: [setlistId], references: [id], onDelete: SetNull)
+  stageLayout StageLayout?
+}
+
+model StageLayout {
+  id        Int      @id @default(autoincrement())
+  concertId Int      @unique
+  content   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  concert Concert @relation(fields: [concertId], references: [id], onDelete: Cascade)
 }
 
 model Setlist {

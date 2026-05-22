@@ -254,6 +254,16 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
 
       {concert.notes && <p className="text-sm text-gray-600 mt-2 pt-2 border-t border-gray-100">{concert.notes}</p>}
 
+      {/* Plan de scène */}
+      <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <Link
+          href={`/groupes/${groupId}/concerts/${concert.id}/scene`}
+          className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors"
+        >
+          🗺️ Plan de scène →
+        </Link>
+      </div>
+
       {isChef && (
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
           <button onClick={() => openEdit(concert)}
