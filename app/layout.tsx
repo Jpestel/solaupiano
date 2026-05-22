@@ -5,7 +5,7 @@ import { getSiteSettings } from '@/lib/site-settings'
 import { getThemeCss } from '@/lib/themes'
 
 export const metadata: Metadata = {
-  title: 'Solaupiano',
+  title: 'Sol au piano',
   description: 'Plateforme de gestion de répétitions musicales',
 }
 

@@ -81,7 +81,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow">
             <span className="text-lg">{siteIcon}</span>
           </div>
-          <span className="font-bold text-indigo-900 text-lg leading-tight">Solaupiano</span>
+          <span className="font-bold text-indigo-900 text-lg leading-tight">Sol au piano</span>
         </Link>
         {onClose && (
           <button onClick={onClose} className="lg:hidden p-1 rounded-lg hover:bg-gray-200 text-gray-500">

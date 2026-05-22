@@ -160,7 +160,7 @@ export default function ConnexionPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg">
             <span className="text-2xl">🎹</span>
           </div>
-          <h1 className="text-3xl font-bold text-indigo-900">Solaupiano</h1>
+          <h1 className="text-3xl font-bold text-indigo-900">Sol au piano</h1>
           <p className="text-gray-500 mt-1">Gestion des répétitions musicales</p>
         </div>
         <Suspense fallback={<div className="bg-white rounded-2xl shadow-xl p-8 text-center text-gray-400">Chargement...</div>}>

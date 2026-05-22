@@ -64,7 +64,7 @@ export default async function PublicHomePage() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-base">🎹</span>
             </div>
-            <span className="font-bold text-indigo-900 text-lg">Solaupiano</span>
+            <span className="font-bold text-indigo-900 text-lg">Sol au piano</span>
           </div>
           <div className="flex items-center gap-3">
             <Link
@@ -223,7 +223,7 @@ export default async function PublicHomePage() {
             <div className="w-6 h-6 bg-indigo-600 rounded-md flex items-center justify-center">
               <span className="text-xs">🎹</span>
             </div>
-            <span className="text-sm font-semibold text-indigo-900">Solaupiano</span>
+            <span className="text-sm font-semibold text-indigo-900">Sol au piano</span>
           </div>
           <p className="text-xs text-gray-400">La plateforme pour les musiciens en groupe</p>
           <div className="flex items-center gap-4 text-xs text-gray-500">

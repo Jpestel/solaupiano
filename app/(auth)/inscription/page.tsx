@@ -87,7 +87,7 @@ export default function InscriptionPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg">
             <span className="text-2xl">🎹</span>
           </div>
-          <h1 className="text-3xl font-bold text-indigo-900">Solaupiano</h1>
+          <h1 className="text-3xl font-bold text-indigo-900">Sol au piano</h1>
           <p className="text-gray-500 mt-1">Créez votre compte musicien</p>
         </div>
 
@@ -96,7 +96,7 @@ export default function InscriptionPage() {
 
           {/* Plan choice */}
           <div className="mb-6">
-            <p className="text-sm font-medium text-gray-700 mb-3">Comment souhaitez-vous utiliser Solaupiano ?</p>
+            <p className="text-sm font-medium text-gray-700 mb-3">Comment souhaitez-vous utiliser Sol au piano ?</p>
             <div className="grid grid-cols-2 gap-3">
               {/* Musicien */}
               <button

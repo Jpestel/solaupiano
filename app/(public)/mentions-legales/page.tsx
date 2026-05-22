@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Mentions légales — Solaupiano',
+  title: 'Mentions légales — Sol au piano',
 }
 
 export default function MentionsLegalesPage() {
@@ -14,7 +14,7 @@ export default function MentionsLegalesPage() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-base">🎹</span>
             </div>
-            <span className="font-bold text-indigo-900 text-lg">Solaupiano</span>
+            <span className="font-bold text-indigo-900 text-lg">Sol au piano</span>
           </Link>
           <Link href="/" className="text-sm text-gray-500 hover:text-indigo-600 transition-colors">
             ← Retour à l&apos;accueil
@@ -62,7 +62,7 @@ export default function MentionsLegalesPage() {
           <section>
             <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">4. Propriété intellectuelle</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              L&apos;ensemble des contenus présents sur le site Solaupiano (textes, images, graphismes, logo, icônes, sons, logiciels…) est la propriété exclusive de Jérôme Pestel, à l&apos;exception des marques, logos ou contenus appartenant à d&apos;autres sociétés partenaires ou auteurs.
+              L&apos;ensemble des contenus présents sur le site Sol au piano (textes, images, graphismes, logo, icônes, sons, logiciels…) est la propriété exclusive de Jérôme Pestel, à l&apos;exception des marques, logos ou contenus appartenant à d&apos;autres sociétés partenaires ou auteurs.
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
               Toute reproduction, distribution, modification, adaptation, retransmission ou publication, même partielle, de ces différents éléments est strictement interdite sans l&apos;accord exprès par écrit de Jérôme Pestel.
@@ -76,7 +76,7 @@ export default function MentionsLegalesPage() {
               Conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés, vous disposez d&apos;un droit d&apos;accès, de rectification, de suppression et d&apos;opposition aux données personnelles vous concernant.
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
-              Les données collectées (nom, adresse email) sont utilisées uniquement dans le cadre du fonctionnement de la plateforme Solaupiano et ne sont pas transmises à des tiers.
+              Les données collectées (nom, adresse email) sont utilisées uniquement dans le cadre du fonctionnement de la plateforme Sol au piano et ne sont pas transmises à des tiers.
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
               Pour exercer vos droits ou pour toute question relative à la protection de vos données, vous pouvez contacter l&apos;éditeur à l&apos;adresse email indiquée ci-dessus.
@@ -87,7 +87,7 @@ export default function MentionsLegalesPage() {
           <section>
             <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">6. Cookies</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Le site Solaupiano utilise des cookies de session strictement nécessaires au fonctionnement de l&apos;authentification. Ces cookies ne collectent aucune donnée à des fins publicitaires ou de traçage et ne nécessitent pas de consentement préalable conformément aux directives de la CNIL.
+              Le site Sol au piano utilise des cookies de session strictement nécessaires au fonctionnement de l&apos;authentification. Ces cookies ne collectent aucune donnée à des fins publicitaires ou de traçage et ne nécessitent pas de consentement préalable conformément aux directives de la CNIL.
             </p>
           </section>
 
@@ -95,7 +95,7 @@ export default function MentionsLegalesPage() {
           <section>
             <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">7. Liens hypertextes</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Le site Solaupiano peut contenir des liens hypertextes vers d&apos;autres sites. Jérôme Pestel n&apos;est pas responsable du contenu de ces sites tiers et décline toute responsabilité en cas de dommage résultant de l&apos;utilisation de ces liens.
+              Le site Sol au piano peut contenir des liens hypertextes vers d&apos;autres sites. Jérôme Pestel n&apos;est pas responsable du contenu de ces sites tiers et décline toute responsabilité en cas de dommage résultant de l&apos;utilisation de ces liens.
             </p>
           </section>
 

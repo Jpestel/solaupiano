@@ -546,7 +546,7 @@ export default function ProfilPage() {
           {/* Plan — hidden for admins */}
           {!isAdmin && (
             <Card>
-              <CardHeader title="Mon plan" subtitle="Choisissez comment vous utilisez Solaupiano." />
+              <CardHeader title="Mon plan" subtitle="Choisissez comment vous utilisez Sol au piano." />
               {planSuccess && (
                 <div className="mb-4 rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
                   ✓ {planSuccess}

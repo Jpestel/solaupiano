@@ -27,7 +27,7 @@ export async function sendRehearsalNotification(
   await Promise.all(
     members.map(({ email, name }) =>
       resend.emails.send({
-        from: 'Solaupiano <noreply@solaupiano.fr>',
+        from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject: `Nouvelle répétition — ${groupName}`,
         html: `
@@ -37,7 +37,7 @@ export async function sendRehearsalNotification(
                 <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
                   <span style="font-size: 24px;">🎹</span>
                 </div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
               </div>
 
               <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${name},</h2>
@@ -71,9 +71,9 @@ export async function sendRehearsalNotification(
 
 export async function sendInvitationEmail(to: string, fromName: string, personalMessage: string | null, signupUrl: string) {
   await resend.emails.send({
-    from: 'Solaupiano <noreply@solaupiano.fr>',
+    from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
-    subject: `${fromName} vous invite à rejoindre Solaupiano 🎶`,
+    subject: `${fromName} vous invite à rejoindre Sol au piano 🎶`,
     html: `
       <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
         <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -81,17 +81,17 @@ export async function sendInvitationEmail(to: string, fromName: string, personal
             <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: #4f46e5; border-radius: 16px; margin-bottom: 14px;">
               <span style="font-size: 28px;">🎶</span>
             </div>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
             <p style="margin: 6px 0 0; font-size: 14px; color: #6b7280;">La plateforme pour les musiciens en groupe</p>
           </div>
 
           <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 12px;">
-            ${fromName} vous invite à rejoindre Solaupiano !
+            ${fromName} vous invite à rejoindre Sol au piano !
           </h2>
 
           <p style="color: #4b5563; font-size: 14px; line-height: 1.7; margin-bottom: 20px;">
             Bonjour,<br/><br/>
-            <strong>${fromName}</strong> vous invite à découvrir <strong>Solaupiano</strong>, la plateforme pensée pour les musiciens qui répètent en groupe.
+            <strong>${fromName}</strong> vous invite à découvrir <strong>Sol au piano</strong>, la plateforme pensée pour les musiciens qui répètent en groupe.
           </p>
 
           ${personalMessage ? `
@@ -102,7 +102,7 @@ export async function sendInvitationEmail(to: string, fromName: string, personal
           ` : ''}
 
           <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-            <p style="margin: 0 0 12px; font-size: 13px; font-weight: 600; color: #374151;">Avec Solaupiano, vous pouvez :</p>
+            <p style="margin: 0 0 12px; font-size: 13px; font-weight: 600; color: #374151;">Avec Sol au piano, vous pouvez :</p>
             <ul style="margin: 0; padding: 0; list-style: none; space-y: 8px;">
               <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
                 🗓️ &nbsp;Organiser et planifier vos répétitions
@@ -126,7 +126,7 @@ export async function sendInvitationEmail(to: string, fromName: string, personal
           </div>
 
           <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-            Si vous n'êtes pas musicien ou ne souhaitez pas rejoindre Solaupiano, ignorez simplement cet email.
+            Si vous n'êtes pas musicien ou ne souhaitez pas rejoindre Sol au piano, ignorez simplement cet email.
           </p>
         </div>
       </div>
@@ -136,7 +136,7 @@ export async function sendInvitationEmail(to: string, fromName: string, personal
 
 export async function sendEmailVerification(to: string, name: string, verifyUrl: string) {
   await resend.emails.send({
-    from: 'Solaupiano <noreply@solaupiano.fr>',
+    from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject: 'Confirmez votre adresse email',
     html: `
@@ -146,7 +146,7 @@ export async function sendEmailVerification(to: string, name: string, verifyUrl:
             <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
               <span style="font-size: 24px;">🎶</span>
             </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
           </div>
 
           <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 8px;">Bienvenue ${name} !</h2>
@@ -162,7 +162,7 @@ export async function sendEmailVerification(to: string, name: string, verifyUrl:
           </div>
 
           <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-            Si vous n'avez pas créé de compte sur Solaupiano, ignorez cet email.
+            Si vous n'avez pas créé de compte sur Sol au piano, ignorez cet email.
           </p>
         </div>
       </div>
@@ -172,7 +172,7 @@ export async function sendEmailVerification(to: string, name: string, verifyUrl:
 
 export async function sendNewUserNotification(adminEmail: string, newUser: { name: string; email: string }) {
   await resend.emails.send({
-    from: 'Solaupiano <noreply@solaupiano.fr>',
+    from: 'Sol au piano <noreply@solaupiano.fr>',
     to: adminEmail,
     subject: `Nouvelle inscription — ${newUser.name}`,
     html: `
@@ -182,7 +182,7 @@ export async function sendNewUserNotification(adminEmail: string, newUser: { nam
             <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
               <span style="font-size: 24px;">🎹</span>
             </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
           </div>
 
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
@@ -236,7 +236,7 @@ export async function sendAttendanceReminder(
   await Promise.all(
     members.map(({ email, name }) =>
       resend.emails.send({
-        from: 'Solaupiano <noreply@solaupiano.fr>',
+        from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject: `Rappel — Indiquez votre présence · ${groupName}`,
         html: `
@@ -246,7 +246,7 @@ export async function sendAttendanceReminder(
                 <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
                   <span style="font-size: 24px;">🎹</span>
                 </div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
               </div>
 
               <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${name},</h2>
@@ -279,7 +279,7 @@ export async function sendAttendanceReminder(
 
 export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string) {
   await resend.emails.send({
-    from: 'Solaupiano <noreply@solaupiano.fr>',
+    from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject: 'Réinitialisation de votre mot de passe',
     html: `
@@ -289,7 +289,7 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
             <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
               <span style="font-size: 24px;">🎹</span>
             </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Solaupiano</h1>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
           </div>
 
           <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 8px;">Bonjour ${name},</h2>
