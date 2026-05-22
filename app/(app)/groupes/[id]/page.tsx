@@ -8,6 +8,7 @@ import JoinRequestsPanel from './JoinRequestsPanel'
 import { GroupSettingsButton } from './GroupSettingsButton'
 import { GroupCards } from './GroupCards'
 import { PlanSection } from './PlanSection'
+import { GroupCoverUpload } from './GroupCoverUpload'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -85,21 +86,29 @@ export default async function GroupePage({ params }: { params: { id: string } })
           <span className="text-gray-900">{group.name}</span>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{group.name}</h1>
-            {group.description && (
-              <p className="text-gray-500 mt-1">{group.description}</p>
-            )}
-            {parseLookingFor(group.lookingFor).length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                <span className="text-xs text-amber-600 font-medium">Cherche :</span>
-                {parseLookingFor(group.lookingFor).map((inst) => (
-                  <span key={inst} className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
-                    {inst}
-                  </span>
-                ))}
-              </div>
-            )}
+          <div className="flex items-start gap-4 min-w-0">
+            <GroupCoverUpload
+              groupId={groupId}
+              initialCoverUrl={group.coverUrl ?? null}
+              canEdit={isChef}
+              groupName={group.name}
+            />
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-gray-900">{group.name}</h1>
+              {group.description && (
+                <p className="text-gray-500 mt-1">{group.description}</p>
+              )}
+              {parseLookingFor(group.lookingFor).length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-xs text-amber-600 font-medium">Cherche :</span>
+                  {parseLookingFor(group.lookingFor).map((inst) => (
+                    <span key={inst} className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
+                      {inst}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -170,7 +179,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         members={group.members.map(({ user, groupRole }) => ({
           userId: user.id,
           groupRole,
-          user: { id: user.id, name: user.name, instruments: user.instruments },
+          user: { id: user.id, name: user.name, avatarUrl: user.avatarUrl ?? null, instruments: user.instruments },
         }))}
         showInvite={isChef && !group.isPublic}
         isChef={isChef}

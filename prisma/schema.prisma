@@ -99,6 +99,7 @@ model Group {
   id          Int      @id @default(autoincrement())
   name        String
   description String?  @db.Text
+  coverUrl         String?
   isPublic         Boolean   @default(true)
   isHidden         Boolean   @default(false)
   plan             GroupPlan @default(FREE)

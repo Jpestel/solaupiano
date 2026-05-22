@@ -9,6 +9,7 @@ interface Member {
   user: {
     id: number
     name: string
+    avatarUrl?: string | null
     instruments: { instrument: { name: string } }[]
   }
 }
@@ -106,8 +107,11 @@ export default function MembresPanel({
             key={member.userId}
             className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
           >
-            <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm flex-shrink-0">
-              {member.user.name.charAt(0).toUpperCase()}
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm flex-shrink-0">
+              {member.user.avatarUrl
+                ? <img src={member.user.avatarUrl} alt={member.user.name} className="w-full h-full object-cover" />
+                : member.user.name.charAt(0).toUpperCase()
+              }
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">

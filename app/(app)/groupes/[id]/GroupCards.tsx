@@ -28,6 +28,7 @@ interface Member {
   user: {
     id: number
     name: string
+    avatarUrl?: string | null
     instruments: { instrument: { name: string } }[]
   }
 }
