@@ -30,6 +30,9 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [duplicateTarget, setDuplicateTarget] = useState<Chart | null>(null)
+  const [duplicateTitle, setDuplicateTitle] = useState('')
+  const [duplicating, setDuplicating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
@@ -71,6 +74,26 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     const chart = await res.json()
     setModalOpen(false); resetForm()
     window.location.href = `/groupes/${groupId}/grilles/${chart.id}`
+  }
+
+  const openDuplicate = (chart: Chart) => {
+    setDuplicateTarget(chart)
+    setDuplicateTitle(`${chart.title} — copie`)
+  }
+
+  const handleDuplicate = async () => {
+    if (!duplicateTarget || !duplicateTitle.trim()) return
+    setDuplicating(true)
+    const res = await fetch(`/api/grilles/${duplicateTarget.id}/duplicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: duplicateTitle.trim() }),
+    })
+    setDuplicating(false)
+    if (!res.ok) return
+    const copy = await res.json()
+    setDuplicateTarget(null)
+    window.location.href = `/groupes/${groupId}/grilles/${copy.id}`
   }
 
   const handleDelete = async (id: number) => {
@@ -158,10 +181,19 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                     {isChef ? 'Éditer →' : 'Voir →'}
                   </Link>
                   {isChef && (
-                    <button onClick={() => setDeleteId(chart.id)}
-                      className="text-xs text-red-400 hover:text-red-600 font-medium ml-auto">
-                      Supprimer
-                    </button>
+                    <>
+                      <button onClick={() => openDuplicate(chart)}
+                        className="text-xs text-indigo-500 hover:text-indigo-700 font-medium flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Dupliquer
+                      </button>
+                      <button onClick={() => setDeleteId(chart.id)}
+                        className="text-xs text-red-400 hover:text-red-600 font-medium ml-auto">
+                        Supprimer
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -231,6 +263,50 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
           </div>
         </form>
       </Modal>
+
+      {/* Duplicate modal */}
+      {duplicateTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setDuplicateTarget(null)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Dupliquer la grille</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Copie complète avec un nouveau titre.</p>
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="form-label">Titre de la copie <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                autoFocus
+                value={duplicateTitle}
+                onChange={(e) => setDuplicateTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleDuplicate() }}
+                className="form-input"
+                placeholder="ex: Autumn Leaves — Pianiste"
+              />
+              <p className="text-xs text-gray-400 mt-1.5">Astuce : ajoutez le nom du musicien pour personnaliser chaque copie.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDuplicate}
+                disabled={duplicating || !duplicateTitle.trim()}
+                className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {duplicating ? 'Duplication...' : 'Dupliquer et ouvrir →'}
+              </button>
+              <button onClick={() => setDuplicateTarget(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirm */}
       {deleteId && (
