@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import { PrintButton } from './PrintButton'
 
 function Row({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null
@@ -183,15 +184,7 @@ export default async function PublicFichePage({ params }: { params: { token: str
         </div>
       </div>
 
-      {/* Print button */}
-      <div className="fixed bottom-6 right-6 print:hidden">
-        <button
-          onClick={() => window.print()}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-lg transition-colors"
-        >
-          🖨️ Imprimer / PDF
-        </button>
-      </div>
+      <PrintButton />
 
       <style>{`
         @media print {
