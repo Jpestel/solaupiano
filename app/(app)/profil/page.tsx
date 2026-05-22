@@ -120,8 +120,8 @@ export default function ProfilPage() {
       setError(d.error || 'Erreur lors de la sauvegarde.')
       return
     }
-    const updated = await res.json()
-    setProfile(updated)
+    // Recharger le profil complet (avec stats) plutôt que d'écraser avec la réponse PATCH (sans stats)
+    await fetchData()
     setSuccess('Profil mis à jour avec succès.')
     await update({ name })
   }
@@ -137,8 +137,7 @@ export default function ProfilPage() {
     })
     setPlanSaving(false)
     if (res.ok) {
-      const updated = await res.json()
-      setProfile(updated)
+      await fetchData()
       setPlanSuccess('Plan mis à jour avec succès.')
       await update({ userPlan: newPlan })
     }
