@@ -24,6 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         orderBy: { createdAt: 'asc' },
       },
       lyrics: { select: { id: true } },
+      tab: { select: { id: true } },
     },
     orderBy: { title: 'asc' },
   })

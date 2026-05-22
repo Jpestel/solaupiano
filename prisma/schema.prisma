@@ -238,12 +238,23 @@ model Song {
   setlists     SetlistSong[]
   chordCharts  ChordChart[]
   lyrics       SongLyrics?
+  tab          SongTab?
 }
 
 model SongLyrics {
   id        Int      @id @default(autoincrement())
   songId    Int      @unique
   content   String   @db.LongText
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+}
+
+model SongTab {
+  id        Int      @id @default(autoincrement())
+  songId    Int      @unique
+  content   Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

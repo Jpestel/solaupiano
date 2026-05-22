@@ -27,6 +27,7 @@ interface Song {
   durationSeconds?: number | null
   resources: Resource[]
   lyrics?: { id: number } | null
+  tab?: { id: number } | null
 }
 
 function formatDuration(seconds: number): string {
@@ -232,6 +233,11 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                         🎤 Paroles
                       </span>
                     )}
+                    {song.tab && (
+                      <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-600">
+                        🎸 Tablature
+                      </span>
+                    )}
                   </div>
                   {song.artist && <p className="text-sm text-gray-500">{song.artist}</p>}
                   {song.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{song.notes}</p>}
@@ -242,6 +248,12 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                     className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-rose-300 hover:text-rose-600 transition-colors"
                   >
                     🎤 Paroles
+                  </Link>
+                  <Link
+                    href={`/groupes/${groupId}/morceaux/${song.id}/tablature`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                  >
+                    🎸 Tablature
                   </Link>
                   {isChef && (
                     <>
