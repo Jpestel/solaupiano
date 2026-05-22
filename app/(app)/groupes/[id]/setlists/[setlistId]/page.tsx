@@ -205,21 +205,83 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
           {setlist.description && <p className="text-gray-500 mt-1 text-sm">{setlist.description}</p>}
           <p className="text-sm text-gray-400 mt-1">{songs.length} morceau{songs.length > 1 ? 'x' : ''}</p>
         </div>
-        {isChef && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={openRename}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Renommer
-            </button>
-            <button onClick={() => setDeleteConfirm(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors">
-              Supprimer
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Print button — visible for all members */}
+          <button
+            onClick={() => {
+              const sorted = [...songs].sort((a, b) => a.position - b.position)
+              const rows = sorted.map((e, i) => `
+                <tr>
+                  <td style="width:36px;text-align:center;font-weight:700;color:#6366f1;padding:10px 8px;font-size:15px;">${i + 1}</td>
+                  <td style="padding:10px 12px 10px 0;border-bottom:1px solid #f3f4f6;">
+                    <div style="font-size:14px;font-weight:600;color:#111;">${e.song.title}</div>
+                    ${e.song.artist ? `<div style="font-size:12px;color:#9ca3af;margin-top:2px;">${e.song.artist}</div>` : ''}
+                  </td>
+                </tr>`).join('')
+              const concertsHtml = setlist.concerts.length > 0 ? `
+                <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin:14px 0 24px">
+                  <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:6px">🎭 Concert${setlist.concerts.length > 1 ? 's' : ''}</div>
+                  ${setlist.concerts.map(c => `
+                    <div style="margin-bottom:6px">
+                      <div style="font-size:15px;font-weight:700;color:#111;">${c.name}</div>
+                      <div style="font-size:13px;color:#6b7280;">${new Date(c.date).toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
+                    </div>`).join('')}
+                </div>` : ''
+              const pw = window.open('', '_blank', 'width=720,height=960')
+              if (!pw) return
+              pw.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+                <title>${setlist.name}</title>
+                <style>
+                  *{margin:0;padding:0;box-sizing:border-box}
+                  body{font-family:-apple-system,Arial,sans-serif;padding:40px;color:#111;max-width:640px;margin:0 auto}
+                  .actions{text-align:center;margin-bottom:28px;display:flex;gap:10px;justify-content:center}
+                  .actions button{padding:10px 22px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:600}
+                  .btn-print{background:#6366f1;color:white}.btn-close{background:#f3f4f6;color:#374151}
+                  .badge{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6366f1;margin-bottom:6px}
+                  h1{font-size:26px;font-weight:800;color:#111;margin-bottom:4px}
+                  .desc{font-size:13px;color:#6b7280;margin-top:4px;margin-bottom:12px}
+                  table{width:100%;border-collapse:collapse}
+                  tr:last-child td{border-bottom:none!important}
+                  .footer{margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:11px;color:#9ca3af}
+                  @media print{.actions{display:none!important}body{padding:20px}}
+                </style></head><body>
+                <div class="actions">
+                  <button class="btn-print" onclick="window.print()">🖨️&nbsp; Imprimer</button>
+                  <button class="btn-close" onclick="window.close()">✕ Fermer</button>
+                </div>
+                <div class="badge">${groupName}</div>
+                <h1>${setlist.name}</h1>
+                ${setlist.description ? `<div class="desc">${setlist.description}</div>` : ''}
+                ${concertsHtml}
+                <table>${rows}</table>
+                <div class="footer">
+                  <span>${sorted.length} morceau${sorted.length > 1 ? 'x' : ''}</span>
+                  <span>Imprimé le ${new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</span>
+                </div>
+              </body></html>`)
+              pw.document.close()
+            }}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            🖨️ Imprimer
+          </button>
+
+          {isChef && (
+            <>
+              <button onClick={openRename}
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Renommer
+              </button>
+              <button onClick={() => setDeleteConfirm(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors">
+                Supprimer
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

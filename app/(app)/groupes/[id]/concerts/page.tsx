@@ -41,6 +41,85 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
   // Delete
   const [deleteId, setDeleteId] = useState<number | null>(null)
 
+  // Print
+  const [printingId, setPrintingId] = useState<number | null>(null)
+
+  const handlePrintSetlist = async (concert: Concert) => {
+    if (!concert.setlist) return
+    setPrintingId(concert.id)
+    const res = await fetch(`/api/setlists/${concert.setlist.id}`)
+    setPrintingId(null)
+    if (!res.ok) return
+    const sl = await res.json()
+    openPrintWindow({
+      groupName: groupInfo?.name || '',
+      setlistName: sl.name,
+      description: sl.description,
+      concertName: concert.name,
+      concertDate: concert.date,
+      concertLocation: concert.location,
+      songs: sl.songs,
+    })
+  }
+
+  const openPrintWindow = ({ groupName, setlistName, description, concertName, concertDate, concertLocation, songs }: {
+    groupName: string; setlistName: string; description?: string
+    concertName: string; concertDate: string; concertLocation: string
+    songs: { song: { title: string; artist?: string }; position: number }[]
+  }) => {
+    const sorted = [...songs].sort((a, b) => a.position - b.position)
+    const dateStr = new Date(concertDate).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+    const rows = sorted.map((e, i) => `
+      <tr>
+        <td style="width:36px;text-align:center;font-weight:700;color:#6366f1;padding:10px 8px;font-size:15px;">${i + 1}</td>
+        <td style="padding:10px 12px 10px 0;border-bottom:1px solid #f3f4f6;">
+          <div style="font-size:14px;font-weight:600;color:#111;">${e.song.title}</div>
+          ${e.song.artist ? `<div style="font-size:12px;color:#9ca3af;margin-top:2px;">${e.song.artist}</div>` : ''}
+        </td>
+      </tr>`).join('')
+    const pw = window.open('', '_blank', 'width=720,height=960')
+    if (!pw) return
+    pw.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+      <title>${setlistName} — ${concertName}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,Arial,sans-serif;padding:40px;color:#111;max-width:640px;margin:0 auto}
+        .actions{text-align:center;margin-bottom:28px;display:flex;gap:10px;justify-content:center}
+        .actions button{padding:10px 22px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:600}
+        .btn-print{background:#6366f1;color:white}.btn-close{background:#f3f4f6;color:#374151}
+        .badge{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6366f1;margin-bottom:6px}
+        h1{font-size:26px;font-weight:800;color:#111;margin-bottom:4px}
+        .desc{font-size:13px;color:#6b7280;margin-top:4px;margin-bottom:12px}
+        .concert-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin:14px 0 24px}
+        .concert-box .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:4px}
+        .concert-box .name{font-size:15px;font-weight:700;color:#111}
+        .concert-box .meta{font-size:13px;color:#6b7280;margin-top:2px}
+        table{width:100%;border-collapse:collapse}
+        tr:last-child td{border-bottom:none!important}
+        .footer{margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:11px;color:#9ca3af}
+        @media print{.actions{display:none!important}body{padding:20px}}
+      </style></head><body>
+      <div class="actions">
+        <button class="btn-print" onclick="window.print()">🖨️&nbsp; Imprimer</button>
+        <button class="btn-close" onclick="window.close()">✕ Fermer</button>
+      </div>
+      <div class="badge">${groupName}</div>
+      <h1>${setlistName}</h1>
+      ${description ? `<div class="desc">${description}</div>` : ''}
+      <div class="concert-box">
+        <div class="label">🎭 Concert</div>
+        <div class="name">${concertName}</div>
+        <div class="meta">${dateStr}${concertLocation ? ' · ' + concertLocation : ''}</div>
+      </div>
+      <table>${rows}</table>
+      <div class="footer">
+        <span>${sorted.length} morceau${sorted.length > 1 ? 'x' : ''}</span>
+        <span>Imprimé le ${new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</span>
+      </div>
+    </body></html>`)
+    pw.document.close()
+  }
+
   const fetchData = async () => {
     const [concRes, grpRes, slRes] = await Promise.all([
       fetch(`/api/groupes/${groupId}/concerts`),
@@ -149,11 +228,27 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       <p className="text-sm text-gray-500 mt-1">{concert.location}</p>
 
       {concert.setlist && (
-        <div className="mt-3 flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700">
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          <Link
+            href={`/groupes/${groupId}/setlists/${concert.setlist.id}`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700 hover:bg-purple-100 hover:border-purple-300 transition-colors"
+          >
             🎵 {concert.setlist.name}
             <span className="text-purple-400">· {concert.setlist._count.songs} morceaux</span>
-          </span>
+            <span className="text-purple-400">→</span>
+          </Link>
+          <button
+            onClick={() => handlePrintSetlist(concert)}
+            disabled={printingId === concert.id}
+            title="Imprimer la setlist"
+            className="inline-flex items-center gap-1 rounded-full bg-gray-100 border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            {printingId === concert.id
+              ? <span className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin inline-block" />
+              : '🖨️'
+            }
+            <span>Imprimer</span>
+          </button>
         </div>
       )}
 
