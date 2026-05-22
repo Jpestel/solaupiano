@@ -134,7 +134,7 @@ export default function InscriptionPage() {
               >
                 <span className="text-3xl">🎼</span>
                 <p className={`text-sm font-bold ${userPlan === 'CREATEUR' ? 'text-indigo-700' : 'text-gray-800'}`}>
-                  Créateur
+                  Chef d&apos;orchestre
                 </p>
                 <ul className="text-[11px] text-gray-500 text-left space-y-0.5 w-full px-1">
                   <li>✓ Rejoindre un ou plusieurs groupes</li>

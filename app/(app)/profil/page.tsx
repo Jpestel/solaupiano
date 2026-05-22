@@ -324,7 +324,7 @@ export default function ProfilPage() {
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                 isAdmin ? 'bg-purple-200/40 text-white' : 'bg-white/20 text-white'
               }`}>
-                {isAdmin ? '⚡ Administrateur' : profile.userPlan === 'CREATEUR' ? '🎼 Créateur' : '🎵 Musicien'}
+                {isAdmin ? '⚡ Administrateur' : profile.userPlan === 'CREATEUR' ? "🎼 Chef d'orchestre" : '🎵 Musicien'}
               </span>
               {profile.instruments.length > 0 && (
                 <span className="text-xs text-indigo-200">
@@ -564,7 +564,7 @@ export default function ProfilPage() {
                   {
                     value: 'CREATEUR',
                     icon: '🎼',
-                    label: 'Créateur',
+                    label: "Chef d'orchestre",
                     desc: 'Je crée et gère mon groupe',
                     badge: 'Gratuit',
                   },

@@ -41,6 +41,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           siteRole: user.siteRole,
           userPlan: user.userPlan,
+          avatarUrl: user.avatarUrl ?? undefined,
         }
       },
     }),
@@ -51,6 +52,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.siteRole = (user as any).siteRole
         token.userPlan = (user as any).userPlan
+        token.picture = (user as any).avatarUrl ?? undefined
       }
       // Re-fetch from DB on explicit update() call OR when userPlan is missing (old sessions)
       if (trigger === 'update' || !token.userPlan) {
