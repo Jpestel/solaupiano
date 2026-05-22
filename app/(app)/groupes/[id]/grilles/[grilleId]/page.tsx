@@ -110,12 +110,12 @@ const BEAT_SYMBOLS = [
 ]
 const LEFT_MARKERS = [
   { label: '||:', val: '||:', title: 'Début de répétition' },
-  { label: '𝄋', val: '𝄋', title: 'Segno' },
+  { label: 'Segno', val: 'Segno', title: 'Segno (renvoi)' },
 ]
 const RIGHT_MARKERS = [
   { label: ':||', val: ':||', title: 'Fin de répétition' },
   { label: ':|:', val: ':|:', title: 'Double répétition' },
-  { label: '𝄌', val: '𝄌', title: 'Coda' },
+  { label: 'Coda', val: 'Coda', title: 'Coda' },
   { label: 'D.C.', val: 'D.C.', title: 'Da Capo' },
   { label: 'D.S.', val: 'D.S.', title: 'Dal Segno' },
   { label: 'Fine', val: 'Fine', title: 'Fine (fin)' },
@@ -145,9 +145,12 @@ function MarkerContent({ value, side }: { value: string; side: 'left' | 'right' 
   if (!value) return null
   const isRepeat = value === '||:' || value === ':||' || value === ':|:'
   return (
-    <span className={`text-indigo-700 font-black leading-none select-none ${
-      isRepeat ? 'text-base' : 'text-[9px] font-semibold italic'
-    } ${side === 'right' ? 'text-right' : 'text-left'}`}>
+    <span
+      className={`text-indigo-700 font-black leading-none select-none ${
+        isRepeat ? 'text-sm' : 'text-[9px] font-semibold'
+      } ${side === 'right' ? 'text-right' : 'text-left'}`}
+      style={isRepeat ? { fontFamily: '"Courier New", Courier, monospace', letterSpacing: '-2px' } : undefined}
+    >
       {value}
     </span>
   )
@@ -647,8 +650,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                 onChange={(e) => applyValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={
-                  active.type === 'left' ? 'Symbole de début (||:, 𝄋…)' :
-                  active.type === 'right' ? 'Symbole de fin (:||, Fine…)' :
+                  active.type === 'left' ? 'Symbole de début (||:, Segno…)' :
+                  active.type === 'right' ? 'Symbole de fin (:||, Fine, Coda…)' :
                   'Accord ou symbole…'
                 }
                 className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300 font-mono"
@@ -717,16 +720,20 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             {active.type === 'left' && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-semibold text-gray-400">Début de mesure :</span>
-                {LEFT_MARKERS.map((m) => (
-                  <button key={m.val} onClick={() => applyValue(m.val)} title={m.title}
-                    className={`rounded-md border px-3 py-1 text-sm font-black transition-colors
-                      ${inputVal === m.val
-                        ? 'border-indigo-400 bg-indigo-100 text-indigo-700'
-                        : 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300'
-                      }`}>
-                    {m.label}
-                  </button>
-                ))}
+                {LEFT_MARKERS.map((m) => {
+                  const isRepeatSymbol = m.val === '||:' || m.val === ':||' || m.val === ':|:'
+                  return (
+                    <button key={m.val} onClick={() => applyValue(m.val)} title={m.title}
+                      className={`rounded-md border px-3 py-1 font-black transition-colors
+                        ${inputVal === m.val
+                          ? 'border-indigo-400 bg-indigo-100 text-indigo-700'
+                          : 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300'
+                        } ${isRepeatSymbol ? 'text-sm' : 'text-xs'}`}
+                      style={isRepeatSymbol ? { fontFamily: '"Courier New", Courier, monospace', letterSpacing: '-2px' } : undefined}>
+                      {m.label}
+                    </button>
+                  )
+                })}
                 {inputVal && (
                   <button onClick={() => applyValue('')}
                     className="rounded-md border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
@@ -740,16 +747,20 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             {active.type === 'right' && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-semibold text-gray-400">Fin de mesure :</span>
-                {RIGHT_MARKERS.map((m) => (
-                  <button key={m.val} onClick={() => applyValue(m.val)} title={m.title}
-                    className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors
-                      ${inputVal === m.val
-                        ? 'border-indigo-400 bg-indigo-100 text-indigo-700 font-black'
-                        : 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300'
-                      }`}>
-                    {m.label}
-                  </button>
-                ))}
+                {RIGHT_MARKERS.map((m) => {
+                  const isRepeatSymbol = m.val === '||:' || m.val === ':||' || m.val === ':|:'
+                  return (
+                    <button key={m.val} onClick={() => applyValue(m.val)} title={m.title}
+                      className={`rounded-md border px-3 py-1 font-semibold transition-colors
+                        ${inputVal === m.val
+                          ? 'border-indigo-400 bg-indigo-100 text-indigo-700 font-black'
+                          : 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300'
+                        } ${isRepeatSymbol ? 'text-sm font-black' : 'text-xs'}`}
+                      style={isRepeatSymbol ? { fontFamily: '"Courier New", Courier, monospace', letterSpacing: '-2px' } : undefined}>
+                      {m.label}
+                    </button>
+                  )
+                })}
                 {inputVal && (
                   <button onClick={() => applyValue('')}
                     className="rounded-md border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
