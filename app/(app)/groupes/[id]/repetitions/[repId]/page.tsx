@@ -27,8 +27,10 @@ interface Attendance { userId: number; status: 'PRESENT' | 'ABSENT' | 'INCERTAIN
 interface Rehearsal {
   id: number; date: string; location: string; startTime: string; endTime?: string; notes?: string; groupId: number
   songs: RehearsalSongEntry[]; attendances: Attendance[]
+  setlist?: { id: number; name: string } | null
 }
 interface GroupSong { id: number; title: string; artist?: string }
+interface GroupSetlist { id: number; name: string }
 
 function DragHandle() {
   return (
@@ -247,6 +249,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const [songs, setSongs] = useState<RehearsalSongEntry[]>([])
   const [groupInfo, setGroupInfo] = useState<{ name: string; groupRole: string; memberCount: number } | null>(null)
   const [groupSongs, setGroupSongs] = useState<GroupSong[]>([])
+  const [groupSetlists, setGroupSetlists] = useState<GroupSetlist[]>([])
   const [loading, setLoading] = useState(true)
   const [addingId, setAddingId] = useState<number | null>(null)
   const [removingId, setRemovingId] = useState<number | null>(null)
@@ -256,7 +259,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
 
   // Edit state
   const [editOpen, setEditOpen] = useState(false)
-  const [editForm, setEditForm] = useState({ date: '', location: '', startTime: '', endTime: '', notes: '' })
+  const [editForm, setEditForm] = useState({ date: '', location: '', startTime: '', endTime: '', notes: '', setlistId: '' })
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
 
@@ -277,10 +280,11 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   }
 
   const fetchData = useCallback(async () => {
-    const [repRes, grpRes, songsRes] = await Promise.all([
+    const [repRes, grpRes, songsRes, setlistsRes] = await Promise.all([
       fetch(`/api/repetitions/${params.repId}`),
       fetch(`/api/groupes/${params.id}`),
       fetch(`/api/groupes/${params.id}/morceaux`),
+      fetch(`/api/groupes/${params.id}/setlists`),
     ])
     if (repRes.ok) {
       const r: Rehearsal = await repRes.json()
@@ -294,6 +298,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
       setGroupInfo({ name: g.name, groupRole: role, memberCount: g.members?.length ?? 0 })
     }
     if (songsRes.ok) setGroupSongs(await songsRes.json())
+    if (setlistsRes.ok) setGroupSetlists(await setlistsRes.json())
     setLoading(false)
   }, [session, params.repId, params.id])
 
@@ -307,6 +312,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
       startTime: rehearsal.startTime,
       endTime: rehearsal.endTime || '',
       notes: rehearsal.notes || '',
+      setlistId: rehearsal.setlist ? String(rehearsal.setlist.id) : '',
     })
     setEditError('')
     setEditOpen(true)
@@ -325,6 +331,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
         startTime: editForm.startTime,
         endTime: editForm.endTime || null,
         notes: editForm.notes || null,
+        setlistId: editForm.setlistId ? Number(editForm.setlistId) : null,
       }),
     })
     setEditLoading(false)
@@ -437,6 +444,14 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
           <p className="text-gray-500 mt-1">
             {rehearsal.startTime}{rehearsal.endTime ? ` - ${rehearsal.endTime}` : ''} · {rehearsal.location}
           </p>
+          {rehearsal.setlist && (
+            <Link
+              href={`/groupes/${params.id}/setlists/${rehearsal.setlist.id}`}
+              className="inline-flex items-center gap-1.5 mt-2 rounded-full bg-green-50 border border-green-200 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors"
+            >
+              🎶 {rehearsal.setlist.name}
+            </Link>
+          )}
         </div>
         {isChef && (
           <div className="flex flex-col items-end gap-2">
@@ -666,6 +681,19 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                     className="form-input"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="form-label">Setlist associée <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                <select
+                  value={editForm.setlistId}
+                  onChange={(e) => setEditForm((f) => ({ ...f, setlistId: e.target.value }))}
+                  className="form-input"
+                >
+                  <option value="">— Aucune setlist —</option>
+                  {groupSetlists.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>

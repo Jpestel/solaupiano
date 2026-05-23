@@ -23,6 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         orderBy: [{ position: 'asc' }, { songId: 'asc' }],
       },
       attendances: { include: { user: { select: { id: true, name: true } } } },
+      setlist: { select: { id: true, name: true } },
     },
   })
 
@@ -110,6 +111,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       startTime: body.startTime,
       endTime: body.endTime,
       notes: body.notes,
+      setlistId: body.setlistId !== undefined ? (body.setlistId ? Number(body.setlistId) : null) : undefined,
     },
   })
 

@@ -186,9 +186,11 @@ model Rehearsal {
   startTime String
   endTime   String?
   notes     String?  @db.Text
+  setlistId Int?
   createdAt DateTime @default(now())
 
   group        Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  setlist      Setlist?        @relation(fields: [setlistId], references: [id], onDelete: SetNull)
   songs        RehearsalSong[]
   attendances  Attendance[]
   reminderLogs ReminderLog[]
@@ -262,9 +264,10 @@ model Setlist {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  group    Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  songs    SetlistSong[]
-  concerts Concert[]
+  group      Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  songs      SetlistSong[]
+  concerts   Concert[]
+  rehearsals Rehearsal[]
 }
 
 model SetlistSong {
