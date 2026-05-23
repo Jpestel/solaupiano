@@ -8,6 +8,7 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { ResourceUploader } from '@/components/ResourceUploader'
+import { PendingResourceUploader } from '@/components/PendingResourceUploader'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { PdfModal } from '@/components/ui/PdfModal'
 
@@ -54,6 +55,17 @@ interface GroupInfo {
   groupRole: string
 }
 
+interface PendingResource {
+  id: number
+  name: string
+  type: string
+  fileSize?: number
+  filePath: string
+  createdAt: string
+  song: { id: number; title: string }
+  user: { id: number; name: string }
+}
+
 export default function MorceauxPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
   const groupId = params.id
@@ -73,6 +85,9 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [resourceSaving, setResourceSaving] = useState(false)
   const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string } | null>(null)
   const [pdfModal, setPdfModal] = useState<{ url: string; title: string } | null>(null)
+  const [pendingResources, setPendingResources] = useState<PendingResource[]>([])
+  const [submitSongId, setSubmitSongId] = useState<number | null>(null)
+  const [pendingExpanded, setPendingExpanded] = useState(true)
 
   const fetchData = useCallback(async () => {
     const [songsRes, grpRes] = await Promise.all([
@@ -85,6 +100,10 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
       setGroupInfo({ name: g.name, groupRole: role })
+      if (role === 'CHEF') {
+        const pendingRes = await fetch(`/api/groupes/${groupId}/soumissions`)
+        if (pendingRes.ok) setPendingResources(await pendingRes.json())
+      }
     }
     setLoading(false)
   }, [groupId, session])
@@ -193,6 +212,17 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     fetchData()
   }
 
+  const handleApprovePending = async (pendingId: number) => {
+    await fetch(`/api/groupes/${groupId}/soumissions/${pendingId}`, { method: 'POST' })
+    fetchData()
+  }
+
+  const handleRejectPending = async (pendingId: number, name: string) => {
+    if (!confirm(`Refuser et supprimer « ${name} » ?`)) return
+    await fetch(`/api/groupes/${groupId}/soumissions/${pendingId}`, { method: 'DELETE' })
+    fetchData()
+  }
+
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
   const isChef = groupInfo?.groupRole === 'CHEF'
@@ -207,12 +237,68 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
         <span className="text-gray-900">Répertoire</span>
       </div>
 
-      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
+      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Répertoire ({songs.length})</h1>
         {isChef && (
           <Button onClick={() => setAddSongOpen(true)}>+ Ajouter un morceau</Button>
         )}
       </div>
+
+      {/* Soumissions en attente — chef only */}
+      {isChef && pendingResources.length > 0 && (
+        <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+          <button
+            onClick={() => setPendingExpanded(!pendingExpanded)}
+            className="w-full flex items-center justify-between px-5 py-3.5 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-amber-600 font-semibold text-sm">
+                📬 Soumissions en attente
+              </span>
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-white text-xs font-bold">
+                {pendingResources.length}
+              </span>
+            </div>
+            <svg
+              className={`w-4 h-4 text-amber-600 transition-transform ${pendingExpanded ? 'rotate-180' : ''}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {pendingExpanded && (
+            <div className="border-t border-amber-200">
+              {pendingResources.map((pr) => (
+                <div key={pr.id} className="flex items-center justify-between gap-4 px-5 py-3.5 border-b border-amber-100 last:border-0 bg-white/60">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {getResourceIcon(pr.type)} {pr.name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      🎵 {pr.song.title} · par <span className="font-medium">{pr.user.name}</span>
+                      {pr.fileSize ? ` · ${formatFileSize(pr.fileSize)}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleApprovePending(pr.id)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-500 transition-colors"
+                    >
+                      ✓ Accepter
+                    </button>
+                    <button
+                      onClick={() => handleRejectPending(pr.id, pr.name)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200 transition-colors"
+                    >
+                      ✕ Refuser
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {songs.length === 0 ? (
         <Card>
@@ -269,17 +355,36 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                           </Button>
                         </>
                       )}
+                      {!isChef && (
+                        <button
+                          onClick={() => setSubmitSongId(song.id === submitSongId ? null : song.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-2.5 py-1 text-xs font-medium text-amber-700 hover:border-amber-400 hover:bg-amber-50 transition-colors"
+                        >
+                          📬 Proposer un fichier
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Upload panel */}
+              {/* Upload panel — chef */}
               {isChef && uploadSongId === song.id && (
                 <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                   <ResourceUploader
                     songId={song.id}
                     onUpload={() => { setUploadSongId(null); fetchData() }}
+                  />
+                </div>
+              )}
+
+              {/* Submit panel — member */}
+              {!isChef && submitSongId === song.id && (
+                <div className="px-6 py-4 border-t border-amber-100 bg-amber-50/40">
+                  <PendingResourceUploader
+                    groupId={groupId}
+                    songId={song.id}
+                    onSubmit={() => { setSubmitSongId(null) }}
                   />
                 </div>
               )}

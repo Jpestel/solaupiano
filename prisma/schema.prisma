@@ -74,6 +74,7 @@ model User {
   groups                   GroupMember[]
   attendances              Attendance[]
   resources                Resource[]
+  pendingResources         PendingResource[]
   joinRequests             JoinRequest[]
   groupHistory             GroupMemberHistory[]
   passwordResetTokens      PasswordResetToken[]
@@ -111,15 +112,16 @@ model Group {
   lookingForSince DateTime?
   createdAt       DateTime  @default(now())
 
-  members      GroupMember[]
-  rehearsals   Rehearsal[]
-  concerts     Concert[]
-  songs        Song[]
-  setlists     Setlist[]
-  chordCharts  ChordChart[]
-  joinRequests JoinRequest[]
-  techRider    TechRider?
-  groupPage    GroupPage?
+  members          GroupMember[]
+  rehearsals       Rehearsal[]
+  concerts         Concert[]
+  songs            Song[]
+  setlists         Setlist[]
+  chordCharts      ChordChart[]
+  joinRequests     JoinRequest[]
+  techRider        TechRider?
+  groupPage        GroupPage?
+  pendingResources PendingResource[]
 }
 
 model GroupPage {
@@ -290,14 +292,15 @@ model Song {
   durationSeconds Int?
   createdAt       DateTime @default(now())
 
-  group        Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  resources    Resource[]
-  rehearsals   RehearsalSong[]
-  userProgress UserSongProgress[]
-  setlists     SetlistSong[]
-  chordCharts  ChordChart[]
-  lyrics       SongLyrics?
-  tab          SongTab?
+  group            Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  resources        Resource[]
+  pendingResources PendingResource[]
+  rehearsals       RehearsalSong[]
+  userProgress     UserSongProgress[]
+  setlists         SetlistSong[]
+  chordCharts      ChordChart[]
+  lyrics           SongLyrics?
+  tab              SongTab?
 }
 
 model SongLyrics {
@@ -403,6 +406,22 @@ model Resource {
 
   song       Song @relation(fields: [songId], references: [id], onDelete: Cascade)
   uploadedBy User @relation(fields: [uploadedById], references: [id])
+}
+
+model PendingResource {
+  id          Int          @id @default(autoincrement())
+  songId      Int
+  groupId     Int
+  submittedBy Int
+  name        String
+  type        ResourceType
+  filePath    String
+  fileSize    Int?
+  createdAt   DateTime     @default(now())
+
+  song  Song  @relation(fields: [songId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [submittedBy], references: [id], onDelete: Cascade)
 }
 
 model ReminderLog {
