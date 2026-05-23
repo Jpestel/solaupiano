@@ -377,7 +377,7 @@ export function PlanSection({
                       )}
 
                       {/* Bouton Souscrire */}
-                      {isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive && (
+                      {isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive && !isGifted && (
                         <button
                           onClick={() => !exceedsStorage && handleSubscribe(p.key)}
                           disabled={isLoading || !!loadingPlanKey || exceedsStorage}
