@@ -218,6 +218,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         plan={group.plan as any}
         storageUsedBytes={Number(group.storageUsedBytes)}
         isChef={isChef}
+        memberCount={group.members.length}
       />
 
       <GroupCards
