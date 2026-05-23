@@ -15,7 +15,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json()
 
   const {
-    label, description, priceMonthly, isActive, sortOrder,
+    label, description, priceMonthly, stripePriceId, isActive, sortOrder,
     storageGb, maxGroups, maxMembersPerGroup, maxSongsPerGroup,
     maxSetlists, maxConcerts, maxCharts, maxFilesPerSong,
     hasGrilles, hasConcerts, hasSetlists, hasFicheTechnique,
@@ -51,6 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(hasStats !== undefined && { hasStats: Boolean(hasStats) }),
       ...(hasFileSubmissions !== undefined && { hasFileSubmissions: Boolean(hasFileSubmissions) }),
       ...(color !== undefined && { color: String(color) }),
+      ...(stripePriceId !== undefined && { stripePriceId: stripePriceId ? String(stripePriceId) : null }),
     },
   })
 
