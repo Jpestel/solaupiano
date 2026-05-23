@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendGroupWelcomeEmail, sendMemberRemovedEmail } from '@/lib/email'
+import { coChefCanDo } from '@/lib/permissions'
 
 async function checkAccess(session: Awaited<ReturnType<typeof getServerSession>>, groupId: number) {
   if (!session) return false
@@ -45,6 +46,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const { userId, groupRole = 'MEMBRE' } = await req.json()
   const groupId = Number(params.id)
+  const isAdmin = session!.user.siteRole === 'ADMIN'
+  const requesterId = Number(session!.user.id)
+
+  if (!isAdmin) {
+    const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, requesterId, isAdmin, 'membres', 'add')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
+  }
 
   const targetUser = await prisma.user.findUnique({ where: { id: Number(userId) } })
   if (targetUser?.siteRole === 'ADMIN') {
@@ -144,6 +154,17 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       await tx.joinRequest.deleteMany({ where: { userId: targetUserId, groupId } })
     }
   })
+
+  // Co-chef permission check for remove (only when chef removes someone else)
+  if (!isSelf) {
+    const isReqAdmin = session.user.siteRole === 'ADMIN'
+    if (!isReqAdmin) {
+      const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
+      if (grp && !coChefCanDo(grp, requesterId, isReqAdmin, 'membres', 'remove')) {
+        return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+      }
+    }
+  }
 
   // Notify removed member by email (only when a chef/admin removes someone, not self-removal)
   if (!isSelf && !groupDeleted && targetUser && group) {

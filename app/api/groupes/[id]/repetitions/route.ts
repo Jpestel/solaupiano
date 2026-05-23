@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendRehearsalNotification } from '@/lib/email'
+import { coChefCanDo } from '@/lib/permissions'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -38,6 +39,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
   if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Réservé au chef du groupe.' }, { status: 403 })
+  }
+
+  if (!isAdmin) {
+    const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, userId, isAdmin, 'repetitions', 'create')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
   }
 
   const body = await req.json()

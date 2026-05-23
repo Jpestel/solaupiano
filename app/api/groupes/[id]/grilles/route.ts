@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { coChefCanDo } from '@/lib/permissions'
 
 async function checkAccess(userId: number, groupId: number, isAdmin: boolean, chefOnly = false) {
   const membership = await prisma.groupMember.findUnique({
@@ -48,6 +49,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const { ok, status, error } = await checkAccess(userId, groupId, isAdmin, true)
   if (!ok) return NextResponse.json({ error }, { status })
+
+  if (!isAdmin) {
+    const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, userId, isAdmin, 'grilles', 'create')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
+  }
 
   const { title, tempo, keySignature, timeSignature, barsPerRow, totalBars, songId } = await req.json()
   if (!title?.trim()) return NextResponse.json({ error: 'Le titre est requis.' }, { status: 400 })

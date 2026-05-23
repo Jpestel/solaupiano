@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { coChefCanDo } from '@/lib/permissions'
 
 // PATCH — change a member's group role (CHEF ↔ MEMBRE)
 // Allowed by: site ADMIN or current CHEF of the group
@@ -24,6 +25,13 @@ export async function PATCH(
     })
     if (requesterMembership?.groupRole !== 'CHEF') {
       return NextResponse.json({ error: 'Réservé au chef du groupe.' }, { status: 403 })
+    }
+  }
+
+  if (!isAdmin) {
+    const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, requesterId, isAdmin, 'membres', 'promote')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
     }
   }
 

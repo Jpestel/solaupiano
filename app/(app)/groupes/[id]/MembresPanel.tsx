@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 
 interface Member {
   userId: number
@@ -21,6 +22,8 @@ export default function MembresPanel({
   isAdmin,
   currentUserId,
   currentUserRole,
+  createdBy,
+  chefPermissions,
 }: {
   groupId: number
   members: Member[]
@@ -28,6 +31,8 @@ export default function MembresPanel({
   isAdmin: boolean
   currentUserId: number
   currentUserRole: string
+  createdBy?: number | null
+  chefPermissions?: unknown
 }) {
   const router = useRouter()
   const [members, setMembers] = useState(initialMembers)
@@ -35,6 +40,13 @@ export default function MembresPanel({
   const [actionError, setActionError] = useState('')
 
   const isChef = currentUserRole === 'CHEF'
+  const isFounder = isAdmin || currentUserId === createdBy
+  const perms = resolvePermissions(chefPermissions)
+  const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
+    if (!isChef) return false
+    if (isFounder) return true
+    return (perms[mod] as Record<string, boolean>)[action] !== false
+  }
 
   const toggleRole = async (member: Member) => {
     const newRole = member.groupRole === 'CHEF' ? 'MEMBRE' : 'CHEF'
@@ -134,7 +146,7 @@ export default function MembresPanel({
 
             <div className="flex items-center gap-1 flex-shrink-0">
               {/* Role toggle — chef or admin */}
-              {(isAdmin || isChef) && !isSelf && (
+              {(isAdmin || isChef) && !isSelf && chefCan('membres', 'promote') && (
                 <button
                   onClick={() => toggleRole(member)}
                   disabled={processing === member.userId}
@@ -150,7 +162,7 @@ export default function MembresPanel({
               )}
 
               {/* Remove member — chef only, not on self */}
-              {isChef && !isSelf && (
+              {isChef && !isSelf && chefCan('membres', 'remove') && (
                 <button
                   onClick={() => removeMember(member.userId, false)}
                   disabled={processing === member.userId}

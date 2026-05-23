@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 import fs from 'fs'
 import path from 'path'
+import { coChefCanDo } from '@/lib/permissions'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -91,6 +92,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
+  if (!isAdmin && isChef) {
+    const grp = await prisma.group.findUnique({ where: { id: resource.song.groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, userId, isAdmin, 'ressources', 'update')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
+  }
+
   const data: { name?: string; filePath?: string } = {}
   if (typeof name === 'string' && name.trim()) data.name = name.trim()
   if ((resource.type as string) === 'LIEN' && typeof filePath === 'string' && filePath.trim()) data.filePath = filePath.trim()
@@ -122,6 +130,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   if (!isUploader && !isChef && session.user.siteRole !== 'ADMIN') {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  }
+
+  if (isChef && !isUploader && session.user.siteRole !== 'ADMIN') {
+    const grp = await prisma.group.findUnique({ where: { id: resource.song.groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, userId, false, 'ressources', 'delete')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
   }
 
   // Delete file from disk

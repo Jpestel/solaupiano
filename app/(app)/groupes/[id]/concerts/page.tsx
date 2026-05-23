@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { formatDateWithDay } from '@/lib/utils'
+import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -13,7 +14,7 @@ interface Concert {
   id: number; name: string; date: string; location: string; notes?: string
   setlist?: SetlistRef | null
 }
-interface GroupInfo { name: string; groupRole: string }
+interface GroupInfo { name: string; groupRole: string; createdBy: number | null; chefPermissions: unknown }
 
 const EMPTY_FORM = { name: '', date: '', location: '', notes: '', setlistId: '' }
 
@@ -132,7 +133,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       const g = await grpRes.json()
       const me = g.members?.find((m: any) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
     }
     setLoading(false)
   }
@@ -199,6 +200,13 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
   const isChef = groupInfo?.groupRole === 'CHEF'
+  const isFounder = isChef && (session?.user?.siteRole === 'ADMIN' || Number(session?.user?.id) === groupInfo?.createdBy)
+  const perms = resolvePermissions(groupInfo?.chefPermissions)
+  const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
+    if (!isChef) return false
+    if (isFounder) return true
+    return (perms[mod] as Record<string, boolean>)[action] !== false
+  }
 
   const SetlistSelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
     <div>
@@ -264,12 +272,16 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
         </Link>
       </div>
 
-      {isChef && (
+      {(chefCan('concerts', 'update') || chefCan('concerts', 'delete')) && (
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
-          <button onClick={() => openEdit(concert)}
-            className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">Modifier</button>
-          <button onClick={() => setDeleteId(concert.id)}
-            className="text-xs text-red-400 hover:text-red-600 font-medium ml-auto">Supprimer</button>
+          {chefCan('concerts', 'update') && (
+            <button onClick={() => openEdit(concert)}
+              className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">Modifier</button>
+          )}
+          {chefCan('concerts', 'delete') && (
+            <button onClick={() => setDeleteId(concert.id)}
+              className="text-xs text-red-400 hover:text-red-600 font-medium ml-auto">Supprimer</button>
+          )}
         </div>
       )}
     </Card>
@@ -287,7 +299,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
 
       <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Concerts</h1>
-        {isChef && <Button onClick={() => setCreateOpen(true)}>+ Nouveau concert</Button>}
+        {chefCan('concerts', 'create') && <Button onClick={() => setCreateOpen(true)}>+ Nouveau concert</Button>}
       </div>
 
       <div className="mb-8">

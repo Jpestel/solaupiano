@@ -72,6 +72,7 @@ model User {
 
   instruments              UserInstrument[]
   groups                   GroupMember[]
+  foundedGroups            Group[]          @relation("GroupFounder")
   attendances              Attendance[]
   resources                Resource[]
   pendingResources         PendingResource[]
@@ -111,6 +112,9 @@ model Group {
   lookingFor       String?   @db.Text
   lookingForSince DateTime?
   createdAt       DateTime  @default(now())
+  createdBy        Int?
+  chefPermissions  Json?
+  founder          User?     @relation("GroupFounder", fields: [createdBy], references: [id], onDelete: SetNull)
 
   members          GroupMember[]
   rehearsals       Rehearsal[]

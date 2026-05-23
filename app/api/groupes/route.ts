@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
       isHidden: typeof isHidden === 'boolean' ? isHidden : false,
       lookingFor: lookingFor ?? null,
       lookingForSince: lookingFor ? new Date() : null,
+      createdBy: chefUserId || null,
       ...(chefUserId && {
         members: {
           create: { userId: chefUserId, groupRole: 'CHEF' },

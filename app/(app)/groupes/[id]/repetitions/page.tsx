@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { formatDateWithDay } from '@/lib/utils'
+import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -20,6 +21,8 @@ interface Rehearsal {
 interface GroupInfo {
   name: string
   groupRole: string
+  createdBy: number | null
+  chefPermissions: unknown
 }
 
 interface Member {
@@ -57,7 +60,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
       const otherMembers = (g.members || []).filter((m: { userId: number }) => m.userId !== Number(session?.user?.id))
       setMembers(otherMembers)
       setSelectedMemberIds(otherMembers.map((m: Member) => m.userId))
@@ -104,6 +107,13 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
   const isChef = groupInfo?.groupRole === 'CHEF'
+  const isFounder = isChef && (session?.user?.siteRole === 'ADMIN' || Number(session?.user?.id) === groupInfo?.createdBy)
+  const perms = resolvePermissions(groupInfo?.chefPermissions)
+  const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
+    if (!isChef) return false
+    if (isFounder) return true
+    return (perms[mod] as Record<string, boolean>)[action] !== false
+  }
 
   return (
     <div>
@@ -117,7 +127,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
 
       <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Répétitions</h1>
-        {isChef && (
+        {chefCan('repetitions', 'create') && (
           <Button onClick={() => setModalOpen(true)}>
             + Nouvelle répétition
           </Button>

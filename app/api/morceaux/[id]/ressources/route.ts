@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { detectResourceType } from '@/lib/utils'
 import { PLANS, GroupPlan } from '@/lib/plans'
+import { coChefCanDo } from '@/lib/permissions'
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'
@@ -52,12 +53,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
   if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
-  // Fetch group for storage check
+  // Fetch group for storage check + permissions
   const group = await prisma.group.findUnique({
     where: { id: song.groupId },
-    select: { plan: true, storageUsedBytes: true },
+    select: { plan: true, storageUsedBytes: true, createdBy: true, chefPermissions: true },
   })
   if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
+
+  // Co-chef permission check
+  if (!isAdmin && membership?.groupRole === 'CHEF') {
+    if (!coChefCanDo(group, userId, isAdmin, 'ressources', 'create')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
+  }
 
   // JSON body = URL resource
   const contentType = req.headers.get('content-type') || ''

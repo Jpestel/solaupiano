@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { coChefCanDo } from '@/lib/permissions'
 
 async function getChartAndCheckAccess(
   chartId: number, userId: number, isAdmin: boolean, chefOnly = false
@@ -50,6 +51,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const result = await getChartAndCheckAccess(chartId, userId, isAdmin, true)
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
 
+  if (!isAdmin) {
+    const grp = await prisma.group.findUnique({ where: { id: result.chart.groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, userId, isAdmin, 'grilles', 'update')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
+  }
+
   const body = await req.json()
   const { title, tempo, keySignature, timeSignature, barsPerRow, totalBars, cells, sons, songId } = body
 
@@ -93,6 +101,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const result = await getChartAndCheckAccess(chartId, userId, isAdmin, true)
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
+
+  if (!isAdmin) {
+    const grp = await prisma.group.findUnique({ where: { id: result.chart.groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, userId, isAdmin, 'grilles', 'delete')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
+  }
 
   await prisma.chordChart.delete({ where: { id: chartId } })
   return NextResponse.json({ ok: true })

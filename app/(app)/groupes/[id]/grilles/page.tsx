@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -14,7 +15,7 @@ interface Chart {
   songId?: number; song?: { id: number; title: string }
   createdAt: string; updatedAt: string
 }
-interface GroupInfo { name: string; groupRole: string }
+interface GroupInfo { name: string; groupRole: string; createdBy: number | null; chefPermissions: unknown }
 
 const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '5/4', '12/8', '2/2']
 const BARS_PER_ROW = [2, 3, 4, 6]
@@ -51,7 +52,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
       const g = await grpRes.json()
       const me = g.members?.find((m: any) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
     }
     if (songsRes.ok) setSongs(await songsRes.json())
     setLoading(false)
@@ -103,6 +104,13 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
   const isChef = groupInfo?.groupRole === 'CHEF'
+  const isFounder = isChef && (session?.user?.siteRole === 'ADMIN' || Number(session?.user?.id) === groupInfo?.createdBy)
+  const perms = resolvePermissions(groupInfo?.chefPermissions)
+  const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
+    if (!isChef) return false
+    if (isFounder) return true
+    return (perms[mod] as Record<string, boolean>)[action] !== false
+  }
 
   return (
     <div>
@@ -119,7 +127,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
           <h1 className="text-2xl font-bold text-gray-900">Grilles d&apos;accords</h1>
           <p className="text-gray-500 text-sm mt-1">Créez et partagez vos grilles d&apos;accords.</p>
         </div>
-        {isChef && <Button onClick={() => setModalOpen(true)}>+ Nouvelle grille</Button>}
+        {chefCan('grilles', 'create') && <Button onClick={() => setModalOpen(true)}>+ Nouvelle grille</Button>}
       </div>
 
       {charts.length === 0 ? (
@@ -130,7 +138,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
             <p className="text-sm text-gray-400">
               {isChef ? 'Créez votre première grille d\'accords.' : 'Le chef du groupe n\'a pas encore créé de grille.'}
             </p>
-            {isChef && (
+            {chefCan('grilles', 'create') && (
               <button onClick={() => setModalOpen(true)}
                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500 transition-colors">
                 + Créer une grille
@@ -180,20 +188,20 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                     className="text-xs text-orange-600 hover:text-orange-500 font-medium">
                     {isChef ? 'Éditer →' : 'Voir →'}
                   </Link>
-                  {isChef && (
-                    <>
-                      <button onClick={() => openDuplicate(chart)}
-                        className="text-xs text-indigo-500 hover:text-indigo-700 font-medium flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Dupliquer
-                      </button>
-                      <button onClick={() => setDeleteId(chart.id)}
-                        className="text-xs text-red-400 hover:text-red-600 font-medium ml-auto">
-                        Supprimer
-                      </button>
-                    </>
+                  {chefCan('grilles', 'create') && (
+                    <button onClick={() => openDuplicate(chart)}
+                      className="text-xs text-indigo-500 hover:text-indigo-700 font-medium flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Dupliquer
+                    </button>
+                  )}
+                  {chefCan('grilles', 'delete') && (
+                    <button onClick={() => setDeleteId(chart.id)}
+                      className="text-xs text-red-400 hover:text-red-600 font-medium ml-auto">
+                      Supprimer
+                    </button>
                   )}
                 </div>
               </div>

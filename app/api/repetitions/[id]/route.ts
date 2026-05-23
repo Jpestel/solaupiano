@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { coChefCanDo } from '@/lib/permissions'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -102,6 +103,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
+  if (!isAdmin) {
+    const grp = await prisma.group.findUnique({ where: { id: rehearsal.groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, userId, isAdmin, 'repetitions', 'update')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
+  }
+
   const body = await req.json()
   const updated = await prisma.rehearsal.update({
     where: { id: rehearsalId },
@@ -134,6 +142,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   })
   if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  }
+
+  if (!isAdmin) {
+    const grp = await prisma.group.findUnique({ where: { id: rehearsal.groupId }, select: { createdBy: true, chefPermissions: true } })
+    if (grp && !coChefCanDo(grp, userId, isAdmin, 'repetitions', 'delete')) {
+      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+    }
   }
 
   await prisma.rehearsal.delete({ where: { id: rehearsalId } })

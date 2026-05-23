@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
-  const group = await prisma.group.findUnique({
+  let group = await prisma.group.findUnique({
     where: { id: groupId },
     include: {
       members: {
@@ -34,6 +34,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
 
   if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
+
+  // Auto-assign founder for existing groups that predate this feature
+  if (group.createdBy === null) {
+    const oldestChef = await prisma.groupMember.findFirst({
+      where: { groupId, groupRole: 'CHEF' },
+      orderBy: { joinedAt: 'asc' },
+    })
+    if (oldestChef) {
+      await prisma.group.update({ where: { id: groupId }, data: { createdBy: oldestChef.userId } })
+      group = { ...group, createdBy: oldestChef.userId }
+    }
+  }
 
   return NextResponse.json({ ...group, storageUsedBytes: String(group.storageUsedBytes) })
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { getResourceIcon, getResourceTypeLabel, formatFileSize, getVideoEmbedUrl } from '@/lib/utils'
+import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -53,6 +54,8 @@ function parseDuration(val: string): number | null {
 interface GroupInfo {
   name: string
   groupRole: string
+  createdBy: number | null
+  chefPermissions: unknown
 }
 
 interface PendingResource {
@@ -99,7 +102,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
       if (role === 'CHEF') {
         const pendingRes = await fetch(`/api/groupes/${groupId}/soumissions`)
         if (pendingRes.ok) setPendingResources(await pendingRes.json())
@@ -226,6 +229,13 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
   const isChef = groupInfo?.groupRole === 'CHEF'
+  const isFounder = isChef && (session?.user?.siteRole === 'ADMIN' || Number(session?.user?.id) === groupInfo?.createdBy)
+  const perms = resolvePermissions(groupInfo?.chefPermissions)
+  const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
+    if (!isChef) return false
+    if (isFounder) return true
+    return (perms[mod] as Record<string, boolean>)[action] !== false
+  }
 
   return (
     <div>
@@ -239,7 +249,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
 
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Répertoire ({songs.length})</h1>
-        {isChef && (
+        {chefCan('repertoire', 'create') && (
           <Button onClick={() => setAddSongOpen(true)}>+ Ajouter un morceau</Button>
         )}
       </div>
@@ -341,19 +351,19 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                         🎸 Tablature
                         {song.tab && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 ml-0.5" />}
                       </Link>
-                      {isChef && (
-                        <>
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>
-                            Éditer
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setUploadSongId(song.id === uploadSongId ? null : song.id)}
-                          >
-                            + Ressource
-                          </Button>
-                        </>
+                      {isChef && (chefCan('repertoire', 'update') || chefCan('repertoire', 'delete')) && (
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>
+                          Éditer
+                        </Button>
+                      )}
+                      {chefCan('ressources', 'create') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setUploadSongId(song.id === uploadSongId ? null : song.id)}
+                        >
+                          + Ressource
+                        </Button>
                       )}
                       {!isChef && (
                         <button
@@ -458,21 +468,21 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                                 Télécharger
                               </a>
                             )}
-                            {isChef && (
-                              <>
-                                <button
-                                  onClick={() => openEditResource(res)}
-                                  className="text-xs text-gray-500 hover:text-indigo-600 font-medium"
-                                >
-                                  Éditer
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteResource(res.id)}
-                                  className="text-xs text-red-500 hover:text-red-700 font-medium"
-                                >
-                                  Supprimer
-                                </button>
-                              </>
+                            {chefCan('ressources', 'update') && (
+                              <button
+                                onClick={() => openEditResource(res)}
+                                className="text-xs text-gray-500 hover:text-indigo-600 font-medium"
+                              >
+                                Éditer
+                              </button>
+                            )}
+                            {chefCan('ressources', 'delete') && (
+                              <button
+                                onClick={() => handleDeleteResource(res.id)}
+                                className="text-xs text-red-500 hover:text-red-700 font-medium"
+                              >
+                                Supprimer
+                              </button>
                             )}
                           </div>
                         </div>
@@ -549,13 +559,15 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} />
           </div>
           <div className="flex items-center justify-between pt-2">
-            <button
-              type="button"
-              onClick={() => editSong && handleDeleteSong(editSong)}
-              className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors"
-            >
-              🗑 Supprimer ce morceau
-            </button>
+            {chefCan('repertoire', 'delete') && (
+              <button
+                type="button"
+                onClick={() => editSong && handleDeleteSong(editSong)}
+                className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors"
+              >
+                🗑 Supprimer ce morceau
+              </button>
+            )}
             <div className="flex gap-3">
               <Button type="button" variant="secondary" onClick={() => setEditSong(null)}>Annuler</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Sauvegarder'}</Button>

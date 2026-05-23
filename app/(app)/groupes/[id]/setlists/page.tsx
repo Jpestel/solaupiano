@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { formatDateWithDay } from '@/lib/utils'
+import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -17,7 +18,7 @@ interface Setlist {
   _count: { songs: number }
   concerts: Concert[]
 }
-interface GroupInfo { name: string; groupRole: string }
+interface GroupInfo { name: string; groupRole: string; createdBy: number | null; chefPermissions: unknown }
 
 export default function SetlistsPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
@@ -42,7 +43,7 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
       const g = await grpRes.json()
       const me = g.members?.find((m: any) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
     }
     setLoading(false)
   }
@@ -74,6 +75,13 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
   const isChef = groupInfo?.groupRole === 'CHEF'
+  const isFounder = isChef && (session?.user?.siteRole === 'ADMIN' || Number(session?.user?.id) === groupInfo?.createdBy)
+  const perms = resolvePermissions(groupInfo?.chefPermissions)
+  const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
+    if (!isChef) return false
+    if (isFounder) return true
+    return (perms[mod] as Record<string, boolean>)[action] !== false
+  }
 
   return (
     <div>
@@ -91,7 +99,7 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
           <h1 className="text-2xl font-bold text-gray-900">Setlists</h1>
           <p className="text-gray-500 text-sm mt-1">Créez des listes de morceaux à associer à vos concerts.</p>
         </div>
-        {isChef && (
+        {chefCan('setlists', 'create') && (
           <Button onClick={() => setModalOpen(true)}>+ Nouvelle setlist</Button>
         )}
       </div>
@@ -104,7 +112,7 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
             <p className="text-sm text-gray-400">
               {isChef ? 'Créez votre première setlist pour la préparer et l\'associer à un concert.' : 'Le chef du groupe n\'a pas encore créé de setlist.'}
             </p>
-            {isChef && (
+            {chefCan('setlists', 'create') && (
               <button onClick={() => setModalOpen(true)}
                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
                 + Créer une setlist
@@ -162,7 +170,7 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
                     className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">
                     {isChef ? 'Éditer →' : 'Voir →'}
                   </Link>
-                  {isChef && (
+                  {chefCan('setlists', 'delete') && (
                     <button onClick={() => setDeleteId(sl.id)}
                       className="text-xs text-red-400 hover:text-red-600 font-medium ml-auto">
                       Supprimer
