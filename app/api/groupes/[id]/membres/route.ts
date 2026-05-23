@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { sendGroupWelcomeEmail } from '@/lib/email'
+import { sendGroupWelcomeEmail, sendMemberRemovedEmail } from '@/lib/email'
 
 async function checkAccess(session: Awaited<ReturnType<typeof getServerSession>>, groupId: number) {
   if (!session) return false
@@ -91,7 +91,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
-  const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } })
+  const [group, targetUser] = await Promise.all([
+    prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+    prisma.user.findUnique({ where: { id: targetUserId }, select: { email: true, name: true } }),
+  ])
 
   // A CHEF cannot leave while other members still exist
   if (isSelf) {
@@ -141,6 +144,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       await tx.joinRequest.deleteMany({ where: { userId: targetUserId, groupId } })
     }
   })
+
+  // Notify removed member by email (only when a chef/admin removes someone, not self-removal)
+  if (!isSelf && !groupDeleted && targetUser && group) {
+    const remover = await prisma.user.findUnique({ where: { id: requesterId }, select: { name: true } })
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+    sendMemberRemovedEmail(targetUser.email, targetUser.name, group.name, remover?.name ?? 'Le chef', baseUrl).catch(() => {})
+  }
 
   return NextResponse.json({ success: true, groupDeleted })
 }
