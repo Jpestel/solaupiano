@@ -91,7 +91,7 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
             {allPlans.map((p) => {
               const isCurrent = p.key === currentPlanKey
               const pc = COLOR_MAP[p.color] ?? COLOR_MAP.gray
-              const isComingSoon = p.priceMonthly !== null
+              const isPaid = p.priceMonthly !== null
               const pricePerMusician = p.priceMonthly ? p.priceMonthly / musicians : null
               const features = generateFeatureList(p)
               return (
@@ -116,7 +116,7 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
                     ))}
                   </ul>
                   <div className="text-center">
-                    {!isComingSoon ? (
+                    {!isPaid ? (
                       <p className="text-xs text-gray-500 font-medium">Gratuit</p>
                     ) : (
                       <div>
@@ -129,9 +129,6 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
                             <span className="font-normal text-gray-500">/musicien</span>
                           </p>
                         )}
-                        <span className="inline-block mt-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500">
-                          Bientôt disponible
-                        </span>
                       </div>
                     )}
                   </div>
