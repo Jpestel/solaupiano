@@ -130,9 +130,23 @@ export default async function GroupesPage() {
           <div className="text-center py-10">
             <div className="text-5xl mb-4">🎶</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun groupe pour l&apos;instant</h3>
-            <p className="text-gray-500 text-sm">
-              Créez votre premier groupe ou rejoignez-en un ci-dessous.
-            </p>
+            {canCreateGroup ? (
+              <p className="text-gray-500 text-sm">
+                Créez votre premier groupe ou rejoignez-en un ci-dessous.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-gray-500 text-sm">
+                  Vous êtes en plan <strong>Musicien</strong> — vous pouvez rejoindre des groupes existants, mais pas en créer.
+                </p>
+                <Link
+                  href="/profil"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
+                >
+                  🎼 Passer en plan Chef d&apos;orchestre
+                </Link>
+              </div>
+            )}
           </div>
         </Card>
       ) : (
