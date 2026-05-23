@@ -332,18 +332,25 @@ export function PlanSection({
                       {!isPaid ? (
                         <>
                           <p className="text-xs text-gray-500 font-medium">Gratuit</p>
-                          {/* Bouton rétrograder vers FREE si abonnement Stripe actif */}
-                          {isChef && stripeSubscriptionId && currentPlanKey !== 'FREE' && (
-                            <button
-                              onClick={handleManage}
-                              disabled={loadingPlanKey === 'portal'}
-                              className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-60"
-                            >
-                              {loadingPlanKey === 'portal' ? (
-                                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                              ) : '↓'}
-                              Résilier et passer au Gratuit
-                            </button>
+                          {isChef && currentPlanKey !== 'FREE' && (
+                            stripeSubscriptionId ? (
+                              /* Abonnement Stripe actif → portail de résiliation */
+                              <button
+                                onClick={handleManage}
+                                disabled={loadingPlanKey === 'portal'}
+                                className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-60"
+                              >
+                                {loadingPlanKey === 'portal' ? (
+                                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                                ) : '↓'}
+                                Résilier et passer au Gratuit
+                              </button>
+                            ) : (
+                              /* Plan offert → message informatif */
+                              <p className="mt-2 text-[10px] text-amber-600 font-medium">
+                                🎁 Plan offert — contactez l&apos;admin pour le modifier
+                              </p>
+                            )
                           )}
                         </>
                       ) : (
