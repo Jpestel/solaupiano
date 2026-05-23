@@ -133,8 +133,8 @@ export default function MembresPanel({
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Role toggle — admin only */}
-              {isAdmin && !isSelf && (
+              {/* Role toggle — chef or admin */}
+              {(isAdmin || isChef) && !isSelf && (
                 <button
                   onClick={() => toggleRole(member)}
                   disabled={processing === member.userId}
