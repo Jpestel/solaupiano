@@ -146,6 +146,13 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     fetchData()
   }
 
+  const handleDeleteSong = async (song: Song) => {
+    if (!confirm(`Supprimer "${song.title}" ? Cette action supprimera aussi toutes ses ressources, paroles et tablature.`)) return
+    await fetch(`/api/groupes/${groupId}/morceaux/${song.id}`, { method: 'DELETE' })
+    setEditSong(null)
+    fetchData()
+  }
+
   const toggleResources = (songId: number) => {
     setExpandedSongIds((prev) => {
       const next = new Set(prev)
@@ -436,9 +443,18 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             <label className="form-label">Notes</label>
             <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} />
           </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setEditSong(null)}>Annuler</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Sauvegarder'}</Button>
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => editSong && handleDeleteSong(editSong)}
+              className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors"
+            >
+              🗑 Supprimer ce morceau
+            </button>
+            <div className="flex gap-3">
+              <Button type="button" variant="secondary" onClick={() => setEditSong(null)}>Annuler</Button>
+              <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Sauvegarder'}</Button>
+            </div>
           </div>
         </form>
       </Modal>

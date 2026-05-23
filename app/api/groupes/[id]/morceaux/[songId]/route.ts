@@ -38,3 +38,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   return NextResponse.json(song)
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string; songId: string } }) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
+
+  const groupId = Number(params.id)
+  const songId = Number(params.songId)
+
+  if (!await requireChef(session, groupId)) {
+    return NextResponse.json({ error: 'Réservé au chef du groupe.' }, { status: 403 })
+  }
+
+  await prisma.song.delete({ where: { id: songId } })
+
+  return NextResponse.json({ ok: true })
+}
