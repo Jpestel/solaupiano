@@ -25,7 +25,7 @@ interface Group {
   members: { user: User; groupRole: string }[]
 }
 
-const PLAN_COLORS: Record<GroupPlan, string> = {
+const PLAN_COLORS: Record<string, string> = {
   FREE: 'bg-gray-100 text-gray-600',
   PRO: 'bg-indigo-100 text-indigo-700',
   PREMIUM: 'bg-purple-100 text-purple-700',
@@ -38,7 +38,7 @@ export default function AdminGroupesPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', chefId: '', isPublic: true })
   const [editGroup, setEditGroup] = useState<Group | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', description: '', isPublic: true, plan: 'FREE' as GroupPlan })
+  const [editForm, setEditForm] = useState({ name: '', description: '', isPublic: true, plan: 'FREE' as string })
   const [planSaving, setPlanSaving] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -161,7 +161,8 @@ export default function AdminGroupesPage() {
                   const chef = group.members.find((m: any) => m.groupRole === 'CHEF')
                   const plan: GroupPlan = group.plan || 'FREE'
                   const usedBytes = Number(group.storageUsedBytes || 0)
-                  const pct = storagePercent(usedBytes, plan)
+                  const planStorageGb = (PLANS[plan]?.storageBytes ?? PLANS.FREE.storageBytes) / (1024 * 1024 * 1024)
+                  const pct = storagePercent(usedBytes, planStorageGb)
                   return (
                     <tr key={group.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                       <td className="px-6 py-4">

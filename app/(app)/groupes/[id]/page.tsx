@@ -10,6 +10,7 @@ import { GroupCards } from './GroupCards'
 import { PlanSection } from './PlanSection'
 import { GroupCoverUpload } from './GroupCoverUpload'
 import { PermissionsSettings } from './PermissionsSettings'
+import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -24,6 +25,25 @@ export default async function GroupePage({ params }: { params: { id: string } })
   const groupId = Number(params.id)
 
   const isAdminUser = session.user.siteRole === 'ADMIN'
+
+  // Fetch plans from DB (auto-seed if empty)
+  let dbPlans = await prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } })
+  if (dbPlans.length === 0) {
+    await prisma.plan.createMany({ data: DEFAULT_PLAN_SEEDS })
+    dbPlans = await prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } })
+  }
+  const allPlans: DbPlan[] = dbPlans.map((p) => ({
+    ...p,
+    storageGb: Number(p.storageGb),
+    priceMonthly: p.priceMonthly !== null ? Number(p.priceMonthly) : null,
+    description: p.description ?? null,
+    maxMembersPerGroup: p.maxMembersPerGroup ?? null,
+    maxSongsPerGroup: p.maxSongsPerGroup ?? null,
+    maxSetlists: p.maxSetlists ?? null,
+    maxConcerts: p.maxConcerts ?? null,
+    maxCharts: p.maxCharts ?? null,
+    maxFilesPerSong: p.maxFilesPerSong ?? null,
+  }))
 
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
@@ -215,10 +235,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
       </div>
 
       <PlanSection
-        plan={group.plan as any}
+        currentPlanKey={group.plan}
         storageUsedBytes={Number(group.storageUsedBytes)}
         isChef={isChef}
         memberCount={group.members.length}
+        allPlans={allPlans}
       />
 
       <GroupCards

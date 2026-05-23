@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { detectResourceType } from '@/lib/utils'
-import { PLANS, GroupPlan } from '@/lib/plans'
+import { PLANS } from '@/lib/plans'
 import { coChefCanDo } from '@/lib/permissions'
 import formidable from 'formidable'
 import fs from 'fs'
@@ -121,14 +121,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Aucun fichier reçu.' }, { status: 400 })
     }
 
-    // Check storage quota
+    // Check storage quota (fetch from DB plan, fallback to static PLANS)
     const fileSize = uploadedFile.size || 0
-    const planLimit = PLANS[group.plan as GroupPlan].storageBytes
+    const dbPlan = await prisma.plan.findUnique({ where: { key: group.plan } })
+    const storageGb = dbPlan ? Number(dbPlan.storageGb) : (PLANS[group.plan]?.storageBytes ?? PLANS.FREE.storageBytes) / (1024 * 1024 * 1024)
+    const planLimitBytes = storageGb * 1024 * 1024 * 1024
+    const planLabel = dbPlan?.label ?? PLANS[group.plan]?.label ?? group.plan
+    const storageLabel = `${storageGb} Go`
     const currentUsage = Number(group.storageUsedBytes)
-    if (currentUsage + fileSize > planLimit) {
+    if (currentUsage + fileSize > planLimitBytes) {
       fs.unlinkSync(uploadedFile.filepath) // clean up tmp file
       return NextResponse.json({
-        error: `Quota de stockage dépassé. Votre plan ${PLANS[group.plan as GroupPlan].label} autorise ${PLANS[group.plan as GroupPlan].storageLabel}.`,
+        error: `Quota de stockage dépassé. Votre plan ${planLabel} autorise ${storageLabel}.`,
         code: 'STORAGE_QUOTA_EXCEEDED',
       }, { status: 413 })
     }

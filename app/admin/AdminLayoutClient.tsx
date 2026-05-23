@@ -13,6 +13,7 @@ const adminNav = [
   { href: '/admin/instruments',      label: 'Instruments' },
   { href: '/admin/utilisateurs',     label: 'Utilisateurs' },
   { href: '/admin/groupes',          label: 'Groupes' },
+  { href: '/admin/plans',            label: 'Plans' },
   { href: '/admin/rappels',          label: 'Rappels' },
   { href: '/admin/personnalisation', label: 'Personnalisation' },
 ]

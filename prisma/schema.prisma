@@ -22,10 +22,40 @@ enum GroupRole {
   MEMBRE
 }
 
-enum GroupPlan {
-  FREE
-  PRO
-  PREMIUM
+model Plan {
+  id          Int     @id @default(autoincrement())
+  key         String  @unique
+  label       String
+  description String? @db.Text
+
+  priceMonthly Float?
+  isActive     Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  storageGb    Float @default(1)
+
+  maxGroups          Int  @default(1)
+  maxMembersPerGroup Int?
+  maxSongsPerGroup   Int?
+  maxSetlists        Int?
+  maxConcerts        Int?
+  maxCharts          Int?
+  maxFilesPerSong    Int?
+
+  hasGrilles         Boolean @default(true)
+  hasConcerts        Boolean @default(true)
+  hasSetlists        Boolean @default(true)
+  hasFicheTechnique  Boolean @default(true)
+  hasMaPage          Boolean @default(true)
+  hasCoChefs         Boolean @default(true)
+  hasPrioritySupport Boolean @default(false)
+  hasStats           Boolean @default(false)
+  hasFileSubmissions Boolean @default(true)
+
+  color     String   @default("gray")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum AttendanceStatus {
@@ -107,7 +137,7 @@ model Group {
   coverUrl         String?
   isPublic         Boolean   @default(true)
   isHidden         Boolean   @default(false)
-  plan             GroupPlan @default(FREE)
+  plan             String    @default("FREE")
   storageUsedBytes BigInt    @default(0)
   lookingFor       String?   @db.Text
   lookingForSince DateTime?
