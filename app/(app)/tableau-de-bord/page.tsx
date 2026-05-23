@@ -83,6 +83,9 @@ export default async function TableauDeBordPage() {
             where: { date: { gte: now } },
             orderBy: { date: 'asc' },
           },
+          _count: {
+            select: { members: true, songs: true, setlists: true },
+          },
         },
       },
     },
@@ -135,6 +138,94 @@ export default async function TableauDeBordPage() {
         </div>
         <InviteButton />
       </div>
+
+      {/* My groups quick access */}
+      {data.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center text-sm">👥</span>
+            Mes groupes
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {data.map((m) => {
+              const g = m.group
+              const isChef = m.groupRole === 'CHEF'
+              const nextRep = g.rehearsals[0]
+              const nextConcert = g.concerts[0]
+              const links = [
+                { href: `/groupes/${g.id}/repetitions`, icon: '🎵', label: 'Répétitions' },
+                { href: `/groupes/${g.id}/morceaux`,    icon: '🎼', label: 'Répertoire' },
+                { href: `/groupes/${g.id}/setlists`,    icon: '🎶', label: 'Setlists' },
+                { href: `/groupes/${g.id}/grilles`,     icon: '🎸', label: 'Grilles' },
+                { href: `/groupes/${g.id}/concerts`,    icon: '🎭', label: 'Concerts' },
+              ]
+              return (
+                <div key={g.id} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                  {/* Group header */}
+                  <Link href={`/groupes/${g.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0 overflow-hidden">
+                      {g.coverUrl
+                        ? <img src={g.coverUrl} alt={g.name} className="w-full h-full object-cover" />
+                        : g.name.charAt(0).toUpperCase()
+                      }
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-gray-900 text-sm truncate">{g.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {isChef ? '🎼 Chef d\'orchestre' : '🎵 Membre'} · {g._count.members} membre{g._count.members > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+
+                  {/* Next event pill */}
+                  {(nextRep || nextConcert) && (
+                    <div className="px-4 pb-2">
+                      {nextRep && (
+                        <Link href={`/groupes/${g.id}/repetitions/${nextRep.id}`}
+                          className="flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-100 px-2.5 py-1.5 text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+                        >
+                          <span className="font-semibold flex-shrink-0">🎵</span>
+                          <span className="truncate">
+                            Prochaine rép. — {format(nextRep.date, 'd MMM', { locale: fr })} à {nextRep.startTime}
+                          </span>
+                        </Link>
+                      )}
+                      {nextConcert && (
+                        <Link href={`/groupes/${g.id}/concerts`}
+                          className="flex items-center gap-2 rounded-lg bg-purple-50 border border-purple-100 px-2.5 py-1.5 text-xs text-purple-700 hover:bg-purple-100 transition-colors mt-1.5"
+                        >
+                          <span className="font-semibold flex-shrink-0">🎭</span>
+                          <span className="truncate">
+                            Prochain concert — {format(nextConcert.date, 'd MMM', { locale: fr })}
+                          </span>
+                        </Link>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Quick nav */}
+                  <div className="grid grid-cols-5 border-t border-gray-100">
+                    {links.map((l) => (
+                      <Link
+                        key={l.href}
+                        href={l.href}
+                        title={l.label}
+                        className="flex flex-col items-center gap-0.5 py-2.5 text-center hover:bg-indigo-50 transition-colors group"
+                      >
+                        <span className="text-base leading-none">{l.icon}</span>
+                        <span className="text-[9px] font-medium text-gray-400 group-hover:text-indigo-600 transition-colors leading-tight">{l.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main column: concerts + rehearsals */}
