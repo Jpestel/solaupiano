@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DbPlan, COLOR_MAP, generateFeatureList, formatBytes, storagePercent } from '@/lib/plans'
 
 interface PlanSectionProps {
@@ -17,6 +17,19 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
   const pct = currentPlan ? storagePercent(usedBytes, currentPlan.storageGb) : 0
   const c = currentPlan ? (COLOR_MAP[currentPlan.color] ?? COLOR_MAP.gray) : COLOR_MAP.gray
   const [musicians, setMusicians] = useState(Math.max(1, memberCount))
+  const [showPlans, setShowPlans] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('solaupiano:showPlans')
+    if (stored !== null) setShowPlans(stored === 'true')
+  }, [])
+
+  const togglePlans = () => {
+    setShowPlans((v) => {
+      localStorage.setItem('solaupiano:showPlans', String(!v))
+      return !v
+    })
+  }
 
   if (!currentPlan) return null
 
@@ -31,9 +44,26 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
               {currentPlan.label}
             </span>
           </div>
-          <span className="text-sm text-gray-500">
-            {formatBytes(usedBytes)} / {currentPlan.storageGb} Go
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-500">
+              {formatBytes(usedBytes)} / {currentPlan.storageGb} Go
+            </span>
+            {isChef && allPlans.length > 0 && (
+              <button
+                onClick={togglePlans}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                title={showPlans ? 'Masquer les plans' : 'Afficher les plans'}
+              >
+                <svg
+                  className={`w-4 h-4 transition-transform duration-200 ${showPlans ? 'rotate-180' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                <span>{showPlans ? 'Masquer' : 'Voir les plans'}</span>
+              </button>
+            )}
+          </div>
         </div>
         <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
           <div
@@ -51,7 +81,7 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
       </div>
 
       {/* Plan cards */}
-      {isChef && allPlans.length > 0 && (
+      {isChef && allPlans.length > 0 && showPlans && (
         <>
           {/* Musicians stepper */}
           <div className="flex items-center justify-between gap-4 mb-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
