@@ -234,7 +234,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
           {/* Print button — visible for all members */}
           <button
             onClick={() => {
-              const sorted = [...songs].sort((a, b) => a.position - b.position)
+              const sorted = songs  // already in visual order after drag & drop
               const hasDuration = showDuration && sorted.some(e => e.song.durationSeconds)
               const rows = sorted.map((e, i) => `
                 <tr>
