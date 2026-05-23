@@ -140,6 +140,7 @@ model Group {
   isPublic         Boolean   @default(true)
   isHidden         Boolean   @default(false)
   plan             String    @default("FREE")
+  planExpiresAt    DateTime?
   storageUsedBytes BigInt    @default(0)
   stripeSubscriptionId String?
   stripeCustomerId     String?

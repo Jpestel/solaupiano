@@ -8,13 +8,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
   if (session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
-  const { plan } = await req.json()
-  const validPlans = ['FREE', 'PRO', 'PREMIUM']
-  if (!validPlans.includes(plan)) return NextResponse.json({ error: 'Plan invalide.' }, { status: 400 })
+  const body = await req.json()
+  const { plan, planExpiresAt } = body
+
+  // Vérifier que le plan existe en base
+  if (plan) {
+    const planExists = await prisma.plan.findUnique({ where: { key: plan } })
+    if (!planExists) return NextResponse.json({ error: 'Plan invalide.' }, { status: 400 })
+  }
 
   const group = await prisma.group.update({
     where: { id: Number(params.id) },
-    data: { plan },
+    data: {
+      ...(plan !== undefined && { plan }),
+      // planExpiresAt: null = illimité, string ISO = date d'expiration
+      ...(planExpiresAt !== undefined && {
+        planExpiresAt: planExpiresAt ? new Date(planExpiresAt) : null,
+      }),
+    },
   })
   return NextResponse.json({ ...group, storageUsedBytes: String(group.storageUsedBytes) })
 }

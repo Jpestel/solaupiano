@@ -19,6 +19,7 @@ interface Group {
   description?: string
   isPublic: boolean
   plan: GroupPlan
+  planExpiresAt: string | null
   storageUsedBytes: string // BigInt serialised as string by JSON
   createdAt: string
   _count: { members: number; rehearsals: number }
@@ -39,6 +40,8 @@ export default function AdminGroupesPage() {
   const [form, setForm] = useState({ name: '', description: '', chefId: '', isPublic: true })
   const [editGroup, setEditGroup] = useState<Group | null>(null)
   const [editForm, setEditForm] = useState({ name: '', description: '', isPublic: true, plan: 'FREE' as string })
+  const [planGiftOpen, setPlanGiftOpen] = useState<Group | null>(null)
+  const [giftForm, setGiftForm] = useState({ plan: 'FREE', expiresAt: '' })
   const [planSaving, setPlanSaving] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -88,12 +91,42 @@ export default function AdminGroupesPage() {
     setError('')
   }
 
+  const openGift = (group: Group) => {
+    setPlanGiftOpen(group)
+    const expiry = group.planExpiresAt ? new Date(group.planExpiresAt).toISOString().split('T')[0] : ''
+    setGiftForm({ plan: group.plan || 'FREE', expiresAt: expiry })
+    setError('')
+  }
+
+  const handleGiftSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!planGiftOpen) return
+    setSaving(true)
+    setError('')
+    const res = await fetch(`/api/admin/groupes/${planGiftOpen.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan: giftForm.plan,
+        planExpiresAt: giftForm.expiresAt || null,
+      }),
+    })
+    setSaving(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error || 'Erreur.')
+      return
+    }
+    setPlanGiftOpen(null)
+    fetchData()
+  }
+
   const handlePlanChange = async (groupId: number, plan: GroupPlan) => {
     setPlanSaving(groupId)
     await fetch(`/api/admin/groupes/${groupId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plan, planExpiresAt: null }),
     })
     setPlanSaving(null)
     fetchData()
@@ -179,16 +212,27 @@ export default function AdminGroupesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <select
-                          value={plan}
-                          disabled={planSaving === group.id}
-                          onChange={(e) => handlePlanChange(group.id, e.target.value as GroupPlan)}
-                          className={`text-xs rounded-full px-2 py-1 font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400 ${PLAN_COLORS[plan]}`}
-                        >
-                          {(Object.keys(PLANS) as GroupPlan[]).map((p) => (
-                            <option key={p} value={p}>{PLANS[p].label}</option>
-                          ))}
-                        </select>
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={plan}
+                            disabled={planSaving === group.id}
+                            onChange={(e) => handlePlanChange(group.id, e.target.value as GroupPlan)}
+                            className={`text-xs rounded-full px-2 py-1 font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400 ${PLAN_COLORS[plan] ?? 'bg-indigo-100 text-indigo-700'}`}
+                          >
+                            {(Object.keys(PLANS) as GroupPlan[]).map((p) => (
+                              <option key={p} value={p}>{PLANS[p].label}</option>
+                            ))}
+                          </select>
+                          {group.planExpiresAt && (
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full w-fit ${
+                              new Date(group.planExpiresAt) < new Date()
+                                ? 'bg-red-100 text-red-600'
+                                : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              🎁 exp. {new Date(group.planExpiresAt).toLocaleDateString('fr-FR')}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="min-w-[80px]">
@@ -213,7 +257,7 @@ export default function AdminGroupesPage() {
                       </td>
                       <td className="px-6 py-4 text-gray-600">{group._count.members}</td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <a
                             href={`/groupes/${group.id}`}
                             className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
@@ -225,6 +269,13 @@ export default function AdminGroupesPage() {
                             className="text-xs font-medium text-gray-600 hover:text-gray-900"
                           >
                             Éditer
+                          </button>
+                          <button
+                            onClick={() => openGift(group)}
+                            className="text-xs font-medium text-amber-600 hover:text-amber-700"
+                            title="Offrir un plan"
+                          >
+                            🎁 Offrir
                           </button>
                           <button
                             onClick={() => handleDelete(group.id, group.name)}
@@ -242,6 +293,70 @@ export default function AdminGroupesPage() {
           </div>
         </Card>
       )}
+
+      {/* 🎁 Gift plan modal */}
+      <Modal isOpen={!!planGiftOpen} onClose={() => setPlanGiftOpen(null)} title={`🎁 Offrir un plan — ${planGiftOpen?.name}`}>
+        <form onSubmit={handleGiftSave} className="space-y-4">
+          {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+            Le groupe accédera à ce plan <strong>gratuitement</strong>, sans passer par Stripe. Utile pour les beta-testeurs, partenaires ou offres commerciales.
+          </div>
+          <div>
+            <label className="form-label">Plan à offrir</label>
+            <select
+              value={giftForm.plan}
+              onChange={(e) => setGiftForm({ ...giftForm, plan: e.target.value })}
+              className="form-input"
+            >
+              {(Object.keys(PLANS) as GroupPlan[]).map((p) => (
+                <option key={p} value={p}>{PLANS[p].label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Date d&apos;expiration <span className="text-gray-400 font-normal">(optionnel)</span></label>
+            <input
+              type="date"
+              value={giftForm.expiresAt}
+              onChange={(e) => setGiftForm({ ...giftForm, expiresAt: e.target.value })}
+              min={new Date().toISOString().split('T')[0]}
+              className="form-input"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Laisser vide = accès illimité. Sinon, le groupe repasse automatiquement en Gratuit à cette date.
+            </p>
+          </div>
+          {giftForm.expiresAt && (
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: '+1 mois', days: 30 },
+                { label: '+3 mois', days: 90 },
+                { label: '+6 mois', days: 180 },
+                { label: '+1 an', days: 365 },
+              ].map(({ label, days }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    const d = new Date()
+                    d.setDate(d.getDate() + days)
+                    setGiftForm({ ...giftForm, expiresAt: d.toISOString().split('T')[0] })
+                  }}
+                  className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setPlanGiftOpen(null)}>Annuler</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Enregistrement...' : '🎁 Offrir ce plan'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Edit group modal */}
       <Modal isOpen={!!editGroup} onClose={() => setEditGroup(null)} title="Modifier le groupe">
