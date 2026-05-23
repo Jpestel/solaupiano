@@ -299,10 +299,16 @@ export function PlanSection({
                 const isPaid = p.priceMonthly !== null
                 const pricePerMusician = p.priceMonthly ? p.priceMonthly / musicians : null
                 const features = generateFeatureList(p)
-                const canSubscribe = isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive
+                const planLimitBytes = p.storageGb * 1024 * 1024 * 1024
+                const exceedsStorage = usedBytes > planLimitBytes
+                const canSubscribe = isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive && !exceedsStorage
                 const isLoading = loadingPlanKey === p.key
                 return (
-                  <div key={p.key} className={`rounded-xl border-2 p-4 flex flex-col transition-all ${isCurrent ? `${pc.border} ${pc.bg}` : 'border-gray-200 bg-white'}`}>
+                  <div key={p.key} className={`rounded-xl border-2 p-4 flex flex-col transition-all ${
+                    isCurrent ? `${pc.border} ${pc.bg}` :
+                    exceedsStorage && isPaid && !isCurrent ? 'border-red-200 bg-red-50/40' :
+                    'border-gray-200 bg-white'
+                  }`}>
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <p className={`font-bold text-sm ${isCurrent ? pc.text : 'text-gray-800'}`}>{p.label}</p>
@@ -339,16 +345,32 @@ export function PlanSection({
                         </div>
                       )}
 
+                      {/* Avertissement stockage insuffisant */}
+                      {exceedsStorage && isPaid && !isCurrent && (
+                        <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-2.5 py-2">
+                          <p className="text-[10px] font-semibold text-red-700 flex items-start gap-1">
+                            <span className="flex-shrink-0 mt-px">⚠️</span>
+                            <span>
+                              Vous utilisez{' '}
+                              <span className="font-bold">{formatBytes(usedBytes)}</span>
+                              {' '}— ce plan n&apos;inclut que{' '}
+                              <span className="font-bold">{p.storageGb} Go</span>.
+                              Libérez de l&apos;espace d&apos;abord.
+                            </span>
+                          </p>
+                        </div>
+                      )}
+
                       {/* Bouton Souscrire */}
-                      {canSubscribe && (
+                      {isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive && (
                         <button
-                          onClick={() => handleSubscribe(p.key)}
-                          disabled={isLoading || !!loadingPlanKey}
-                          className={`mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-white transition-all ${
-                            isCurrent
-                              ? `${pc.bg} ${pc.text} border ${pc.border} !text-inherit`
-                              : 'bg-indigo-600 hover:bg-indigo-500 active:scale-95 shadow-sm hover:shadow-md'
-                          } disabled:opacity-60 disabled:cursor-not-allowed`}
+                          onClick={() => !exceedsStorage && handleSubscribe(p.key)}
+                          disabled={isLoading || !!loadingPlanKey || exceedsStorage}
+                          className={`mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all ${
+                            exceedsStorage
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                              : 'bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 shadow-sm hover:shadow-md'
+                          } disabled:opacity-60`}
                         >
                           {isLoading ? (
                             <>
@@ -357,6 +379,13 @@ export function PlanSection({
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                               </svg>
                               Redirection…
+                            </>
+                          ) : exceedsStorage ? (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                              Stockage insuffisant
                             </>
                           ) : (
                             <>

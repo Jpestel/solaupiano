@@ -42,6 +42,19 @@ export async function POST(req: NextRequest) {
   ])
   if (!group || !user) return NextResponse.json({ error: 'Introuvable.' }, { status: 404 })
 
+  // Vérifier que le stockage actuel rentre dans le nouveau plan
+  const newPlanLimitBytes = Number(plan.storageGb) * 1024 * 1024 * 1024
+  const usedBytes = Number(group.storageUsedBytes)
+  if (usedBytes > newPlanLimitBytes) {
+    const usedGb = (usedBytes / (1024 * 1024 * 1024)).toFixed(2)
+    return NextResponse.json({
+      error: `Votre groupe utilise actuellement ${usedGb} Go de stockage, ce qui dépasse la limite de ${plan.storageGb} Go de ce plan. Libérez de l'espace avant de passer à ce plan.`,
+      code: 'STORAGE_EXCEEDS_PLAN',
+      usedBytes,
+      planLimitBytes: newPlanLimitBytes,
+    }, { status: 409 })
+  }
+
   // Créer ou récupérer le customer Stripe
   let customerId = group.stripeCustomerId
   if (!customerId) {
