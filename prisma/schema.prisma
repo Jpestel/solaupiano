@@ -54,6 +54,8 @@ model Plan {
 
   color     String   @default("gray")
 
+  stripePriceId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -139,6 +141,8 @@ model Group {
   isHidden         Boolean   @default(false)
   plan             String    @default("FREE")
   storageUsedBytes BigInt    @default(0)
+  stripeSubscriptionId String?
+  stripeCustomerId     String?
   lookingFor       String?   @db.Text
   lookingForSince DateTime?
   createdAt       DateTime  @default(now())

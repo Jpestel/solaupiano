@@ -12,7 +12,7 @@ const COLOR_LABELS: Record<string, string> = {
 }
 
 const EMPTY_FORM = {
-  key: '', label: '', description: '', priceMonthly: '', isActive: true, sortOrder: 0,
+  key: '', label: '', description: '', priceMonthly: '', stripePriceId: '', isActive: true, sortOrder: 0,
   storageGb: 1, maxGroups: 1,
   maxMembersPerGroup: '', maxSongsPerGroup: '', maxSetlists: '', maxConcerts: '', maxCharts: '', maxFilesPerSong: '',
   hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
@@ -48,6 +48,7 @@ function planToForm(p: PlanWithCount): FormState {
     hasStats: p.hasStats,
     hasFileSubmissions: p.hasFileSubmissions,
     color: p.color,
+    stripePriceId: p.stripePriceId ?? '',
   }
 }
 
@@ -116,6 +117,7 @@ export default function AdminPlansPage() {
     const payload = {
       ...form,
       priceMonthly: form.priceMonthly !== '' ? Number(form.priceMonthly) : null,
+      stripePriceId: form.stripePriceId.trim() || null,
       maxMembersPerGroup: form.maxMembersPerGroup !== '' ? Number(form.maxMembersPerGroup) : null,
       maxSongsPerGroup: form.maxSongsPerGroup !== '' ? Number(form.maxSongsPerGroup) : null,
       maxSetlists: form.maxSetlists !== '' ? Number(form.maxSetlists) : null,
@@ -233,6 +235,21 @@ export default function AdminPlansPage() {
                     )}
                   </div>
                   {p.description && <p className="text-xs text-gray-500 mb-2">{p.description}</p>}
+
+                  {/* Stripe status */}
+                  {p.priceMonthly !== null && (
+                    <div className="mb-2">
+                      {p.stripePriceId ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                          ✓ Stripe lié — <span className="font-mono">{p.stripePriceId.slice(0, 18)}…</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          ⚠ Stripe Price ID manquant — bouton &quot;Souscrire&quot; désactivé
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Key metrics */}
                   <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -427,8 +444,32 @@ export default function AdminPlansPage() {
                         </div>
                         <p className="text-[11px] text-gray-400 mt-1">Laisser vide = plan gratuit.</p>
                       </div>
+                    </div>
+
+                    {/* Stripe Price ID — uniquement si plan payant */}
+                    {form.priceMonthly !== '' && Number(form.priceMonthly) > 0 && (
                       <div>
-                        <label className="form-label">Ordre d'affichage</label>
+                        <label className="form-label flex items-center gap-2">
+                          <svg className="w-3.5 h-3.5 text-indigo-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
+                          </svg>
+                          Stripe Price ID
+                        </label>
+                        <input
+                          type="text"
+                          value={form.stripePriceId}
+                          onChange={(e) => set('stripePriceId', e.target.value)}
+                          className="form-input font-mono text-sm"
+                          placeholder="price_1ABC..." />
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          Trouvable dans le dashboard Stripe → Produits → Tarifs. Requis pour activer le bouton &quot;Souscrire&quot;.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="form-label">Ordre d&apos;affichage</label>
                         <input
                           type="number" min="0" value={form.sortOrder}
                           onChange={(e) => set('sortOrder', Number(e.target.value))}

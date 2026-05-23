@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { DbPlan, COLOR_MAP, generateFeatureList, formatBytes, storagePercent } from '@/lib/plans'
 
 interface PlanSectionProps {
@@ -9,18 +10,32 @@ interface PlanSectionProps {
   isChef: boolean
   memberCount?: number
   allPlans: DbPlan[]
+  groupId: number
+  stripeSubscriptionId?: string | null
 }
 
-export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCount = 1, allPlans }: PlanSectionProps) {
+export function PlanSection({
+  currentPlanKey,
+  storageUsedBytes,
+  isChef,
+  memberCount = 1,
+  allPlans,
+  groupId,
+  stripeSubscriptionId,
+}: PlanSectionProps) {
+  const router = useRouter()
   const usedBytes = Number(storageUsedBytes)
   const currentPlan = allPlans.find((p) => p.key === currentPlanKey) ?? allPlans[0]
   const pct = currentPlan ? storagePercent(usedBytes, currentPlan.storageGb) : 0
   const c = currentPlan ? (COLOR_MAP[currentPlan.color] ?? COLOR_MAP.gray) : COLOR_MAP.gray
+
   const [musicians, setMusicians] = useState(Math.max(1, memberCount))
   const [showPlans, setShowPlans] = useState(false)
   const [carouselIndex, setCarouselIndex] = useState(0)
   const [animating, setAnimating] = useState(false)
   const [slideDir, setSlideDir] = useState<'left' | 'right'>('right')
+  const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'cancel'; msg: string } | null>(null)
 
   const PAGE_SIZE = 3
   const totalPages = Math.ceil(allPlans.length / PAGE_SIZE)
@@ -31,6 +46,26 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
     const stored = localStorage.getItem('solaupiano:showPlans')
     if (stored !== null) setShowPlans(stored === 'true')
   }, [])
+
+  // Détecter le retour Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const stripe = params.get('stripe')
+    if (stripe === 'success') {
+      setToast({ type: 'success', msg: '🎉 Abonnement activé ! Votre plan a été mis à jour.' })
+      setShowPlans(false)
+      router.replace(window.location.pathname)
+    } else if (stripe === 'cancel') {
+      setToast({ type: 'cancel', msg: 'Paiement annulé. Vous pouvez réessayer à tout moment.' })
+      router.replace(window.location.pathname)
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 5000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   const togglePlans = () => {
     setShowPlans((v) => {
@@ -53,10 +88,64 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
     }, 220)
   }
 
+  const handleSubscribe = useCallback(async (planKey: string) => {
+    setLoadingPlanKey(planKey)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId, planKey }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setToast({ type: 'error', msg: data.error || 'Une erreur est survenue.' })
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      setToast({ type: 'error', msg: 'Impossible de contacter le serveur de paiement.' })
+    } finally {
+      setLoadingPlanKey(null)
+    }
+  }, [groupId])
+
+  const handleManage = useCallback(async () => {
+    setLoadingPlanKey('portal')
+    try {
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setToast({ type: 'error', msg: data.error || 'Une erreur est survenue.' })
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      setToast({ type: 'error', msg: 'Impossible d\'ouvrir le portail de gestion.' })
+    } finally {
+      setLoadingPlanKey(null)
+    }
+  }, [groupId])
+
   if (!currentPlan) return null
 
   return (
     <div className="mb-8">
+      {/* Toast notification */}
+      {toast && (
+        <div className={`mb-4 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium ${
+          toast.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+          toast.type === 'error'   ? 'bg-red-50 border-red-200 text-red-800' :
+                                     'bg-amber-50 border-amber-200 text-amber-800'
+        }`}>
+          <span className="flex-1">{toast.msg}</span>
+          <button onClick={() => setToast(null)} className="opacity-50 hover:opacity-100">✕</button>
+        </div>
+      )}
+
       {/* Storage gauge */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 mb-4">
         <div className="flex items-center justify-between mb-3">
@@ -65,6 +154,19 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${c.bg} ${c.text} border ${c.border}`}>
               {currentPlan.label}
             </span>
+            {/* Bouton gérer abonnement si abonnement actif */}
+            {isChef && stripeSubscriptionId && (
+              <button
+                onClick={handleManage}
+                disabled={loadingPlanKey === 'portal'}
+                className="inline-flex items-center gap-1 rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                {loadingPlanKey === 'portal' ? (
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                ) : '⚙️'}
+                Gérer l&apos;abonnement
+              </button>
+            )}
           </div>
           <span className="text-sm text-gray-500">
             {formatBytes(usedBytes)} / {currentPlan.storageGb} Go
@@ -96,14 +198,13 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
           }`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            {/* Animated sparkle dot */}
             {!showPlans && (
               <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500" />
               </span>
             )}
-            <span className={`text-sm font-semibold ${showPlans ? 'text-indigo-700' : 'text-indigo-700'}`}>
+            <span className="text-sm font-semibold text-indigo-700">
               {showPlans ? 'Plans & tarifs' : '✨ Découvrir nos plans'}
             </span>
             {!showPlans && (
@@ -198,8 +299,10 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
                 const isPaid = p.priceMonthly !== null
                 const pricePerMusician = p.priceMonthly ? p.priceMonthly / musicians : null
                 const features = generateFeatureList(p)
+                const canSubscribe = isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive
+                const isLoading = loadingPlanKey === p.key
                 return (
-                  <div key={p.key} className={`rounded-xl border-2 p-4 transition-all ${isCurrent ? `${pc.border} ${pc.bg}` : 'border-gray-200 bg-white'}`}>
+                  <div key={p.key} className={`rounded-xl border-2 p-4 flex flex-col transition-all ${isCurrent ? `${pc.border} ${pc.bg}` : 'border-gray-200 bg-white'}`}>
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <p className={`font-bold text-sm ${isCurrent ? pc.text : 'text-gray-800'}`}>{p.label}</p>
@@ -211,7 +314,7 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
                         </span>
                       )}
                     </div>
-                    <ul className="space-y-1 mb-4">
+                    <ul className="space-y-1 mb-4 flex-1">
                       {features.map((f) => (
                         <li key={f} className="flex items-start gap-1.5 text-xs text-gray-600">
                           <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
@@ -234,6 +337,41 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
                             </p>
                           )}
                         </div>
+                      )}
+
+                      {/* Bouton Souscrire */}
+                      {canSubscribe && (
+                        <button
+                          onClick={() => handleSubscribe(p.key)}
+                          disabled={isLoading || !!loadingPlanKey}
+                          className={`mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-white transition-all ${
+                            isCurrent
+                              ? `${pc.bg} ${pc.text} border ${pc.border} !text-inherit`
+                              : 'bg-indigo-600 hover:bg-indigo-500 active:scale-95 shadow-sm hover:shadow-md'
+                          } disabled:opacity-60 disabled:cursor-not-allowed`}
+                        >
+                          {isLoading ? (
+                            <>
+                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                              </svg>
+                              Redirection…
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                              </svg>
+                              Souscrire
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Plan actif payant — pas de bouton souscrire */}
+                      {isCurrent && isPaid && (
+                        <p className="mt-2 text-[10px] text-gray-400">Plan actif</p>
                       )}
                     </div>
                   </div>

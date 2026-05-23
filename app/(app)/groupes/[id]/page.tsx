@@ -240,6 +240,8 @@ export default async function GroupePage({ params }: { params: { id: string } })
         isChef={isChef}
         memberCount={group.members.length}
         allPlans={allPlans}
+        groupId={groupId}
+        stripeSubscriptionId={group.stripeSubscriptionId ?? null}
       />
 
       <GroupCards

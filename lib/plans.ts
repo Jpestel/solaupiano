@@ -26,6 +26,7 @@ export interface DbPlan {
   hasStats: boolean
   hasFileSubmissions: boolean
   color: string
+  stripePriceId: string | null
   createdAt: Date
   updatedAt: Date
 }
