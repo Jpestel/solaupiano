@@ -301,7 +301,8 @@ export function PlanSection({
                 const features = generateFeatureList(p)
                 const planLimitBytes = p.storageGb * 1024 * 1024 * 1024
                 const exceedsStorage = usedBytes > planLimitBytes
-                const canSubscribe = isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive && !exceedsStorage
+                const isGifted = !stripeSubscriptionId && currentPlanKey !== 'FREE'
+                const canSubscribe = isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive && !exceedsStorage && !isGifted
                 const isLoading = loadingPlanKey === p.key
                 return (
                   <div key={p.key} className={`rounded-xl border-2 p-4 flex flex-col transition-all ${
