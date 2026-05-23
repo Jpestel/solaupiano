@@ -164,9 +164,9 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
             {carouselIndex > 0 && (
               <button
                 onClick={() => slide('prev')}
-                className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-800 hover:shadow-md transition-all"
+                className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-indigo-600 border-2 border-indigo-700 shadow-md flex items-center justify-center text-white hover:bg-indigo-500 hover:scale-110 active:scale-95 transition-all"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -176,9 +176,9 @@ export function PlanSection({ currentPlanKey, storageUsedBytes, isChef, memberCo
             {carouselIndex + PAGE_SIZE < allPlans.length && (
               <button
                 onClick={() => slide('next')}
-                className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-800 hover:shadow-md transition-all"
+                className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-indigo-600 border-2 border-indigo-700 shadow-md flex items-center justify-center text-white hover:bg-indigo-500 hover:scale-110 active:scale-95 transition-all"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
