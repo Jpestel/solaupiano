@@ -22,6 +22,8 @@ interface Group {
   planExpiresAt: string | null
   storageUsedBytes: string // BigInt serialised as string by JSON
   createdAt: string
+  maxMembersOverride: number | null
+  planMaxMembersPerGroup: number | null
   _count: { members: number; rehearsals: number }
   members: { user: User; groupRole: string }[]
 }
@@ -42,6 +44,8 @@ export default function AdminGroupesPage() {
   const [editForm, setEditForm] = useState({ name: '', description: '', isPublic: true, plan: 'FREE' as string })
   const [planGiftOpen, setPlanGiftOpen] = useState<Group | null>(null)
   const [giftForm, setGiftForm] = useState({ plan: 'FREE', expiresAt: '' })
+  const [memberLimitOpen, setMemberLimitOpen] = useState<Group | null>(null)
+  const [memberLimitValue, setMemberLimitValue] = useState<string>('')
   const [planSaving, setPlanSaving] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -96,6 +100,33 @@ export default function AdminGroupesPage() {
     const expiry = group.planExpiresAt ? new Date(group.planExpiresAt).toISOString().split('T')[0] : ''
     setGiftForm({ plan: group.plan || 'FREE', expiresAt: expiry })
     setError('')
+  }
+
+  const openMemberLimit = (group: Group) => {
+    setMemberLimitOpen(group)
+    setMemberLimitValue(group.maxMembersOverride !== null ? String(group.maxMembersOverride) : '')
+    setError('')
+  }
+
+  const handleMemberLimitSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!memberLimitOpen) return
+    setSaving(true)
+    setError('')
+    const override = memberLimitValue.trim() === '' ? null : Number(memberLimitValue)
+    const res = await fetch(`/api/admin/groupes/${memberLimitOpen.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ maxMembersOverride: override }),
+    })
+    setSaving(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error || 'Erreur.')
+      return
+    }
+    setMemberLimitOpen(null)
+    fetchData()
   }
 
   const handleGiftSave = async (e: React.FormEvent) => {
@@ -185,7 +216,7 @@ export default function AdminGroupesPage() {
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Stockage</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Chef d'orchestre</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Membres</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Membres / Limite</th>
                   <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
                 </tr>
               </thead>
@@ -255,7 +286,28 @@ export default function AdminGroupesPage() {
                           <span className="text-xs text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{group._count.members}</td>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const count = group._count.members
+                          const planLimit = group.planMaxMembersPerGroup ?? null
+                          const effectiveLimit = group.maxMembersOverride ?? planLimit ?? null
+                          const atLimit = effectiveLimit !== null && count >= effectiveLimit
+                          const nearLimit = effectiveLimit !== null && count >= effectiveLimit * 0.8
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-sm font-medium ${atLimit ? 'text-red-600' : nearLimit ? 'text-amber-600' : 'text-gray-700'}`}>
+                                  {count}{effectiveLimit !== null ? ` / ${effectiveLimit}` : ''}
+                                </span>
+                                {group.maxMembersOverride !== null && (
+                                  <span className="text-[10px] font-semibold bg-violet-100 text-violet-700 rounded-full px-1.5 py-0.5">override</span>
+                                )}
+                                {atLimit && <span className="text-[10px] font-semibold bg-red-100 text-red-600 rounded-full px-1.5 py-0.5">complet</span>}
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3 flex-wrap">
                           <a
@@ -278,6 +330,13 @@ export default function AdminGroupesPage() {
                             🎁 Offrir
                           </button>
                           <button
+                            onClick={() => openMemberLimit(group)}
+                            className="text-xs font-medium text-violet-600 hover:text-violet-700"
+                            title="Configurer la limite de membres"
+                          >
+                            👥 Limite
+                          </button>
+                          <button
                             onClick={() => handleDelete(group.id, group.name)}
                             className="text-xs font-medium text-red-600 hover:text-red-500"
                           >
@@ -293,6 +352,78 @@ export default function AdminGroupesPage() {
           </div>
         </Card>
       )}
+
+      {/* 👥 Member limit modal */}
+      <Modal isOpen={!!memberLimitOpen} onClose={() => setMemberLimitOpen(null)} title={`👥 Limite de membres — ${memberLimitOpen?.name}`}>
+        <form onSubmit={handleMemberLimitSave} className="space-y-5">
+          {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+          {/* Context info */}
+          {memberLimitOpen && (() => {
+            const planLimit = memberLimitOpen.planMaxMembersPerGroup ?? null
+            const currentCount = memberLimitOpen._count.members
+            const effectiveLimit = memberLimitOpen.maxMembersOverride ?? planLimit
+            return (
+              <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Membres actuels</span>
+                  <span className="font-semibold text-gray-900">{currentCount}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Limite du plan ({memberLimitOpen.plan})</span>
+                  <span className="font-medium text-gray-700">{planLimit ?? <em className="text-gray-400">illimitée</em>}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Limite effective actuelle</span>
+                  <span className={`font-semibold ${effectiveLimit !== null ? 'text-violet-700' : 'text-gray-400'}`}>
+                    {effectiveLimit !== null ? effectiveLimit : 'illimitée'}
+                  </span>
+                </div>
+              </div>
+            )
+          })()}
+
+          <div>
+            <label className="form-label">
+              Limite personnalisée <span className="text-gray-400 font-normal">(override admin)</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={memberLimitValue}
+              onChange={(e) => setMemberLimitValue(e.target.value)}
+              placeholder={`Par défaut du plan : ${memberLimitOpen?.planMaxMembersPerGroup ?? 'illimité'}`}
+              className="form-input"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Laisser vide pour utiliser la limite définie par le plan. Saisir un nombre pour imposer une limite différente (à la hausse ou à la baisse).
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-xs text-blue-800 space-y-1">
+            <p><strong>🔒 Application :</strong> la limite est vérifiée à chaque ajout de membre (invitation, demande d&apos;adhésion).</p>
+            <p><strong>👑 Admins :</strong> les administrateurs du site contournent toujours la limite.</p>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            {memberLimitValue !== '' && (
+              <button
+                type="button"
+                onClick={() => setMemberLimitValue('')}
+                className="text-xs font-medium text-red-600 hover:text-red-700"
+              >
+                ✕ Supprimer l&apos;override (revenir au plan)
+              </button>
+            )}
+            <div className={`flex gap-3 ${memberLimitValue !== '' ? '' : 'ml-auto'}`}>
+              <Button type="button" variant="secondary" onClick={() => setMemberLimitOpen(null)}>Annuler</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Enregistrement...' : '💾 Sauvegarder'}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Modal>
 
       {/* 🎁 Gift plan modal */}
       <Modal isOpen={!!planGiftOpen} onClose={() => setPlanGiftOpen(null)} title={`🎁 Offrir un plan — ${planGiftOpen?.name}`}>

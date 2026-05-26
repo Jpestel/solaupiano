@@ -24,6 +24,7 @@ export default function MembresPanel({
   currentUserRole,
   createdBy,
   chefPermissions,
+  memberLimit,
 }: {
   groupId: number
   members: Member[]
@@ -33,6 +34,7 @@ export default function MembresPanel({
   currentUserRole: string
   createdBy?: number | null
   chefPermissions?: unknown
+  memberLimit?: number | null
 }) {
   const router = useRouter()
   const [members, setMembers] = useState(initialMembers)
@@ -103,6 +105,9 @@ export default function MembresPanel({
     }
   }
 
+  const atLimit = memberLimit != null && members.length >= memberLimit
+  const nearLimit = memberLimit != null && members.length >= memberLimit * 0.8 && !atLimit
+
   return (
     <div className="space-y-4">
     {actionError && (
@@ -111,6 +116,34 @@ export default function MembresPanel({
         <button onClick={() => setActionError('')} className="text-red-400 hover:text-red-600 flex-shrink-0">✕</button>
       </div>
     )}
+
+    {/* Limite de membres */}
+    {memberLimit != null && (
+      <div className={`flex items-center justify-between rounded-xl border px-4 py-2.5 ${
+        atLimit ? 'border-red-200 bg-red-50' : nearLimit ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-gray-50'
+      }`}>
+        <div className="flex items-center gap-2">
+          <span className="text-sm">👥</span>
+          <span className={`text-xs font-medium ${atLimit ? 'text-red-700' : nearLimit ? 'text-amber-700' : 'text-gray-600'}`}>
+            {members.length} / {memberLimit} membres
+          </span>
+          {atLimit && (
+            <span className="text-xs font-semibold bg-red-100 text-red-700 rounded-full px-2 py-0.5">
+              Limite atteinte
+            </span>
+          )}
+          {nearLimit && (
+            <span className="text-xs font-semibold bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
+              Bientôt complet
+            </span>
+          )}
+        </div>
+        {atLimit && isChef && (
+          <p className="text-[11px] text-red-600">Contactez l&apos;admin pour augmenter la limite.</p>
+        )}
+      </div>
+    )}
+
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {members.map((member) => {
         const isSelf = member.userId === currentUserId

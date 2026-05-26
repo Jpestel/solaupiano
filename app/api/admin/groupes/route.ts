@@ -8,20 +8,28 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
   if (session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
-  const groups = await prisma.group.findMany({
-    include: {
-      members: {
-        include: { user: { select: { id: true, name: true, email: true } } },
+  const [groups, plans] = await Promise.all([
+    prisma.group.findMany({
+      include: {
+        members: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
+        _count: { select: { members: true, rehearsals: true } },
       },
-      _count: { select: { members: true, rehearsals: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.plan.findMany({ select: { key: true, maxMembersPerGroup: true } }),
+  ])
+
+  // Build a map of plan key → maxMembersPerGroup
+  const planMaxMap: Record<string, number | null> = {}
+  for (const p of plans) planMaxMap[p.key] = p.maxMembersPerGroup ?? null
 
   // BigInt cannot be JSON-serialised — convert to string
   const serializable = groups.map((g) => ({
     ...g,
     storageUsedBytes: String(g.storageUsedBytes),
+    planMaxMembersPerGroup: planMaxMap[g.plan] ?? null,
   }))
 
   return NextResponse.json(serializable)

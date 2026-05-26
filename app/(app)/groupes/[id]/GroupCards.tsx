@@ -62,6 +62,7 @@ interface Props {
   savedCardOrder: string | null
   createdBy?: number | null
   chefPermissions?: unknown
+  memberLimit?: number | null
 }
 
 function SortableCard({ id, children, spanFull }: { id: string; children: React.ReactNode; spanFull?: boolean }) {
@@ -94,7 +95,7 @@ function SortableCard({ id, children, spanFull }: { id: string; children: React.
 export function GroupCards({
   groupId, rehearsal, concert, members, showInvite,
   isChef, canManage, isAdmin, currentUserId, currentUserRole, savedCardOrder,
-  createdBy, chefPermissions,
+  createdBy, chefPermissions, memberLimit,
 }: Props) {
   const defaultOrder = ['rehearsal', 'concert', 'members', ...(showInvite ? ['invite'] : [])]
 
@@ -207,6 +208,7 @@ export function GroupCards({
             currentUserRole={currentUserRole}
             createdBy={createdBy}
             chefPermissions={chefPermissions}
+            memberLimit={memberLimit}
           />
         </Card>
       ),

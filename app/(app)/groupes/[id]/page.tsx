@@ -52,10 +52,12 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   if (!membership && !isAdminUser) notFound()
 
-  // Check if group's plan has stats
-  const groupPlanKey = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true } })
-  const planData = groupPlanKey ? await prisma.plan.findUnique({ where: { key: groupPlanKey.plan }, select: { hasStats: true } }) : null
+  // Check plan features (stats + member limit)
+  const groupMeta = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true, maxMembersOverride: true } })
+  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, maxMembersPerGroup: true } }) : null
   const planHasStats = isAdminUser || (planData?.hasStats ?? false)
+  // Effective member limit: override (if set by admin) > plan limit > null (unlimited)
+  const effectiveMemberLimit = groupMeta?.maxMembersOverride ?? planData?.maxMembersPerGroup ?? null
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -301,6 +303,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         savedCardOrder={membership?.cardOrder ?? null}
         createdBy={group.createdBy ?? null}
         chefPermissions={group.chefPermissions ?? null}
+        memberLimit={isAdminUser ? null : effectiveMemberLimit}
       />
 
       {/* Paramètres des permissions — fondateur uniquement */}

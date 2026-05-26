@@ -42,6 +42,25 @@ export async function PATCH(
     if (requester?.siteRole === 'ADMIN') {
       return NextResponse.json({ error: 'L\'administrateur ne peut pas rejoindre un groupe.' }, { status: 400 })
     }
+
+    // Check member limit before accepting
+    const grp = await prisma.group.findUnique({
+      where: { id: groupId },
+      select: { plan: true, maxMembersOverride: true },
+    })
+    if (grp) {
+      const plan = await prisma.plan.findUnique({ where: { key: grp.plan }, select: { maxMembersPerGroup: true } })
+      const effectiveLimit = grp.maxMembersOverride ?? plan?.maxMembersPerGroup ?? null
+      if (effectiveLimit !== null) {
+        const currentCount = await prisma.groupMember.count({ where: { groupId } })
+        if (currentCount >= effectiveLimit) {
+          return NextResponse.json({
+            error: `Limite de membres atteinte (${currentCount}/${effectiveLimit}). Augmentez la limite ou retirez des membres avant d'accepter.`,
+          }, { status: 409 })
+        }
+      }
+    }
+
     await prisma.groupMember.create({
       data: { userId: joinRequest.userId, groupId, groupRole: 'MEMBRE' },
     })

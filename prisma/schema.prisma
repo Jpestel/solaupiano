@@ -149,6 +149,7 @@ model Group {
   createdAt       DateTime  @default(now())
   createdBy        Int?
   chefPermissions  Json?
+  maxMembersOverride Int?
   founder          User?     @relation("GroupFounder", fields: [createdBy], references: [id], onDelete: SetNull)
 
   members          GroupMember[]

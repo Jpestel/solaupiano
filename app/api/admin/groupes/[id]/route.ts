@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   const body = await req.json()
-  const { plan, planExpiresAt } = body
+  const { plan, planExpiresAt, maxMembersOverride } = body
 
   // Vérifier que le plan existe en base
   if (plan) {
@@ -17,13 +17,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!planExists) return NextResponse.json({ error: 'Plan invalide.' }, { status: 400 })
   }
 
+  // Validation de maxMembersOverride
+  if (maxMembersOverride !== undefined && maxMembersOverride !== null) {
+    const val = Number(maxMembersOverride)
+    if (!Number.isInteger(val) || val < 1) {
+      return NextResponse.json({ error: 'La limite de membres doit être un entier ≥ 1.' }, { status: 400 })
+    }
+  }
+
   const group = await prisma.group.update({
     where: { id: Number(params.id) },
     data: {
       ...(plan !== undefined && { plan }),
-      // planExpiresAt: null = illimité, string ISO = date d'expiration
       ...(planExpiresAt !== undefined && {
         planExpiresAt: planExpiresAt ? new Date(planExpiresAt) : null,
+      }),
+      ...(maxMembersOverride !== undefined && {
+        maxMembersOverride: maxMembersOverride !== null ? Number(maxMembersOverride) : null,
       }),
     },
   })

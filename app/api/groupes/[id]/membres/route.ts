@@ -49,10 +49,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const isAdmin = session!.user.siteRole === 'ADMIN'
   const requesterId = Number(session!.user.id)
 
-  if (!isAdmin) {
-    const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
-    if (grp && !coChefCanDo(grp, requesterId, isAdmin, 'membres', 'add')) {
-      return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+  // Fetch group to check permissions AND member limit
+  const grp = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { createdBy: true, chefPermissions: true, plan: true, maxMembersOverride: true },
+  })
+
+  if (!isAdmin && grp && !coChefCanDo(grp, requesterId, isAdmin, 'membres', 'add')) {
+    return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+  }
+
+  // Check member limit (admins bypass the limit)
+  if (!isAdmin && grp) {
+    const plan = await prisma.plan.findUnique({ where: { key: grp.plan }, select: { maxMembersPerGroup: true } })
+    const effectiveLimit = grp.maxMembersOverride ?? plan?.maxMembersPerGroup ?? null
+    if (effectiveLimit !== null) {
+      const currentCount = await prisma.groupMember.count({ where: { groupId } })
+      if (currentCount >= effectiveLimit) {
+        return NextResponse.json({
+          error: 'MEMBER_LIMIT_REACHED',
+          limit: effectiveLimit,
+          current: currentCount,
+        }, { status: 409 })
+      }
     }
   }
 
