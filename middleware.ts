@@ -20,6 +20,7 @@ export default withAuth(
         // Public pages accessible without login
         if (pathname === '/') return true
         if (pathname === '/aide' || pathname.startsWith('/aide/')) return true
+        if (pathname === '/tarifs') return true
         return !!token
       },
     },
@@ -28,6 +29,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!connexion|inscription|mot-de-passe-oublie|reinitialiser-mot-de-passe|verifier-email|mentions-legales|aide|api/auth|api/inscription|api/instruments|api/settings|api/cron|_next/static|_next/image|favicon.ico).*)',
+    '/((?!connexion|inscription|mot-de-passe-oublie|reinitialiser-mot-de-passe|verifier-email|mentions-legales|tarifs|aide|api/auth|api/inscription|api/instruments|api/settings|api/cron|_next/static|_next/image|favicon.ico).*)',
   ],
 }
