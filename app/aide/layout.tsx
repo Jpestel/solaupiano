@@ -19,7 +19,10 @@ export default async function AideLayout({ children }: { children: React.ReactNo
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-sm">🎹</span>
             </div>
-            <span className="font-bold text-indigo-900 text-base">Sol au piano</span>
+            <div className="flex flex-col leading-none">
+              <span className="font-bold text-indigo-900 text-base">Sol au piano</span>
+              <span className="text-[10px] text-indigo-400 italic font-normal">du solo à l&apos;orchestre</span>
+            </div>
           </Link>
 
           {session ? (

@@ -64,7 +64,10 @@ export default async function PublicHomePage() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-base">🎹</span>
             </div>
-            <span className="font-bold text-indigo-900 text-lg">Sol au piano</span>
+            <div className="flex flex-col leading-none">
+              <span className="font-bold text-indigo-900 text-lg">Sol au piano</span>
+              <span className="text-[10px] text-indigo-400 italic font-normal">du solo à l&apos;orchestre</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Link
@@ -241,9 +244,12 @@ export default async function PublicHomePage() {
             <div className="w-6 h-6 bg-indigo-600 rounded-md flex items-center justify-center">
               <span className="text-xs">🎹</span>
             </div>
-            <span className="text-sm font-semibold text-indigo-900">Sol au piano</span>
+            <div className="flex flex-col leading-none">
+              <span className="text-sm font-semibold text-indigo-900">Sol au piano</span>
+              <span className="text-[10px] text-indigo-400 italic">du solo à l&apos;orchestre</span>
+            </div>
           </div>
-          <p className="text-xs text-gray-400">La plateforme pour les musiciens en groupe</p>
+          <p className="text-xs text-gray-400 hidden sm:block">La plateforme pour les musiciens en groupe</p>
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <Link href="/connexion" className="hover:text-indigo-600 transition-colors">Connexion</Link>
             <Link href="/inscription" className="hover:text-indigo-600 transition-colors">Inscription</Link>

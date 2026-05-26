@@ -14,7 +14,10 @@ export default function MentionsLegalesPage() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-base">🎹</span>
             </div>
-            <span className="font-bold text-indigo-900 text-lg">Sol au piano</span>
+            <div className="flex flex-col leading-none">
+              <span className="font-bold text-indigo-900 text-lg">Sol au piano</span>
+              <span className="text-[10px] text-indigo-400 italic font-normal">du solo à l&apos;orchestre</span>
+            </div>
           </Link>
           <Link href="/" className="text-sm text-gray-500 hover:text-indigo-600 transition-colors">
             ← Retour à l&apos;accueil

@@ -126,7 +126,7 @@ export default function ReinitialisationPage() {
             <span className="text-2xl">🎹</span>
           </div>
           <h1 className="text-3xl font-bold text-indigo-900">Sol au piano</h1>
-          <p className="text-gray-500 mt-1">Gestion des répétitions musicales</p>
+          <p className="text-indigo-400 text-sm italic mt-1">du solo à l&apos;orchestre</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">

@@ -88,7 +88,8 @@ export default function InscriptionPage() {
             <span className="text-2xl">🎹</span>
           </Link>
           <h1 className="text-3xl font-bold text-indigo-900">Sol au piano</h1>
-          <p className="text-gray-500 mt-1">Créez votre compte gratuitement</p>
+          <p className="text-indigo-400 text-sm italic mt-0.5">du solo à l&apos;orchestre</p>
+          <p className="text-gray-500 text-sm mt-1">Créez votre compte gratuitement</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
