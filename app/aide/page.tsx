@@ -66,6 +66,7 @@ export default async function AidePage() {
             { href: '#accords', label: '🎹 Accords' },
             { href: '#accordeur', label: '🎙️ Accordeur' },
             { href: '#metronome', label: '🥁 Métronome' },
+            { href: '#stats', label: '📊 Statistiques' },
             { href: '#plans', label: '📦 Plans' },
             { href: '#faq', label: '❓ FAQ' },
           ].map((item) => (
@@ -1058,6 +1059,125 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── STATISTIQUES ─── */}
+        <section id="stats">
+          <SectionTitle icon="📊" title="Statistiques" color="violet" />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi servent les statistiques ?">
+              <p>Le module <strong>Statistiques</strong> donne aux chefs d&apos;orchestre une vue analytique complète de leur groupe : assiduité des membres, maîtrise du répertoire, fréquence des répétitions et utilisation des ressources.</p>
+              <p className="mt-2">Toutes les données sont calculées en temps réel à partir des informations existantes — présences, niveaux de maîtrise, répétitions passées.</p>
+              <Note>Le module statistiques est disponible sur les <strong>plans payants</strong>. Sur le plan Gratuit, un message vous invite à upgrader.</Note>
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Accéder aux statistiques" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Depuis la page de votre groupe, cliquez sur le bouton <strong>📊 Statistiques</strong> dans la barre de navigation.</Step>
+                  <Step n={2}>La page affiche les indicateurs clés (KPIs) en haut, puis les graphiques détaillés.</Step>
+                </ol>
+                <Tip>Si votre forfait n&apos;inclut pas les statistiques, le bouton affiche un badge <strong>&quot;Plan supérieur&quot;</strong> — vous pouvez quand même cliquer pour voir le message d&apos;upgrade.</Tip>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Indicateurs clés (KPIs)">
+              <p>En haut de la page, 4 chiffres résument l&apos;activité du groupe :</p>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { icon: '🎵', label: 'Répétitions', desc: 'Nombre de répétitions passées depuis la création du groupe' },
+                  { icon: '✅', label: 'Taux de présence', desc: 'Pourcentage global de présences sur toutes les répétitions' },
+                  { icon: '🎼', label: 'Morceaux', desc: 'Total des morceaux au répertoire actif du groupe' },
+                  { icon: '👥', label: 'Membres', desc: 'Nombre de membres actuellement dans le groupe' },
+                ].map((k) => (
+                  <div key={k.label} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <p className="text-base mb-1">{k.icon}</p>
+                    <p className="text-xs font-bold text-gray-800">{k.label}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{k.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </HelpCard>
+
+            <HelpCard title="Présence par répétition">
+              <p>Un graphique à <strong>barres empilées</strong> affiche les 12 dernières répétitions passées. Pour chacune, trois couleurs indiquent :</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium bg-green-50 text-green-700 border-green-200"><span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" /> Présents</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700 border-amber-200"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0" /> Incertains</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium bg-red-50 text-red-700 border-red-200"><span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" /> Absents</span>
+              </div>
+              <p className="mt-2 text-gray-600">Survolez une barre pour voir le détail exact (nombre de membres dans chaque catégorie).</p>
+              <Tip>Seules les répétitions <strong>passées</strong> sont comptabilisées. Les répétitions futures n&apos;apparaissent pas dans les statistiques.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Répertoire par niveau de maîtrise">
+              <p>Un <strong>camembert</strong> classe les morceaux du répertoire selon leur niveau de maîtrise moyen au sein du groupe :</p>
+              <div className="mt-3 space-y-2">
+                {[
+                  { color: '#22c55e', label: 'Maîtrisé', desc: 'Tous les membres ont marqué ce morceau comme maîtrisé' },
+                  { color: '#f59e0b', label: 'En cours', desc: 'Au moins un membre est en cours ou a maîtrisé ce morceau' },
+                  { color: '#ef4444', label: 'À travailler', desc: 'Tous les membres l\'ont marqué à travailler' },
+                  { color: '#d1d5db', label: 'Non évalué', desc: 'Aucun membre n\'a encore indiqué son niveau' },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-start gap-2">
+                    <span className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" style={{ background: s.color }} />
+                    <div>
+                      <span className="text-xs font-semibold text-gray-800">{s.label}</span>
+                      <span className="text-xs text-gray-500"> — {s.desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Tip>Les niveaux de maîtrise sont mis à jour par chaque membre depuis la <strong>fiche de répétition</strong> (bouton de progression sur chaque morceau).</Tip>
+            </HelpCard>
+
+            <HelpCard title="Fréquence des répétitions (6 derniers mois)">
+              <p>Une <strong>courbe linéaire</strong> affiche le nombre de répétitions passées chaque mois sur les 6 derniers mois. Elle permet d&apos;identifier facilement les périodes d&apos;activité intense ou les creux (vacances, pauses…).</p>
+            </HelpCard>
+
+            <HelpCard title="Présence par membre">
+              <p>Un tableau classe chaque membre selon son taux de présence, avec une <strong>barre colorée</strong> :</p>
+              <div className="mt-3 space-y-1.5">
+                <div className="flex items-center gap-2 rounded-lg border border-green-100 bg-green-50 px-3 py-2">
+                  <div className="h-2 w-16 rounded-full bg-green-500 flex-shrink-0" />
+                  <p className="text-xs text-green-700 font-medium">≥ 75 % — Excellent</p>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+                  <div className="h-2 w-10 rounded-full bg-amber-400 flex-shrink-0" />
+                  <p className="text-xs text-amber-700 font-medium">50–74 % — Correct</p>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2">
+                  <div className="h-2 w-6 rounded-full bg-red-500 flex-shrink-0" />
+                  <p className="text-xs text-red-700 font-medium">&lt; 50 % — À améliorer</p>
+                </div>
+              </div>
+              <p className="mt-2 text-gray-600">Le détail (✓ présences, ✕ absences, ? incertains) est affiché sur la droite pour chaque membre.</p>
+            </HelpCard>
+
+            <HelpCard title="Ressources par type">
+              <p>Cette section affiche la répartition des ressources attachées aux morceaux du répertoire, par type :</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {['PDF', 'Audio', 'Vidéo', 'Image', 'YouTube', 'Lien', 'Autre'].map((t) => (
+                  <span key={t} className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600">{t}</span>
+                ))}
+              </div>
+              <p className="mt-2 text-gray-600">Pour les fichiers hébergés (PDF, Audio, Image…), la taille totale occupée est indiquée pour aider à gérer l&apos;espace de stockage.</p>
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Permissions co-chefs pour les statistiques" badge={{ label: "Fondateur seulement", color: "indigo" }}>
+                <p>Par défaut, tous les <strong>co-chefs</strong> (chefs que vous avez nommés) ont accès aux statistiques. Vous pouvez restreindre cet accès depuis les paramètres de permissions en bas de la page du groupe :</p>
+                <ol className="space-y-2 mt-2">
+                  <Step n={1}>Accédez à la page du groupe.</Step>
+                  <Step n={2}>Faites défiler jusqu&apos;à <strong>⚙️ Permissions des co-chefs</strong>.</Step>
+                  <Step n={3}>Dans le module <strong>📊 Statistiques</strong>, désactivez l&apos;action <em>Consulter</em> pour que les co-chefs ne puissent plus y accéder.</Step>
+                </ol>
+                <Note>Ces restrictions ne s&apos;appliquent pas à vous en tant que <strong>fondateur</strong> du groupe.</Note>
+              </HelpCard>
+            )}
+
+          </div>
+        </section>
+
         {/* ─── PLANS ─── */}
         <section id="plans">
           <SectionTitle icon="📦" title="Plans et stockage" color="purple" />
@@ -1071,7 +1191,7 @@ export default async function AidePage() {
                 <PlanDetailCard name="Pro" icon="⭐" storage="5 Go" price="5,99 €/mois" groups="5 groupes" color="indigo"
                   features={['Tout du plan Gratuit', 'Support prioritaire', 'Bientôt disponible']} comingSoon />
                 <PlanDetailCard name="Premium" icon="👑" storage="10 Go" price="9,90 €/mois" groups="5 groupes" color="purple"
-                  features={['Tout du plan Pro', 'Statistiques avancées', 'Bientôt disponible']} comingSoon />
+                  features={['Tout du plan Pro', 'Statistiques avancées (présence, répertoire…)']} />
               </div>
             </HelpCard>
 
@@ -1155,6 +1275,15 @@ export default async function AidePage() {
             <FaqItem question="Comment quitter un groupe ?">
               Depuis la page du groupe, section Membres, cliquez sur votre nom puis <strong>Quitter le groupe</strong>. Attention, si vous êtes le seul chef, vous devrez d&apos;abord promouvoir un autre membre.
             </FaqItem>
+            <FaqItem question="Qui peut accéder aux statistiques du groupe ?">
+              Seuls les <strong>chefs</strong> du groupe y ont accès (fondateur et co-chefs). Les membres simples ne voient pas les statistiques. De plus, le module nécessite un <strong>plan payant</strong> (Pro ou Premium). Le fondateur peut restreindre l&apos;accès aux co-chefs depuis les paramètres de permissions.
+            </FaqItem>
+            <FaqItem question="Les statistiques se mettent-elles à jour automatiquement ?">
+              Oui. Les données sont calculées en temps réel à chaque ouverture de la page — aucun rafraîchissement manuel n&apos;est nécessaire.
+            </FaqItem>
+            <FaqItem question="Pourquoi le taux de présence d'un membre est-il affiché avec un tiret — ?">
+              Le tiret signifie qu&apos;aucune présence n&apos;a encore été enregistrée pour ce membre (il n&apos;était invité à aucune répétition passée, ou les répétitions n&apos;ont pas de feuille de présence remplie).
+            </FaqItem>
             <FaqItem question="Les répétitions passées sont-elles conservées ?">
               Oui, toutes les répétitions passées restent accessibles. Seules les répétitions futures sont mises en avant sur le tableau de bord et la page du groupe.
             </FaqItem>
@@ -1207,6 +1336,7 @@ function SectionTitle({ icon, title, color }: { icon: string; title: string; col
     blue: 'border-blue-200 bg-blue-50 text-blue-700',
     indigo: 'border-indigo-200 bg-indigo-50 text-indigo-700',
     purple: 'border-purple-200 bg-purple-50 text-purple-700',
+    violet: 'border-violet-200 bg-violet-50 text-violet-700',
     green: 'border-green-200 bg-green-50 text-green-700',
     orange: 'border-orange-200 bg-orange-50 text-orange-700',
     rose:   'border-rose-200 bg-rose-50 text-rose-700',
