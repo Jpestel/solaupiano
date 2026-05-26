@@ -1,6 +1,53 @@
 import { Resend } from 'resend'
+import { getEmailTemplate } from './get-email-template'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+// ─── Wrapper HTML commun ──────────────────────────────────────────────────────
+
+function emailWrapper(body: string) {
+  return `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
+      <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
+            <span style="font-size: 24px;">🎹</span>
+          </div>
+          <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
+          <p style="margin: 4px 0 0; font-size: 12px; color: #818cf8; font-style: italic;">du solo à l'orchestre</p>
+        </div>
+        ${body}
+      </div>
+    </div>
+  `
+}
+
+function ctaButton(href: string, label: string) {
+  return `
+    <div style="text-align: center; margin: 24px 0 8px;">
+      <a href="${href}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-size: 14px; font-weight: 600;">
+        ${label}
+      </a>
+    </div>
+  `
+}
+
+function dataBox(content: string, color: 'blue' | 'green' | 'red' | 'gray' = 'blue') {
+  const colors = {
+    blue:  { bg: '#eff6ff', border: '#bfdbfe', text: '#1e3a8a', muted: '#1d4ed8' },
+    green: { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', muted: '#15803d' },
+    red:   { bg: '#fef2f2', border: '#fecaca', text: '#991b1b', muted: '#b91c1c' },
+    gray:  { bg: '#f9fafb', border: '#e5e7eb', text: '#111827', muted: '#6b7280' },
+  }
+  const c = colors[color]
+  return `
+    <div style="background: ${c.bg}; border: 1px solid ${c.border}; border-radius: 12px; padding: 16px 20px; margin: 20px 0;">
+      ${content}
+    </div>
+  `
+}
+
+// ─── 1. Nouvelle répétition ───────────────────────────────────────────────────
 
 export async function sendRehearsalNotification(
   members: { email: string; name: string }[],
@@ -24,193 +71,99 @@ export async function sendRehearsalNotification(
     : rehearsal.startTime
   const rehearsalUrl = `${baseUrl}/groupes/${groupId}/repetitions/${rehearsal.id}`
 
+  const tpl = await getEmailTemplate('rehearsal_notification')
+
   await Promise.all(
-    members.map(({ email, name }) =>
-      resend.emails.send({
+    members.map(({ email, name }) => {
+      const { subject, introHtml, outroHtml } = tpl.render({
+        memberName: name,
+        groupName,
+        date: dateStr,
+        time: timeStr,
+        location: rehearsal.location,
+      })
+
+      return resend.emails.send({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
-        subject: `Nouvelle répétition — ${groupName}`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-            <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <div style="text-align: center; margin-bottom: 24px;">
-                <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-                  <span style="font-size: 24px;">🎹</span>
-                </div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-              </div>
-
-              <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${name},</h2>
-              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
-                Une nouvelle répétition a été programmée pour le groupe <strong>${groupName}</strong>.
-              </p>
-
-              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
-                <p style="margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #1e3a8a; text-transform: capitalize;">${dateStr}</p>
-                <p style="margin: 0 0 4px; font-size: 13px; color: #1d4ed8;">🕐 ${timeStr}</p>
-                <p style="margin: 0; font-size: 13px; color: #1d4ed8;">📍 ${rehearsal.location}</p>
-                ${rehearsal.notes ? `<p style="margin: 8px 0 0; font-size: 12px; color: #6b7280; font-style: italic;">${rehearsal.notes}</p>` : ''}
-              </div>
-
-              <p style="color: #6b7280; font-size: 13px; margin-bottom: 20px;">
-                Pensez à indiquer votre présence directement sur la plateforme.
-              </p>
-
-              <div style="text-align: center;">
-                <a href="${rehearsalUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-                  Indiquer ma présence
-                </a>
-              </div>
-            </div>
-          </div>
-        `,
+        subject,
+        html: emailWrapper(`
+          ${introHtml}
+          ${dataBox(`
+            <p style="margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #1e3a8a; text-transform: capitalize;">${dateStr}</p>
+            <p style="margin: 0 0 4px; font-size: 13px; color: #1d4ed8;">🕐 ${timeStr}</p>
+            <p style="margin: 0; font-size: 13px; color: #1d4ed8;">📍 ${rehearsal.location}</p>
+            ${rehearsal.notes ? `<p style="margin: 8px 0 0; font-size: 12px; color: #6b7280; font-style: italic;">${rehearsal.notes}</p>` : ''}
+          `)}
+          ${outroHtml}
+          ${ctaButton(rehearsalUrl, 'Indiquer ma présence')}
+        `),
       })
-    )
+    })
   )
 }
 
-export async function sendInvitationEmail(to: string, fromName: string, personalMessage: string | null, signupUrl: string) {
+// ─── 2. Rappel automatique répétition ────────────────────────────────────────
+
+export async function sendRehearsalAutoReminderEmail(
+  member: { email: string; name: string },
+  groupName: string,
+  groupId: number,
+  rehearsal: {
+    id: number
+    date: Date
+    startTime: string
+    endTime?: string | null
+    location: string
+    notes?: string | null
+  },
+  baseUrl: string
+) {
+  const dateStr = new Date(rehearsal.date).toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+  const timeStr = rehearsal.endTime
+    ? `${rehearsal.startTime} – ${rehearsal.endTime}`
+    : rehearsal.startTime
+  const rehearsalUrl = `${baseUrl}/groupes/${groupId}/repetitions/${rehearsal.id}`
+  const profileUrl = `${baseUrl}/profil`
+
+  const tpl = await getEmailTemplate('rehearsal_auto_reminder')
+  const { subject, introHtml, outroHtml } = tpl.render({
+    memberName: member.name,
+    groupName,
+    date: dateStr,
+    time: timeStr,
+    location: rehearsal.location,
+  })
+
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
-    to,
-    subject: `${fromName} vous invite à rejoindre Sol au piano 🎶`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 28px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: #4f46e5; border-radius: 16px; margin-bottom: 14px;">
-              <span style="font-size: 28px;">🎶</span>
-            </div>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-            <p style="margin: 6px 0 0; font-size: 14px; color: #6b7280;">La plateforme pour les musiciens en groupe</p>
-          </div>
-
-          <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 12px;">
-            ${fromName} vous invite à rejoindre Sol au piano !
-          </h2>
-
-          <p style="color: #4b5563; font-size: 14px; line-height: 1.7; margin-bottom: 20px;">
-            Bonjour,<br/><br/>
-            <strong>${fromName}</strong> vous invite à découvrir <strong>Sol au piano</strong>, la plateforme pensée pour les musiciens qui répètent en groupe.
-          </p>
-
-          ${personalMessage ? `
-          <div style="background: #f5f3ff; border-left: 4px solid #7c3aed; border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 24px;">
-            <p style="margin: 0; font-size: 14px; color: #4c1d95; font-style: italic;">"${personalMessage}"</p>
-            <p style="margin: 8px 0 0; font-size: 12px; color: #7c3aed; font-weight: 600;">— ${fromName}</p>
-          </div>
-          ` : ''}
-
-          <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-            <p style="margin: 0 0 12px; font-size: 13px; font-weight: 600; color: #374151;">Avec Sol au piano, vous pouvez :</p>
-            <ul style="margin: 0; padding: 0; list-style: none; space-y: 8px;">
-              <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                🗓️ &nbsp;Organiser et planifier vos répétitions
-              </li>
-              <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px;">
-                🎵 &nbsp;Gérer le répertoire de vos morceaux
-              </li>
-              <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px;">
-                📁 &nbsp;Partager partitions, grilles et fichiers audio
-              </li>
-              <li style="font-size: 13px; color: #4b5563;">
-                ✅ &nbsp;Suivre votre préparation morceau par morceau
-              </li>
-            </ul>
-          </div>
-
-          <div style="text-align: center; margin-bottom: 28px;">
-            <a href="${signupUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-size: 15px; font-weight: 600; letter-spacing: 0.01em;">
-              Créer mon compte gratuitement
-            </a>
-          </div>
-
-          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-            Si vous n'êtes pas musicien ou ne souhaitez pas rejoindre Sol au piano, ignorez simplement cet email.
-          </p>
-        </div>
+    to: member.email,
+    subject,
+    html: emailWrapper(`
+      <div style="display: inline-flex; align-items: center; gap: 6px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 6px 12px; margin-bottom: 20px;">
+        <span style="font-size: 14px;">⏰</span>
+        <span style="font-size: 12px; font-weight: 600; color: #92400e;">Rappel automatique — dans 5 jours</span>
       </div>
-    `,
+      ${introHtml}
+      ${dataBox(`
+        <p style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1e3a8a; text-transform: capitalize;">${dateStr}</p>
+        <p style="margin: 0 0 4px; font-size: 13px; color: #1d4ed8;">🕐 ${timeStr}</p>
+        <p style="margin: 0; font-size: 13px; color: #1d4ed8;">📍 ${rehearsal.location}</p>
+        ${rehearsal.notes ? `<p style="margin: 8px 0 0; font-size: 12px; color: #6b7280; font-style: italic; border-top: 1px solid #bfdbfe; padding-top: 8px;">${rehearsal.notes}</p>` : ''}
+      `)}
+      ${outroHtml}
+      ${ctaButton(rehearsalUrl, 'Indiquer ma présence')}
+      <p style="color: #d1d5db; font-size: 11px; text-align: center; margin: 16px 0 0; border-top: 1px solid #f3f4f6; padding-top: 12px;">
+        Vous recevez cet email automatiquement 5 jours avant chaque répétition.<br/>
+        <a href="${profileUrl}" style="color: #6b7280; text-decoration: underline;">Se désabonner de ces rappels</a>
+      </p>
+    `),
   })
 }
 
-export async function sendEmailVerification(to: string, name: string, verifyUrl: string) {
-  await resend.emails.send({
-    from: 'Sol au piano <noreply@solaupiano.fr>',
-    to,
-    subject: 'Confirmez votre adresse email',
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-              <span style="font-size: 24px;">🎶</span>
-            </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-          </div>
-
-          <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 8px;">Bienvenue ${name} !</h2>
-          <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
-            Votre compte a bien été créé. Pour l'activer, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous.
-            Ce lien est valable <strong>24 heures</strong>.
-          </p>
-
-          <div style="text-align: center; margin-bottom: 24px;">
-            <a href="${verifyUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-              Confirmer mon email
-            </a>
-          </div>
-
-          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-            Si vous n'avez pas créé de compte sur Sol au piano, ignorez cet email.
-          </p>
-        </div>
-      </div>
-    `,
-  })
-}
-
-export async function sendNewUserNotification(adminEmail: string, newUser: { name: string; email: string }) {
-  await resend.emails.send({
-    from: 'Sol au piano <noreply@solaupiano.fr>',
-    to: adminEmail,
-    subject: `Nouvelle inscription — ${newUser.name}`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-              <span style="font-size: 24px;">🎹</span>
-            </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-          </div>
-
-          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
-            <p style="margin: 0 0 4px; font-size: 15px; font-weight: 600; color: #166534;">Nouvelle inscription 🎉</p>
-            <p style="margin: 0; font-size: 13px; color: #15803d;">Un nouveau musicien vient de rejoindre la plateforme.</p>
-          </div>
-
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280; width: 40%;">Nom</td>
-              <td style="padding: 8px 0; color: #111827; font-weight: 500;">${newUser.name}</td>
-            </tr>
-            <tr style="border-top: 1px solid #f3f4f6;">
-              <td style="padding: 8px 0; color: #6b7280;">Email</td>
-              <td style="padding: 8px 0; color: #111827; font-weight: 500;">${newUser.email}</td>
-            </tr>
-          </table>
-
-          <div style="text-align: center; margin-top: 24px;">
-            <a href="https://solaupiano.fr/admin/utilisateurs" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 600;">
-              Voir les utilisateurs
-            </a>
-          </div>
-        </div>
-      </div>
-    `,
-  })
-}
+// ─── 3. Rappel de présence ────────────────────────────────────────────────────
 
 export async function sendAttendanceReminder(
   members: { email: string; name: string }[],
@@ -233,49 +186,36 @@ export async function sendAttendanceReminder(
     : rehearsal.startTime
   const rehearsalUrl = `${baseUrl}/groupes/${rehearsal.groupId}/repetitions/${rehearsal.id}`
 
+  const tpl = await getEmailTemplate('attendance_reminder')
+
   await Promise.all(
-    members.map(({ email, name }) =>
-      resend.emails.send({
+    members.map(({ email, name }) => {
+      const { subject, introHtml, outroHtml } = tpl.render({
+        memberName: name,
+        groupName,
+        date: dateStr,
+      })
+
+      return resend.emails.send({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
-        subject: `Rappel — Indiquez votre présence · ${groupName}`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-            <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <div style="text-align: center; margin-bottom: 24px;">
-                <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-                  <span style="font-size: 24px;">🎹</span>
-                </div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-              </div>
-
-              <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${name},</h2>
-              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
-                Vous n'avez pas encore indiqué votre présence pour la prochaine répétition du groupe <strong>${groupName}</strong>.
-              </p>
-
-              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
-                <p style="margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #1e3a8a; text-transform: capitalize;">${dateStr}</p>
-                <p style="margin: 0 0 4px; font-size: 13px; color: #1d4ed8;">🕐 ${timeStr}</p>
-                <p style="margin: 0; font-size: 13px; color: #1d4ed8;">📍 ${rehearsal.location}</p>
-              </div>
-
-              <p style="color: #6b7280; font-size: 13px; margin-bottom: 20px;">
-                Merci de prendre une minute pour indiquer si vous serez présent(e), absent(e) ou incertain(e).
-              </p>
-
-              <div style="text-align: center;">
-                <a href="${rehearsalUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-                  Indiquer ma présence
-                </a>
-              </div>
-            </div>
-          </div>
-        `,
+        subject,
+        html: emailWrapper(`
+          ${introHtml}
+          ${dataBox(`
+            <p style="margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #1e3a8a; text-transform: capitalize;">${dateStr}</p>
+            <p style="margin: 0 0 4px; font-size: 13px; color: #1d4ed8;">🕐 ${timeStr}</p>
+            <p style="margin: 0; font-size: 13px; color: #1d4ed8;">📍 ${rehearsal.location}</p>
+          `)}
+          ${outroHtml}
+          ${ctaButton(rehearsalUrl, 'Indiquer ma présence')}
+        `),
       })
-    )
+    })
   )
 }
+
+// ─── 4. Bienvenue dans le groupe ──────────────────────────────────────────────
 
 export async function sendGroupWelcomeEmail(
   to: string,
@@ -286,46 +226,168 @@ export async function sendGroupWelcomeEmail(
   baseUrl: string
 ) {
   const groupUrl = `${baseUrl}/groupes/${groupId}`
+  const tpl = await getEmailTemplate('group_welcome')
+  const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName })
+
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
-    subject: `Bienvenue dans le groupe "${groupName}" 🎶`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-              <span style="font-size: 24px;">🎹</span>
-            </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-          </div>
-
-          <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${memberName} !</h2>
-          <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
-            <strong>${addedByName}</strong> vous a ajouté(e) au groupe <strong>${groupName}</strong> sur Sol au piano.
-            Vous avez maintenant accès au répertoire, aux répétitions, aux setlists et aux grilles d'accords du groupe.
-          </p>
-
-          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
-            <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #1e3a8a;">🎵 ${groupName}</p>
-            <p style="margin: 0; font-size: 13px; color: #3b82f6;">Ajouté(e) par ${addedByName}</p>
-          </div>
-
-          <div style="text-align: center; margin-bottom: 20px;">
-            <a href="${groupUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-              Accéder au groupe →
-            </a>
-          </div>
-
-          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-            Vous recevrez un résumé hebdomadaire des nouveautés du groupe chaque vendredi.
-            Vous pouvez vous désabonner depuis votre <a href="${baseUrl}/profil" style="color: #6b7280;">profil</a>.
-          </p>
-        </div>
-      </div>
-    `,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${dataBox(`
+        <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #1e3a8a;">🎵 ${groupName}</p>
+        <p style="margin: 0; font-size: 13px; color: #3b82f6;">Ajouté(e) par ${addedByName}</p>
+      `)}
+      ${outroHtml}
+      ${ctaButton(groupUrl, 'Accéder au groupe →')}
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 12px 0 0;">
+        Vous recevrez un résumé hebdomadaire des nouveautés du groupe chaque vendredi.
+        Vous pouvez vous désabonner depuis votre <a href="${baseUrl}/profil" style="color: #6b7280;">profil</a>.
+      </p>
+    `),
   })
 }
+
+// ─── 5. Membre retiré du groupe ───────────────────────────────────────────────
+
+export async function sendMemberRemovedEmail(
+  to: string,
+  memberName: string,
+  groupName: string,
+  removedByName: string,
+  baseUrl: string
+) {
+  const tpl = await getEmailTemplate('member_removed')
+  const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName })
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${dataBox(`
+        <p style="margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #991b1b;">🚪 Retrait du groupe</p>
+        <p style="margin: 0 0 4px; font-size: 13px; color: #b91c1c;">Groupe : <strong>${groupName}</strong></p>
+        <p style="margin: 0; font-size: 13px; color: #b91c1c;">Retiré(e) par : ${removedByName}</p>
+      `, 'red')}
+      ${outroHtml}
+      ${ctaButton(`${baseUrl}/groupes`, 'Voir mes groupes →')}
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 12px 0 0;">
+        Sol au piano — La plateforme pour les musiciens en groupe
+      </p>
+    `),
+  })
+}
+
+// ─── 6. Invitation ────────────────────────────────────────────────────────────
+
+export async function sendInvitationEmail(to: string, fromName: string, personalMessage: string | null, signupUrl: string) {
+  const tpl = await getEmailTemplate('invitation')
+  const { subject, introHtml, outroHtml } = tpl.render({ fromName })
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${personalMessage ? `
+      <div style="background: #f5f3ff; border-left: 4px solid #7c3aed; border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 14px; color: #4c1d95; font-style: italic;">"${personalMessage}"</p>
+        <p style="margin: 8px 0 0; font-size: 12px; color: #7c3aed; font-weight: 600;">— ${fromName}</p>
+      </div>
+      ` : ''}
+      <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin: 20px 0;">
+        <p style="margin: 0 0 12px; font-size: 13px; font-weight: 600; color: #374151;">Avec Sol au piano, vous pouvez :</p>
+        <ul style="margin: 0; padding: 0; list-style: none;">
+          <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px;">🗓️ &nbsp;Organiser et planifier vos répétitions</li>
+          <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px;">🎵 &nbsp;Gérer le répertoire de vos morceaux</li>
+          <li style="font-size: 13px; color: #4b5563; margin-bottom: 8px;">📁 &nbsp;Partager partitions, grilles et fichiers audio</li>
+          <li style="font-size: 13px; color: #4b5563;">✅ &nbsp;Suivre votre préparation morceau par morceau</li>
+        </ul>
+      </div>
+      ${outroHtml}
+      ${ctaButton(signupUrl, 'Créer mon compte gratuitement')}
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 12px 0 0;">
+        Si vous n'êtes pas musicien ou ne souhaitez pas rejoindre Sol au piano, ignorez simplement cet email.
+      </p>
+    `),
+  })
+}
+
+// ─── 7. Vérification email ────────────────────────────────────────────────────
+
+export async function sendEmailVerification(to: string, name: string, verifyUrl: string) {
+  const tpl = await getEmailTemplate('email_verification')
+  const { subject, introHtml, outroHtml } = tpl.render({ userName: name })
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${ctaButton(verifyUrl, 'Confirmer mon email')}
+      ${outroHtml}
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 12px 0 0;">
+        Si vous n'avez pas créé de compte sur Sol au piano, ignorez cet email.
+      </p>
+    `),
+  })
+}
+
+// ─── 8. Réinitialisation mot de passe ─────────────────────────────────────────
+
+export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string) {
+  const tpl = await getEmailTemplate('password_reset')
+  const { subject, introHtml, outroHtml } = tpl.render({ userName: name })
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${ctaButton(resetUrl, 'Réinitialiser mon mot de passe')}
+      ${outroHtml}
+    `),
+  })
+}
+
+// ─── 9. Nouvelle inscription (admin) ─────────────────────────────────────────
+
+export async function sendNewUserNotification(adminEmail: string, newUser: { name: string; email: string }) {
+  const tpl = await getEmailTemplate('new_user_admin')
+  const { subject, introHtml, outroHtml } = tpl.render({
+    userName: newUser.name,
+    userEmail: newUser.email,
+  })
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to: adminEmail,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin: 20px 0;">
+        <tr>
+          <td style="padding: 8px 0; color: #6b7280; width: 40%;">Nom</td>
+          <td style="padding: 8px 0; color: #111827; font-weight: 500;">${newUser.name}</td>
+        </tr>
+        <tr style="border-top: 1px solid #f3f4f6;">
+          <td style="padding: 8px 0; color: #6b7280;">Email</td>
+          <td style="padding: 8px 0; color: #111827; font-weight: 500;">${newUser.email}</td>
+        </tr>
+      </table>
+      ${outroHtml}
+      ${ctaButton('https://solaupiano.fr/admin/utilisateurs', 'Voir les utilisateurs')}
+    `),
+  })
+}
+
+// ─── 10. Résumé hebdomadaire ──────────────────────────────────────────────────
 
 export interface DigestGroup {
   id: number
@@ -348,13 +410,14 @@ export async function sendWeeklyDigestEmail(
   if (groupsWithActivity.length === 0) return
 
   const typeLabel: Record<string, string> = {
-    PDF: '📄 PDF',
-    AUDIO: '🎵 Audio',
-    IMAGE: '🖼️ Image',
-    GRILLE: '🎸 Grille',
-    LIEN: '🔗 Lien',
-    AUTRE: '📎 Fichier',
+    PDF: '📄 PDF', AUDIO: '🎵 Audio', IMAGE: '🖼️ Image',
+    GRILLE: '🎸 Grille', LIEN: '🔗 Lien', AUTRE: '📎 Fichier',
   }
+
+  const weekStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  const tpl = await getEmailTemplate('weekly_digest')
+  const { subject, introHtml, outroHtml } = tpl.render({ memberName, week: weekStr })
 
   const groupsHtml = groupsWithActivity.map((g) => {
     const sections: string[] = []
@@ -369,7 +432,6 @@ export async function sendWeeklyDigestEmail(
         `).join('')}
       `)
     }
-
     if (g.newResources.length > 0) {
       sections.push(`
         <p style="margin: 12px 0 6px; font-size: 12px; font-weight: 600; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">📁 Nouveaux fichiers & liens</p>
@@ -381,7 +443,6 @@ export async function sendWeeklyDigestEmail(
         `).join('')}
       `)
     }
-
     if (g.newSongs.length > 0) {
       sections.push(`
         <p style="margin: 12px 0 6px; font-size: 12px; font-weight: 600; color: #065f46; text-transform: uppercase; letter-spacing: 0.05em;">🎼 Nouveaux morceaux au répertoire</p>
@@ -392,7 +453,6 @@ export async function sendWeeklyDigestEmail(
         `).join('')}
       `)
     }
-
     if (g.upcomingRehearsals.length > 0) {
       sections.push(`
         <p style="margin: 12px 0 6px; font-size: 12px; font-weight: 600; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.05em;">🗓️ Prochaines répétitions</p>
@@ -419,198 +479,21 @@ export async function sendWeeklyDigestEmail(
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
-    subject: `Résumé de la semaine — Sol au piano 🎹`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-              <span style="font-size: 24px;">🎹</span>
-            </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-            <p style="margin: 6px 0 0; font-size: 13px; color: #6b7280;">Résumé de la semaine</p>
-          </div>
-
-          <h2 style="font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${memberName},</h2>
-          <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
-            Voici ce qui s'est passé cette semaine dans vos groupes :
-          </p>
-
-          ${groupsHtml}
-
-          <div style="text-align: center; margin-top: 24px; margin-bottom: 8px;">
-            <a href="${baseUrl}/tableau-de-bord" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-              Accéder à la plateforme →
-            </a>
-          </div>
-
-          <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 20px;">
-            Vous recevez cet email car vous n'êtes pas connecté(e) depuis plus de 7 jours.<br/>
-            <a href="${baseUrl}/profil" style="color: #6b7280;">Se désabonner du résumé hebdomadaire</a>
-          </p>
-        </div>
-      </div>
-    `,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${groupsHtml}
+      ${outroHtml}
+      ${ctaButton(`${baseUrl}/tableau-de-bord`, 'Accéder à la plateforme →')}
+      <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 20px;">
+        Vous recevez cet email car vous n'êtes pas connecté(e) depuis plus de 7 jours.<br/>
+        <a href="${baseUrl}/profil" style="color: #6b7280;">Se désabonner du résumé hebdomadaire</a>
+      </p>
+    `),
   })
 }
 
-export async function sendMemberRemovedEmail(
-  to: string,
-  memberName: string,
-  groupName: string,
-  removedByName: string,
-  baseUrl: string
-) {
-  await resend.emails.send({
-    from: 'Sol au piano <noreply@solaupiano.fr>',
-    to,
-    subject: `Vous avez été retiré(e) du groupe "${groupName}"`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-              <span style="font-size: 24px;">🎹</span>
-            </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-          </div>
-
-          <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${memberName},</h2>
-          <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
-            <strong>${removedByName}</strong> vous a retiré(e) du groupe <strong>${groupName}</strong> sur Sol au piano.
-            Vous n'avez plus accès au contenu de ce groupe.
-          </p>
-
-          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
-            <p style="margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #991b1b;">🚪 Retrait du groupe</p>
-            <p style="margin: 0; font-size: 13px; color: #b91c1c;">Groupe : <strong>${groupName}</strong></p>
-          </div>
-
-          <p style="color: #6b7280; font-size: 13px; line-height: 1.6; margin-bottom: 24px;">
-            Si vous pensez qu'il s'agit d'une erreur, contactez directement le chef de votre groupe.
-            Vous pouvez également rejoindre d'autres groupes ou en créer un nouveau depuis la plateforme.
-          </p>
-
-          <div style="text-align: center; margin-bottom: 20px;">
-            <a href="${baseUrl}/groupes" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-              Voir mes groupes →
-            </a>
-          </div>
-
-          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-            Sol au piano — La plateforme pour les musiciens en groupe
-          </p>
-        </div>
-      </div>
-    `,
-  })
-}
-
-export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string) {
-  await resend.emails.send({
-    from: 'Sol au piano <noreply@solaupiano.fr>',
-    to,
-    subject: 'Réinitialisation de votre mot de passe',
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-              <span style="font-size: 24px;">🎹</span>
-            </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-          </div>
-
-          <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 8px;">Bonjour ${name},</h2>
-          <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
-            Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous pour en choisir un nouveau.
-            Ce lien est valable <strong>1 heure</strong>.
-          </p>
-
-          <div style="text-align: center; margin-bottom: 24px;">
-            <a href="${resetUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-              Réinitialiser mon mot de passe
-            </a>
-          </div>
-
-          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-            Si vous n'avez pas fait cette demande, ignorez cet email. Votre mot de passe ne sera pas modifié.
-          </p>
-        </div>
-      </div>
-    `,
-  })
-}
-
-export async function sendRehearsalAutoReminderEmail(
-  member: { email: string; name: string },
-  groupName: string,
-  groupId: number,
-  rehearsal: {
-    id: number
-    date: Date
-    startTime: string
-    endTime?: string | null
-    location: string
-    notes?: string | null
-  },
-  baseUrl: string
-) {
-  const dateStr = new Date(rehearsal.date).toLocaleDateString('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
-  const timeStr = rehearsal.endTime
-    ? `${rehearsal.startTime} – ${rehearsal.endTime}`
-    : rehearsal.startTime
-  const rehearsalUrl = `${baseUrl}/groupes/${groupId}/repetitions/${rehearsal.id}`
-  const profileUrl = `${baseUrl}/profil`
-
-  await resend.emails.send({
-    from: 'Sol au piano <noreply@solaupiano.fr>',
-    to: member.email,
-    subject: `Rappel — Répétition dans 5 jours · ${groupName}`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-              <span style="font-size: 24px;">🎹</span>
-            </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-          </div>
-
-          <div style="display: inline-flex; align-items: center; gap: 6px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 6px 12px; margin-bottom: 20px;">
-            <span style="font-size: 14px;">⏰</span>
-            <span style="font-size: 12px; font-weight: 600; color: #92400e;">Rappel automatique — dans 5 jours</span>
-          </div>
-
-          <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px;">Bonjour ${member.name},</h2>
-          <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
-            Vous avez une répétition avec <strong>${groupName}</strong> dans <strong>5 jours</strong>. Pensez à confirmer votre présence !
-          </p>
-
-          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
-            <p style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1e3a8a; text-transform: capitalize;">${dateStr}</p>
-            <p style="margin: 0 0 4px; font-size: 13px; color: #1d4ed8;">🕐 ${timeStr}</p>
-            <p style="margin: 0; font-size: 13px; color: #1d4ed8;">📍 ${rehearsal.location}</p>
-            ${rehearsal.notes ? `<p style="margin: 8px 0 0; font-size: 12px; color: #6b7280; font-style: italic; border-top: 1px solid #bfdbfe; padding-top: 8px;">${rehearsal.notes}</p>` : ''}
-          </div>
-
-          <div style="text-align: center; margin-bottom: 20px;">
-            <a href="${rehearsalUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-              Indiquer ma présence
-            </a>
-          </div>
-
-          <p style="color: #d1d5db; font-size: 11px; text-align: center; margin: 16px 0 0; border-top: 1px solid #f3f4f6; padding-top: 12px;">
-            Vous recevez cet email automatiquement 5 jours avant chaque répétition.<br/>
-            <a href="${profileUrl}" style="color: #6b7280; text-decoration: underline;">Se désabonner de ces rappels</a>
-          </p>
-        </div>
-      </div>
-    `,
-  })
-}
+// ─── 11. Nouvelle annonce à valider (admin) ───────────────────────────────────
 
 export async function sendAdminAnnonceNotification(annonce: {
   id: number
@@ -620,69 +503,59 @@ export async function sendAdminAnnonceNotification(annonce: {
   userName: string
   userEmail: string
 }, adminEmail: string, baseUrl: string) {
+  const tpl = await getEmailTemplate('annonce_admin')
+  const { subject, introHtml, outroHtml } = tpl.render({
+    annonceTitle: annonce.title,
+    category: annonce.category,
+    userName: annonce.userName,
+    userEmail: annonce.userEmail,
+  })
+
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: adminEmail,
-    subject: `🔔 Nouvelle annonce en attente de validation — ${annonce.title}`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-              <span style="font-size: 24px;">🎹</span>
-            </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-            <p style="margin: 4px 0 0; font-size: 12px; color: #818cf8; font-style: italic;">du solo à l'orchestre</p>
-          </div>
-          <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">Nouvelle annonce à valider</h2>
-          <p style="color: #6b7280; font-size: 14px; margin: 0 0 20px;">Une annonce vient d'être déposée et attend votre validation avant d'être publiée.</p>
-          <div style="background: #f3f4f6; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <p style="margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #111827;">${annonce.title}</p>
-            <p style="margin: 0 0 4px; font-size: 13px; color: #6b7280;">Catégorie : ${annonce.category}${annonce.location ? ' · ' + annonce.location : ''}</p>
-            <p style="margin: 0; font-size: 13px; color: #6b7280;">Déposée par : <strong>${annonce.userName}</strong> (${annonce.userEmail})</p>
-          </div>
-          <a href="${baseUrl}/admin/annonces" style="display: inline-block; background: #4f46e5; color: white; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 10px; text-decoration: none;">
-            Valider l'annonce →
-          </a>
-        </div>
-      </div>
-    `,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${dataBox(`
+        <p style="margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #111827;">${annonce.title}</p>
+        <p style="margin: 0 0 4px; font-size: 13px; color: #6b7280;">Catégorie : ${annonce.category}${annonce.location ? ' · ' + annonce.location : ''}</p>
+        <p style="margin: 0; font-size: 13px; color: #6b7280;">Déposée par : <strong>${annonce.userName}</strong> (${annonce.userEmail})</p>
+      `, 'gray')}
+      ${outroHtml}
+      ${ctaButton(`${baseUrl}/admin/annonces`, 'Valider l\'annonce →')}
+    `),
   })
 }
+
+// ─── 12. Annonce refusée / retirée (membre) ───────────────────────────────────
 
 export async function sendMemberAnnonceRefused(to: { email: string; name: string }, annonce: {
   id: number
   title: string
   adminComment?: string | null
 }, baseUrl: string) {
+  const tpl = await getEmailTemplate('annonce_refused')
+  const { subject, introHtml, outroHtml } = tpl.render({
+    memberName: to.name,
+    annonceTitle: annonce.title,
+    adminComment: annonce.adminComment ?? '',
+  })
+
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: to.email,
-    subject: `Votre annonce "${annonce.title}" a été retirée`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
-        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
-              <span style="font-size: 24px;">🎹</span>
-            </div>
-            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
-            <p style="margin: 4px 0 0; font-size: 12px; color: #818cf8; font-style: italic;">du solo à l'orchestre</p>
-          </div>
-          <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">Annonce retirée</h2>
-          <p style="color: #6b7280; font-size: 14px; margin: 0 0 16px;">Bonjour ${to.name},</p>
-          <p style="color: #6b7280; font-size: 14px; margin: 0 0 16px;">Votre annonce <strong>"${annonce.title}"</strong> a été retirée de la publication par l'administrateur.</p>
-          ${annonce.adminComment ? `
-          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px; margin-bottom: 20px;">
-            <p style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #dc2626;">Message de l'administrateur :</p>
-            <p style="margin: 0; font-size: 13px; color: #b91c1c; font-style: italic;">${annonce.adminComment}</p>
-          </div>` : ''}
-          <p style="color: #6b7280; font-size: 13px; margin: 0 0 20px;">Vous pouvez modifier votre annonce et la soumettre à nouveau.</p>
-          <a href="${baseUrl}/annonces/mes-annonces" style="display: inline-block; background: #4f46e5; color: white; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 10px; text-decoration: none;">
-            Voir mes annonces →
-          </a>
-        </div>
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${annonce.adminComment ? `
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px; margin: 16px 0;">
+        <p style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #dc2626;">Message de l'administrateur :</p>
+        <p style="margin: 0; font-size: 13px; color: #b91c1c; font-style: italic;">${annonce.adminComment}</p>
       </div>
-    `,
+      ` : ''}
+      ${outroHtml}
+      ${ctaButton(`${baseUrl}/annonces/mes-annonces`, 'Voir mes annonces →')}
+    `),
   })
 }
