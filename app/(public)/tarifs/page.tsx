@@ -94,7 +94,7 @@ export default async function TarifsPage() {
                 <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Rejoindre un ou plusieurs groupes</li>
                 <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Consulter répétitions, répertoire, concerts</li>
                 <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Suivi des présences</li>
-                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Télécharger les partitions partagées</li>
+                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Accéder aux ressources partagées par le groupe</li>
                 <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">✗</span> <span className="text-gray-400">Créer ou gérer un groupe</span></li>
               </ul>
               <Link
@@ -122,14 +122,15 @@ export default async function TarifsPage() {
                 </div>
               </div>
               <p className="text-sm text-indigo-700 leading-relaxed">
-                Créez et gérez votre groupe de musique. Invitez vos membres, organisez vos répétitions, partagez partitions et ressources.
+                Créez et gérez votre groupe de musique. Invitez vos membres, organisez vos répétitions et gérez votre répertoire.
               </p>
               <ul className="space-y-1.5 text-sm text-gray-700">
                 <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Tout du plan Musicien</li>
-                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> <strong>Créer et gérer 1 groupe</strong> (plan gratuit)</li>
-                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Inviter et gérer les membres</li>
-                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Partager des ressources (1 Go de stockage)</li>
-                <li className="flex items-start gap-2"><span className="text-indigo-500 mt-0.5">↑</span> <span className="text-indigo-600 font-medium">Pro/Premium : jusqu&apos;à 3–5 groupes + plus de stockage</span></li>
+                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> <strong>Créer et gérer 1 groupe</strong></li>
+                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Inviter et gérer les membres <span className="text-gray-400 text-xs">(8 max)</span></li>
+                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Répertoire <span className="text-gray-400 text-xs">(15 morceaux max)</span></li>
+                <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">✗</span> <span className="text-gray-400">Partage de fichiers / partitions</span></li>
+                <li className="flex items-start gap-2"><span className="text-indigo-500 mt-0.5">↑</span> <span className="text-indigo-600 font-medium">Pro : upload de fichiers, 3 groupes, 5 Go</span></li>
               </ul>
               <Link
                 href="/inscription?role=CREATEUR"
