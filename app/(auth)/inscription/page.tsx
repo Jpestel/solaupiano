@@ -84,11 +84,11 @@ export default function InscriptionPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg">
+          <Link href="/" className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg hover:bg-indigo-500 transition-colors">
             <span className="text-2xl">🎹</span>
-          </div>
+          </Link>
           <h1 className="text-3xl font-bold text-indigo-900">Sol au piano</h1>
-          <p className="text-gray-500 mt-1">Créez votre compte musicien</p>
+          <p className="text-gray-500 mt-1">Créez votre compte gratuitement</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -139,8 +139,8 @@ export default function InscriptionPage() {
                 <ul className="text-[11px] text-gray-500 text-left space-y-0.5 w-full px-1">
                   <li>✓ Rejoindre un ou plusieurs groupes</li>
                   <li>✓ Créer et gérer <strong>1 groupe</strong></li>
-                  <li>✓ 1 Go stockage partagé avec les membres</li>
-                  <li className="text-indigo-500 text-[10px]">↑ Pro/Premium : jusqu'à 5 groupes</li>
+                  <li>✓ 1 Go de stockage (tous groupes)</li>
+                  <li className="text-indigo-500 text-[10px]">↑ Pro : 3 groupes, 5 Go · Premium : 5 groupes, 10 Go</li>
                 </ul>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   userPlan === 'CREATEUR' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
@@ -148,7 +148,10 @@ export default function InscriptionPage() {
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-2 text-center">
-              Vous pourrez changer de plan depuis votre profil à tout moment.
+              Vous pourrez évoluer vers un plan payant depuis votre profil à tout moment.{' '}
+              <Link href="/tarifs" className="text-indigo-500 hover:text-indigo-600 underline underline-offset-2">
+                Voir tous les plans →
+              </Link>
             </p>
           </div>
 

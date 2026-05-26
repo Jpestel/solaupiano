@@ -68,6 +68,12 @@ export default async function PublicHomePage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/tarifs"
+              className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
+            >
+              Tarifs
+            </Link>
+            <Link
               href="/aide"
               className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
             >
@@ -107,6 +113,12 @@ export default async function PublicHomePage() {
                 className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm"
               >
                 Créer mon compte gratuitement
+              </Link>
+              <Link
+                href="/tarifs"
+                className="text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
+              >
+                Voir les tarifs →
               </Link>
               <Link
                 href="/connexion"
@@ -235,6 +247,7 @@ export default async function PublicHomePage() {
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <Link href="/connexion" className="hover:text-indigo-600 transition-colors">Connexion</Link>
             <Link href="/inscription" className="hover:text-indigo-600 transition-colors">Inscription</Link>
+            <Link href="/tarifs" className="hover:text-indigo-600 transition-colors">Tarifs</Link>
             <Link href="/aide" className="hover:text-indigo-600 transition-colors">Aide</Link>
             <Link href="/mentions-legales" className="hover:text-indigo-600 transition-colors">Mentions légales</Link>
           </div>
