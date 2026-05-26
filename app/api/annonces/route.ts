@@ -42,7 +42,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
-  if (!session.user.emailVerified && session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Vérifiez votre email avant de poster une annonce.' }, { status: 403 })
 
   const userId = Number(session.user.id)
   const isAdmin = session.user.siteRole === 'ADMIN'
