@@ -103,6 +103,27 @@ export default async function AnnonceDetailPage({ params }: { params: { id: stri
                 </div>
               </div>
             )}
+            {annonce.status === 'MASQUEE' && (isOwner || isAdmin) && (
+              <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3">
+                <span className="text-xl mt-0.5">🚫</span>
+                <div>
+                  <p className="text-sm font-semibold text-red-700">Annonce refusée / masquée</p>
+                  {(annonce as any).adminComment ? (
+                    <>
+                      <p className="text-xs font-semibold text-red-600 mt-1">Message de l&apos;administrateur :</p>
+                      <p className="text-xs text-red-600 italic mt-0.5">{(annonce as any).adminComment}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-red-600 mt-0.5">Aucun commentaire laissé par l&apos;administrateur.</p>
+                  )}
+                  {isOwner && !isAdmin && (
+                    <Link href={`/annonces/${annonce.id}/modifier`} className="inline-block mt-2 text-xs font-semibold text-red-700 underline hover:text-red-800">
+                      Modifier et resoumettre →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Badges */}
             <div className="flex flex-wrap items-center gap-2 mb-3">

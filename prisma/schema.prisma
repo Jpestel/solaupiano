@@ -514,6 +514,7 @@ model Annonce {
   contactEmail String?
   contactPhone String?
   status       AnnonceStatus @default(PENDING)
+  adminComment String?       @db.Text
   userId       Int
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime      @default(now())

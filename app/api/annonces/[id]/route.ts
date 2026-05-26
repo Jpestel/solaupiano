@@ -43,11 +43,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!isAdmin && !isOwner) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   const body = await req.json()
-  const { status } = body
+  const { status, adminComment } = body
 
   const updated = await prisma.annonce.update({
     where: { id: Number(params.id) },
-    data: { ...(status !== undefined && { status }) },
+    data: {
+      ...(status !== undefined && { status }),
+      ...(adminComment !== undefined && { adminComment }),
+    },
   })
 
   return NextResponse.json(updated)
