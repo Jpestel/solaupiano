@@ -71,6 +71,12 @@ export default async function PublicHomePage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/annonces"
+              className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
+            >
+              Annonces
+            </Link>
+            <Link
               href="/tarifs"
               className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
             >
@@ -237,8 +243,27 @@ export default async function PublicHomePage() {
         </div>
       </div>
 
+      {/* Petites annonces CTA */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
+        <div className="rounded-2xl bg-white border border-gray-200 px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-2xl flex-shrink-0">📢</div>
+            <div>
+              <h2 className="font-bold text-gray-900">Petites annonces</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Vendez du matériel, cherchez un musicien ou rejoignez un groupe.</p>
+            </div>
+          </div>
+          <Link
+            href="/annonces"
+            className="flex-shrink-0 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
+          >
+            Voir les annonces →
+          </Link>
+        </div>
+      </div>
+
       {/* Footer */}
-      <footer className="mt-16 border-t border-gray-200 bg-white">
+      <footer className="mt-4 border-t border-gray-200 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-indigo-600 rounded-md flex items-center justify-center">
@@ -253,6 +278,7 @@ export default async function PublicHomePage() {
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <Link href="/connexion" className="hover:text-indigo-600 transition-colors">Connexion</Link>
             <Link href="/inscription" className="hover:text-indigo-600 transition-colors">Inscription</Link>
+            <Link href="/annonces" className="hover:text-indigo-600 transition-colors">Annonces</Link>
             <Link href="/tarifs" className="hover:text-indigo-600 transition-colors">Tarifs</Link>
             <Link href="/aide" className="hover:text-indigo-600 transition-colors">Aide</Link>
             <Link href="/mentions-legales" className="hover:text-indigo-600 transition-colors">Mentions légales</Link>
