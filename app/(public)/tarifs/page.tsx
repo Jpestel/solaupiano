@@ -26,7 +26,7 @@ export default async function TarifsPage() {
   const premPlan = groupPlans.find(p => p.key === 'PREMIUM')
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
 
       {/* Nav */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
@@ -168,8 +168,8 @@ export default async function TarifsPage() {
             <p className="text-sm text-gray-500 mt-1">Toutes les fonctionnalités en un coup d&apos;œil</p>
           </div>
 
-          <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-            <div className="min-w-[560px] rounded-2xl border border-gray-200 bg-white overflow-hidden">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+            <div className="min-w-[560px]">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
