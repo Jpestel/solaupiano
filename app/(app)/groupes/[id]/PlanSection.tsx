@@ -485,8 +485,8 @@ export function PlanSection({
               })}
             </div>
 
-            {/* Message plan offert — sous toutes les cards */}
-            {isChef && currentPlanKey !== 'FREE' && !stripeSubscriptionId && (
+            {/* Message plan offert — sous toutes les cards, seulement si ce n'est pas le plan le plus élevé */}
+            {isChef && currentPlanKey !== 'FREE' && !stripeSubscriptionId && allPlans[allPlans.length - 1]?.key !== currentPlanKey && (
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 🎁 Votre forfait <strong>{currentPlan.label}</strong> vous est actuellement offert. Veuillez contacter l&apos;administrateur du site pour résilier et passer sur un autre forfait.
               </div>
