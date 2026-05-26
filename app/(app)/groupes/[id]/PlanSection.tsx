@@ -301,6 +301,7 @@ export function PlanSection({
                 const planLimitBytes = p.storageGb * 1024 * 1024 * 1024
                 const exceedsStorage = usedBytes > planLimitBytes
                 const isGifted = !stripeSubscriptionId && currentPlanKey !== 'FREE'
+                const isCurrentGifted = isCurrent && isGifted
                 const isLoading = loadingPlanKey === p.key
 
                 // Modules list: icon + label + included/excluded
@@ -319,17 +320,27 @@ export function PlanSection({
 
                 return (
                   <div key={p.key} className={`rounded-xl border-2 flex flex-col transition-all ${
+                    isCurrentGifted ? 'border-amber-300 bg-amber-50/60' :
                     isCurrent ? `${pc.border} ${pc.bg}` :
                     exceedsStorage && isPaid ? 'border-red-200 bg-red-50/40' :
                     'border-gray-200 bg-white hover:border-gray-300'
                   }`}>
 
+                    {/* Bandeau "Offert" en haut de la card */}
+                    {isCurrentGifted && (
+                      <div className="flex items-center justify-center gap-1.5 rounded-t-[10px] bg-amber-400 px-3 py-1">
+                        <span className="text-xs font-bold text-white tracking-wide">🎁 Plan offert par l&apos;administrateur</span>
+                      </div>
+                    )}
+
                     {/* ── Header ── */}
                     <div className={`px-4 pt-4 pb-3 ${isCurrent ? '' : 'border-b border-gray-100'}`}>
                       <div className="flex items-start justify-between mb-1">
-                        <p className={`font-bold text-sm ${isCurrent ? pc.text : 'text-gray-800'}`}>{p.label}</p>
+                        <p className={`font-bold text-sm ${isCurrentGifted ? 'text-amber-700' : isCurrent ? pc.text : 'text-gray-800'}`}>{p.label}</p>
                         {isCurrent && (
-                          <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${pc.bg} ${pc.text} ${pc.border} flex-shrink-0 ml-2`}>
+                          <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 border flex-shrink-0 ml-2 ${
+                            isCurrentGifted ? 'bg-amber-100 text-amber-700 border-amber-300' : `${pc.bg} ${pc.text} ${pc.border}`
+                          }`}>
                             ✓ Actuel
                           </span>
                         )}
@@ -475,7 +486,9 @@ export function PlanSection({
                           )}
 
                           {isCurrent && (
-                            <p className="text-center text-[10px] text-gray-400 mt-1">Plan actif</p>
+                            <p className={`text-center text-[10px] mt-1 ${isCurrentGifted ? 'text-amber-600 font-semibold' : 'text-gray-400'}`}>
+                              {isCurrentGifted ? '🎁 Offert gratuitement' : 'Plan actif'}
+                            </p>
                           )}
                         </div>
                       )}
