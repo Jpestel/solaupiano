@@ -1,17 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { BottomNav } from '@/components/BottomNav'
 import { SettingsProvider, useSettings } from '@/components/SettingsProvider'
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { siteIcon } = useSettings()
+
+  // Persist collapsed state in localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('sidebar-collapsed')
+    if (stored === 'true') setSidebarCollapsed(true)
+  }, [])
+
+  const handleToggleCollapse = () => {
+    setSidebarCollapsed((prev) => {
+      localStorage.setItem('sidebar-collapsed', String(!prev))
+      return !prev
+    })
+  }
 
   return (
     <div className="flex min-h-screen bg-white">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={handleToggleCollapse}
+      />
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile top bar */}
