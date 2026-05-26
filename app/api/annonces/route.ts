@@ -42,27 +42,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
-  if (!session.user.emailVerified) return NextResponse.json({ error: 'Vérifiez votre email avant de poster une annonce.' }, { status: 403 })
+  if (!session.user.emailVerified && session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Vérifiez votre email avant de poster une annonce.' }, { status: 403 })
 
   const userId = Number(session.user.id)
   const isAdmin = session.user.siteRole === 'ADMIN'
 
-  // Vérification plan : au moins un groupe avec hasAnnonces=true
-  if (!isAdmin) {
-    const memberships = await prisma.groupMember.findMany({
-      where: { userId },
-      include: { group: { select: { plan: true } } },
-    })
-    const plans = await prisma.plan.findMany({
-      where: { key: { in: memberships.map(m => m.group.plan) }, hasAnnonces: true },
-    })
-    if (plans.length === 0) {
-      return NextResponse.json({
-        error: 'Les petites annonces sont disponibles avec un plan Pro ou Premium.',
-        code: 'PLAN_FEATURE_LOCKED',
-      }, { status: 403 })
-    }
-  }
+  // Annonces ouvertes à tous les membres inscrits (email vérifié)
 
   const uploadDir = process.env.UPLOAD_DIR || './public/uploads'
   if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
