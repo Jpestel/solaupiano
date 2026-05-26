@@ -60,7 +60,7 @@ export async function getGroupStorageInfo(groupId: number): Promise<StorageInfo>
   if (!group.createdBy) {
     // No founder set — fall back to per-group plan quota
     const dbPlan = await prisma.plan.findUnique({ where: { key: group.plan } })
-    const limitGb = dbPlan ? Number(dbPlan.storageGb) : 1
+    const limitGb = dbPlan ? Number(dbPlan.storageGb) : 0
     const limitBytes = limitGb * GB
     const usedBytes = Number(group.storageUsedBytes)
     return {
@@ -92,8 +92,8 @@ export async function getGroupStorageInfo(groupId: number): Promise<StorageInfo>
   })
   const planMap = Object.fromEntries(plans.map((p) => [p.key, Number(p.storageGb)]))
   const limitGb = founderGroups.reduce(
-    (max, g) => Math.max(max, planMap[g.plan] ?? 1),
-    1
+    (max, g) => Math.max(max, planMap[g.plan] ?? 0),
+    0
   )
   const limitBytes = limitGb * GB
 

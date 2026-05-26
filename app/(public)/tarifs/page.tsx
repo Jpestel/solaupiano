@@ -192,13 +192,23 @@ export default async function TarifsPage() {
                   </div>
 
                   {/* Storage highlight */}
-                  <div className={`rounded-xl ${colors.bg} border ${colors.border} px-3 py-2 flex items-center gap-2`}>
-                    <span className="text-lg">💾</span>
-                    <div>
-                      <p className={`text-xs font-bold ${colors.text}`}>{plan.storageGb} Go de stockage</p>
-                      <p className="text-[11px] text-gray-400">Partagé entre tous vos groupes</p>
+                  {plan.storageGb > 0 ? (
+                    <div className={`rounded-xl ${colors.bg} border ${colors.border} px-3 py-2 flex items-center gap-2`}>
+                      <span className="text-lg">💾</span>
+                      <div>
+                        <p className={`text-xs font-bold ${colors.text}`}>{plan.storageGb} Go de stockage</p>
+                        <p className="text-[11px] text-gray-400">Partagé entre tous vos groupes</p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 flex items-center gap-2">
+                      <span className="text-lg">🚫</span>
+                      <div>
+                        <p className="text-xs font-bold text-gray-500">Pas d&apos;upload de fichiers</p>
+                        <p className="text-[11px] text-gray-400">Disponible dès le plan Pro</p>
+                      </div>
+                    </div>
+                  )}
 
                   <ul className="space-y-1.5 text-sm text-gray-600 flex-1">
                     {features.filter(f => !f.includes('stockage')).map((feature, i) => (
@@ -265,7 +275,8 @@ export default async function TarifsPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 <TableRow label="Groupes créés" values={plans.map(p => p.maxGroups === 1 ? '1 groupe' : `Jusqu'à ${p.maxGroups}`)} />
-                <TableRow label="Stockage" values={plans.map(p => `${p.storageGb} Go`)} />
+                <TableRow label="Upload de fichiers" values={plans.map(p => p.hasFileSubmissions ? '✓' : '—')} />
+                <TableRow label="Stockage" values={plans.map(p => p.storageGb > 0 ? `${p.storageGb} Go` : '—')} />
                 <TableRow label="Membres par groupe" values={plans.map(p => p.maxMembersPerGroup ? `${p.maxMembersPerGroup} max` : 'Illimité')} />
                 <TableRow label="Morceaux au répertoire" values={plans.map(p => p.maxSongsPerGroup ? `${p.maxSongsPerGroup} max` : 'Illimité')} />
                 <TableRow label="Répétitions" values={plans.map(() => 'Illimitées')} />

@@ -61,6 +61,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
   if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
 
+  // Check if plan allows file uploads (applies to file uploads only, not URL links)
+  const dbPlan = await prisma.plan.findUnique({ where: { key: group.plan }, select: { hasFileSubmissions: true } })
+  const planAllowsUploads = isAdmin || !dbPlan || dbPlan.hasFileSubmissions
+
   // Co-chef permission check
   if (!isAdmin && membership?.groupRole === 'CHEF') {
     if (!coChefCanDo(group, userId, isAdmin, 'ressources', 'create')) {
@@ -84,6 +88,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     })
     return NextResponse.json(resource, { status: 201 })
+  }
+
+  // Block file upload if plan doesn't allow it
+  if (!planAllowsUploads) {
+    return NextResponse.json({
+      error: 'L\'upload de fichiers n\'est pas disponible avec votre plan actuel. Passez au plan Pro pour partager des partitions et ressources avec votre groupe.',
+      code: 'PLAN_FEATURE_LOCKED',
+    }, { status: 403 })
   }
 
   try {
