@@ -54,7 +54,7 @@ export default async function AnnoncesPage({ searchParams }: { searchParams: { c
           <div className="flex items-center gap-2">
             {session ? (
               <>
-                <Link href="/tableau-de-bord" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors">Mon espace</Link>
+                <Link href="/annonces/mes-annonces" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors">Mes annonces</Link>
                 <Link href="/annonces/nouvelle" className="rounded-lg bg-indigo-600 px-3 sm:px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors whitespace-nowrap">
                   + Déposer
                 </Link>
