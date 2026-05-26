@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendMemberAnnonceRefused } from '@/lib/email'
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'
@@ -51,7 +52,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(status !== undefined && { status }),
       ...(adminComment !== undefined && { adminComment }),
     },
+    include: { user: { select: { name: true, email: true } } },
   })
+
+  // Email au membre si l'annonce est retirée/refusée par un admin
+  if (status === 'MASQUEE' && isAdmin) {
+    try {
+      const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+      await sendMemberAnnonceRefused(
+        { email: updated.user.email, name: updated.user.name },
+        { id: updated.id, title: updated.title, adminComment: updated.adminComment },
+        baseUrl,
+      )
+    } catch (e) {
+      console.error('Email membre annonce refusée failed:', e)
+    }
+  }
 
   return NextResponse.json(updated)
 }

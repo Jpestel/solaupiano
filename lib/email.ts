@@ -649,3 +649,40 @@ export async function sendAdminAnnonceNotification(annonce: {
     `,
   })
 }
+
+export async function sendMemberAnnonceRefused(to: { email: string; name: string }, annonce: {
+  id: number
+  title: string
+  adminComment?: string | null
+}, baseUrl: string) {
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to: to.email,
+    subject: `Votre annonce "${annonce.title}" a été retirée`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
+        <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; margin-bottom: 12px;">
+              <span style="font-size: 24px;">🎹</span>
+            </div>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1e1b4b;">Sol au piano</h1>
+            <p style="margin: 4px 0 0; font-size: 12px; color: #818cf8; font-style: italic;">du solo à l'orchestre</p>
+          </div>
+          <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">Annonce retirée</h2>
+          <p style="color: #6b7280; font-size: 14px; margin: 0 0 16px;">Bonjour ${to.name},</p>
+          <p style="color: #6b7280; font-size: 14px; margin: 0 0 16px;">Votre annonce <strong>"${annonce.title}"</strong> a été retirée de la publication par l'administrateur.</p>
+          ${annonce.adminComment ? `
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px; margin-bottom: 20px;">
+            <p style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #dc2626;">Message de l'administrateur :</p>
+            <p style="margin: 0; font-size: 13px; color: #b91c1c; font-style: italic;">${annonce.adminComment}</p>
+          </div>` : ''}
+          <p style="color: #6b7280; font-size: 13px; margin: 0 0 20px;">Vous pouvez modifier votre annonce et la soumettre à nouveau.</p>
+          <a href="${baseUrl}/annonces/mes-annonces" style="display: inline-block; background: #4f46e5; color: white; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 10px; text-decoration: none;">
+            Voir mes annonces →
+          </a>
+        </div>
+      </div>
+    `,
+  })
+}
