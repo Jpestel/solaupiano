@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { DbPlan, COLOR_MAP, generateFeatureList, formatBytes, storagePercent } from '@/lib/plans'
+import { DbPlan, COLOR_MAP, formatBytes, storagePercent } from '@/lib/plans'
 
 interface PlanSectionProps {
   currentPlanKey: string
@@ -298,41 +298,121 @@ export function PlanSection({
                 const pc = COLOR_MAP[p.color] ?? COLOR_MAP.gray
                 const isPaid = p.priceMonthly !== null
                 const pricePerMusician = p.priceMonthly ? p.priceMonthly / musicians : null
-                const features = generateFeatureList(p)
                 const planLimitBytes = p.storageGb * 1024 * 1024 * 1024
                 const exceedsStorage = usedBytes > planLimitBytes
                 const isGifted = !stripeSubscriptionId && currentPlanKey !== 'FREE'
-                const canSubscribe = isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive && !exceedsStorage && !isGifted
                 const isLoading = loadingPlanKey === p.key
+
+                // Modules list: icon + label + included/excluded
+                const modules = [
+                  { icon: '🎵', label: 'Répétitions & présences', ok: true },
+                  { icon: '🎼', label: 'Répertoire', ok: true },
+                  { icon: '🎸', label: "Grilles d'accords", ok: p.hasGrilles },
+                  { icon: '🎶', label: 'Setlists', ok: p.hasSetlists },
+                  { icon: '🎭', label: 'Concerts', ok: p.hasConcerts },
+                  { icon: '📋', label: 'Fiche technique', ok: p.hasFicheTechnique },
+                  { icon: '🌐', label: 'Page publique', ok: p.hasMaPage },
+                  { icon: '👥', label: 'Co-chefs', ok: p.hasCoChefs },
+                  { icon: '📊', label: 'Statistiques', ok: p.hasStats },
+                  { icon: '⚡', label: 'Support prioritaire', ok: p.hasPrioritySupport },
+                ]
+
                 return (
-                  <div key={p.key} className={`rounded-xl border-2 p-4 flex flex-col transition-all ${
+                  <div key={p.key} className={`rounded-xl border-2 flex flex-col transition-all ${
                     isCurrent ? `${pc.border} ${pc.bg}` :
-                    exceedsStorage && isPaid && !isCurrent ? 'border-red-200 bg-red-50/40' :
-                    'border-gray-200 bg-white'
+                    exceedsStorage && isPaid ? 'border-red-200 bg-red-50/40' :
+                    'border-gray-200 bg-white hover:border-gray-300'
                   }`}>
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
+
+                    {/* ── Header ── */}
+                    <div className={`px-4 pt-4 pb-3 ${isCurrent ? '' : 'border-b border-gray-100'}`}>
+                      <div className="flex items-start justify-between mb-1">
                         <p className={`font-bold text-sm ${isCurrent ? pc.text : 'text-gray-800'}`}>{p.label}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{p.storageGb} Go de stockage</p>
+                        {isCurrent && (
+                          <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${pc.bg} ${pc.text} ${pc.border} flex-shrink-0 ml-2`}>
+                            ✓ Actuel
+                          </span>
+                        )}
                       </div>
-                      {isCurrent && (
-                        <span className={`text-xs font-semibold rounded-full px-2 py-0.5 ${pc.bg} ${pc.text} border ${pc.border}`}>
-                          Actuel
+                      {p.description && (
+                        <p className="text-[11px] text-gray-500 leading-tight">{p.description}</p>
+                      )}
+                    </div>
+
+                    {/* ── Quotas chips ── */}
+                    <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap gap-1.5">
+                      {/* Storage */}
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        isCurrent ? `${pc.bg} ${pc.text} border ${pc.border}` : 'bg-gray-100 text-gray-600 border border-gray-200'
+                      }`}>
+                        💾 {p.storageGb} Go
+                      </span>
+                      {/* Groups */}
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        isCurrent ? `${pc.bg} ${pc.text} border ${pc.border}` : 'bg-gray-100 text-gray-600 border border-gray-200'
+                      }`}>
+                        📁 {p.maxGroups === 1 ? '1 groupe' : `${p.maxGroups} groupes`}
+                      </span>
+                      {/* Members */}
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        p.maxMembersPerGroup
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : isCurrent ? `${pc.bg} ${pc.text} border ${pc.border}` : 'bg-gray-100 text-gray-600 border border-gray-200'
+                      }`}>
+                        👥 {p.maxMembersPerGroup ? `${p.maxMembersPerGroup} membres max` : 'membres illimités'}
+                      </span>
+                      {/* Songs */}
+                      {p.maxSongsPerGroup && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          🎼 {p.maxSongsPerGroup} titres max
+                        </span>
+                      )}
+                      {/* Setlists */}
+                      {p.maxSetlists && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          🎶 {p.maxSetlists} setlists max
+                        </span>
+                      )}
+                      {/* Concerts */}
+                      {p.maxConcerts && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          🎭 {p.maxConcerts} concerts max
+                        </span>
+                      )}
+                      {/* Grilles */}
+                      {p.maxCharts && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          🎸 {p.maxCharts} grilles max
+                        </span>
+                      )}
+                      {/* Files per song */}
+                      {p.maxFilesPerSong && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          📎 {p.maxFilesPerSong} fichiers/morceau
                         </span>
                       )}
                     </div>
-                    <ul className="space-y-1 mb-4 flex-1">
-                      {features.map((f) => (
-                        <li key={f} className="flex items-start gap-1.5 text-xs text-gray-600">
-                          <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
-                          {f}
-                        </li>
+
+                    {/* ── Modules list ── */}
+                    <div className="px-4 py-3 flex-1 grid grid-cols-1 gap-0.5">
+                      {modules.map((m) => (
+                        <div key={m.label} className={`flex items-center gap-1.5 text-[11px] ${m.ok ? 'text-gray-700' : 'text-gray-300'}`}>
+                          <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
+                            m.ok ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                          }`}>
+                            {m.ok ? '✓' : '✕'}
+                          </span>
+                          <span className="leading-tight">{m.icon} {m.label}</span>
+                        </div>
                       ))}
-                    </ul>
-                    <div className="text-center">
+                    </div>
+
+                    {/* ── Prix + CTA ── */}
+                    <div className="px-4 pb-4 pt-3 border-t border-gray-100">
                       {!isPaid ? (
-                        <>
-                          <p className="text-xs text-gray-500 font-medium">Gratuit</p>
+                        <div className="text-center">
+                          <p className="text-base font-black text-gray-800">Gratuit</p>
+                          <p className="text-[10px] text-gray-400">pour toujours</p>
                           {isChef && currentPlanKey !== 'FREE' && stripeSubscriptionId && (
                             <button
                               onClick={handleManage}
@@ -345,77 +425,59 @@ export function PlanSection({
                               Résilier et passer au Gratuit
                             </button>
                           )}
-                        </>
+                        </div>
                       ) : (
                         <div>
-                          <p className="text-xs font-bold text-gray-700">
-                            {p.priceMonthly!.toFixed(2).replace('.', ',')} €<span className="font-normal text-gray-500">/mois</span>
-                          </p>
+                          <div className="text-center mb-1">
+                            <span className="text-base font-black text-gray-800">
+                              {p.priceMonthly!.toFixed(2).replace('.', ',')} €
+                            </span>
+                            <span className="text-xs text-gray-500 font-normal">/mois</span>
+                          </div>
                           {pricePerMusician !== null && (
-                            <p className={`text-xs font-semibold mt-1 ${isCurrent ? pc.text : 'text-indigo-600'}`}>
-                              soit <span className="font-bold">{pricePerMusician.toFixed(2).replace('.', ',')} €</span>
-                              <span className="font-normal text-gray-500">/musicien</span>
+                            <p className={`text-center text-[11px] font-semibold mb-2 ${isCurrent ? pc.text : 'text-indigo-600'}`}>
+                              soit <strong>{pricePerMusician.toFixed(2).replace('.', ',')} €</strong>
+                              <span className="font-normal text-gray-400">/musicien</span>
                             </p>
                           )}
-                        </div>
-                      )}
 
-                      {/* Avertissement stockage insuffisant */}
-                      {exceedsStorage && isPaid && !isCurrent && (
-                        <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-2.5 py-2">
-                          <p className="text-[10px] font-semibold text-red-700 flex items-start gap-1">
-                            <span className="flex-shrink-0 mt-px">⚠️</span>
-                            <span>
-                              Vous utilisez{' '}
-                              <span className="font-bold">{formatBytes(usedBytes)}</span>
-                              {' '}— ce plan n&apos;inclut que{' '}
-                              <span className="font-bold">{p.storageGb} Go</span>.
-                              Libérez de l&apos;espace d&apos;abord.
-                            </span>
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Bouton Souscrire */}
-                      {isChef && isPaid && !isCurrent && p.stripePriceId && p.isActive && !isGifted && (
-                        <button
-                          onClick={() => !exceedsStorage && handleSubscribe(p.key)}
-                          disabled={isLoading || !!loadingPlanKey || exceedsStorage}
-                          className={`mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all ${
-                            exceedsStorage
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                              : 'bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 shadow-sm hover:shadow-md'
-                          } disabled:opacity-60`}
-                        >
-                          {isLoading ? (
-                            <>
-                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                              </svg>
-                              Redirection…
-                            </>
-                          ) : exceedsStorage ? (
-                            <>
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                              </svg>
-                              Stockage insuffisant
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                              </svg>
-                              Souscrire
-                            </>
+                          {/* Avertissement stockage insuffisant */}
+                          {exceedsStorage && !isCurrent && (
+                            <div className="mb-2 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5">
+                              <p className="text-[10px] font-semibold text-red-700 flex items-start gap-1">
+                                <span className="flex-shrink-0">⚠️</span>
+                                <span>
+                                  Vous utilisez <strong>{formatBytes(usedBytes)}</strong> — ce plan n&apos;inclut que <strong>{p.storageGb} Go</strong>. Libérez de l&apos;espace d&apos;abord.
+                                </span>
+                              </p>
+                            </div>
                           )}
-                        </button>
-                      )}
 
-                      {/* Plan actif payant — pas de bouton souscrire */}
-                      {isCurrent && isPaid && (
-                        <p className="mt-2 text-[10px] text-gray-400">Plan actif</p>
+                          {/* Bouton Souscrire */}
+                          {isChef && !isCurrent && p.stripePriceId && p.isActive && !isGifted && (
+                            <button
+                              onClick={() => !exceedsStorage && handleSubscribe(p.key)}
+                              disabled={isLoading || !!loadingPlanKey || exceedsStorage}
+                              className={`w-full flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all ${
+                                exceedsStorage
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                  : `bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 shadow-sm hover:shadow-md`
+                              } disabled:opacity-60`}
+                            >
+                              {isLoading ? (
+                                <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Redirection…</>
+                              ) : exceedsStorage ? (
+                                <>⚠ Stockage insuffisant</>
+                              ) : (
+                                <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>Souscrire</>
+                              )}
+                            </button>
+                          )}
+
+                          {isCurrent && (
+                            <p className="text-center text-[10px] text-gray-400 mt-1">Plan actif</p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
