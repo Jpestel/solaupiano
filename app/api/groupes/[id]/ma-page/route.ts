@@ -74,17 +74,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
 
-  // Auto-generate slug if no page yet
-  let suggestedSlug = groupPage?.slug
-  if (!suggestedSlug) {
-    suggestedSlug = await findUniqueSlug(slugify(group.name), groupId)
+  // Auto-create a draft page on first open (so the preview link works immediately)
+  let activePage = groupPage
+  if (!activePage) {
+    const suggestedSlug = await findUniqueSlug(slugify(group.name), groupId)
+    activePage = await prisma.groupPage.create({
+      data: { groupId, slug: suggestedSlug, published: false },
+    })
   }
 
   return NextResponse.json({
     groupName: group.name,
     role,
-    page: groupPage ?? null,
-    suggestedSlug,
+    page: activePage,
+    suggestedSlug: activePage.slug,
     members: members.map(m => ({
       userId: m.userId,
       name: m.user.name,
