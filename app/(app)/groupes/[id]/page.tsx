@@ -52,6 +52,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   if (!membership && !isAdminUser) notFound()
 
+  // Check if group's plan has stats
+  const groupPlanKey = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true } })
+  const planData = groupPlanKey ? await prisma.plan.findUnique({ where: { key: groupPlanKey.plan }, select: { hasStats: true } }) : null
+  const planHasStats = isAdminUser || (planData?.hasStats ?? false)
+
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     include: {
@@ -172,7 +177,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
       )}
 
       {/* Navigation sections */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2 mb-2">
         {([
           {
             href: 'repetitions', label: 'Répétitions', icon: '🎵',
@@ -233,6 +238,36 @@ export default async function GroupePage({ params }: { params: { id: string } })
           </Link>
         ))}
       </div>
+
+      {/* Stats link — chef only, shown even if locked (to upsell) */}
+      {isChef && (
+        <div className="mb-6">
+          <Link
+            href={`/groupes/${groupId}/stats`}
+            className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all group w-full ${
+              planHasStats
+                ? 'border-violet-200 hover:border-violet-400 hover:bg-violet-50/60'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/60 opacity-70'
+            }`}
+          >
+            <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center text-base flex-shrink-0">
+              📊
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-violet-700 leading-tight">
+                Statistiques
+                {!planHasStats && <span className="ml-1.5 text-[9px] font-bold bg-amber-100 text-amber-700 rounded-full px-1.5 py-0.5 uppercase tracking-wide">Plan supérieur</span>}
+              </p>
+              <p className="text-[11px] text-gray-400 leading-tight mt-0.5 truncate">
+                {planHasStats ? 'Présence, répertoire, fréquence…' : 'Disponible sur les plans payants'}
+              </p>
+            </div>
+            <svg className="w-3.5 h-3.5 flex-shrink-0 opacity-30 group-hover:opacity-60 group-hover:translate-x-0.5 transition-all text-violet-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      )}
 
       <PlanSection
         currentPlanKey={group.plan}
