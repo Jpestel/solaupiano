@@ -151,7 +151,8 @@ model Group {
   createdAt       DateTime  @default(now())
   createdBy        Int?
   chefPermissions  Json?
-  maxMembersOverride Int?
+  maxMembersOverride     Int?
+  storageQuotaOverrideGb Int?   // Admin per-group storage override (independent quota)
   founder          User?     @relation("GroupFounder", fields: [createdBy], references: [id], onDelete: SetNull)
 
   members          GroupMember[]

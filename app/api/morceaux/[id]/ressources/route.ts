@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { detectResourceType } from '@/lib/utils'
 import { PLANS } from '@/lib/plans'
 import { coChefCanDo } from '@/lib/permissions'
+import { getGroupStorageInfo, GB } from '@/lib/storage'
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'
@@ -121,18 +122,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Aucun fichier reçu.' }, { status: 400 })
     }
 
-    // Check storage quota (fetch from DB plan, fallback to static PLANS)
+    // Check storage quota — shared across all founder's groups (or per-group if override set)
     const fileSize = uploadedFile.size || 0
-    const dbPlan = await prisma.plan.findUnique({ where: { key: group.plan } })
-    const storageGb = dbPlan ? Number(dbPlan.storageGb) : (PLANS[group.plan]?.storageBytes ?? PLANS.FREE.storageBytes) / (1024 * 1024 * 1024)
-    const planLimitBytes = storageGb * 1024 * 1024 * 1024
-    const planLabel = dbPlan?.label ?? PLANS[group.plan]?.label ?? group.plan
-    const storageLabel = `${storageGb} Go`
-    const currentUsage = Number(group.storageUsedBytes)
-    if (currentUsage + fileSize > planLimitBytes) {
+    const storageInfo = await getGroupStorageInfo(song.groupId)
+    if (storageInfo.usedBytes + fileSize > storageInfo.limitBytes) {
       fs.unlinkSync(uploadedFile.filepath) // clean up tmp file
+      const label = storageInfo.hasOverride
+        ? `Quota individuel du groupe : ${storageInfo.limitGb} Go`
+        : storageInfo.groupCount > 1
+          ? `Quota partagé entre vos ${storageInfo.groupCount} groupes : ${storageInfo.limitGb} Go au total`
+          : `Quota de stockage : ${storageInfo.limitGb} Go`
       return NextResponse.json({
-        error: `Quota de stockage dépassé. Votre plan ${planLabel} autorise ${storageLabel}.`,
+        error: `Quota de stockage dépassé. ${label}.`,
         code: 'STORAGE_QUOTA_EXCEEDED',
       }, { status: 413 })
     }

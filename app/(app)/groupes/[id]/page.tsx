@@ -11,6 +11,7 @@ import { PlanSection } from './PlanSection'
 import { GroupCoverUpload } from './GroupCoverUpload'
 import { PermissionsSettings } from './PermissionsSettings'
 import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
+import { getGroupStorageInfo } from '@/lib/storage'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -52,12 +53,14 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   if (!membership && !isAdminUser) notFound()
 
-  // Check plan features (stats + member limit)
-  const groupMeta = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true, maxMembersOverride: true } })
+  // Check plan features (stats + member limit + storage)
+  const groupMeta = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true, maxMembersOverride: true, storageQuotaOverrideGb: true } })
   const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, maxMembersPerGroup: true } }) : null
   const planHasStats = isAdminUser || (planData?.hasStats ?? false)
   // Effective member limit: override (if set by admin) > plan limit > null (unlimited)
   const effectiveMemberLimit = groupMeta?.maxMembersOverride ?? planData?.maxMembersPerGroup ?? null
+  // Shared storage info
+  const storageInfo = await getGroupStorageInfo(groupId)
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -273,7 +276,10 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
       <PlanSection
         currentPlanKey={group.plan}
-        storageUsedBytes={Number(group.storageUsedBytes)}
+        storageUsedBytes={storageInfo.usedBytes}
+        storageLimitGb={storageInfo.limitGb}
+        storageGroupCount={storageInfo.groupCount}
+        storageHasOverride={storageInfo.hasOverride}
         isChef={isChef}
         memberCount={group.members.length}
         allPlans={allPlans}

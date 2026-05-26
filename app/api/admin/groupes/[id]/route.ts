@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   const body = await req.json()
-  const { plan, planExpiresAt, maxMembersOverride } = body
+  const { plan, planExpiresAt, maxMembersOverride, storageQuotaOverrideGb } = body
 
   // Vérifier que le plan existe en base
   if (plan) {
@@ -25,6 +25,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
+  // Validation de storageQuotaOverrideGb
+  if (storageQuotaOverrideGb !== undefined && storageQuotaOverrideGb !== null) {
+    const val = Number(storageQuotaOverrideGb)
+    if (!Number.isInteger(val) || val < 1) {
+      return NextResponse.json({ error: 'Le quota de stockage doit être un entier ≥ 1 Go.' }, { status: 400 })
+    }
+  }
+
   const group = await prisma.group.update({
     where: { id: Number(params.id) },
     data: {
@@ -34,6 +42,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }),
       ...(maxMembersOverride !== undefined && {
         maxMembersOverride: maxMembersOverride !== null ? Number(maxMembersOverride) : null,
+      }),
+      ...(storageQuotaOverrideGb !== undefined && {
+        storageQuotaOverrideGb: storageQuotaOverrideGb !== null ? Number(storageQuotaOverrideGb) : null,
       }),
     },
   })

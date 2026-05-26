@@ -7,6 +7,9 @@ import { DbPlan, COLOR_MAP, formatBytes, storagePercent } from '@/lib/plans'
 interface PlanSectionProps {
   currentPlanKey: string
   storageUsedBytes: number
+  storageLimitGb: number
+  storageGroupCount: number
+  storageHasOverride: boolean
   isChef: boolean
   memberCount?: number
   allPlans: DbPlan[]
@@ -17,6 +20,9 @@ interface PlanSectionProps {
 export function PlanSection({
   currentPlanKey,
   storageUsedBytes,
+  storageLimitGb,
+  storageGroupCount,
+  storageHasOverride,
   isChef,
   memberCount = 1,
   allPlans,
@@ -26,7 +32,8 @@ export function PlanSection({
   const router = useRouter()
   const usedBytes = Number(storageUsedBytes)
   const currentPlan = allPlans.find((p) => p.key === currentPlanKey) ?? allPlans[0]
-  const pct = currentPlan ? storagePercent(usedBytes, currentPlan.storageGb) : 0
+  // Use shared/override limit instead of plan's own storageGb for the gauge
+  const pct = storageLimitGb > 0 ? Math.min(100, (usedBytes / (storageLimitGb * 1024 * 1024 * 1024)) * 100) : 0
   const c = currentPlan ? (COLOR_MAP[currentPlan.color] ?? COLOR_MAP.gray) : COLOR_MAP.gray
 
   const [musicians, setMusicians] = useState(Math.max(1, memberCount))
@@ -149,11 +156,20 @@ export function PlanSection({
       {/* Storage gauge */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-700">Stockage</span>
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${c.bg} ${c.text} border ${c.border}`}>
-              {currentPlan.label}
+              {currentPlan?.label}
             </span>
+            {storageHasOverride ? (
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-violet-100 text-violet-700 border border-violet-200">
+                🛡️ Quota individuel
+              </span>
+            ) : storageGroupCount > 1 ? (
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-600 border border-blue-200">
+                Partagé entre {storageGroupCount} groupes
+              </span>
+            ) : null}
             {/* Bouton gérer abonnement si abonnement actif */}
             {isChef && stripeSubscriptionId && (
               <button
@@ -169,7 +185,7 @@ export function PlanSection({
             )}
           </div>
           <span className="text-sm text-gray-500">
-            {formatBytes(usedBytes)} / {currentPlan.storageGb} Go
+            {formatBytes(usedBytes)} / {storageLimitGb} Go
           </span>
         </div>
         <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
@@ -183,6 +199,11 @@ export function PlanSection({
         {pct > 90 && (
           <p className="text-xs text-red-600 mt-2 font-medium">
             ⚠️ Quota presque atteint — pensez à libérer de l&apos;espace ou à passer à un plan supérieur.
+          </p>
+        )}
+        {!storageHasOverride && storageGroupCount > 1 && (
+          <p className="text-[11px] text-gray-400 mt-2">
+            Ce quota est partagé entre tous vos groupes. {formatBytes(usedBytes)} utilisés au total.
           </p>
         )}
       </div>
@@ -299,7 +320,7 @@ export function PlanSection({
                 const isPaid = p.priceMonthly !== null
                 const pricePerMusician = p.priceMonthly ? p.priceMonthly / musicians : null
                 const planLimitBytes = p.storageGb * 1024 * 1024 * 1024
-                const exceedsStorage = usedBytes > planLimitBytes
+                const exceedsStorage = usedBytes > planLimitBytes  // compares total shared usage vs this plan's quota
                 const isGifted = !stripeSubscriptionId && currentPlanKey !== 'FREE'
                 const isCurrentGifted = isCurrent && isGifted
                 const isLoading = loadingPlanKey === p.key

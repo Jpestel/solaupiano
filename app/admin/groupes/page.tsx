@@ -24,6 +24,7 @@ interface Group {
   createdAt: string
   maxMembersOverride: number | null
   planMaxMembersPerGroup: number | null
+  storageQuotaOverrideGb: number | null
   _count: { members: number; rehearsals: number }
   members: { user: User; groupRole: string }[]
 }
@@ -46,6 +47,8 @@ export default function AdminGroupesPage() {
   const [giftForm, setGiftForm] = useState({ plan: 'FREE', expiresAt: '' })
   const [memberLimitOpen, setMemberLimitOpen] = useState<Group | null>(null)
   const [memberLimitValue, setMemberLimitValue] = useState<string>('')
+  const [storageQuotaOpen, setStorageQuotaOpen] = useState<Group | null>(null)
+  const [storageQuotaValue, setStorageQuotaValue] = useState<string>('')
   const [planSaving, setPlanSaving] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -106,6 +109,38 @@ export default function AdminGroupesPage() {
     setMemberLimitOpen(group)
     setMemberLimitValue(group.maxMembersOverride !== null ? String(group.maxMembersOverride) : '')
     setError('')
+  }
+
+  const openStorageQuota = (group: Group) => {
+    setStorageQuotaOpen(group)
+    setStorageQuotaValue(group.storageQuotaOverrideGb !== null ? String(group.storageQuotaOverrideGb) : '')
+    setError('')
+  }
+
+  const handleStorageQuotaSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!storageQuotaOpen) return
+    setSaving(true)
+    setError('')
+    const override = storageQuotaValue.trim() === '' ? null : Number(storageQuotaValue)
+    if (override !== null && (isNaN(override) || override < 1)) {
+      setError('Le quota doit être un entier ≥ 1 Go.')
+      setSaving(false)
+      return
+    }
+    const res = await fetch(`/api/admin/groupes/${storageQuotaOpen.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storageQuotaOverrideGb: override }),
+    })
+    setSaving(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error || 'Erreur.')
+      return
+    }
+    setStorageQuotaOpen(null)
+    fetchData()
   }
 
   const handleMemberLimitSave = async (e: React.FormEvent) => {
@@ -225,8 +260,10 @@ export default function AdminGroupesPage() {
                   const chef = group.members.find((m: any) => m.groupRole === 'CHEF')
                   const plan: GroupPlan = group.plan || 'FREE'
                   const usedBytes = Number(group.storageUsedBytes || 0)
-                  const planStorageGb = (PLANS[plan]?.storageBytes ?? PLANS.FREE.storageBytes) / (1024 * 1024 * 1024)
-                  const pct = storagePercent(usedBytes, planStorageGb)
+                  const effectiveStorageGb = group.storageQuotaOverrideGb !== null
+                    ? group.storageQuotaOverrideGb
+                    : (PLANS[plan]?.storageBytes ?? PLANS.FREE.storageBytes) / (1024 * 1024 * 1024)
+                  const pct = storagePercent(usedBytes, effectiveStorageGb)
                   return (
                     <tr key={group.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                       <td className="px-6 py-4">
@@ -266,10 +303,15 @@ export default function AdminGroupesPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="min-w-[80px]">
+                        <div className="min-w-[100px]">
                           <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                             <span>{formatBytes(usedBytes)}</span>
-                            <span>{pct}%</span>
+                            <span className="flex items-center gap-1">
+                              {group.storageQuotaOverrideGb !== null && (
+                                <span className="text-[9px] font-bold bg-violet-100 text-violet-700 rounded-full px-1.5">override {group.storageQuotaOverrideGb} Go</span>
+                              )}
+                              {pct}%
+                            </span>
                           </div>
                           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                             <div
@@ -277,6 +319,7 @@ export default function AdminGroupesPage() {
                               style={{ width: `${pct}%` }}
                             />
                           </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{effectiveStorageGb} Go</div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -342,6 +385,13 @@ export default function AdminGroupesPage() {
                             title="Configurer la limite de membres"
                           >
                             👥 Limite
+                          </button>
+                          <button
+                            onClick={() => openStorageQuota(group)}
+                            className="text-xs font-medium text-cyan-600 hover:text-cyan-700"
+                            title="Configurer le quota de stockage individuel"
+                          >
+                            💾 Stockage
                           </button>
                           <button
                             onClick={() => handleDelete(group.id, group.name)}
@@ -424,6 +474,77 @@ export default function AdminGroupesPage() {
             )}
             <div className={`flex gap-3 ${memberLimitValue !== '' ? '' : 'ml-auto'}`}>
               <Button type="button" variant="secondary" onClick={() => setMemberLimitOpen(null)}>Annuler</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Enregistrement...' : '💾 Sauvegarder'}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* 💾 Storage quota modal */}
+      <Modal isOpen={!!storageQuotaOpen} onClose={() => setStorageQuotaOpen(null)} title={`💾 Quota de stockage — ${storageQuotaOpen?.name}`}>
+        <form onSubmit={handleStorageQuotaSave} className="space-y-5">
+          {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+          {storageQuotaOpen && (() => {
+            const usedBytes = Number(storageQuotaOpen.storageUsedBytes || 0)
+            const planGb = (PLANS[storageQuotaOpen.plan]?.storageBytes ?? PLANS.FREE.storageBytes) / (1024 * 1024 * 1024)
+            return (
+              <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Stockage utilisé (ce groupe)</span>
+                  <span className="font-semibold text-gray-900">{formatBytes(usedBytes)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Quota du plan ({storageQuotaOpen.plan})</span>
+                  <span className="font-medium text-gray-700">{planGb} Go</span>
+                </div>
+                {storageQuotaOpen.storageQuotaOverrideGb !== null && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Override actuel</span>
+                    <span className="font-semibold text-violet-700">{storageQuotaOpen.storageQuotaOverrideGb} Go</span>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+          <div>
+            <label className="form-label">
+              Quota individuel <span className="text-gray-400 font-normal">(override admin, en Go)</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={storageQuotaValue}
+              onChange={(e) => setStorageQuotaValue(e.target.value)}
+              placeholder="Ex : 20 (pour 20 Go)"
+              className="form-input"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Laisser vide pour utiliser le quota partagé (pool commun des groupes du chef, basé sur le meilleur plan).
+              Saisir un nombre pour donner à CE groupe un quota indépendant du pool.
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-cyan-50 border border-cyan-100 px-4 py-3 text-xs text-cyan-800 space-y-1">
+            <p><strong>🔄 Partagé (défaut) :</strong> le stockage est mutualisé entre tous les groupes du chef, plafonné au meilleur plan.</p>
+            <p><strong>🔒 Override :</strong> ce groupe obtient son propre quota indépendant — ses fichiers ne comptent plus dans le pool partagé.</p>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            {storageQuotaValue !== '' && (
+              <button
+                type="button"
+                onClick={() => setStorageQuotaValue('')}
+                className="text-xs font-medium text-red-600 hover:text-red-700"
+              >
+                ✕ Supprimer l&apos;override (revenir au pool partagé)
+              </button>
+            )}
+            <div className={`flex gap-3 ${storageQuotaValue !== '' ? '' : 'ml-auto'}`}>
+              <Button type="button" variant="secondary" onClick={() => setStorageQuotaOpen(null)}>Annuler</Button>
               <Button type="submit" disabled={saving}>
                 {saving ? 'Enregistrement...' : '💾 Sauvegarder'}
               </Button>
