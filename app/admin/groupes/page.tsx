@@ -316,6 +316,13 @@ export default function AdminGroupesPage() {
                           >
                             Voir
                           </a>
+                          <a
+                            href={`/groupes/${group.id}#permissions`}
+                            className="text-xs font-medium text-teal-600 hover:text-teal-700"
+                            title="Configurer les permissions des co-chefs"
+                          >
+                            ⚙️ Permissions
+                          </a>
                           <button
                             onClick={() => openEdit(group)}
                             className="text-xs font-medium text-gray-600 hover:text-gray-900"

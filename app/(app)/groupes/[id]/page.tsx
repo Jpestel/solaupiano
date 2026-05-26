@@ -306,28 +306,30 @@ export default async function GroupePage({ params }: { params: { id: string } })
         memberLimit={isAdminUser ? null : effectiveMemberLimit}
       />
 
-      {/* Paramètres des permissions — fondateur uniquement */}
-      {isFounder && coChefCount > 0 && (
-        <div className="mt-10">
-          <div className="flex items-center gap-2 mb-1">
+      {/* Paramètres des permissions — fondateur + admin site */}
+      {isFounder && (
+        <div id="permissions" className="mt-10">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h2 className="text-lg font-semibold text-gray-900">⚙️ Permissions des co-chefs</h2>
-            <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-              {coChefCount} co-chef{coChefCount > 1 ? 's' : ''}
-            </span>
+            {coChefCount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                {coChefCount} co-chef{coChefCount > 1 ? 's' : ''}
+              </span>
+            )}
+            {isAdminUser && (
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                🛡️ Vue admin
+              </span>
+            )}
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Contrôlez ce que vos co-chefs peuvent faire dans chaque module.
+            {coChefCount > 0
+              ? 'Contrôlez ce que les co-chefs peuvent faire dans chaque module.'
+              : 'Aucun co-chef pour l\'instant — ces permissions s\'appliqueront dès qu\'un co-chef sera nommé.'}
           </p>
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className={`rounded-xl border bg-white p-5 ${isAdminUser && !isFounder ? 'border-amber-200' : 'border-gray-200'}`}>
             <PermissionsSettings groupId={groupId} initialPermissions={group.chefPermissions} />
           </div>
-        </div>
-      )}
-
-      {/* Hint pour le fondateur quand il n'y a pas encore de co-chefs */}
-      {isFounder && coChefCount === 0 && group.members.length > 1 && (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-200 px-5 py-4 text-sm text-gray-500">
-          ⚙️ Nommez un co-chef depuis le panneau membres pour configurer ses permissions.
         </div>
       )}
     </div>
