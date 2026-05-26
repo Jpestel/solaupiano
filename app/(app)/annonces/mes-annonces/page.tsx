@@ -190,9 +190,9 @@ export default function MesAnnoncesPage() {
 
                 {/* Actions */}
                 <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
-                  {annonce.status === 'ACTIVE' && (
+                  {(annonce.status === 'ACTIVE' || annonce.status === 'PENDING') && (
                     <Link href={`/annonces/${annonce.id}`} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
-                      Voir →
+                      {annonce.status === 'PENDING' ? '👁 Aperçu' : 'Voir →'}
                     </Link>
                   )}
                   {canEdit && (

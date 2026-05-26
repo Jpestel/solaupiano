@@ -19,10 +19,14 @@ export default async function AnnonceDetailPage({ params }: { params: { id: stri
     prisma.annonceCategorie.findMany(),
   ])
 
-  if (!annonce || annonce.status === 'MASQUEE' || annonce.status === 'PENDING') notFound()
-
   const isOwner = session && Number(session.user.id) === annonce.userId
   const isAdmin = session?.user.siteRole === 'ADMIN'
+
+  // MASQUEE → 404 pour tout le monde
+  // PENDING → 404 sauf pour le propriétaire et l'admin
+  if (!annonce) notFound()
+  if (annonce.status === 'MASQUEE' && !isAdmin) notFound()
+  if (annonce.status === 'PENDING' && !isOwner && !isAdmin) notFound()
   const catMap = Object.fromEntries(dbCats.map(c => [c.key, c]))
   const cat = catMap[annonce.category] ?? { label: annonce.category, emoji: '📌' }
   const isLoggedIn = !!session
@@ -75,6 +79,31 @@ export default async function AnnonceDetailPage({ params }: { params: { id: stri
           )}
 
           <div className="p-5 sm:p-6">
+            {/* Bandeau statut non-public */}
+            {annonce.status === 'PENDING' && (
+              <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3">
+                <span className="text-xl mt-0.5">⏳</span>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">Annonce en attente de validation</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    {isAdmin
+                      ? 'Cette annonce attend votre validation avant d\'être visible publiquement.'
+                      : 'Votre annonce sera visible dès qu\'elle aura été validée par l\'administrateur. Vous seul pouvez la voir pour l\'instant.'}
+                  </p>
+                  {(isOwner && !isAdmin) && (
+                    <Link href={`/annonces/${annonce.id}/modifier`} className="inline-block mt-2 text-xs font-semibold text-amber-800 underline hover:text-amber-900">
+                      Modifier l&apos;annonce →
+                    </Link>
+                  )}
+                  {isAdmin && (
+                    <Link href="/admin/annonces" className="inline-block mt-2 text-xs font-semibold text-amber-800 underline hover:text-amber-900">
+                      Valider depuis l&apos;admin →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Badges */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1">
