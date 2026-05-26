@@ -99,8 +99,9 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  lastLoginAt              DateTime?
-  weeklyDigestOptOut       Boolean   @default(false)
+  lastLoginAt                 DateTime?
+  weeklyDigestOptOut          Boolean   @default(false)
+  rehearsalReminderOptOut     Boolean   @default(false)
 
   instruments              UserInstrument[]
   groups                   GroupMember[]
@@ -115,6 +116,7 @@ model User {
   songProgress             UserSongProgress[]
   remindersReceived        ReminderLog[]            @relation("RemindedUser")
   remindersSent            ReminderLog[]            @relation("ReminderSender")
+  autoReminders            RehearsalAutoReminder[]
 }
 
 model Instrument {
@@ -235,7 +237,8 @@ model Rehearsal {
   setlist      Setlist?        @relation(fields: [setlistId], references: [id], onDelete: SetNull)
   songs        RehearsalSong[]
   attendances  Attendance[]
-  reminderLogs ReminderLog[]
+  reminderLogs  ReminderLog[]
+  autoReminders RehearsalAutoReminder[]
 }
 
 model RehearsalSong {
@@ -477,4 +480,17 @@ model ReminderLog {
 
   @@index([rehearsalId])
   @@index([userId])
+}
+
+// Tracks automatic 5-day reminders sent by cron (deduplicate per rehearsal+user)
+model RehearsalAutoReminder {
+  rehearsalId Int
+  userId      Int
+  sentAt      DateTime @default(now())
+
+  rehearsal   Rehearsal @relation(fields: [rehearsalId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([rehearsalId, userId])
+  @@index([rehearsalId])
 }

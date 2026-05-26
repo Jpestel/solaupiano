@@ -22,6 +22,7 @@ interface ProfileData {
   siteRole: string
   userPlan: string
   weeklyDigestOptOut: boolean
+  rehearsalReminderOptOut: boolean
   instruments: { instrument: Instrument }[]
   stats: {
     groupCount: number
@@ -82,6 +83,8 @@ export default function ProfilPage() {
 
   const [weeklyDigestOptOut, setWeeklyDigestOptOut] = useState(false)
   const [digestSaving, setDigestSaving] = useState(false)
+  const [rehearsalReminderOptOut, setRehearsalReminderOptOut] = useState(false)
+  const [reminderSaving, setReminderSaving] = useState(false)
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('')
@@ -104,6 +107,7 @@ export default function ProfilPage() {
       setName(p.name)
       setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
       setWeeklyDigestOptOut(p.weeklyDigestOptOut ?? false)
+      setRehearsalReminderOptOut(p.rehearsalReminderOptOut ?? false)
     }
     if (instrRes.ok) setInstruments(await instrRes.json())
     if (groupsRes.ok) setAvailableGroups(await groupsRes.json())
@@ -149,6 +153,17 @@ export default function ProfilPage() {
       body: JSON.stringify({ name, instrumentIds: selectedIds, weeklyDigestOptOut: newValue }),
     })
     setDigestSaving(false)
+  }
+
+  const handleReminderToggle = async (newValue: boolean) => {
+    setRehearsalReminderOptOut(newValue)
+    setReminderSaving(true)
+    await fetch('/api/profil', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, instrumentIds: selectedIds, rehearsalReminderOptOut: newValue }),
+    })
+    setReminderSaving(false)
   }
 
   const handlePlanChange = async (newPlan: 'MUSICIEN' | 'CREATEUR') => {
@@ -586,8 +601,32 @@ export default function ProfilPage() {
                   />
                 </button>
               </div>
+              <div className="border-t border-gray-100 pt-4 flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">Rappels de répétition automatiques</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Reçu automatiquement 5 jours avant chaque répétition à laquelle vous êtes invité(e).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!rehearsalReminderOptOut}
+                  onClick={() => handleReminderToggle(!rehearsalReminderOptOut)}
+                  disabled={reminderSaving}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
+                    !rehearsalReminderOptOut ? 'bg-indigo-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      !rehearsalReminderOptOut ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
               <p className="text-xs text-gray-400 border-t border-gray-100 pt-3">
-                Les emails transactionnels (ajout à un groupe, rappels de répétition, mot de passe) sont toujours envoyés.
+                Les emails transactionnels (ajout à un groupe, mot de passe) sont toujours envoyés.
               </p>
             </div>
           </Card>

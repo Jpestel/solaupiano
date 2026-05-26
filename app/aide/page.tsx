@@ -149,7 +149,7 @@ export default async function AidePage() {
                   <Step n={3}>Vous devenez automatiquement <RolePill role="CHEF" /> de ce groupe.</Step>
                 </ol>
                 <Tip>Vous pouvez ajouter une <strong>photo de couverture</strong> en cliquant sur l&apos;icône du groupe depuis la page du groupe.</Tip>
-                <Note>Le plan <strong>Gratuit</strong> permet de créer <strong>1 groupe</strong>. Les plans Pro et Premium (bientôt disponibles) permettent jusqu&apos;à 5 groupes.</Note>
+                <Note>Le plan <strong>Gratuit</strong> permet de créer <strong>1 groupe</strong> (5 membres max, 12 morceaux max). Les plans <strong>Pro</strong> et <strong>Premium</strong> permettent plus de groupes, de membres et de fonctionnalités.</Note>
               </HelpCard>
             )}
 
@@ -188,6 +188,7 @@ export default async function AidePage() {
                     <li>✓ Crée et édite les setlists et grilles</li>
                     <li>✓ Invite et gère les membres</li>
                     <li>✓ Accède aux paramètres du groupe</li>
+                    <li>✓ Consulte les statistiques du groupe</li>
                   </ul>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -205,6 +206,7 @@ export default async function AidePage() {
                   </ul>
                 </div>
               </div>
+              <Note>Un groupe peut avoir <strong>plusieurs chefs</strong>. Le fondateur du groupe peut nommer des co-chefs depuis le panneau membres, et configurer finement leurs permissions (quels modules ils peuvent modifier) depuis la section <em>Permissions des co-chefs</em> en bas de la page du groupe.</Note>
             </HelpCard>
           </div>
         </section>
@@ -222,7 +224,8 @@ export default async function AidePage() {
                   <Step n={3}>Sélectionnez quels membres inviter (tous par défaut) — les invités reçoivent une notification.</Step>
                   <Step n={4}>Ajoutez éventuellement des notes (consignes, thèmes à travailler…).</Step>
                 </ol>
-                <Tip>Depuis la fiche d&apos;une répétition, vous pouvez envoyer un <strong>rappel par e-mail</strong> aux membres en cliquant sur <em>Envoyer un rappel</em>.</Tip>
+                <Tip>Depuis la fiche d&apos;une répétition, vous pouvez envoyer un <strong>rappel manuel par e-mail</strong> aux membres en cliquant sur <em>Envoyer un rappel</em>.</Tip>
+                <Note>Un <strong>rappel automatique</strong> est envoyé par email à tous les membres <strong>5 jours avant</strong> chaque répétition. Chaque membre peut désactiver ces rappels depuis son profil (section Notifications).</Note>
               </HelpCard>
             )}
 
@@ -1184,21 +1187,28 @@ export default async function AidePage() {
           <div className="space-y-4">
 
             <HelpCard title="Plans de groupe">
-              <p>Chaque groupe dispose d&apos;un plan qui détermine son espace de stockage. Le stockage est <strong>partagé</strong> entre tous les membres pour les ressources (partitions, fichiers audio…).</p>
+              <p>Le plan est attaché à <strong>chaque groupe</strong> individuellement (pas au compte utilisateur). Il détermine les fonctionnalités disponibles et l&apos;espace de stockage.</p>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <PlanDetailCard name="Gratuit" icon="🆓" storage="1 Go" price="Gratuit" groups="1 groupe" color="gray"
-                  features={['Répétitions illimitées', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène', 'Tablatures', 'Dictionnaire d\'accords', 'Plan de scène', 'Fiche technique', 'Page publique', 'Accordeur & Métronome']} />
-                <PlanDetailCard name="Pro" icon="⭐" storage="5 Go" price="5,99 €/mois" groups="5 groupes" color="indigo"
-                  features={['Tout du plan Gratuit', 'Support prioritaire', 'Bientôt disponible']} comingSoon />
+                  features={['5 membres max', '12 morceaux max', 'Répétitions & présences', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène', 'Tablatures', 'Plan de scène', 'Fiche technique', 'Page publique']} />
+                <PlanDetailCard name="Pro" icon="⭐" storage="5 Go" price="5,90 €/mois" groups="3 groupes" color="indigo"
+                  features={['7 membres max', '25 morceaux max', 'Tout du plan Gratuit', 'Co-chefs avec permissions', 'Grilles d\'accords (25 max)']} />
                 <PlanDetailCard name="Premium" icon="👑" storage="10 Go" price="9,90 €/mois" groups="5 groupes" color="purple"
-                  features={['Tout du plan Pro', 'Statistiques avancées (présence, répertoire…)']} />
+                  features={['15 membres max', 'Morceaux illimités', 'Tout du plan Pro', 'Statistiques avancées', 'Support prioritaire']} />
               </div>
+              <Note>Les quotas exacts (nombre de membres, morceaux, setlists…) sont visibles directement sur les cartes de plans depuis la page de votre groupe.</Note>
             </HelpCard>
 
-            <HelpCard title="Gérer le stockage">
-              <p>La barre de stockage est visible sur la page principale de chaque groupe. Quelques conseils :</p>
-              <ul className="mt-2 space-y-1">
-                <li>Préférez les <strong>liens</strong> (YouTube, SoundCloud) aux fichiers audio pour économiser de l&apos;espace</li>
+            <HelpCard title="Stockage">
+              <p>Le stockage est <strong>propre à chaque groupe</strong> — il n&apos;est pas partagé entre vos différents groupes. Il comptabilise tous les fichiers attachés aux morceaux (partitions PDF, fichiers audio, images…).</p>
+              <ul className="mt-3 space-y-1.5">
+                <li>📁 <strong>Plan Gratuit</strong> — 1 Go par groupe</li>
+                <li>⭐ <strong>Plan Pro</strong> — 5 Go par groupe</li>
+                <li>👑 <strong>Plan Premium</strong> — 10 Go par groupe</li>
+              </ul>
+              <p className="mt-3 text-sm text-gray-600">Conseils pour économiser de l&apos;espace :</p>
+              <ul className="mt-1 space-y-1">
+                <li>Préférez les <strong>liens</strong> (YouTube, SoundCloud) aux fichiers audio — ils ne consomment pas de stockage</li>
                 <li>Compressez vos PDFs avant de les uploader</li>
                 <li>Supprimez les ressources obsolètes depuis la fiche du morceau</li>
               </ul>
@@ -1219,7 +1229,7 @@ export default async function AidePage() {
             </FaqItem>
             {isCreateur && (
               <FaqItem question="Combien de groupes puis-je créer ?">
-                Avec le plan <strong>Gratuit</strong>, vous pouvez créer <strong>1 groupe</strong>. Les plans Pro et Premium (bientôt disponibles) permettront d&apos;en créer jusqu&apos;à 5.
+                Avec le plan <strong>Gratuit</strong>, vous pouvez créer <strong>1 groupe</strong>. Le plan <strong>Pro</strong> permet 3 groupes, le plan <strong>Premium</strong> permet 5 groupes.
               </FaqItem>
             )}
             <FaqItem question="Comment changer un membre en chef d'orchestre ?">
@@ -1274,6 +1284,15 @@ export default async function AidePage() {
             </FaqItem>
             <FaqItem question="Comment quitter un groupe ?">
               Depuis la page du groupe, section Membres, cliquez sur votre nom puis <strong>Quitter le groupe</strong>. Attention, si vous êtes le seul chef, vous devrez d&apos;abord promouvoir un autre membre.
+            </FaqItem>
+            <FaqItem question="Puis-je désactiver les rappels automatiques de répétition ?">
+              Oui. Depuis votre page <strong>Profil</strong>, section <em>Notifications</em>, désactivez le toggle <em>Rappels de répétition automatiques</em>. Vous ne recevrez plus les emails de rappel 5 jours avant chaque répétition. Le chef peut toujours vous envoyer un rappel manuel depuis la fiche d&apos;une répétition.
+            </FaqItem>
+            <FaqItem question="Peut-on avoir plusieurs chefs dans un groupe ?">
+              Oui. Le fondateur du groupe peut nommer autant de co-chefs qu&apos;il le souhaite depuis le panneau <strong>Membres</strong>. Il peut aussi configurer les permissions de chaque co-chef (quels modules il peut modifier) depuis la section <em>Permissions des co-chefs</em> en bas de la page du groupe. Cette fonctionnalité est disponible à partir du plan <strong>Pro</strong>.
+            </FaqItem>
+            <FaqItem question="Le stockage est-il partagé entre tous mes groupes ?">
+              Non. Chaque groupe dispose de son propre quota de stockage, indépendant des autres groupes. Un groupe en plan Gratuit a 1 Go, un groupe Pro a 5 Go, un groupe Premium a 10 Go — même si vous êtes membre de plusieurs groupes.
             </FaqItem>
             <FaqItem question="Qui peut accéder aux statistiques du groupe ?">
               Seuls les <strong>chefs</strong> du groupe y ont accès (fondateur et co-chefs). Les membres simples ne voient pas les statistiques. De plus, le module nécessite un <strong>plan payant</strong> (Pro ou Premium). Le fondateur peut restreindre l&apos;accès aux co-chefs depuis les paramètres de permissions.
