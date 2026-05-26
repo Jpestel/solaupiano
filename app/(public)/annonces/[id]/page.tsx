@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { MarkSoldButton, DeleteButton } from './AnnonceActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -182,35 +183,3 @@ export default async function AnnonceDetailPage({ params }: { params: { id: stri
   )
 }
 
-// ── Client components pour les actions ─────────────────────────────────────
-'use client'
-
-function MarkSoldButton({ id }: { id: number }) {
-  return (
-    <form action={`/api/annonces/${id}`} method="post" onSubmit={async (e) => {
-      e.preventDefault()
-      if (!confirm('Marquer cette annonce comme vendue / pourvue ?')) return
-      await fetch(`/api/annonces/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'VENDUE' }) })
-      window.location.reload()
-    }}>
-      <button type="submit" className="rounded-lg border border-gray-300 text-gray-700 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 transition-colors">
-        ✓ Marquer vendu / pourvu
-      </button>
-    </form>
-  )
-}
-
-function DeleteButton({ id }: { id: number }) {
-  return (
-    <button
-      onClick={async () => {
-        if (!confirm('Supprimer définitivement cette annonce ?')) return
-        await fetch(`/api/annonces/${id}`, { method: 'DELETE' })
-        window.location.href = '/annonces'
-      }}
-      className="rounded-lg border border-red-200 text-red-600 px-3 py-1.5 text-sm font-medium hover:bg-red-50 transition-colors"
-    >
-      🗑 Supprimer
-    </button>
-  )
-}
