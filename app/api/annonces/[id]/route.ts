@@ -16,7 +16,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     where: { id: Number(params.id) },
     include: { user: { select: { id: true, name: true, avatarUrl: true } } },
   })
-  if (!annonce || annonce.status === 'MASQUEE') {
+
+  if (!annonce) return NextResponse.json({ error: 'Annonce introuvable.' }, { status: 404 })
+
+  const isOwner = session && Number(session.user.id) === annonce.userId
+  const isAdmin = session?.user.siteRole === 'ADMIN'
+
+  // MASQUEE : visible uniquement par le propriétaire et l'admin (pour modification/modération)
+  if (annonce.status === 'MASQUEE' && !isOwner && !isAdmin) {
     return NextResponse.json({ error: 'Annonce introuvable.' }, { status: 404 })
   }
 
