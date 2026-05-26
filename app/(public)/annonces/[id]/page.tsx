@@ -9,26 +9,22 @@ import { MarkSoldButton, DeleteButton } from './AnnonceActions'
 
 export const dynamic = 'force-dynamic'
 
-const CATEGORIES: Record<string, { label: string; emoji: string }> = {
-  MATERIEL: { label: 'Matériel à vendre', emoji: '🎸' },
-  MUSICIEN: { label: 'Recherche musicien', emoji: '👤' },
-  GROUPE:   { label: 'Recherche groupe',   emoji: '🎼' },
-  COURS:    { label: 'Cours de musique',   emoji: '📚' },
-  AUTRE:    { label: 'Autre',              emoji: '📌' },
-}
-
 export default async function AnnonceDetailPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
-  const annonce = await prisma.annonce.findUnique({
-    where: { id: Number(params.id) },
-    include: { user: { select: { id: true, name: true, avatarUrl: true, createdAt: true } } },
-  })
+  const [annonce, dbCats] = await Promise.all([
+    prisma.annonce.findUnique({
+      where: { id: Number(params.id) },
+      include: { user: { select: { id: true, name: true, avatarUrl: true, createdAt: true } } },
+    }),
+    prisma.annonceCategorie.findMany(),
+  ])
 
-  if (!annonce || annonce.status === 'MASQUEE') notFound()
+  if (!annonce || annonce.status === 'MASQUEE' || annonce.status === 'PENDING') notFound()
 
   const isOwner = session && Number(session.user.id) === annonce.userId
   const isAdmin = session?.user.siteRole === 'ADMIN'
-  const cat = CATEGORIES[annonce.category] ?? { label: annonce.category, emoji: '📌' }
+  const catMap = Object.fromEntries(dbCats.map(c => [c.key, c]))
+  const cat = catMap[annonce.category] ?? { label: annonce.category, emoji: '📌' }
   const isLoggedIn = !!session
 
   return (

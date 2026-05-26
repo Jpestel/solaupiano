@@ -12,32 +12,30 @@ export const metadata = {
   description: 'Achetez, vendez du matériel musical, trouvez un groupe ou un musicien.',
 }
 
-const CATEGORIES = [
-  { key: 'TOUS',      label: 'Toutes',           emoji: '🎵' },
-  { key: 'MATERIEL',  label: 'Matériel',         emoji: '🎸' },
-  { key: 'MUSICIEN',  label: 'Recherche musicien', emoji: '👤' },
-  { key: 'GROUPE',    label: 'Recherche groupe', emoji: '🎼' },
-  { key: 'COURS',     label: 'Cours',            emoji: '📚' },
-  { key: 'AUTRE',     label: 'Autre',            emoji: '📌' },
-]
-
-function categoryLabel(key: string) {
-  return CATEGORIES.find(c => c.key === key) ?? { label: key, emoji: '📌' }
-}
-
 export default async function AnnoncesPage({ searchParams }: { searchParams: { category?: string } }) {
   const session = await getServerSession(authOptions)
   const category = searchParams.category || 'TOUS'
 
-  const where: any = { status: 'ACTIVE', expiresAt: { gte: new Date() } }
-  if (category !== 'TOUS') where.category = category
+  const [dbCategories, annonces] = await Promise.all([
+    prisma.annonceCategorie.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
+    prisma.annonce.findMany({
+      where: {
+        status: 'ACTIVE',
+        expiresAt: { gte: new Date() },
+        ...(category !== 'TOUS' ? { category } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+    }),
+  ])
 
-  const annonces = await prisma.annonce.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    take: 40,
-    include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-  })
+  const catMap = Object.fromEntries(dbCategories.map(c => [c.key, c]))
+  const CATEGORIES = [{ key: 'TOUS', label: 'Toutes', emoji: '🎵' }, ...dbCategories]
+
+  function categoryLabel(key: string) {
+    return catMap[key] ?? { label: key, emoji: '📌' }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">

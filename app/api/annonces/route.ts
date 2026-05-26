@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendAdminAnnonceNotification } from '@/lib/email'
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'
@@ -98,6 +99,10 @@ export async function POST(req: NextRequest) {
   if (!category) return NextResponse.json({ error: 'La catégorie est requise.' }, { status: 400 })
   if (!contactEmail && !contactPhone) return NextResponse.json({ error: 'Au moins un moyen de contact est requis.' }, { status: 400 })
 
+  // Vérifier que la catégorie existe et est active
+  const categoryExists = await prisma.annonceCategorie.findFirst({ where: { key: category, isActive: true } })
+  if (!categoryExists) return NextResponse.json({ error: 'Catégorie invalide.' }, { status: 400 })
+
   // Photo
   const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo
   let photoPath: string | null = null
@@ -113,7 +118,7 @@ export async function POST(req: NextRequest) {
     data: {
       title,
       description,
-      category: category as any,
+      category,
       price,
       location,
       photoPath,
@@ -121,8 +126,29 @@ export async function POST(req: NextRequest) {
       contactPhone,
       userId,
       expiresAt,
+      status: 'PENDING',
     },
+    include: { user: { select: { name: true, email: true } } },
   })
+
+  // Notifier l'admin par email
+  try {
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+    await sendAdminAnnonceNotification(
+      {
+        id: annonce.id,
+        title: annonce.title,
+        category: categoryExists.label,
+        location: annonce.location,
+        userName: annonce.user.name,
+        userEmail: annonce.user.email,
+      },
+      'jerompestel@gmail.com',
+      baseUrl,
+    )
+  } catch (e) {
+    console.error('Email admin annonce failed:', e)
+  }
 
   return NextResponse.json(annonce, { status: 201 })
 }

@@ -61,19 +61,22 @@ model Plan {
   updatedAt DateTime @updatedAt
 }
 
-enum AnnonceCategory {
-  MATERIEL
-  MUSICIEN
-  GROUPE
-  COURS
-  AUTRE
-}
-
 enum AnnonceStatus {
+  PENDING
   ACTIVE
   VENDUE
   EXPIREE
   MASQUEE
+}
+
+model AnnonceCategorie {
+  id        Int     @id @default(autoincrement())
+  key       String  @unique
+  label     String
+  emoji     String  @default("📌")
+  hint      String?
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
 }
 
 enum AttendanceStatus {
@@ -501,20 +504,20 @@ model ReminderLog {
 }
 
 model Annonce {
-  id           Int             @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   title        String
-  description  String          @db.Text
-  category     AnnonceCategory
+  description  String        @db.Text
+  category     String
   price        Float?
   location     String?
   photoPath    String?
   contactEmail String?
   contactPhone String?
-  status       AnnonceStatus   @default(ACTIVE)
+  status       AnnonceStatus @default(PENDING)
   userId       Int
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   expiresAt    DateTime
 
   @@index([userId])
