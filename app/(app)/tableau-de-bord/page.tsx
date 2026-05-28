@@ -18,9 +18,15 @@ function ConcertDateBox({ date }: { date: Date }) {
   )
 }
 
-export default async function TableauDeBordPage() {
+export default async function TableauDeBordPage({
+  searchParams,
+}: {
+  searchParams?: { module_bloque?: string }
+}) {
   const session = await getServerSession(authOptions)
   if (!session) return null
+
+  const moduleBloque = searchParams?.module_bloque
 
   const userId = Number(session.user.id)
   const isAdmin = session.user.siteRole === 'ADMIN'
@@ -130,6 +136,21 @@ export default async function TableauDeBordPage() {
 
   return (
     <div>
+      {/* Module access blocked banner */}
+      {moduleBloque && (
+        <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-amber-800">Accès non autorisé</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              Vous n'avez pas accès à l'outil <strong>{moduleBloque}</strong>. Contactez l'administrateur si vous pensez qu'il s'agit d'une erreur.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>

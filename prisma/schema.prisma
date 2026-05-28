@@ -137,6 +137,7 @@ model User {
   remindersSent            ReminderLog[]            @relation("ReminderSender")
   autoReminders            RehearsalAutoReminder[]
   annonces                 Annonce[]
+  moduleUserOverrides      ModuleUserOverride[]
 }
 
 model Instrument {
@@ -185,6 +186,7 @@ model Group {
   techRider        TechRider?
   groupPage        GroupPage?
   pendingResources PendingResource[]
+  moduleGroupOverrides ModuleGroupOverride[]
 }
 
 model GroupPage {
@@ -525,6 +527,41 @@ model Annonce {
   @@index([category])
   @@index([status])
   @@index([expiresAt])
+}
+
+// Module access control
+model ModuleAccess {
+  id        Int     @id @default(autoincrement())
+  moduleKey String
+  planKey   String
+  enabled   Boolean @default(true)
+
+  @@unique([moduleKey, planKey])
+  @@index([moduleKey])
+}
+
+model ModuleUserOverride {
+  id        Int     @id @default(autoincrement())
+  moduleKey String
+  userId    Int
+  allowed   Boolean
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleKey, userId])
+  @@index([moduleKey])
+}
+
+model ModuleGroupOverride {
+  id        Int     @id @default(autoincrement())
+  moduleKey String
+  groupId   Int
+  allowed   Boolean
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleKey, groupId])
+  @@index([moduleKey])
 }
 
 // Tracks automatic 5-day reminders sent by cron (deduplicate per rehearsal+user)
