@@ -66,6 +66,7 @@ export default async function AidePage() {
             { href: '#accords', label: '🎹 Accords' },
             { href: '#accordeur', label: '🎙️ Accordeur' },
             { href: '#metronome', label: '🥁 Métronome' },
+            { href: '#portee', label: '🎼 Portée' },
             { href: '#stats', label: '📊 Statistiques' },
             { href: '#plans', label: '📦 Plans' },
             { href: '#faq', label: '❓ FAQ' },
@@ -1062,6 +1063,138 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── PORTÉE MUSICALE ─── */}
+        <section id="portee">
+          <SectionTitle icon="🎼" title="Portée musicale" color="violet" />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi ça sert ?">
+              <p>L&apos;outil <strong>Portée musicale</strong> est un éditeur SVG interactif qui permet de placer des notes sur une portée et d&apos;obtenir instantanément leur nom en solfège français — avec toutes les altérations possibles — ainsi que la <strong>reconnaissance automatique d&apos;accords</strong>.</p>
+              <p className="mt-2">Deux modes sont disponibles :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-violet-100 bg-violet-50 p-3">
+                  <p className="text-sm font-bold text-violet-700 mb-1">🎵 Mode Note</p>
+                  <p className="text-xs text-gray-600">Placez une note à la fois sur la portée. Son nom en solfège, son octave et ses équivalents enharmoniques s&apos;affichent instantanément.</p>
+                </div>
+                <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
+                  <p className="text-sm font-bold text-indigo-700 mb-1">🎸 Mode Accord</p>
+                  <p className="text-xs text-gray-600">Placez 2 notes ou plus. L&apos;outil identifie automatiquement l&apos;accord (nom, renversement) parmi 23 types d&apos;accords reconnus.</p>
+                </div>
+              </div>
+              <Tip>Accessible via <strong>Portée</strong> dans la barre de navigation — fonctionne entièrement dans le navigateur, sans connexion réseau.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Comment utiliser la portée">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Choisissez le <strong>mode</strong> : 🎵 Note unique ou 🎸 Accord (boutons en haut à gauche).</Step>
+                <Step n={2}>Choisissez la <strong>clef</strong> : Sol (clef de sol — tréble) ou Fa (clef de fa — basse) via le bouton dédié.</Step>
+                <Step n={3}><strong>Cliquez sur la portée</strong> à la hauteur souhaitée pour placer une note. Les lignes supplémentaires apparaissent automatiquement pour les notes hors portée.</Step>
+                <Step n={4}>En mode Note, le <strong>nom solfège + octave</strong> s&apos;affiche immédiatement. En mode Accord, posez plusieurs notes puis lisez le résultat en bas.</Step>
+                <Step n={5}>Cliquez sur la note pour <strong>cycler ses altérations</strong> : ♮ naturel → ♯ dièse → 𝄪 double dièse → ♭ bémol → 𝄫 double bémol → ♮…</Step>
+                <Step n={6}>Cliquez sur <strong>Effacer</strong> (icône poubelle) pour remettre la portée à zéro.</Step>
+              </ol>
+            </HelpCard>
+
+            <HelpCard title="Altérations disponibles">
+              <p>Chaque note peut porter cinq niveaux d&apos;altération. Cliquez sur la note pour passer à l&apos;altération suivante :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-5 gap-2">
+                {[
+                  { sym: '♮', name: 'Naturel',      color: 'bg-gray-50 border-gray-200 text-gray-700' },
+                  { sym: '♯', name: 'Dièse',         color: 'bg-blue-50 border-blue-200 text-blue-700' },
+                  { sym: '𝄪', name: 'Double dièse', color: 'bg-indigo-50 border-indigo-200 text-indigo-700' },
+                  { sym: '♭', name: 'Bémol',         color: 'bg-rose-50 border-rose-200 text-rose-700' },
+                  { sym: '𝄫', name: 'Double bémol', color: 'bg-red-50 border-red-200 text-red-700' },
+                ].map((a) => (
+                  <div key={a.sym} className={`rounded-lg border px-3 py-2 text-center ${a.color}`}>
+                    <p className="text-xl font-bold mb-0.5">{a.sym}</p>
+                    <p className="text-xs font-medium">{a.name}</p>
+                  </div>
+                ))}
+              </div>
+              <Tip>Les équivalents enharmoniques (ex : Ré♯ = Mi♭) sont affichés à côté du nom principal — pratique pour comprendre les deux façons de noter une même hauteur.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Changer de clef">
+              <p>Le bouton <strong>Clef de Sol / Clef de Fa</strong> permet de basculer entre les deux registres :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                  <p className="text-sm font-bold text-amber-700 mb-1">𝄞 Clef de Sol (Tréble)</p>
+                  <ul className="text-xs text-gray-600 space-y-0.5">
+                    <li>Ligne du bas = Mi 4</li>
+                    <li>Ligne du milieu = Si 4</li>
+                    <li>Do central (C4) = ligne supplémentaire sous la portée</li>
+                    <li>Idéale pour voix, violon, flûte, main droite piano</li>
+                  </ul>
+                </div>
+                <div className="rounded-lg border border-teal-100 bg-teal-50 p-3">
+                  <p className="text-sm font-bold text-teal-700 mb-1">𝄢 Clef de Fa (Basse)</p>
+                  <ul className="text-xs text-gray-600 space-y-0.5">
+                    <li>Ligne du bas = Sol 2</li>
+                    <li>Ligne du milieu = Ré 3</li>
+                    <li>Do central (C4) = ligne supplémentaire au-dessus</li>
+                    <li>Idéale pour basse, tuba, main gauche piano</li>
+                  </ul>
+                </div>
+              </div>
+              <Note>Changer de clef efface la note ou les notes en cours — la portée est réinitialisée pour éviter toute confusion.</Note>
+            </HelpCard>
+
+            <HelpCard title="Reconnaissance d'accords (23 types)">
+              <p>En mode Accord, l&apos;outil identifie automatiquement le type d&apos;accord formé par les notes placées, parmi les 23 types suivants :</p>
+              <div className="mt-3 space-y-2">
+                {[
+                  { cat: 'Triades',         types: ['Majeur', 'Mineur', 'Diminué', 'Augmenté'] },
+                  { cat: 'Suspendus',        types: ['Sus2', 'Sus4'] },
+                  { cat: 'Septièmes',        types: ['Majeur 7', 'Dominante 7', 'Mineur 7', 'Mineur 7♭5', 'Dim7', 'Mineur maj7', 'Augmenté 7', 'Augmenté maj7'] },
+                  { cat: 'Sixtes & Add',     types: ['Majeur 6', 'Mineur 6', 'Add9', 'Mineur add9'] },
+                  { cat: 'Extensions & Sus7',types: ['9', 'Majeur 9', 'Mineur 9', '7sus4', '7sus2'] },
+                ].map((group) => (
+                  <div key={group.cat} className="flex items-start gap-3">
+                    <span className="text-xs font-semibold text-gray-500 w-28 flex-shrink-0 pt-0.5">{group.cat}</span>
+                    <div className="flex flex-wrap gap-1">
+                      {group.types.map((t) => (
+                        <span key={t} className="rounded-md bg-violet-50 border border-violet-200 px-2 py-0.5 text-xs text-violet-700">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-gray-600">Le résultat affiche :</p>
+              <ul className="mt-1 space-y-1">
+                <li>Le <strong>nom de l&apos;accord</strong> avec la fondamentale en solfège (ex : <span className="font-mono text-sm">Sol mineur 7</span>)</li>
+                <li>Le <strong>renversement</strong> s&apos;il est détecté (état fondamental, 1er renversement, 2e renversement…)</li>
+                <li>La <strong>notation symbolique</strong> internationale (ex : <span className="font-mono text-sm">Gm7 / B♭</span>)</li>
+                <li>La <strong>liste des notes</strong> composant l&apos;accord</li>
+              </ul>
+            </HelpCard>
+
+            <HelpCard title="Renversements d'accords">
+              <p>La note la plus basse sur la portée (la plus descendue visuellement) est considérée comme la <strong>basse</strong> de l&apos;accord. Si elle n&apos;est pas la fondamentale, l&apos;outil détecte le renversement :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-4 gap-2">
+                {[
+                  { label: 'État fondamental', desc: 'Fondamentale à la basse', ex: 'Do–Mi–Sol' },
+                  { label: '1er renversement', desc: 'Tierce à la basse',       ex: 'Mi–Sol–Do' },
+                  { label: '2e renversement',  desc: 'Quinte à la basse',       ex: 'Sol–Do–Mi' },
+                  { label: '3e renversement',  desc: '7e à la basse (accords 4 notes)', ex: 'Si–Ré–Fa–Sol' },
+                ].map((r) => (
+                  <div key={r.label} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    <p className="text-xs font-bold text-gray-800">{r.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{r.desc}</p>
+                    <p className="text-[10px] font-mono text-indigo-600 mt-1">{r.ex}</p>
+                  </div>
+                ))}
+              </div>
+              <Tip>Pour tester un renversement, placez les notes dans n&apos;importe quel ordre — c&apos;est la hauteur effective (position sur la portée) qui détermine la basse, pas l&apos;ordre de saisie.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Notes adjacentes et décalage visuel">
+              <p>Lorsque deux notes sont à distance d&apos;un demi-ton ou d&apos;un ton (notes voisines sur la portée), la note inférieure est automatiquement <strong>décalée vers la droite</strong> pour éviter le chevauchement visuel — comme sur une partition classique.</p>
+              <Tip>Ce décalage est purement cosmétique : les deux notes sonnent ensemble et sont toutes deux prises en compte dans la reconnaissance d&apos;accord.</Tip>
+            </HelpCard>
+
+          </div>
+        </section>
+
         {/* ─── STATISTIQUES ─── */}
         <section id="stats">
           <SectionTitle icon="📊" title="Statistiques" color="violet" />
@@ -1251,6 +1384,18 @@ export default async function AidePage() {
             </FaqItem>
             <FaqItem question="Puis-je voir les accords en solfège plutôt qu'en lettres ?">
               Oui, le dictionnaire affiche toujours les deux systèmes simultanément : les lettres anglo-saxonnes (C, D, E, F, G, A, B) et le solfège français (Do, Ré, Mi, Fa, Sol, La, Si) avec leurs altérations.
+            </FaqItem>
+            <FaqItem question="Quelle différence entre le dictionnaire d'accords et la portée musicale ?">
+              Le <strong>dictionnaire d&apos;accords</strong> part du nom de l&apos;accord pour afficher ses notes sur un clavier de piano — utile pour apprendre une harmonie. La <strong>portée musicale</strong> fait l&apos;inverse : vous placez des notes sur une portée et l&apos;outil vous dit quel accord elles forment — utile pour analyser un passage ou vérifier une harmonie jouée.
+            </FaqItem>
+            <FaqItem question="Combien d'accords la portée peut-elle reconnaître ?">
+              La portée reconnaît <strong>23 types d&apos;accords</strong> : triades (majeur, mineur, diminué, augmenté), suspendus (sus2, sus4), septièmes (dom7, maj7, m7, m7♭5, dim7…), sixtes, add9, et extensions (9, maj9, m9, 7sus4, 7sus2). Les renversements jusqu&apos;au 3e (pour les accords de 4 notes) sont également détectés.
+            </FaqItem>
+            <FaqItem question="Puis-je utiliser des doubles dièses ou doubles bémols sur la portée ?">
+              Oui. Chaque note placée sur la portée supporte cinq altérations : ♮ naturel, ♯ dièse, 𝄪 double dièse, ♭ bémol et 𝄫 double bémol. Cliquez plusieurs fois sur la note pour cycler entre les altérations.
+            </FaqItem>
+            <FaqItem question="La portée musicale gère-t-elle la clef de Fa ?">
+              Oui. Un bouton permet de basculer entre la clef de Sol (tréble — registre aigu) et la clef de Fa (basse — registre grave). Attention, changer de clef remet la portée à zéro pour éviter toute confusion de hauteur.
             </FaqItem>
             <FaqItem question="Un morceau peut-il avoir plusieurs tablatures ?">
               Non, chaque morceau dispose d&apos;une seule tablature. En revanche, vous pouvez changer l&apos;instrument (guitare, basse, ukulélé) à tout moment depuis la barre de contrôle. Si vous avez besoin de versions différentes, dupliquez le morceau dans le répertoire.
