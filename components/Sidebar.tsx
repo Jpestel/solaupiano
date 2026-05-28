@@ -71,6 +71,15 @@ const navItems = [
     ),
   },
   {
+    href: '/outils/portee',
+    label: 'Portée',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5h16M4 9h16M4 13h16M4 17h16" />
+      </svg>
+    ),
+  },
+  {
     href: '/annonces',
     label: 'Annonces',
     icon: (
