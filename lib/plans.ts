@@ -122,34 +122,144 @@ export function getColorClasses(color: string) {
   return COLOR_MAP[color] ?? COLOR_MAP.gray
 }
 
+// ─── Storage label helper ────────────────────────────────────────────────────
+
+export function storageLabel(storageGb: number): string {
+  return storageGb >= 1 ? `${storageGb} Go` : `${Math.round(storageGb * 1024)} Mo`
+}
+
+// ─── Plan icon (for display cards) ──────────────────────────────────────────
+
+export function planIcon(p: DbPlan): string {
+  const ICONS: Record<string, string> = { FREE: '🆓', PRO: '⭐', PREMIUM: '👑' }
+  if (ICONS[p.key]) return ICONS[p.key]
+  if (p.priceMonthly === null) return '🆓'
+  return p.sortOrder <= 1 ? '⭐' : '👑'
+}
+
 // ─── Generate feature list from a DbPlan ────────────────────────────────────
 
 export function generateFeatureList(p: DbPlan): string[] {
   const f: string[] = []
+
+  // Groups
   if (p.maxGroups === 1) f.push('1 groupe créé et géré')
   else f.push(`Jusqu'à ${p.maxGroups} groupes créés et gérés`)
 
-  const gbLabel = p.storageGb >= 1 ? `${p.storageGb} Go` : `${Math.round(p.storageGb * 1024)} Mo`
-  f.push(`${gbLabel} de stockage partagé avec les membres`)
+  // Storage / file sharing
+  if (p.hasFileSubmissions) {
+    f.push(`${storageLabel(p.storageGb)} de stockage pour les fichiers du groupe`)
+  } else {
+    f.push('Sans stockage de fichiers partagés')
+  }
 
+  // Core
   f.push('Répétitions illimitées')
   f.push('Suivi des présences')
 
-  if (p.maxMembersPerGroup) f.push(`${p.maxMembersPerGroup} membres max par groupe`)
-  if (p.maxSongsPerGroup) f.push(`Répertoire limité à ${p.maxSongsPerGroup} morceaux`)
+  // Member / song limits
+  if (p.maxMembersPerGroup !== null) f.push(`${p.maxMembersPerGroup} membre${p.maxMembersPerGroup !== 1 ? 's' : ''} max par groupe`)
+  else f.push('Membres illimités par groupe')
+
+  if (p.maxSongsPerGroup !== null) f.push(`Répertoire limité à ${p.maxSongsPerGroup} morceaux`)
   else f.push('Répertoire illimité')
 
+  // Optional quotas (only when set)
+  if (p.maxCharts !== null) f.push(`${p.maxCharts} grille${p.maxCharts !== 1 ? 's' : ""} d'accords max`)
+  if (p.maxSetlists !== null) f.push(`${p.maxSetlists} setlist${p.maxSetlists !== 1 ? 's' : ''} max`)
+  if (p.maxConcerts !== null) f.push(`${p.maxConcerts} concert${p.maxConcerts !== 1 ? 's' : ''} max`)
+  if (p.maxFilesPerSong !== null) f.push(`${p.maxFilesPerSong} fichier${p.maxFilesPerSong !== 1 ? 's' : ''} max par morceau`)
+
+  // Feature modules
   if (p.hasGrilles) f.push("Grilles d'accords")
   if (p.hasSetlists) f.push('Setlists')
   if (p.hasConcerts) f.push('Concerts')
   if (p.hasFicheTechnique) f.push('Fiche technique')
   if (p.hasMaPage) f.push('Page publique du groupe')
-  if (p.hasCoChefs) f.push('Gestion des co-chefs')
+  if (p.hasCoChefs) f.push('Co-chefs avec permissions')
   if (p.hasPrioritySupport) f.push('Support prioritaire')
   if (p.hasStats) f.push('Statistiques avancées')
 
   return f
 }
+
+// ─── Build plan card feature rows (for tarifs page) ─────────────────────────
+// Returns { ok, label } pairs — max ~7 items for visual cards
+
+export interface PlanFeatureRow { ok: boolean; label: string }
+
+export function buildCardFeatures(p: DbPlan, isFree: boolean): PlanFeatureRow[] {
+  const f: PlanFeatureRow[] = []
+
+  f.push({ ok: true, label: isFree ? 'Tout du plan Musicien' : 'Tout du plan Chef gratuit' })
+
+  if (p.maxGroups === 1) f.push({ ok: true, label: '1 groupe à créer et gérer' })
+  else f.push({ ok: true, label: `Jusqu'à ${p.maxGroups} groupes` })
+
+  f.push({
+    ok: true,
+    label: p.maxMembersPerGroup !== null
+      ? `Jusqu'à ${p.maxMembersPerGroup} membres / groupe`
+      : 'Membres illimités',
+  })
+
+  f.push({
+    ok: true,
+    label: p.maxSongsPerGroup !== null
+      ? `Jusqu'à ${p.maxSongsPerGroup} morceaux`
+      : 'Répertoire illimité',
+  })
+
+  if (p.hasFileSubmissions) {
+    f.push({ ok: true, label: `Upload de fichiers — ${storageLabel(p.storageGb)}` })
+  } else {
+    f.push({ ok: false, label: 'Upload de fichiers / partitions' })
+  }
+
+  // Condense modules into one line
+  const mods: string[] = []
+  if (p.hasGrilles) mods.push('Grilles')
+  if (p.hasSetlists) mods.push('setlists')
+  if (p.hasFicheTechnique) mods.push('fiche tech.')
+  if (p.hasMaPage) mods.push('page publique')
+  if (p.hasCoChefs) mods.push('co-chefs')
+  if (mods.length > 0) {
+    f.push({ ok: true, label: mods.join(', ') })
+  } else {
+    f.push({ ok: false, label: 'Grilles, setlists, fiche technique…' })
+  }
+
+  if (p.hasPrioritySupport) f.push({ ok: true, label: 'Support prioritaire' })
+  if (p.hasStats) f.push({ ok: true, label: 'Statistiques avancées' })
+
+  return f
+}
+
+// ─── Comparison table row definitions ────────────────────────────────────────
+
+export interface CompRowDef {
+  label: string
+  musicien: string  // Musicien role (static — user role, not group plan)
+  get: (p: DbPlan) => string
+}
+
+export const COMP_ROWS: CompRowDef[] = [
+  { label: 'Rejoindre des groupes',  musicien: '✓',  get: () => '✓' },
+  { label: 'Créer des groupes',      musicien: '—',  get: p => String(p.maxGroups) },
+  { label: 'Membres / groupe',       musicien: '—',  get: p => p.maxMembersPerGroup !== null ? `${p.maxMembersPerGroup} max` : 'Illimité' },
+  { label: 'Morceaux / groupe',      musicien: '—',  get: p => p.maxSongsPerGroup !== null ? `${p.maxSongsPerGroup} max` : 'Illimité' },
+  { label: 'Répétitions',            musicien: '—',  get: () => 'Illimitées' },
+  { label: 'Upload de fichiers',     musicien: '—',  get: p => p.hasFileSubmissions ? '✓' : '—' },
+  { label: 'Stockage',               musicien: '—',  get: p => p.hasFileSubmissions ? storageLabel(p.storageGb) : '—' },
+  { label: "Grilles d'accords",      musicien: '—',  get: p => p.hasGrilles ? '✓' : '—' },
+  { label: 'Concerts',               musicien: '✓',  get: p => p.hasConcerts ? '✓' : '—' },
+  { label: 'Setlists',               musicien: '—',  get: p => p.hasSetlists ? '✓' : '—' },
+  { label: 'Fiche technique',        musicien: '—',  get: p => p.hasFicheTechnique ? '✓' : '—' },
+  { label: 'Page publique',          musicien: '—',  get: p => p.hasMaPage ? '✓' : '—' },
+  { label: 'Co-chefs',               musicien: '—',  get: p => p.hasCoChefs ? '✓' : '—' },
+  { label: 'Support prioritaire',    musicien: '—',  get: p => p.hasPrioritySupport ? '✓' : '—' },
+  { label: 'Statistiques avancées',  musicien: '—',  get: p => p.hasStats ? '✓' : '—' },
+]
 
 // ─── Default plans for auto-seed ────────────────────────────────────────────
 

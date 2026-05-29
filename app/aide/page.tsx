@@ -2,9 +2,14 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import Link from 'next/link'
 import { BackToTop } from './BackToTop'
+import { prisma } from '@/lib/prisma'
+import { generateFeatureList, planIcon, storageLabel, type DbPlan } from '@/lib/plans'
+
+export const dynamic = 'force-dynamic'
 
 export default async function AidePage() {
   const session = await getServerSession(authOptions)
+  const dbPlans = await prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }) as DbPlan[]
 
   const isLoggedIn = !!session
   // Visiteur non connecté : on lui montre tout (comme un chef) pour découvrir l'app
@@ -150,7 +155,18 @@ export default async function AidePage() {
                   <Step n={3}>Vous devenez automatiquement <RolePill role="CHEF" /> de ce groupe.</Step>
                 </ol>
                 <Tip>Vous pouvez ajouter une <strong>photo de couverture</strong> en cliquant sur l&apos;icône du groupe depuis la page du groupe.</Tip>
-                <Note>Le plan <strong>Gratuit</strong> permet de créer <strong>1 groupe</strong> (5 membres max, 12 morceaux max). Les plans <strong>Pro</strong> et <strong>Premium</strong> permettent plus de groupes, de membres et de fonctionnalités.</Note>
+                <Note>
+                  {(() => {
+                    const freePlan = dbPlans.find(p => p.key === 'FREE') ?? dbPlans[0]
+                    const paidPlans = dbPlans.filter(p => p.priceMonthly !== null)
+                    if (!freePlan) return 'Consultez la page Tarifs pour découvrir les plans disponibles.'
+                    return <>Le plan <strong>{freePlan.label}</strong> permet de créer <strong>{freePlan.maxGroups} groupe</strong>
+                      {freePlan.maxMembersPerGroup ? ` (${freePlan.maxMembersPerGroup} membres max)` : ''}
+                      {freePlan.maxSongsPerGroup ? ` (${freePlan.maxSongsPerGroup} morceaux max)` : ''}.
+                      {paidPlans.length > 0 && <> Les plans payants permettent plus de groupes, de membres et de fonctionnalités.</>}
+                    </>
+                  })()}
+                </Note>
               </HelpCard>
             )}
 
@@ -1321,13 +1337,19 @@ export default async function AidePage() {
 
             <HelpCard title="Plans de groupe">
               <p>Le plan est attaché à <strong>chaque groupe</strong> individuellement (pas au compte utilisateur). Il détermine les fonctionnalités disponibles et l&apos;espace de stockage.</p>
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <PlanDetailCard name="Gratuit" icon="🆓" storage="1 Go" price="Gratuit" groups="1 groupe" color="gray"
-                  features={['5 membres max', '12 morceaux max', 'Répétitions & présences', 'Répertoire complet', 'Setlists & concerts', 'Suivi des présences', 'Grilles d\'accords', 'Paroles & mode scène', 'Tablatures', 'Plan de scène', 'Fiche technique', 'Page publique']} />
-                <PlanDetailCard name="Pro" icon="⭐" storage="5 Go" price="5,90 €/mois" groups="3 groupes" color="indigo"
-                  features={['7 membres max', '25 morceaux max', 'Tout du plan Gratuit', 'Co-chefs avec permissions', 'Grilles d\'accords (25 max)']} />
-                <PlanDetailCard name="Premium" icon="👑" storage="10 Go" price="9,90 €/mois" groups="5 groupes" color="purple"
-                  features={['15 membres max', 'Morceaux illimités', 'Tout du plan Pro', 'Statistiques avancées', 'Support prioritaire']} />
+              <div className={`mt-4 grid grid-cols-1 gap-3 ${dbPlans.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
+                {dbPlans.map(p => (
+                  <PlanDetailCard
+                    key={p.key}
+                    name={p.label}
+                    icon={planIcon(p)}
+                    storage={p.hasFileSubmissions ? storageLabel(p.storageGb) : '—'}
+                    price={p.priceMonthly ? `${p.priceMonthly.toFixed(2).replace('.', ',')} €/mois` : 'Gratuit'}
+                    groups={p.maxGroups === 1 ? '1 groupe' : `${p.maxGroups} groupes`}
+                    color={p.color}
+                    features={generateFeatureList(p)}
+                  />
+                ))}
               </div>
               <Note>Les quotas exacts (nombre de membres, morceaux, setlists…) sont visibles directement sur les cartes de plans depuis la page de votre groupe.</Note>
             </HelpCard>
@@ -1335,9 +1357,12 @@ export default async function AidePage() {
             <HelpCard title="Stockage">
               <p>Le stockage est <strong>propre à chaque groupe</strong> — il n&apos;est pas partagé entre vos différents groupes. Il comptabilise tous les fichiers attachés aux morceaux (partitions PDF, fichiers audio, images…).</p>
               <ul className="mt-3 space-y-1.5">
-                <li>📁 <strong>Plan Gratuit</strong> — 1 Go par groupe</li>
-                <li>⭐ <strong>Plan Pro</strong> — 5 Go par groupe</li>
-                <li>👑 <strong>Plan Premium</strong> — 10 Go par groupe</li>
+                {dbPlans.map(p => (
+                  <li key={p.key}>
+                    {planIcon(p)} <strong>Plan {p.label}</strong> —{' '}
+                    {p.hasFileSubmissions ? `${storageLabel(p.storageGb)} par groupe` : 'sans stockage de fichiers'}
+                  </li>
+                ))}
               </ul>
               <p className="mt-3 text-sm text-gray-600">Conseils pour économiser de l&apos;espace :</p>
               <ul className="mt-1 space-y-1">
@@ -1362,7 +1387,12 @@ export default async function AidePage() {
             </FaqItem>
             {isCreateur && (
               <FaqItem question="Combien de groupes puis-je créer ?">
-                Avec le plan <strong>Gratuit</strong>, vous pouvez créer <strong>1 groupe</strong>. Le plan <strong>Pro</strong> permet 3 groupes, le plan <strong>Premium</strong> permet 5 groupes.
+                {dbPlans.map((p, i) => (
+                  <span key={p.key}>
+                    {i > 0 && ', '}
+                    Plan <strong>{p.label}</strong> : <strong>{p.maxGroups} groupe{p.maxGroups !== 1 ? 's' : ''}</strong>
+                  </span>
+                ))}.
               </FaqItem>
             )}
             <FaqItem question="Comment changer un membre en chef d'orchestre ?">
@@ -1619,13 +1649,19 @@ function PlanDetailCard({ name, icon, storage, price, groups, color, features, c
   name: string; icon: string; storage: string; price: string; groups: string
   color: string; features: string[]; comingSoon?: boolean
 }) {
-  const colors: Record<string, string> = { gray: 'border-gray-200', indigo: 'border-indigo-200', purple: 'border-purple-200' }
-  const textColors: Record<string, string> = { gray: 'text-gray-700', indigo: 'text-indigo-700', purple: 'text-purple-700' }
+  const colors: Record<string, string> = {
+    gray: 'border-gray-200', indigo: 'border-indigo-200', purple: 'border-purple-200',
+    green: 'border-green-200', blue: 'border-blue-200', amber: 'border-amber-200', rose: 'border-rose-200',
+  }
+  const textColors: Record<string, string> = {
+    gray: 'text-gray-700', indigo: 'text-indigo-700', purple: 'text-purple-700',
+    green: 'text-green-700', blue: 'text-blue-700', amber: 'text-amber-700', rose: 'text-rose-700',
+  }
   return (
-    <div className={`rounded-xl border-2 ${colors[color]} bg-white p-4`}>
+    <div className={`rounded-xl border-2 ${colors[color] ?? 'border-gray-200'} bg-white p-4`}>
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-xl">{icon}</span>
-        <span className={`text-sm font-bold ${textColors[color]}`}>{name}</span>
+        <span className={`text-sm font-bold ${textColors[color] ?? 'text-gray-700'}`}>{name}</span>
       </div>
       <p className="text-lg font-bold text-gray-900 mb-0.5">{storage}</p>
       <p className="text-xs text-gray-500 mb-1">{groups}</p>

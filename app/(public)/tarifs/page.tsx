@@ -1,18 +1,31 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import type { DbPlan } from '@/lib/plans'
+import {
+  buildCardFeatures,
+  planIcon,
+  storageLabel,
+  COMP_ROWS,
+  COLOR_MAP,
+  type PlanFeatureRow,
+} from '@/lib/plans'
 
 // Force dynamic so prices always reflect the DB (never pre-rendered at build time)
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Tarifs — Sol au piano',
-  description: 'Découvrez les 4 plans Sol au piano : Musicien gratuit, Chef gratuit, Pro et Premium.',
+  description: 'Découvrez les plans Sol au piano et choisissez celui qui vous convient.',
 }
 
-function fmt(price: number | null | undefined) {
+function fmtPrice(price: number | null | undefined) {
   if (!price) return 'Gratuit'
   return `${price.toFixed(2).replace('.', ',')} €`
+}
+
+function fmtPriceLabel(price: number | null | undefined) {
+  if (!price) return 'Gratuit'
+  return `${price.toFixed(2).replace('.', ',')} €/mois`
 }
 
 export default async function TarifsPage() {
@@ -21,9 +34,38 @@ export default async function TarifsPage() {
     orderBy: { sortOrder: 'asc' },
   }) as DbPlan[]
 
-  const freePlan = groupPlans.find(p => p.key === 'FREE')
-  const proPlan  = groupPlans.find(p => p.key === 'PRO')
-  const premPlan = groupPlans.find(p => p.key === 'PREMIUM')
+  // Find the free plan for FAQ dynamic text
+  const freePlan = groupPlans.find(p => p.key === 'FREE') ?? groupPlans[0]
+
+  // First paid plan gets the "Recommandé" badge
+  const firstPaidIdx = groupPlans.findIndex(p => p.priceMonthly !== null)
+
+  // FAQ dynamic helpers
+  const freeMaxMembers = freePlan?.maxMembersPerGroup
+  const freeMaxSongs   = freePlan?.maxSongsPerGroup
+  const freeHasFiles   = freePlan?.hasFileSubmissions ?? false
+
+  const freeDesc = [
+    freeMaxMembers ? `${freeMaxMembers} membres max` : null,
+    freeMaxSongs   ? `${freeMaxSongs} morceaux max` : null,
+    !freeHasFiles  ? 'sans upload de fichiers' : null,
+  ].filter(Boolean).join(', ')
+
+  const paidPlans = groupPlans.filter(p => p.priceMonthly !== null)
+  const proWorthText = paidPlans[0]
+    ? `Le plan ${paidPlans[0].label} débloque ${[
+        paidPlans[0].hasFileSubmissions ? `l'upload de fichiers (${storageLabel(paidPlans[0].storageGb)})` : null,
+        paidPlans[0].maxMembersPerGroup === null ? 'les membres illimités' : null,
+        paidPlans[0].hasGrilles ? "les grilles d'accords" : null,
+        paidPlans[0].hasSetlists ? 'les setlists' : null,
+        paidPlans[0].hasFicheTechnique ? 'la fiche technique' : null,
+      ].filter(Boolean).join(', ')}.`
+    : 'Le plan payant débloque toutes les fonctionnalités avancées.'
+
+  const storagePerGroup = groupPlans.some(p => p.hasFileSubmissions)
+  const storageText = storagePerGroup
+    ? `Le stockage est propre à chaque groupe. ${paidPlans.map(p => `${p.label} : ${storageLabel(p.storageGb)}`).join(', ')}.`
+    : 'Le stockage de fichiers est disponible sur les plans payants.'
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
@@ -64,11 +106,11 @@ export default async function TarifsPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-12">
 
-        {/* ── 4 plans ── */}
+        {/* ── Plan cards ── */}
         <section>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-${Math.min(groupPlans.length + 1, 4)} gap-4`}>
 
-            {/* 1 — Musicien */}
+            {/* Musicien (user role — always static) */}
             <PlanCard
               emoji="🎵"
               title="Musicien"
@@ -89,79 +131,41 @@ export default async function TarifsPage() {
               variant="default"
             />
 
-            {/* 2 — Chef gratuit */}
-            <PlanCard
-              emoji="🎼"
-              title="Chef gratuit"
-              badge="Gratuit · Limité"
-              badgeColor="gray"
-              description="Je crée mon groupe, j'organise mes répétitions et mon répertoire. Sans partage de fichiers."
-              price="Gratuit"
-              features={[
-                { ok: true,  label: 'Tout du plan Musicien' },
-                { ok: true,  label: '1 groupe à créer et gérer' },
-                { ok: true,  label: 'Jusqu\'à 8 membres' },
-                { ok: true,  label: 'Jusqu\'à 15 morceaux' },
-                { ok: false, label: 'Upload de fichiers / partitions' },
-                { ok: false, label: 'Grilles, setlists, fiche technique…' },
-              ]}
-              cta="Démarrer gratuitement"
-              href="/inscription?role=CREATEUR"
-              variant="default"
-            />
+            {/* One card per active group plan — fully dynamic */}
+            {groupPlans.map((plan, idx) => {
+              const isFree = plan.priceMonthly === null
+              const isHighlighted = idx === firstPaidIdx
+              const color = plan.color as keyof typeof COLOR_MAP
+              const variant: 'default' | 'indigo' | 'purple' | string =
+                color === 'indigo' ? 'indigo' :
+                color === 'purple' ? 'purple' :
+                isFree ? 'default' : 'indigo'
 
-            {/* 3 — Chef Pro */}
-            {proPlan && (
-              <PlanCard
-                emoji="🚀"
-                title="Chef Pro"
-                badge="Tout débloqué"
-                badgeColor="indigo"
-                description="Je veux partager partitions et ressources avec mon groupe, sans limitation de membres."
-                price={proPlan.priceMonthly ? `${fmt(proPlan.priceMonthly)} / mois` : 'Gratuit'}
-                features={[
-                  { ok: true, label: 'Tout du plan Musicien' },
-                  { ok: true, label: `Jusqu'à ${proPlan.maxGroups} groupes` },
-                  { ok: true, label: 'Membres et morceaux illimités' },
-                  { ok: true, label: `Upload fichiers — ${proPlan.storageGb} Go` },
-                  { ok: true, label: 'Grilles, setlists, fiche technique' },
-                  { ok: true, label: 'Page publique, co-chefs, support prioritaire' },
-                ]}
-                cta="Démarrer avec Pro"
-                href="/inscription?role=CREATEUR"
-                variant="indigo"
-                highlight
-              />
-            )}
-
-            {/* 4 — Chef Premium */}
-            {premPlan && (
-              <PlanCard
-                emoji="👑"
-                title="Chef Premium"
-                badge="Puissance maximale"
-                badgeColor="purple"
-                description="Je gère plusieurs groupes et veux les statistiques avancées avec plus de stockage."
-                price={premPlan.priceMonthly ? `${fmt(premPlan.priceMonthly)} / mois` : 'Gratuit'}
-                features={[
-                  { ok: true, label: 'Tout du plan Pro' },
-                  { ok: true, label: `Jusqu'à ${premPlan.maxGroups} groupes` },
-                  { ok: true, label: `${premPlan.storageGb} Go de stockage` },
-                  { ok: true, label: 'Statistiques avancées' },
-                  { ok: true, label: 'Support prioritaire' },
-                ]}
-                cta="Démarrer avec Premium"
-                href="/inscription?role=CREATEUR"
-                variant="purple"
-              />
-            )}
+              return (
+                <PlanCard
+                  key={plan.id}
+                  emoji={planIcon(plan)}
+                  title={`Chef ${plan.label}`}
+                  badge={isFree ? 'Gratuit · Limité' : plan.label === 'Pro' ? 'Tout débloqué' : plan.description ?? plan.label}
+                  badgeColor={isFree ? 'gray' : color === 'purple' ? 'purple' : 'indigo'}
+                  description={plan.description ?? `Plan ${plan.label} pour les chefs d'orchestre.`}
+                  price={isFree ? 'Gratuit' : `${fmtPrice(plan.priceMonthly)} / mois`}
+                  features={buildCardFeatures(plan, isFree)}
+                  cta={isFree ? 'Démarrer gratuitement' : `Démarrer avec ${plan.label}`}
+                  href="/inscription?role=CREATEUR"
+                  variant={variant as 'default' | 'indigo' | 'purple'}
+                  highlight={isHighlighted}
+                  planColor={color}
+                />
+              )
+            })}
           </div>
           <p className="text-center text-xs text-gray-400 mt-4">
             Pas d&apos;engagement. Plans payants résiliables à tout moment depuis votre profil.
           </p>
         </section>
 
-        {/* ── Tableau comparatif (mobile: scroll horizontal) ── */}
+        {/* ── Tableau comparatif (entièrement dynamique) ── */}
         <section>
           <div className="mb-5 text-center">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Comparatif complet</h2>
@@ -173,55 +177,78 @@ export default async function TarifsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[38%]">Fonctionnalité</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[35%]">Fonctionnalité</th>
+                    {/* Musicien column — static */}
                     <th className="text-center px-2 py-3 font-semibold text-gray-500 text-xs">
                       🎵 Musicien<span className="block font-normal text-gray-400">Gratuit</span>
                     </th>
-                    <th className="text-center px-2 py-3 font-semibold text-gray-500 text-xs">
-                      🎼 Chef gratuit<span className="block font-normal text-gray-400">Gratuit</span>
-                    </th>
-                    <th className="text-center px-2 py-3 font-semibold text-indigo-600 text-xs">
-                      🚀 Chef Pro<span className="block font-normal text-gray-400">{fmt(proPlan?.priceMonthly)}/mois</span>
-                    </th>
-                    <th className="text-center px-2 py-3 font-semibold text-purple-600 text-xs">
-                      👑 Chef Premium<span className="block font-normal text-gray-400">{fmt(premPlan?.priceMonthly)}/mois</span>
-                    </th>
+                    {/* One column per active group plan */}
+                    {groupPlans.map((plan) => {
+                      const c = COLOR_MAP[plan.color] ?? COLOR_MAP.gray
+                      return (
+                        <th key={plan.id} className={`text-center px-2 py-3 font-semibold text-xs ${c.text}`}>
+                          {planIcon(plan)} Chef {plan.label}
+                          <span className="block font-normal text-gray-400">{fmtPriceLabel(plan.priceMonthly)}</span>
+                        </th>
+                      )
+                    })}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  <CompRow label="Rejoindre des groupes"    values={['✓','✓','✓','✓']} />
-                  <CompRow label="Créer des groupes"        values={['—','1','3','5']} />
-                  <CompRow label="Membres / groupe"         values={['—','8 max','Illimité','Illimité']} />
-                  <CompRow label="Morceaux / groupe"        values={['—','15 max','Illimité','Illimité']} />
-                  <CompRow label="Répétitions"              values={['—','Illimitées','Illimitées','Illimitées']} />
-                  <CompRow label="Upload de fichiers"       values={['—','—','✓','✓']} />
-                  <CompRow label="Stockage"                 values={['—','—',`${proPlan?.storageGb} Go`,`${premPlan?.storageGb} Go`]} />
-                  <CompRow label="Grilles d'accords"        values={['—','—','✓','✓']} />
-                  <CompRow label="Concerts"                 values={['✓','✓','✓','✓']} />
-                  <CompRow label="Setlists"                 values={['—','—','✓','✓']} />
-                  <CompRow label="Fiche technique"          values={['—','—','✓','✓']} />
-                  <CompRow label="Page publique"            values={['—','—','✓','✓']} />
-                  <CompRow label="Co-chefs"                 values={['—','—','✓','✓']} />
-                  <CompRow label="Support prioritaire"      values={['—','—','✓','✓']} />
-                  <CompRow label="Statistiques avancées"    values={['—','—','—','✓']} />
+                  {COMP_ROWS.map(row => (
+                    <CompRow
+                      key={row.label}
+                      label={row.label}
+                      values={[row.musicien, ...groupPlans.map(p => row.get(p))]}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        {/* ── FAQ ── */}
+        {/* ── FAQ (textes clés dynamiques) ── */}
         <section className="max-w-2xl mx-auto">
           <div className="mb-5 text-center">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Questions fréquentes</h2>
           </div>
           <div className="space-y-3">
-            <FaqItem q="Quelle différence entre Musicien et Chef gratuit ?" a="Un Musicien peut uniquement rejoindre des groupes existants. Un Chef d'orchestre (même gratuit) peut créer et gérer son propre groupe. Dans les deux cas c'est gratuit, mais les usages sont différents." />
-            <FaqItem q="Le plan Chef gratuit est-il vraiment limité ?" a="Oui. Sans abonnement payant, un groupe est limité à 8 membres, 15 morceaux, et sans upload de fichiers (partitions, tablatures…). C'est suffisant pour tester la plateforme, mais vite limité pour une utilisation réelle." />
-            <FaqItem q="Pourquoi passer au plan Pro ?" a="Dès que vous voulez partager des fichiers avec votre groupe, le plan Pro est indispensable. Il débloque aussi les membres illimités, les grilles d'accords, setlists, fiche technique et la page publique." />
-            <FaqItem q="Le stockage est-il par groupe ou partagé ?" a="Le stockage est partagé entre tous vos groupes. Avec le plan Pro, ce quota est réparti entre vos 3 groupes. Avec Premium pour vos 5 groupes." />
-            <FaqItem q="Puis-je changer de plan à tout moment ?" a="Oui, depuis votre profil. Passage en Pro ou Premium immédiat. Résiliation sans frais ni pénalité." />
-            <FaqItem q="Faut-il une carte bancaire pour s'inscrire ?" a="Non. L'inscription est 100% gratuite. Vous ne renseignez une carte bancaire que si vous choisissez un plan payant." />
+            <FaqItem
+              q="Quelle différence entre Musicien et Chef gratuit ?"
+              a="Un Musicien peut uniquement rejoindre des groupes existants. Un Chef d'orchestre (même gratuit) peut créer et gérer son propre groupe. Dans les deux cas c'est gratuit, mais les usages sont différents."
+            />
+            <FaqItem
+              q="Le plan Chef gratuit est-il vraiment limité ?"
+              a={freeDesc
+                ? `Oui. Sans abonnement payant, un groupe est limité (${freeDesc}). C'est suffisant pour tester la plateforme, mais vite limité pour une utilisation réelle.`
+                : "Le plan gratuit vous permet de tester la plateforme avec votre groupe. Passez à un plan payant pour débloquer toutes les fonctionnalités."}
+            />
+            <FaqItem
+              q={paidPlans[0] ? `Pourquoi passer au plan ${paidPlans[0].label} ?` : 'Pourquoi passer à un plan payant ?'}
+              a={proWorthText}
+            />
+            <FaqItem
+              q="Le stockage est-il par groupe ou partagé ?"
+              a={storageText}
+            />
+            <FaqItem
+              q="Puis-je changer de plan à tout moment ?"
+              a="Oui, depuis votre profil. Passage en plan payant immédiat. Résiliation sans frais ni pénalité."
+            />
+            <FaqItem
+              q="Faut-il une carte bancaire pour s'inscrire ?"
+              a="Non. L'inscription est 100% gratuite. Vous ne renseignez une carte bancaire que si vous choisissez un plan payant."
+            />
+            {groupPlans.length > 1 && (
+              <FaqItem
+                q="Comment choisir entre les différents plans payants ?"
+                a={groupPlans
+                  .filter(p => p.priceMonthly !== null)
+                  .map(p => `${p.label} (${fmtPriceLabel(p.priceMonthly)}) — ${p.description ?? p.label}`)
+                  .join('. ')}
+              />
+            )}
           </div>
         </section>
 
@@ -229,7 +256,7 @@ export default async function TarifsPage() {
         <section className="rounded-2xl bg-indigo-600 px-5 py-8 sm:py-10 text-center text-white">
           <h2 className="text-xl sm:text-2xl font-bold mb-2">Prêt à commencer ?</h2>
           <p className="text-indigo-100 text-sm mb-5">
-            L&apos;inscription est gratuite. Évoluez vers Pro ou Premium quand vous en avez besoin.
+            L&apos;inscription est gratuite. Évoluez vers un plan payant quand vous en avez besoin.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/inscription" className="rounded-xl bg-white text-indigo-700 font-semibold px-6 py-3 text-sm hover:bg-indigo-50 transition-colors shadow-sm">
@@ -269,27 +296,30 @@ export default async function TarifsPage() {
 
 // ── Composants ──────────────────────────────────────────────────────────────
 
-interface Feature { ok: boolean; label: string }
-
 function PlanCard({
-  emoji, title, badge, badgeColor, description, price, features, cta, href, variant, highlight,
+  emoji, title, badge, badgeColor, description, price, features, cta, href, variant, highlight, planColor,
 }: {
-  emoji: string; title: string; badge: string; badgeColor: 'gray'|'indigo'|'purple'
-  description: string; price: string; features: Feature[]; cta: string; href: string
-  variant: 'default'|'indigo'|'purple'; highlight?: boolean
+  emoji: string; title: string; badge: string; badgeColor: 'gray' | 'indigo' | 'purple'
+  description: string; price: string; features: PlanFeatureRow[]; cta: string; href: string
+  variant: 'default' | 'indigo' | 'purple'; highlight?: boolean; planColor?: string
 }) {
-  const border = variant === 'indigo' ? 'border-indigo-300' : variant === 'purple' ? 'border-purple-300' : 'border-gray-200'
-  const bg     = variant === 'indigo' ? 'bg-indigo-50'     : variant === 'purple' ? 'bg-purple-50'     : 'bg-white'
+  // Allow any color from COLOR_MAP, fallback to variant
+  const c = (planColor && COLOR_MAP[planColor]) ?? null
+
+  const border = c ? c.border : variant === 'indigo' ? 'border-indigo-300' : variant === 'purple' ? 'border-purple-300' : 'border-gray-200'
+  const bg     = c ? c.bg     : variant === 'indigo' ? 'bg-indigo-50'     : variant === 'purple' ? 'bg-purple-50'     : 'bg-white'
   const ring   = highlight ? 'ring-2 ring-indigo-300 ring-offset-1' : ''
+
   const badgeCls =
     badgeColor === 'indigo' ? 'bg-indigo-100 text-indigo-700' :
     badgeColor === 'purple' ? 'bg-purple-100 text-purple-700' :
     'bg-gray-100 text-gray-600'
-  const titleCls = variant === 'indigo' ? 'text-indigo-900' : variant === 'purple' ? 'text-purple-900' : 'text-gray-900'
-  const priceCls = variant === 'indigo' ? 'text-indigo-700' : variant === 'purple' ? 'text-purple-700' : 'text-gray-700'
+
+  const titleCls = c ? c.text : variant === 'indigo' ? 'text-indigo-900' : variant === 'purple' ? 'text-purple-900' : 'text-gray-900'
+  const priceCls = c ? c.text : variant === 'indigo' ? 'text-indigo-700' : variant === 'purple' ? 'text-purple-700' : 'text-gray-700'
   const btnCls   =
-    variant === 'indigo' ? 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm' :
     variant === 'purple' ? 'bg-purple-600 text-white hover:bg-purple-500 shadow-sm' :
+    variant === 'indigo' || (planColor && planColor !== 'gray') ? 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm' :
     'border border-gray-300 text-gray-700 hover:bg-gray-50'
 
   return (
