@@ -528,7 +528,84 @@ export async function sendAdminAnnonceNotification(annonce: {
   })
 }
 
-// ─── 12. Annonce refusée / retirée (membre) ───────────────────────────────────
+// ─── 12. Ticket de support (admin + confirmation utilisateur) ────────────────
+
+const CATEGORY_LABELS: Record<string, string> = {
+  BUG: '🐛 Bug / Problème technique',
+  QUESTION: '❓ Question d\'utilisation',
+  FEATURE: '💡 Suggestion de fonctionnalité',
+  OTHER: '📩 Autre',
+}
+
+export async function sendSupportTicketToAdmin(
+  adminEmail: string,
+  ticket: {
+    id: number
+    userName: string
+    userEmail: string
+    subject: string
+    message: string
+    category: string
+    isPriority: boolean
+  },
+  baseUrl: string
+) {
+  const priorityBadge = ticket.isPriority
+    ? `<div style="display:inline-flex;align-items:center;gap:6px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:5px 12px;margin-bottom:16px;">
+        <span style="font-size:13px;">⭐</span>
+        <span style="font-size:12px;font-weight:600;color:#92400e;">Support prioritaire (plan payant)</span>
+       </div>`
+    : ''
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to: adminEmail,
+    subject: `[Support #${ticket.id}] ${ticket.subject}`,
+    html: emailWrapper(`
+      <h2 style="font-size:18px;font-weight:700;color:#111827;margin:0 0 4px;">Nouveau ticket de support</h2>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 20px;">${CATEGORY_LABELS[ticket.category] ?? ticket.category}</p>
+      ${priorityBadge}
+      ${dataBox(`
+        <p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#111827;">${ticket.subject}</p>
+        <p style="margin:0 0 10px;font-size:13px;color:#374151;white-space:pre-wrap;">${ticket.message}</p>
+        <p style="margin:0;font-size:12px;color:#6b7280;">De : <strong>${ticket.userName}</strong> &lt;${ticket.userEmail}&gt;</p>
+      `, 'gray')}
+      ${ctaButton(`${baseUrl}/admin/support`, 'Voir les tickets →')}
+    `),
+  })
+}
+
+export async function sendSupportConfirmationToUser(
+  to: string,
+  userName: string,
+  ticket: { id: number; subject: string; isPriority: boolean },
+  baseUrl: string
+) {
+  const delayText = ticket.isPriority
+    ? 'En tant que membre d\'un plan avec support prioritaire, votre demande sera traitée en priorité.'
+    : 'Nous traitons les demandes dans l\'ordre d\'arrivée, généralement sous 24–48h.'
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject: `Votre demande a bien été reçue — #${ticket.id}`,
+    html: emailWrapper(`
+      <h2 style="font-size:18px;font-weight:700;color:#111827;margin:0 0 4px;">Demande reçue ✅</h2>
+      <p style="font-size:14px;color:#374151;margin:0 0 20px;">Bonjour ${userName}, nous avons bien reçu votre message.</p>
+      ${dataBox(`
+        <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Ticket <strong>#${ticket.id}</strong></p>
+        <p style="margin:0;font-size:15px;font-weight:600;color:#111827;">${ticket.subject}</p>
+      `)}
+      <p style="font-size:13px;color:#374151;margin:16px 0;">${delayText}</p>
+      ${ctaButton(`${baseUrl}/assistance`, 'Voir mes demandes →')}
+      <p style="color:#9ca3af;font-size:12px;text-align:center;margin:12px 0 0;">
+        Sol au piano — Si vous n'avez pas soumis cette demande, ignorez cet email.
+      </p>
+    `),
+  })
+}
+
+// ─── 13. Annonce refusée / retirée (membre) ───────────────────────────────────
 
 export async function sendMemberAnnonceRefused(to: { email: string; name: string }, annonce: {
   id: number
