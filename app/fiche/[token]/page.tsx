@@ -88,7 +88,11 @@ export default async function PublicFichePage({ params }: { params: { token: str
                             <th className="text-left px-3 py-2">Instrument</th>
                             <th className="text-left px-3 py-2">Position</th>
                             <th className="text-left px-3 py-2">Backline / Besoins</th>
-                            {hasGuso && <th className="text-left px-3 py-2 rounded-r-lg">N° GUSO</th>}
+                            {hasGuso && (
+                              <th className="text-left px-3 py-2 rounded-r-lg" title="GUSO — Guichet Unique du Spectacle Occasionnel (guso.fr)">
+                                N° GUSO
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>

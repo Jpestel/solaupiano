@@ -323,7 +323,23 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                         <th className="text-left px-3 py-2">Instrument</th>
                         <th className="text-left px-3 py-2">Position</th>
                         <th className="text-left px-3 py-2">Backline / Besoins</th>
-                        <th className="text-left px-3 py-2">N° GUSO</th>
+                        <th className="text-left px-3 py-2">
+                          <span className="flex items-center gap-1">
+                            N° GUSO
+                            <span className="relative group">
+                              <span className="w-3.5 h-3.5 rounded-full bg-gray-300 text-gray-500 text-[9px] font-bold inline-flex items-center justify-center cursor-help hover:bg-indigo-200 hover:text-indigo-700 transition-colors select-none">?</span>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-xl bg-gray-900 text-white text-xs p-3 shadow-xl
+                                opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50
+                                pointer-events-none group-hover:pointer-events-auto whitespace-normal font-normal normal-case tracking-normal leading-relaxed">
+                                <span className="font-semibold">GUSO</span> — Guichet Unique du Spectacle Occasionnel. Identifiant officiel pour les artistes et techniciens du spectacle vivant en France.
+                                <a href="https://www.guso.fr" target="_blank" rel="noreferrer"
+                                  className="block mt-2 text-indigo-300 underline hover:text-indigo-200 transition-colors">
+                                  En savoir plus sur guso.fr →
+                                </a>
+                              </span>
+                            </span>
+                          </span>
+                        </th>
                         {isChef && <th className="w-8" />}
                       </tr>
                     </thead>

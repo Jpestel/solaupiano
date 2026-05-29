@@ -454,7 +454,22 @@ export default function ProfilPage() {
 
               {!isAdmin && (
                 <div>
-                  <label className="form-label">Numéro GUSO <span className="text-xs text-gray-400 font-normal">(optionnel)</span></label>
+                  <label className="form-label flex items-center gap-1.5">
+                    Numéro GUSO
+                    <span className="text-xs text-gray-400 font-normal">(optionnel)</span>
+                    <span className="relative group">
+                      <span className="w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] font-bold inline-flex items-center justify-center cursor-help hover:bg-indigo-100 hover:text-indigo-600 transition-colors select-none">?</span>
+                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-xl bg-gray-900 text-white text-xs p-3 shadow-xl
+                        opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50
+                        pointer-events-none group-hover:pointer-events-auto whitespace-normal font-normal leading-relaxed">
+                        <span className="font-semibold">GUSO</span> — Guichet Unique du Spectacle Occasionnel. Identifiant officiel pour les artistes et techniciens du spectacle vivant en France.
+                        <a href="https://www.guso.fr" target="_blank" rel="noreferrer"
+                          className="block mt-2 text-indigo-300 underline hover:text-indigo-200 transition-colors">
+                          En savoir plus sur guso.fr →
+                        </a>
+                      </span>
+                    </span>
+                  </label>
                   <input
                     type="text"
                     value={gusoNumber}
@@ -462,7 +477,6 @@ export default function ProfilPage() {
                     className="form-input"
                     placeholder="Ex : 123456789"
                   />
-                  <p className="text-xs text-gray-400 mt-1">Guichet Unique du Spectacle Occasionnel — affiché dans la fiche technique.</p>
                 </div>
               )}
 
