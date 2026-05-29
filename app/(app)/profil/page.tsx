@@ -21,6 +21,7 @@ interface ProfileData {
   avatarUrl?: string | null
   siteRole: string
   userPlan: string
+  gusoNumber?: string | null
   weeklyDigestOptOut: boolean
   rehearsalReminderOptOut: boolean
   instruments: { instrument: Instrument }[]
@@ -81,6 +82,7 @@ export default function ProfilPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [planSuccess, setPlanSuccess] = useState('')
 
+  const [gusoNumber, setGusoNumber] = useState('')
   const [weeklyDigestOptOut, setWeeklyDigestOptOut] = useState(false)
   const [digestSaving, setDigestSaving] = useState(false)
   const [rehearsalReminderOptOut, setRehearsalReminderOptOut] = useState(false)
@@ -105,6 +107,7 @@ export default function ProfilPage() {
       const p: ProfileData = await profRes.json()
       setProfile(p)
       setName(p.name)
+      setGusoNumber(p.gusoNumber ?? '')
       setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
       setWeeklyDigestOptOut(p.weeklyDigestOptOut ?? false)
       setRehearsalReminderOptOut(p.rehearsalReminderOptOut ?? false)
@@ -130,7 +133,7 @@ export default function ProfilPage() {
     const res = await fetch('/api/profil', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, instrumentIds: selectedIds }),
+      body: JSON.stringify({ name, instrumentIds: selectedIds, gusoNumber }),
     })
     setSaving(false)
     if (!res.ok) {
@@ -448,6 +451,20 @@ export default function ProfilPage() {
                 />
                 <p className="text-xs text-gray-400 mt-1">L&apos;email ne peut pas être modifié.</p>
               </div>
+
+              {!isAdmin && (
+                <div>
+                  <label className="form-label">Numéro GUSO <span className="text-xs text-gray-400 font-normal">(optionnel)</span></label>
+                  <input
+                    type="text"
+                    value={gusoNumber}
+                    onChange={(e) => setGusoNumber(e.target.value)}
+                    className="form-input"
+                    placeholder="Ex : 123456789"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Guichet Unique du Spectacle Occasionnel — affiché dans la fiche technique.</p>
+                </div>
+              )}
 
               {!isAdmin && instruments.length > 0 && (
                 <div>

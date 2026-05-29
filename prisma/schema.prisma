@@ -132,6 +132,7 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   lastLoginAt                 DateTime?
+  gusoNumber                  String?
   weeklyDigestOptOut          Boolean   @default(false)
   rehearsalReminderOptOut     Boolean   @default(false)
 

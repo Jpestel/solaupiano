@@ -78,26 +78,33 @@ export default async function PublicFichePage({ params }: { params: { token: str
               </div>
               {(s.members ?? []).length > 0 && (
                 <div className="mt-4 overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wider">
-                        <th className="text-left px-3 py-2 rounded-l-lg">Musicien</th>
-                        <th className="text-left px-3 py-2">Instrument</th>
-                        <th className="text-left px-3 py-2">Position</th>
-                        <th className="text-left px-3 py-2 rounded-r-lg">Backline / Besoins</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {s.members.map((m: any, i: number) => (
-                        <tr key={i} className="border-b border-gray-100 last:border-0">
-                          <td className="px-3 py-2.5 font-medium text-gray-900">{m.name}</td>
-                          <td className="px-3 py-2.5 text-gray-600">{m.instrument}</td>
-                          <td className="px-3 py-2.5 text-gray-500">{m.position}</td>
-                          <td className="px-3 py-2.5 text-gray-600">{m.backline}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  {(() => {
+                    const hasGuso = s.members.some((m: any) => m.gusoNumber)
+                    return (
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wider">
+                            <th className="text-left px-3 py-2 rounded-l-lg">Musicien</th>
+                            <th className="text-left px-3 py-2">Instrument</th>
+                            <th className="text-left px-3 py-2">Position</th>
+                            <th className="text-left px-3 py-2">Backline / Besoins</th>
+                            {hasGuso && <th className="text-left px-3 py-2 rounded-r-lg">N° GUSO</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {s.members.map((m: any, i: number) => (
+                            <tr key={i} className="border-b border-gray-100 last:border-0">
+                              <td className="px-3 py-2.5 font-medium text-gray-900">{m.name}</td>
+                              <td className="px-3 py-2.5 text-gray-600">{m.instrument}</td>
+                              <td className="px-3 py-2.5 text-gray-500">{m.position}</td>
+                              <td className="px-3 py-2.5 text-gray-600">{m.backline}</td>
+                              {hasGuso && <td className="px-3 py-2.5 text-gray-500 font-mono text-xs">{m.gusoNumber || '—'}</td>}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  })()}
                 </div>
               )}
             </Section>

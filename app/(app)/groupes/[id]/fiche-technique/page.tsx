@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface StageMember { id: string; name: string; instrument: string; position: string; backline: string }
+interface StageMember { id: string; name: string; instrument: string; position: string; backline: string; gusoNumber: string }
 interface SoundChannel { id: string; source: string; type: string; notes: string }
 
 interface TechRiderContent {
@@ -18,7 +18,7 @@ interface TechRiderContent {
   hospitality: { totalPersons: number; meals: boolean; mealsDetails: string; drinks: string; accommodation: boolean; accommodationRooms: string; parkingSpots: string; notes: string }
 }
 
-interface GroupMember { userId: number; name: string; groupRole: string; instruments: string[] }
+interface GroupMember { userId: number; name: string; groupRole: string; gusoNumber: string; instruments: string[] }
 
 const DEFAULT: TechRiderContent = {
   contactName: '', contactPhone: '', contactEmail: '', genre: '', generalNotes: '',
@@ -108,7 +108,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
   // ─── Pre-fill from members ─────────────────────────────────────────────────
   const prefillFromMembers = () => {
     const members: StageMember[] = groupMembers.map(m => ({
-      id: uid(), name: m.name, instrument: m.instruments[0] ?? '', position: '', backline: '',
+      id: uid(), name: m.name, instrument: m.instruments[0] ?? '', position: '', backline: '', gusoNumber: m.gusoNumber ?? '',
     }))
     setContent(c => ({ ...c, stage: { ...c.stage, members } }))
     const channels: SoundChannel[] = groupMembers.flatMap(m =>
@@ -175,7 +175,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
   const updLights = (patch: Partial<TechRiderContent['lights']>) => setContent(c => ({ ...c, lights: { ...c.lights, ...patch } }))
   const updHosp = (patch: Partial<TechRiderContent['hospitality']>) => setContent(c => ({ ...c, hospitality: { ...c.hospitality, ...patch } }))
 
-  const addStageMember = () => updStage({ members: [...content.stage.members, { id: uid(), name: '', instrument: '', position: '', backline: '' }] })
+  const addStageMember = () => updStage({ members: [...content.stage.members, { id: uid(), name: '', instrument: '', position: '', backline: '', gusoNumber: '' }] })
   const updStageMember = (id: string, patch: Partial<StageMember>) => updStage({ members: content.stage.members.map(m => m.id === id ? { ...m, ...patch } : m) })
   const delStageMember = (id: string) => updStage({ members: content.stage.members.filter(m => m.id !== id) })
 
@@ -323,6 +323,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                         <th className="text-left px-3 py-2">Instrument</th>
                         <th className="text-left px-3 py-2">Position</th>
                         <th className="text-left px-3 py-2">Backline / Besoins</th>
+                        <th className="text-left px-3 py-2">N° GUSO</th>
                         {isChef && <th className="w-8" />}
                       </tr>
                     </thead>
@@ -333,6 +334,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                           <td className="px-3 py-2"><input disabled={!isChef} value={m.instrument} onChange={e => updStageMember(m.id, { instrument: e.target.value })} className={`${inp} py-1.5`} placeholder="Guitare" /></td>
                           <td className="px-3 py-2"><input disabled={!isChef} value={m.position} onChange={e => updStageMember(m.id, { position: e.target.value })} className={`${inp} py-1.5`} placeholder="Jardin" /></td>
                           <td className="px-3 py-2"><input disabled={!isChef} value={m.backline} onChange={e => updStageMember(m.id, { backline: e.target.value })} className={`${inp} py-1.5`} placeholder="Ampli Fender Twin 65W" /></td>
+                          <td className="px-3 py-2"><input disabled={!isChef} value={m.gusoNumber ?? ''} onChange={e => updStageMember(m.id, { gusoNumber: e.target.value })} className={`${inp} py-1.5`} placeholder="123456789" /></td>
                           {isChef && <td className="px-2 py-2"><button onClick={() => delStageMember(m.id)} className="text-gray-300 hover:text-red-500 text-lg leading-none">×</button></td>}
                         </tr>
                       ))}

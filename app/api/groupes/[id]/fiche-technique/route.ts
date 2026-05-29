@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       include: {
         user: {
           select: {
-            id: true, name: true,
+            id: true, name: true, gusoNumber: true,
             instruments: { include: { instrument: { select: { name: true } } } },
           },
         },
@@ -47,6 +47,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       userId: m.userId,
       name: m.user.name,
       groupRole: m.groupRole,
+      gusoNumber: m.user.gusoNumber ?? '',
       instruments: m.user.instruments.map((ui) => ui.instrument.name),
     })),
   })
