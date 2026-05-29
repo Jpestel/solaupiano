@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { DbPlan, COLOR_MAP, generateFeatureList } from '@/lib/plans'
+import { MODULES } from '@/lib/modules'
 
 type PlanWithCount = DbPlan & { groupCount: number }
 
@@ -85,19 +86,63 @@ export default function AdminPlansPage() {
   const [togglingId, setTogglingId] = useState<number | null>(null)
   const [tab, setTab] = useState<'general' | 'limits' | 'modules' | 'display'>('general')
 
+  // Module access state
+  const [planModuleAccess, setPlanModuleAccess] = useState<Record<string, boolean>>({})
+  const [allPlanModuleAccess, setAllPlanModuleAccess] = useState<{ moduleKey: string; planKey: string; enabled: boolean }[]>([])
+  const [moduleAccessLoading, setModuleAccessLoading] = useState(false)
+
   const fetchPlans = async () => {
     const res = await fetch('/api/admin/plans')
     if (res.ok) setPlans(await res.json())
     setLoading(false)
   }
 
-  useEffect(() => { fetchPlans() }, [])
+  useEffect(() => {
+    fetchPlans()
+    fetch('/api/admin/module-access')
+      .then(r => r.json())
+      .then(d => setAllPlanModuleAccess(Array.isArray(d) ? d : []))
+      .catch(() => {})
+  }, [])
+
+  const loadModuleAccess = async (planKey: string) => {
+    setModuleAccessLoading(true)
+    const res = await fetch(`/api/admin/module-access?planKey=${encodeURIComponent(planKey)}`)
+    if (res.ok) {
+      const records: { moduleKey: string; planKey: string; enabled: boolean }[] = await res.json()
+      const map: Record<string, boolean> = {}
+      MODULES.forEach(m => {
+        const rec = records.find(r => r.moduleKey === m.key)
+        map[m.key] = rec !== undefined ? rec.enabled : true
+      })
+      setPlanModuleAccess(map)
+    }
+    setModuleAccessLoading(false)
+  }
+
+  const handleModuleToggle = async (moduleKey: string, enabled: boolean) => {
+    const planKey = editingPlan?.key ?? form.key
+    if (!planKey) return
+    setPlanModuleAccess(prev => ({ ...prev, [moduleKey]: enabled }))
+    setAllPlanModuleAccess(prev => {
+      const filtered = prev.filter(r => !(r.moduleKey === moduleKey && r.planKey === planKey))
+      return [...filtered, { moduleKey, planKey, enabled }]
+    })
+    await fetch('/api/admin/module-access', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moduleKey, planKey, enabled }),
+    })
+  }
 
   const openCreate = () => {
     setEditingPlan(null)
     setForm({ ...EMPTY_FORM, sortOrder: plans.length })
     setError('')
     setTab('general')
+    const defaults: Record<string, boolean> = {}
+    MODULES.forEach(m => { defaults[m.key] = true })
+    setPlanModuleAccess(defaults)
     setModalOpen(true)
   }
 
@@ -107,6 +152,7 @@ export default function AdminPlansPage() {
     setError('')
     setTab('general')
     setModalOpen(true)
+    loadModuleAccess(p.key)
   }
 
   const handleSave = async (e: React.FormEvent) => {
@@ -298,6 +344,21 @@ export default function AdminPlansPage() {
                         {on ? '✓' : '✕'} {label}
                       </span>
                     ))}
+                  </div>
+
+                  {/* Module pills */}
+                  <div className="flex flex-wrap gap-1.5 mt-1.5 pt-1.5 border-t border-gray-100">
+                    {MODULES.map(m => {
+                      const rec = allPlanModuleAccess.find(r => r.moduleKey === m.key && r.planKey === p.key)
+                      const enabled = rec !== undefined ? rec.enabled : true
+                      return (
+                        <span key={m.key} className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${
+                          enabled ? 'border-indigo-100 bg-indigo-50 text-indigo-600' : 'border-gray-100 bg-white text-gray-300'
+                        }`}>
+                          {m.icon} {m.label}
+                        </span>
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -564,12 +625,14 @@ export default function AdminPlansPage() {
 
                 {/* ── Modules tab ── */}
                 {tab === 'modules' && (
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
                       Choisissez les fonctionnalités incluses dans ce plan. Les modules désactivés seront masqués pour les membres du groupe.
                     </p>
+
+                    {/* Group features */}
                     <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Modules de base</p>
+                      <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Fonctionnalités groupe</p>
                       <div className="flex flex-wrap gap-2">
                         <ToggleFeature label="Grilles d'accords" icon="🎸" checked={form.hasGrilles} onChange={(v) => set('hasGrilles', v)} />
                         <ToggleFeature label="Concerts" icon="🎭" checked={form.hasConcerts} onChange={(v) => set('hasConcerts', v)} />
@@ -577,14 +640,37 @@ export default function AdminPlansPage() {
                         <ToggleFeature label="Fiche technique" icon="📋" checked={form.hasFicheTechnique} onChange={(v) => set('hasFicheTechnique', v)} />
                         <ToggleFeature label="Page publique" icon="🌐" checked={form.hasMaPage} onChange={(v) => set('hasMaPage', v)} />
                         <ToggleFeature label="Soumissions fichiers" icon="📬" checked={form.hasFileSubmissions} onChange={(v) => set('hasFileSubmissions', v)} />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Fonctionnalités avancées</p>
-                      <div className="flex flex-wrap gap-2">
                         <ToggleFeature label="Gestion des co-chefs" icon="👥" checked={form.hasCoChefs} onChange={(v) => set('hasCoChefs', v)} />
                         <ToggleFeature label="Support prioritaire" icon="⭐" checked={form.hasPrioritySupport} onChange={(v) => set('hasPrioritySupport', v)} />
                         <ToggleFeature label="Statistiques avancées" icon="📊" checked={form.hasStats} onChange={(v) => set('hasStats', v)} />
+                      </div>
+                    </div>
+
+                    {/* Tool modules — saved immediately via ModuleAccess API */}
+                    <div className="border-t border-gray-100 pt-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Outils & modules</p>
+                        <span className="text-[10px] text-gray-400">
+                          {moduleAccessLoading
+                            ? 'Chargement…'
+                            : form.key
+                              ? 'Sauvegardé en temps réel'
+                              : 'Renseignez d\'abord la clé du plan'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mb-3">
+                        Contrôle l'accès aux outils et services de la plateforme. Désactiver un outil le masque sur la page tarifs pour ce plan.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {MODULES.map(m => (
+                          <ToggleFeature
+                            key={m.key}
+                            label={m.label}
+                            icon={m.icon}
+                            checked={planModuleAccess[m.key] ?? true}
+                            onChange={v => handleModuleToggle(m.key, v)}
+                          />
+                        ))}
                       </div>
                     </div>
                   </div>

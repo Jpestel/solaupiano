@@ -3,6 +3,20 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+// GET /api/admin/module-access?planKey=FREE
+// Returns all ModuleAccess records, optionally filtered by planKey
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session || session.user.siteRole !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const planKey = req.nextUrl.searchParams.get('planKey')
+  const records = await prisma.moduleAccess.findMany(
+    planKey ? { where: { planKey } } : {}
+  )
+  return NextResponse.json(records)
+}
+
 // PUT /api/admin/module-access
 // Body: { moduleKey, planKey, enabled }
 // Toggle plan-level access for a module

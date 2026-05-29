@@ -4,6 +4,7 @@ export interface ModuleDef {
   description: string
   href: string
   icon: string
+  category: 'outil' | 'feature'
 }
 
 export const MODULES: ModuleDef[] = [
@@ -13,6 +14,7 @@ export const MODULES: ModuleDef[] = [
     description: 'Accordeur chromatique en temps réel via le microphone.',
     href: '/outils/accordeur',
     icon: '🎤',
+    category: 'outil',
   },
   {
     key: 'tool_metronome',
@@ -20,13 +22,15 @@ export const MODULES: ModuleDef[] = [
     description: 'Métronome réglable avec différentes signatures rythmiques.',
     href: '/outils/metronome',
     icon: '🎵',
+    category: 'outil',
   },
   {
     key: 'tool_accords',
-    label: 'Créateur d\'accords',
-    description: 'Visualisation et création d\'accords de guitare/piano.',
+    label: "Créateur d'accords",
+    description: "Visualisation et création d'accords de guitare/piano.",
     href: '/outils/accords',
     icon: '🎸',
+    category: 'outil',
   },
   {
     key: 'tool_portee',
@@ -34,6 +38,15 @@ export const MODULES: ModuleDef[] = [
     description: 'Portée interactive pour placer des notes et reconnaître des accords.',
     href: '/outils/portee',
     icon: '🎼',
+    category: 'outil',
+  },
+  {
+    key: 'feature_annonces',
+    label: 'Annonces',
+    description: "Petites annonces entre musiciens (instruments, matériel, sessions…).",
+    href: '/annonces',
+    icon: '📢',
+    category: 'feature',
   },
 ]
 

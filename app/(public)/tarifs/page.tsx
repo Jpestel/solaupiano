@@ -9,6 +9,7 @@ import {
   COLOR_MAP,
   type PlanFeatureRow,
 } from '@/lib/plans'
+import { MODULES } from '@/lib/modules'
 
 // Force dynamic so prices always reflect the DB (never pre-rendered at build time)
 export const dynamic = 'force-dynamic'
@@ -29,10 +30,20 @@ function fmtPriceLabel(price: number | null | undefined) {
 }
 
 export default async function TarifsPage() {
-  const groupPlans = await prisma.plan.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: 'asc' },
-  }) as DbPlan[]
+  const [groupPlans, allModuleAccess] = await Promise.all([
+    prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }) as Promise<DbPlan[]>,
+    prisma.moduleAccess.findMany(),
+  ])
+
+  // Helper — default: enabled if no explicit record
+  const isModEnabled = (planKey: string, moduleKey: string): boolean => {
+    const rec = allModuleAccess.find(r => r.planKey === planKey && r.moduleKey === moduleKey)
+    return rec !== undefined ? rec.enabled : true
+  }
+
+  // Build module data for a plan card
+  const planModules = (planKey: string) =>
+    MODULES.map(m => ({ key: m.key, label: m.label, icon: m.icon, enabled: isModEnabled(planKey, m.key) }))
 
   // Find the free plan for FAQ dynamic text
   const freePlan = groupPlans.find(p => p.key === 'FREE') ?? groupPlans[0]
@@ -126,6 +137,7 @@ export default async function TarifsPage() {
                 { ok: false, label: 'Créer un groupe' },
                 { ok: false, label: 'Uploader des fichiers' },
               ]}
+              modulesData={MODULES.map(m => ({ key: m.key, label: m.label, icon: m.icon, enabled: true }))}
               cta="S'inscrire comme Musicien"
               href="/inscription?role=MUSICIEN"
               variant="default"
@@ -151,6 +163,7 @@ export default async function TarifsPage() {
                   description={plan.description ?? `Plan ${plan.label} pour les chefs d'orchestre.`}
                   price={isFree ? 'Gratuit' : `${fmtPrice(plan.priceMonthly)} / mois`}
                   features={buildCardFeatures(plan, isFree)}
+                  modulesData={planModules(plan.key)}
                   cta={isFree ? 'Démarrer gratuitement' : `Démarrer avec ${plan.label}`}
                   href="/inscription?role=CREATEUR"
                   variant={variant as 'default' | 'indigo' | 'purple'}
@@ -200,6 +213,19 @@ export default async function TarifsPage() {
                       key={row.label}
                       label={row.label}
                       values={[row.musicien, ...groupPlans.map(p => row.get(p))]}
+                    />
+                  ))}
+                  {/* ─── Outils & modules ─── */}
+                  <tr>
+                    <td colSpan={groupPlans.length + 2} className="px-4 pt-3 pb-1.5 bg-indigo-50 border-t-2 border-indigo-100">
+                      <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">🛠 Outils &amp; modules</span>
+                    </td>
+                  </tr>
+                  {MODULES.map(m => (
+                    <CompRow
+                      key={m.key}
+                      label={`${m.icon} ${m.label}`}
+                      values={['✓', ...groupPlans.map(p => isModEnabled(p.key, m.key) ? '✓' : '—')]}
                     />
                   ))}
                 </tbody>
@@ -297,10 +323,12 @@ export default async function TarifsPage() {
 // ── Composants ──────────────────────────────────────────────────────────────
 
 function PlanCard({
-  emoji, title, badge, badgeColor, description, price, features, cta, href, variant, highlight, planColor,
+  emoji, title, badge, badgeColor, description, price, features, modulesData, cta, href, variant, highlight, planColor,
 }: {
   emoji: string; title: string; badge: string; badgeColor: 'gray' | 'indigo' | 'purple'
-  description: string; price: string; features: PlanFeatureRow[]; cta: string; href: string
+  description: string; price: string; features: PlanFeatureRow[]
+  modulesData?: { key: string; label: string; icon: string; enabled: boolean }[]
+  cta: string; href: string
   variant: 'default' | 'indigo' | 'purple'; highlight?: boolean; planColor?: string
 }) {
   // Allow any color from COLOR_MAP, fallback to variant
@@ -346,6 +374,29 @@ function PlanCard({
           </li>
         ))}
       </ul>
+
+      {/* Modules section */}
+      {modulesData && modulesData.length > 0 && (
+        <div className="border-t border-gray-100 pt-2.5">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Outils inclus</p>
+          <div className="flex flex-wrap gap-1">
+            {modulesData.map(m => (
+              <span
+                key={m.key}
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                  m.enabled
+                    ? 'border-indigo-100 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-100 bg-white text-gray-300'
+                }`}
+              >
+                <span>{m.icon}</span>
+                <span className={m.enabled ? '' : 'line-through'}>{m.label}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Link href={href} className={`mt-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-center transition-colors ${btnCls}`}>
         {cta}
       </Link>
