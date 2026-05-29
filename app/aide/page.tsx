@@ -73,7 +73,9 @@ export default async function AidePage() {
             { href: '#metronome', label: '🥁 Métronome' },
             { href: '#portee', label: '🎼 Portée' },
             { href: '#stats', label: '📊 Statistiques' },
+            { href: '#annonces', label: '📢 Annonces' },
             { href: '#plans', label: '📦 Plans' },
+            { href: '#assistance', label: '🆘 Assistance' },
             { href: '#faq', label: '❓ FAQ' },
           ].map((item) => (
             <a key={item.href} href={item.href}
@@ -1330,6 +1332,73 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── ANNONCES ─── */}
+        <section id="annonces">
+          <SectionTitle icon="📢" title="Annonces" color="orange" />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi servent les annonces ?">
+              <p>La section <strong>Annonces</strong> est un espace de petites annonces musicales ouvert à toute la communauté Sol au piano. Elle permet de :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[
+                  { icon: '🎵', label: 'Musicien cherche groupe', desc: 'Présentez votre profil et les styles recherchés' },
+                  { icon: '🎸', label: 'Groupe cherche musicien', desc: 'Décrivez le poste à pourvoir dans votre formation' },
+                  { icon: '🎹', label: 'Cours et leçons', desc: 'Proposez ou recherchez des cours de musique' },
+                  { icon: '📦', label: 'Matériel', desc: 'Vendez ou échangez du matériel musical' },
+                ].map((c) => (
+                  <div key={c.label} className="flex items-start gap-2 rounded-lg border border-orange-100 bg-orange-50 px-3 py-2">
+                    <span className="text-xl leading-none mt-0.5 flex-shrink-0">{c.icon}</span>
+                    <div>
+                      <p className="text-xs font-semibold text-orange-800">{c.label}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">{c.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Tip>Les catégories disponibles sont configurées par l&apos;administrateur et peuvent évoluer.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Consulter les annonces">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Cliquez sur <strong>Annonces</strong> dans la barre de navigation latérale.</Step>
+                <Step n={2}>Parcourez toutes les annonces ou <strong>filtrez par catégorie</strong> en cliquant sur les onglets en haut de la liste.</Step>
+                <Step n={3}>Cliquez sur une annonce pour voir sa description complète, les coordonnées de contact et les éventuelles photos.</Step>
+              </ol>
+              <Tip>Les annonces les plus récentes apparaissent en premier. La localisation est indiquée quand l&apos;auteur l&apos;a renseignée — pratique pour trouver des musiciens proches de chez vous.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Publier une annonce">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Cliquez sur <strong>Annonces</strong> puis sur <strong>+ Nouvelle annonce</strong>.</Step>
+                <Step n={2}>Choisissez la <strong>catégorie</strong> correspondant à votre annonce.</Step>
+                <Step n={3}>Renseignez le titre, la description détaillée et optionnellement : le prix, la localisation et une photo (max 5 Mo).</Step>
+                <Step n={4}>Indiquez au moins un <strong>moyen de contact</strong> : e-mail et/ou numéro de téléphone.</Step>
+                <Step n={5}>Cliquez sur <strong>Publier</strong> — votre annonce est envoyée en modération.</Step>
+              </ol>
+              <Note>Toute annonce est soumise à <strong>validation par l&apos;administrateur</strong> avant d&apos;apparaître publiquement. Vous recevez un e-mail de confirmation à la publication ou en cas de refus.</Note>
+            </HelpCard>
+
+            <HelpCard title="Gérer mes annonces">
+              <p>La page <strong>Mes annonces</strong> (dans la sidebar) liste toutes vos annonces avec leur statut :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {[
+                  { label: 'En attente', color: 'bg-amber-50 border-amber-200 text-amber-700', desc: 'Soumise, en attente de validation' },
+                  { label: 'Publiée', color: 'bg-green-50 border-green-200 text-green-700', desc: 'Visible par tous dans l\'annuaire' },
+                  { label: 'Refusée', color: 'bg-red-50 border-red-200 text-red-700', desc: 'Non conforme aux règles — motif indiqué' },
+                ].map((s) => (
+                  <div key={s.label} className={`rounded-lg border px-3 py-2 ${s.color}`}>
+                    <p className="text-xs font-bold mb-0.5">{s.label}</p>
+                    <p className="text-xs opacity-80">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-gray-600">Vous pouvez <strong>modifier ou supprimer</strong> une annonce à tout moment depuis cette page.</p>
+              <Tip>Si une annonce est refusée, le motif est indiqué par l&apos;administrateur — vous pouvez la corriger et la soumettre à nouveau.</Tip>
+            </HelpCard>
+
+          </div>
+        </section>
+
         {/* ─── PLANS ─── */}
         <section id="plans">
           <SectionTitle icon="📦" title="Plans et stockage" color="purple" />
@@ -1372,6 +1441,74 @@ export default async function AidePage() {
               </ul>
               <Note>Quand le quota dépasse 90 %, un avertissement apparaît sur la page du groupe.</Note>
             </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── ASSISTANCE ─── */}
+        <section id="assistance">
+          <SectionTitle icon="🆘" title="Assistance & support" color="rose" />
+          <div className="space-y-4">
+
+            <HelpCard title="Contacter le support">
+              <p>La page <strong>Assistance</strong> (dans la sidebar) vous permet de nous envoyer un message directement depuis l&apos;application — sans quitter Sol au piano.</p>
+              <p className="mt-2">Quatre types de demandes sont disponibles :</p>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { icon: '🐛', label: 'Bug', desc: 'Quelque chose ne fonctionne pas' },
+                  { icon: '❓', label: 'Question', desc: 'Besoin d\'aide sur une fonctionnalité' },
+                  { icon: '💡', label: 'Suggestion', desc: 'Idée d\'amélioration' },
+                  { icon: '📩', label: 'Autre', desc: 'Toute autre demande' },
+                ].map((t) => (
+                  <div key={t.label} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-center">
+                    <p className="text-xl mb-0.5">{t.icon}</p>
+                    <p className="text-xs font-bold text-rose-700">{t.label}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">{t.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </HelpCard>
+
+            <HelpCard title="Comment envoyer une demande">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Cliquez sur <strong>Assistance</strong> dans la barre de navigation puis sur <strong>+ Nouvelle demande</strong>.</Step>
+                <Step n={2}>Choisissez le <strong>type</strong> de demande (bug, question, suggestion, autre).</Step>
+                <Step n={3}>Renseignez un <strong>sujet</strong> clair (1 phrase) et un <strong>message</strong> détaillé.</Step>
+                <Step n={4}>Cliquez sur <strong>Envoyer la demande</strong>.</Step>
+              </ol>
+              <p className="mt-2 text-gray-600">Deux emails sont envoyés automatiquement : une <strong>notification à l&apos;équipe</strong> et une <strong>confirmation</strong> dans votre boîte mail avec le numéro de ticket.</p>
+              <Tip>Pour un bug, précisez : ce que vous faisiez, ce qui s&apos;est passé, et le navigateur / appareil utilisé — cela accélère considérablement le diagnostic.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Suivre mes demandes">
+              <p>La page Assistance liste l&apos;historique de toutes vos demandes avec leur statut en temps réel :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {[
+                  { label: 'Ouvert', color: 'bg-blue-50 border-blue-200 text-blue-700', dot: 'bg-blue-500', desc: 'Reçue, en attente de traitement' },
+                  { label: 'En cours', color: 'bg-amber-50 border-amber-200 text-amber-700', dot: 'bg-amber-500', desc: 'Prise en charge par l\'équipe' },
+                  { label: 'Résolu', color: 'bg-green-50 border-green-200 text-green-700', dot: 'bg-green-500', desc: 'Traitement terminé' },
+                ].map((s) => (
+                  <div key={s.label} className={`rounded-lg border px-3 py-2 ${s.color}`}>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className={`w-2 h-2 rounded-full ${s.dot}`} />
+                      <p className="text-xs font-bold">{s.label}</p>
+                    </div>
+                    <p className="text-[10px] opacity-80">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-gray-600">Cliquez sur une demande pour voir son détail et lire la <strong>réponse de l&apos;équipe</strong> si elle a été ajoutée.</p>
+            </HelpCard>
+
+            <HelpCard title="Support prioritaire ⭐">
+              <p>Si vous êtes chef d&apos;un groupe avec un <strong>plan payant</strong> (Pro ou Premium), vos demandes sont automatiquement marquées comme prioritaires. Cela signifie :</p>
+              <ul className="mt-2 space-y-1">
+                <li>Un badge <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 font-semibold">⭐ Prioritaire</span> apparaît sur votre ticket</li>
+                <li>L&apos;email de notification envoyé à l&apos;équipe est distingué comme prioritaire</li>
+                <li>Le délai de réponse est plus court</li>
+              </ul>
+              <Note>Le statut prioritaire est déterminé automatiquement selon votre plan — aucune action supplémentaire n&apos;est requise de votre part.</Note>
+            </HelpCard>
+
           </div>
         </section>
 
@@ -1484,6 +1621,18 @@ export default async function AidePage() {
             <FaqItem question="J'ai oublié mon mot de passe, que faire ?">
               Sur la page de connexion, cliquez sur <strong>&quot;Mot de passe oublié&quot;</strong>. Un lien de réinitialisation vous sera envoyé par e-mail.
             </FaqItem>
+            <FaqItem question="Mon annonce n'apparaît pas dans la liste, pourquoi ?">
+              Toute annonce passe par une <strong>validation manuelle</strong> avant d&apos;être publiée. Consultez la page <strong>Mes annonces</strong> pour voir le statut de la vôtre — si elle est &quot;En attente&quot;, elle sera traitée sous peu. En cas de refus, le motif est indiqué.
+            </FaqItem>
+            <FaqItem question="Comment modifier ou supprimer mon annonce ?">
+              Depuis la page <strong>Mes annonces</strong>, cliquez sur votre annonce pour accéder aux boutons Modifier et Supprimer. Une annonce modifiée repasse en modération si elle était déjà publiée.
+            </FaqItem>
+            <FaqItem question="Comment signaler un bug ou contacter le support ?">
+              Utilisez la page <strong>Assistance</strong> (dans la sidebar) pour envoyer une demande directement depuis l&apos;application. Vous recevrez un email de confirmation et pourrez suivre l&apos;état de votre ticket.
+            </FaqItem>
+            <FaqItem question="Quel est le délai de réponse du support ?">
+              Nous traitons généralement les demandes sous <strong>24 à 48 heures</strong>. Les membres de groupes avec un plan <strong>Pro</strong> ou <strong>Premium</strong> bénéficient d&apos;un support prioritaire et d&apos;un délai plus court.
+            </FaqItem>
           </div>
         </section>
 
@@ -1491,12 +1640,21 @@ export default async function AidePage() {
         <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-6 text-center" id="contact">
           <p className="text-2xl mb-2">💬</p>
           <h3 className="text-base font-semibold text-gray-900 mb-1">Vous ne trouvez pas votre réponse ?</h3>
-          <p className="text-sm text-gray-600">
-            Contactez-nous à{' '}
-            <a href="mailto:contact@solaupiano.fr" className="text-indigo-600 hover:underline font-medium">
-              contact@solaupiano.fr
-            </a>
+          <p className="text-sm text-gray-600 mb-4">
+            Signalez un bug, posez une question ou faites une suggestion depuis la page Assistance.
           </p>
+          {isLoggedIn ? (
+            <Link href="/assistance"
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
+              🆘 Ouvrir une demande →
+            </Link>
+          ) : (
+            <p className="text-sm text-gray-600">
+              <Link href="/connexion" className="text-indigo-600 hover:underline font-medium">Connectez-vous</Link>{' '}
+              pour accéder à la page Assistance, ou écrivez-nous à{' '}
+              <a href="mailto:contact@solaupiano.fr" className="text-indigo-600 hover:underline font-medium">contact@solaupiano.fr</a>.
+            </p>
+          )}
         </div>
 
         {/* CTA visiteur en bas */}
