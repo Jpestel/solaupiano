@@ -13,7 +13,7 @@ const COLOR_LABELS: Record<string, string> = {
 
 const EMPTY_FORM = {
   key: '', label: '', description: '', priceMonthly: '', stripePriceId: '', isActive: true, sortOrder: 0,
-  storageGb: 1, maxGroups: 1,
+  storageGb: '1', maxGroups: 1,
   maxMembersPerGroup: '', maxSongsPerGroup: '', maxSetlists: '', maxConcerts: '', maxCharts: '', maxFilesPerSong: '',
   hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
   hasMaPage: true, hasCoChefs: true, hasPrioritySupport: false, hasStats: false, hasFileSubmissions: true,
@@ -30,7 +30,7 @@ function planToForm(p: PlanWithCount): FormState {
     priceMonthly: p.priceMonthly !== null ? String(p.priceMonthly) : '',
     isActive: p.isActive,
     sortOrder: p.sortOrder,
-    storageGb: p.storageGb,
+    storageGb: String(p.storageGb),
     maxGroups: p.maxGroups,
     maxMembersPerGroup: p.maxMembersPerGroup !== null ? String(p.maxMembersPerGroup) : '',
     maxSongsPerGroup: p.maxSongsPerGroup !== null ? String(p.maxSongsPerGroup) : '',
@@ -114,8 +114,16 @@ export default function AdminPlansPage() {
     setSaving(true)
     setError('')
 
+    const parsedStorage = Number(form.storageGb)
+    if (!form.storageGb || isNaN(parsedStorage) || parsedStorage < 0.1) {
+      setError('Le stockage doit être d\'au moins 0,1 Go.')
+      setSaving(false)
+      return
+    }
+
     const payload = {
       ...form,
+      storageGb: parsedStorage,
       priceMonthly: form.priceMonthly !== '' ? Number(form.priceMonthly) : null,
       stripePriceId: form.stripePriceId.trim() || null,
       maxMembersPerGroup: form.maxMembersPerGroup !== '' ? Number(form.maxMembersPerGroup) : null,
@@ -504,8 +512,8 @@ export default function AdminPlansPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="form-label">Stockage (Go) <span className="text-red-500">*</span></label>
-                        <input type="number" step="0.5" min="0.1" required value={form.storageGb}
-                          onChange={(e) => set('storageGb', Number(e.target.value))}
+                        <input type="number" step="0.5" required value={form.storageGb}
+                          onChange={(e) => set('storageGb', e.target.value)}
                           className="form-input" />
                       </div>
                       <div>
