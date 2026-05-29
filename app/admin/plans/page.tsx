@@ -114,9 +114,9 @@ export default function AdminPlansPage() {
     setSaving(true)
     setError('')
 
-    const parsedStorage = Number(form.storageGb)
-    if (!form.storageGb || isNaN(parsedStorage) || parsedStorage < 0.1) {
-      setError('Le stockage doit être d\'au moins 0,1 Go.')
+    const parsedStorage = form.storageGb === '' ? NaN : Number(form.storageGb)
+    if (isNaN(parsedStorage) || parsedStorage < 0) {
+      setError('Le stockage doit être un nombre positif (0 = pas de fichiers).')
       setSaving(false)
       return
     }
@@ -512,7 +512,7 @@ export default function AdminPlansPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="form-label">Stockage (Go) <span className="text-red-500">*</span></label>
-                        <input type="number" step="0.5" required value={form.storageGb}
+                        <input type="number" step="0.5" min="0" value={form.storageGb}
                           onChange={(e) => set('storageGb', e.target.value)}
                           className="form-input" />
                       </div>
