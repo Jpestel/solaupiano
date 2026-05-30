@@ -56,6 +56,14 @@ export const MODULES: ModuleDef[] = [
     icon: '💶',
     category: 'outil',
   },
+  {
+    key: 'tool_kilometrique',
+    label: 'Frais kilométriques',
+    description: "Calculez le coût de déplacement pour un concert avec un ou plusieurs véhicules.",
+    href: '/outils/kilometrique',
+    icon: '🚗',
+    category: 'outil',
+  },
 ]
 
 export function getModuleDef(key: string): ModuleDef | undefined {

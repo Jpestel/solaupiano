@@ -28,6 +28,7 @@ export const TUTORIAL_CATEGORIES: TutorialCategory[] = [
   { key: 'tool_accords',            label: 'Dictionnaire d\'accords', icon: '🎹', group: 'Outils' },
   { key: 'tool_portee',             label: 'Portée musicale',     icon: '🎼', group: 'Outils' },
   { key: 'tool_cachet',             label: 'Simulateur cachet GUSO', icon: '💶', group: 'Outils' },
+  { key: 'tool_kilometrique',       label: 'Frais kilométriques',    icon: '🚗', group: 'Outils' },
 ]
 
 export function getCategoryDef(key: string): TutorialCategory | undefined {
