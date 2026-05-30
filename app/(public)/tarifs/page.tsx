@@ -137,7 +137,7 @@ export default async function TarifsPage() {
                 { ok: false, label: 'Créer un groupe' },
                 { ok: false, label: 'Uploader des fichiers' },
               ]}
-              modulesData={MODULES.map(m => ({ key: m.key, label: m.label, icon: m.icon, enabled: true }))}
+              modulesData={planModules('MUSICIEN')}
               cta="S'inscrire comme Musicien"
               href="/inscription?role=MUSICIEN"
               variant="default"

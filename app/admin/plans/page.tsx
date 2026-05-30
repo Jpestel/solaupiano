@@ -91,6 +91,10 @@ export default function AdminPlansPage() {
   const [allPlanModuleAccess, setAllPlanModuleAccess] = useState<{ moduleKey: string; planKey: string; enabled: boolean }[]>([])
   const [moduleAccessLoading, setModuleAccessLoading] = useState(false)
 
+  // Modules-only modal (for Musicien role & similar)
+  const [modulesOnlyModal, setModulesOnlyModal] = useState(false)
+  const [modulesOnlyLabel, setModulesOnlyLabel] = useState('')
+
   const fetchPlans = async () => {
     const res = await fetch('/api/admin/plans')
     if (res.ok) setPlans(await res.json())
@@ -133,6 +137,15 @@ export default function AdminPlansPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ moduleKey, planKey, enabled }),
     })
+  }
+
+  const openModulesOnly = (planKey: string, label: string) => {
+    setEditingPlan(null)
+    // form.key drives handleModuleToggle when editingPlan is null
+    setForm(prev => ({ ...EMPTY_FORM, key: planKey }))
+    setModulesOnlyLabel(label)
+    loadModuleAccess(planKey)
+    setModulesOnlyModal(true)
   }
 
   const openCreate = () => {
@@ -261,6 +274,42 @@ export default function AdminPlansPage() {
             <p className="text-xs text-gray-500">{s.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* ─── Musicien role card ─── */}
+      <div className="mb-4 rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 overflow-hidden">
+        <div className="flex items-start gap-4 p-5">
+          <div className="w-3 h-3 rounded-full mt-1.5 flex-shrink-0 bg-indigo-400" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="text-base font-bold text-indigo-700">Musicien</h3>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-mono font-semibold text-gray-500">MUSICIEN</span>
+              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-600">Rôle utilisateur</span>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Plan de base pour les musiciens qui rejoignent des groupes. Gratuit, toujours disponible. Configurez ici quels outils lui sont accessibles.</p>
+            <div className="flex flex-wrap gap-1.5">
+              {MODULES.map(m => {
+                const rec = allPlanModuleAccess.find(r => r.moduleKey === m.key && r.planKey === 'MUSICIEN')
+                const enabled = rec !== undefined ? rec.enabled : true
+                return (
+                  <span key={m.key} className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${
+                    enabled ? 'border-indigo-100 bg-indigo-50 text-indigo-600' : 'border-gray-100 bg-white text-gray-300'
+                  }`}>
+                    {m.icon} {m.label}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+          <div className="flex-shrink-0">
+            <button
+              onClick={() => openModulesOnly('MUSICIEN', 'Musicien')}
+              className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 transition-colors"
+            >
+              Configurer les modules
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Plan cards */}
@@ -746,6 +795,55 @@ export default function AdminPlansPage() {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Modules-only modal (Musicien + future virtual plans) ─── */}
+      {modulesOnlyModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 overflow-y-auto" onClick={() => setModulesOnlyModal(false)}>
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl my-8" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Outils & modules — {modulesOnlyLabel}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Les modifications sont sauvegardées en temps réel.</p>
+              </div>
+              <button onClick={() => setModulesOnlyModal(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              {moduleAccessLoading ? (
+                <p className="text-sm text-gray-400">Chargement…</p>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                    Activez ou désactivez chaque outil pour le plan <strong>{modulesOnlyLabel}</strong>. Par défaut, tout est actif.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {MODULES.map(m => (
+                      <ToggleFeature
+                        key={m.key}
+                        label={m.label}
+                        icon={m.icon}
+                        checked={planModuleAccess[m.key] ?? true}
+                        onChange={v => handleModuleToggle(m.key, v)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex justify-end px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <button
+                onClick={() => setModulesOnlyModal(false)}
+                className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}
