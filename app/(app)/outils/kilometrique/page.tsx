@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { TutorialButton } from '@/components/ui/TutorialButton'
 
@@ -112,6 +112,70 @@ export default function KilometriqueCalculatorPage() {
   const [error,     setError]     = useState('')
   const [routeNote, setRouteNote] = useState('')
   const printRef = useRef<HTMLDivElement>(null)
+
+  // ── Simulations sauvegardées ─────────────────────────────────────────────────
+  interface SavedSim { id: number; label: string; updatedAt: string; data: any }
+  const [canSave,    setCanSave]    = useState(false)
+  const [savedSims,  setSavedSims]  = useState<SavedSim[]>([])
+  const [saveLabel,  setSaveLabel]  = useState('')
+  const [saveOpen,   setSaveOpen]   = useState(false)
+  const [savingState, setSavingState] = useState(false)
+  const [simsOpen,   setSimsOpen]   = useState(false)
+
+  // Charge les capacités + simulations existantes au montage
+  useEffect(() => {
+    fetch('/api/me/simulations').then(r => r.json()).then(d => {
+      setCanSave(d.canSave ?? false)
+      setSavedSims(d.simulations ?? [])
+    }).catch(() => {})
+  }, [])
+
+  const currentState = () => ({
+    localConcert, departure, arrival,
+    distance, manualKm, manualMode, roundTrip,
+    vehicles, expenses,
+    cachet, cachetMode, congesSpec, fraisCharge,
+  })
+
+  const handleSave = async () => {
+    if (!saveLabel.trim()) return
+    setSavingState(true)
+    const res = await fetch('/api/me/simulations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: saveLabel.trim(), data: currentState() }),
+    })
+    setSavingState(false)
+    if (res.ok) {
+      const sim = await res.json()
+      setSavedSims(prev => [sim, ...prev])
+      setSaveOpen(false)
+      setSaveLabel('')
+    }
+  }
+
+  const handleLoad = (sim: SavedSim) => {
+    const d = sim.data
+    if (d.localConcert  !== undefined) setLocalConcert(d.localConcert)
+    if (d.departure     !== undefined) setDeparture(d.departure)
+    if (d.arrival       !== undefined) setArrival(d.arrival)
+    if (d.distance      !== undefined) setDistance(d.distance)
+    if (d.manualKm      !== undefined) setManualKm(d.manualKm)
+    if (d.manualMode    !== undefined) setManualMode(d.manualMode)
+    if (d.roundTrip     !== undefined) setRoundTrip(d.roundTrip)
+    if (d.vehicles      !== undefined) setVehicles(d.vehicles)
+    if (d.expenses      !== undefined) setExpenses(d.expenses)
+    if (d.cachet        !== undefined) setCachet(d.cachet)
+    if (d.cachetMode    !== undefined) setCachetMode(d.cachetMode)
+    if (d.congesSpec    !== undefined) setCongesSpec(d.congesSpec)
+    if (d.fraisCharge   !== undefined) setFraisCharge(d.fraisCharge)
+    setSimsOpen(false)
+  }
+
+  const handleDelete = async (id: number) => {
+    await fetch(`/api/me/simulations/${id}`, { method: 'DELETE' })
+    setSavedSims(prev => prev.filter(s => s.id !== id))
+  }
 
   // ── Route search ────────────────────────────────────────────────────────────
 
@@ -361,6 +425,64 @@ export default function KilometriqueCalculatorPage() {
       </div>
 
       <div className="max-w-2xl space-y-5">
+
+        {/* ── Simulations ── */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+
+          {/* Bouton sauvegarder */}
+          {canSave ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setSaveLabel(''); setSaveOpen(true) }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+              >
+                💾 Sauvegarder cette simulation
+              </button>
+              {savedSims.length > 0 && (
+                <button
+                  onClick={() => setSimsOpen(v => !v)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  📂 Mes simulations ({savedSims.length})
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">
+              💾 Sauvegarde disponible avec les{' '}
+              <a href="/tarifs" className="text-indigo-500 hover:underline">forfaits incluant du stockage →</a>
+            </p>
+          )}
+        </div>
+
+        {/* Panneau simulations */}
+        {simsOpen && savedSims.length > 0 && (
+          <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Simulations sauvegardées</p>
+            {savedSims.map(s => (
+              <div key={s.id} className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{s.label}</p>
+                  <p className="text-[10px] text-gray-400">
+                    {new Date(s.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleLoad(s)}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 flex-shrink-0"
+                >
+                  Charger
+                </button>
+                <button
+                  onClick={() => handleDelete(s.id)}
+                  className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Toggle concert local ── */}
         <label className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 cursor-pointer transition-colors ${localConcert ? 'border-teal-400 bg-teal-50' : 'border-gray-200 bg-white hover:border-teal-300'}`}>
@@ -889,6 +1011,41 @@ export default function KilometriqueCalculatorPage() {
         )}
 
       </div>
+
+      {/* ── Modale sauvegarde ── */}
+      {saveOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setSaveOpen(false)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-gray-900 mb-1">💾 Sauvegarder la simulation</h3>
+            <p className="text-xs text-gray-500 mb-4">Donnez un nom pour retrouver facilement cette simulation.</p>
+            <input
+              type="text"
+              autoFocus
+              value={saveLabel}
+              onChange={e => setSaveLabel(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSave()}
+              placeholder="ex : Concert Caen — mars 2026"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
+              maxLength={80}
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={handleSave}
+                disabled={!saveLabel.trim() || savingState}
+                className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+              >
+                {savingState ? 'Sauvegarde…' : 'Sauvegarder'}
+              </button>
+              <button
+                onClick={() => setSaveOpen(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
