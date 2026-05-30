@@ -35,8 +35,8 @@ export default function MentionsLegalesPage() {
           <section>
             <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">1. Éditeur du site</h2>
             <div className="space-y-1 text-sm text-gray-600">
-              <p><span className="font-medium text-gray-800">Nom :</span> Pestel Jérôme</p>
-              <p><span className="font-medium text-gray-800">Qualité :</span> Particulier</p>
+              <p><span className="font-medium text-gray-800">Nom :</span> Pestel Barbara</p>
+              <p><span className="font-medium text-gray-800">Qualité :</span> Particulière</p>
               <p><span className="font-medium text-gray-800">Email :</span>{' '}
                 <a href="mailto:jerompestel@gmail.com" className="text-indigo-600 hover:underline">jerompestel@gmail.com</a>
               </p>
@@ -46,7 +46,7 @@ export default function MentionsLegalesPage() {
           {/* Directeur de publication */}
           <section>
             <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">2. Directeur de la publication</h2>
-            <p className="text-sm text-gray-600">Pestel Jérôme</p>
+            <p className="text-sm text-gray-600">Mme Barbara Pestel</p>
           </section>
 
           {/* Hébergeur */}
@@ -65,10 +65,10 @@ export default function MentionsLegalesPage() {
           <section>
             <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">4. Propriété intellectuelle</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              L&apos;ensemble des contenus présents sur le site Sol au piano (textes, images, graphismes, logo, icônes, sons, logiciels…) est la propriété exclusive de Jérôme Pestel, à l&apos;exception des marques, logos ou contenus appartenant à d&apos;autres sociétés partenaires ou auteurs.
+              L&apos;ensemble des contenus présents sur le site Sol au piano (textes, images, graphismes, logo, icônes, sons, logiciels…) est la propriété exclusive de Barbara Pestel, à l&apos;exception des marques, logos ou contenus appartenant à d&apos;autres sociétés partenaires ou auteurs.
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
-              Toute reproduction, distribution, modification, adaptation, retransmission ou publication, même partielle, de ces différents éléments est strictement interdite sans l&apos;accord exprès par écrit de Jérôme Pestel.
+              Toute reproduction, distribution, modification, adaptation, retransmission ou publication, même partielle, de ces différents éléments est strictement interdite sans l&apos;accord exprès par écrit de Barbara Pestel.
             </p>
           </section>
 
@@ -98,7 +98,7 @@ export default function MentionsLegalesPage() {
           <section>
             <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">7. Liens hypertextes</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Le site Sol au piano peut contenir des liens hypertextes vers d&apos;autres sites. Jérôme Pestel n&apos;est pas responsable du contenu de ces sites tiers et décline toute responsabilité en cas de dommage résultant de l&apos;utilisation de ces liens.
+              Le site Sol au piano peut contenir des liens hypertextes vers d&apos;autres sites. Barbara Pestel n&apos;est pas responsable du contenu de ces sites tiers et décline toute responsabilité en cas de dommage résultant de l&apos;utilisation de ces liens.
             </p>
           </section>
 
@@ -106,7 +106,7 @@ export default function MentionsLegalesPage() {
           <section>
             <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">8. Limitation de responsabilité</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Jérôme Pestel s&apos;efforce d&apos;assurer l&apos;exactitude et la mise à jour des informations diffusées sur ce site. Toutefois, il ne peut garantir l&apos;exactitude, la complétude et l&apos;actualité des informations. En conséquence, l&apos;utilisateur reconnaît utiliser ces informations sous sa responsabilité exclusive.
+              Barbara Pestel s&apos;efforce d&apos;assurer l&apos;exactitude et la mise à jour des informations diffusées sur ce site. Toutefois, il ne peut garantir l&apos;exactitude, la complétude et l&apos;actualité des informations. En conséquence, l&apos;utilisateur reconnaît utiliser ces informations sous sa responsabilité exclusive.
             </p>
           </section>
 
@@ -121,7 +121,7 @@ export default function MentionsLegalesPage() {
         </div>
 
         <div className="mt-12 pt-6 border-t border-gray-200 flex items-center justify-between">
-          <p className="text-xs text-gray-400">Dernière mise à jour : mai 2026</p>
+          <p className="text-xs text-gray-400">Dernière mise à jour : juin 2026</p>
           <Link href="/" className="text-xs text-indigo-600 hover:underline">← Retour à l&apos;accueil</Link>
         </div>
       </main>
