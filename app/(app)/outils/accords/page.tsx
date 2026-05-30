@@ -104,7 +104,10 @@ const BLACK_KEY_OFFSETS: Record<number, number> = {
 
 const MINI_OCT_W = WHITE_KEYS.length * MW
 
-interface HitNote { pos: number; label: string; isRoot: boolean }
+// Palette par note (cohérente avec la section Composition) — index = position dans l'accord
+const NOTE_HEX = ['#f59e0b', '#3b82f6', '#8b5cf6', '#0ea5e9', '#14b8a6', '#a855f7', '#06b6d4']
+
+interface HitNote { pos: number; label: string; isRoot: boolean; colorIdx: number }
 
 function MiniPiano({ positions, octaves }: { positions: HitNote[]; octaves: number }) {
   const posMap = new Map(positions.map((p) => [p.pos, p]))
@@ -127,8 +130,8 @@ function MiniPiano({ positions, octaves }: { positions: HitNote[]; octaves: numb
         const hit = posMap.get(k.abs)
         return (
           <rect key={`w-${i}`} x={k.x + 0.5} y={0.5} width={MW - 1} height={MH} rx={3}
-            fill={hit ? (hit.isRoot ? '#f59e0b' : '#3b82f6') : '#fff'}
-            stroke={hit ? (hit.isRoot ? '#b45309' : '#1d4ed8') : '#d1d5db'} strokeWidth={1} />
+            fill={hit ? NOTE_HEX[hit.colorIdx % NOTE_HEX.length] : '#fff'}
+            stroke={hit ? '#334155' : '#d1d5db'} strokeWidth={1} />
         )
       })}
       {/* Black keys */}
@@ -136,8 +139,8 @@ function MiniPiano({ positions, octaves }: { positions: HitNote[]; octaves: numb
         const hit = posMap.get(k.abs)
         return (
           <rect key={`b-${i}`} x={k.x} y={0} width={MBW} height={MBH} rx={2}
-            fill={hit ? (hit.isRoot ? '#fbbf24' : '#60a5fa') : '#1f2937'}
-            stroke={hit ? (hit.isRoot ? '#b45309' : '#1d4ed8') : '#111827'} strokeWidth={1} />
+            fill={hit ? NOTE_HEX[hit.colorIdx % NOTE_HEX.length] : '#1f2937'}
+            stroke={hit ? '#334155' : '#111827'} strokeWidth={1} />
         )
       })}
       {/* Labels on highlighted white keys */}
@@ -155,7 +158,7 @@ function MiniPiano({ positions, octaves }: { positions: HitNote[]; octaves: numb
         const hit = posMap.get(k.abs)
         if (!hit) return null
         return (
-          <text key={`lb-${i}`} x={k.x + MBW / 2} y={MBH - 6} textAnchor="middle" fontSize={7} fontWeight="bold" fill="#1f2937">
+          <text key={`lb-${i}`} x={k.x + MBW / 2} y={MBH - 6} textAnchor="middle" fontSize={7} fontWeight="bold" fill="white">
             {hit.label}
           </text>
         )
@@ -173,13 +176,15 @@ const INVERSION_LABELS = ['Position fondamentale', '1ᵉʳ renversement', '2ᵉ 
 /** Calcule les positions (absolues, octave 0 = grave) du voicing pour chaque renversement. */
 function computeInversions(pcs: number[], rootPc: number, count: number) {
   const result: { label: string; positions: HitNote[]; notesText: string }[] = []
+  const order = [...Array(pcs.length).keys()]   // index d'origine de chaque note
   for (let k = 0; k < count; k++) {
-    const rotated = [...pcs.slice(k), ...pcs.slice(0, k)]
+    const rotatedIdx = [...order.slice(k), ...order.slice(0, k)]
     const positions: HitNote[] = []
-    rotated.forEach((pc, i) => {
+    rotatedIdx.forEach((origIdx, i) => {
+      const pc = pcs[origIdx]
       let p = pc
       if (i > 0) while (p <= positions[i - 1].pos) p += 12
-      positions.push({ pos: p, label: '', isRoot: pc === rootPc })
+      positions.push({ pos: p, label: '', isRoot: pc === rootPc, colorIdx: origIdx })
     })
     result.push({ label: INVERSION_LABELS[k] ?? `${k + 1}ᵉ renversement`, positions, notesText: '' })
   }
@@ -226,17 +231,6 @@ export default function AccordsPage() {
   const keyboardOctaves = Math.max(2, Math.ceil((maxPos + 1) / 12))
 
   const chordName = `${root.label}${chordType.symbol}`
-
-  // Note bubble colors by position in chord
-  const NOTE_COLORS = [
-    'bg-indigo-500 text-white',
-    'bg-blue-500 text-white',
-    'bg-violet-500 text-white',
-    'bg-sky-500 text-white',
-    'bg-teal-500 text-white',
-    'bg-purple-500 text-white',
-    'bg-cyan-500 text-white',
-  ]
 
   return (
     <div>
@@ -337,7 +331,7 @@ export default function AccordsPage() {
             <div className="flex flex-wrap gap-3">
               {chordNotes.map((note, i) => (
                 <div key={i} className="flex flex-col items-center gap-1">
-                  <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center shadow-sm ${NOTE_COLORS[i % NOTE_COLORS.length]}`}>
+                  <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center shadow-sm text-white" style={{ background: NOTE_HEX[i % NOTE_HEX.length] }}>
                     <span className="text-lg font-black leading-none">{note.letter}</span>
                     <span className="text-[10px] font-medium opacity-80 mt-0.5">{note.solfege}</span>
                   </div>
@@ -366,15 +360,15 @@ export default function AccordsPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Positions & renversements</p>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3.5 h-3.5 rounded" style={{ background: '#f59e0b' }} />
-                  <span className="text-[11px] text-gray-500">Fondamentale (basse)</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3.5 h-3.5 rounded" style={{ background: '#3b82f6' }} />
-                  <span className="text-[11px] text-gray-500">Autres notes</span>
-                </div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {chordNotes.map((note, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <div className="w-3.5 h-3.5 rounded" style={{ background: NOTE_HEX[i % NOTE_HEX.length] }} />
+                    <span className="text-[11px] text-gray-500">
+                      {note.letter}{i === 0 ? ' (fond.)' : ''}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
