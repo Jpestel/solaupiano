@@ -91,7 +91,8 @@ export async function POST(req: NextRequest) {
       hasCoChefs: Boolean(hasCoChefs ?? true),
       hasPrioritySupport: Boolean(hasPrioritySupport ?? false),
       hasStats: Boolean(hasStats ?? false),
-      hasFileSubmissions: Boolean(hasFileSubmissions ?? true),
+      // L'upload de fichiers est possible ⟺ quota de stockage > 0 (source unique de vérité)
+      hasFileSubmissions: Number(storageGb ?? 1) > 0,
       color: String(color ?? 'gray'),
     },
   })

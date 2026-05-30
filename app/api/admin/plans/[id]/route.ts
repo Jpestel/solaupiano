@@ -49,7 +49,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(hasCoChefs !== undefined && { hasCoChefs: Boolean(hasCoChefs) }),
       ...(hasPrioritySupport !== undefined && { hasPrioritySupport: Boolean(hasPrioritySupport) }),
       ...(hasStats !== undefined && { hasStats: Boolean(hasStats) }),
-      ...(hasFileSubmissions !== undefined && { hasFileSubmissions: Boolean(hasFileSubmissions) }),
+      // hasFileSubmissions est dérivé du quota : upload possible ⟺ stockage > 0
+      ...(storageGb !== undefined && { hasFileSubmissions: Number(storageGb) > 0 }),
       ...(color !== undefined && { color: String(color) }),
       ...(stripePriceId !== undefined && { stripePriceId: stripePriceId ? String(stripePriceId) : null }),
     },

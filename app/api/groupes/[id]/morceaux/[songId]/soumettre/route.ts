@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { detectResourceType } from '@/lib/utils'
+import { getGroupStorageInfo } from '@/lib/storage'
 import { Resend } from 'resend'
 import formidable from 'formidable'
 import fs from 'fs'
@@ -34,6 +35,15 @@ export async function POST(
     return NextResponse.json({ error: 'Morceau introuvable.' }, { status: 404 })
   }
 
+  // Règle unique : l'ajout de fichiers nécessite un quota de stockage > 0
+  const storageInfo = await getGroupStorageInfo(groupId)
+  if (storageInfo.limitBytes <= 0) {
+    return NextResponse.json({
+      error: "L'ajout de fichiers n'est pas disponible avec ce plan (quota de stockage à 0).",
+      code: 'PLAN_FEATURE_LOCKED',
+    }, { status: 403 })
+  }
+
   // Upload file
   const uploadDir = path.join(process.env.UPLOAD_DIR?.replace('./public', '') ? './public/uploads/pending' : './public/uploads/pending')
   if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
@@ -58,6 +68,21 @@ export async function POST(
 
   const uploadedFile = Array.isArray(files.file) ? files.file[0] : files.file
   if (!uploadedFile) return NextResponse.json({ error: 'Aucun fichier reçu.' }, { status: 400 })
+
+  // Espace restant (compte aussi les soumissions déjà en attente pour ce groupe)
+  const fileSize = uploadedFile.size || 0
+  const pendingAgg = await prisma.pendingResource.aggregate({
+    where: { groupId },
+    _sum: { fileSize: true },
+  })
+  const pendingBytes = Number(pendingAgg._sum.fileSize ?? 0)
+  if (storageInfo.usedBytes + pendingBytes + fileSize > storageInfo.limitBytes) {
+    fs.unlinkSync(uploadedFile.filepath)
+    return NextResponse.json({
+      error: `Quota de stockage dépassé (limite : ${storageInfo.limitGb} Go, soumissions en attente incluses).`,
+      code: 'STORAGE_QUOTA_EXCEEDED',
+    }, { status: 413 })
+  }
 
   const nameField = Array.isArray(fields.name) ? fields.name[0] : fields.name
   const typeField = Array.isArray(fields.type) ? fields.type[0] : fields.type

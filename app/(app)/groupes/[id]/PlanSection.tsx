@@ -185,7 +185,7 @@ export function PlanSection({
             )}
           </div>
           <span className="text-sm text-gray-500">
-            {formatBytes(usedBytes)} / {storageLimitGb} Go
+            {formatBytes(usedBytes)} / {formatBytes(storageLimitGb * 1024 * 1024 * 1024)}
           </span>
         </div>
         <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">

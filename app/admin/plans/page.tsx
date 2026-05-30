@@ -622,9 +622,34 @@ export default function AdminPlansPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="form-label">Stockage (Go) <span className="text-red-500">*</span></label>
-                        <input type="number" step="0.5" min="0" value={form.storageGb}
+                        <input type="number" step="0.01" min="0" value={form.storageGb}
                           onChange={(e) => set('storageGb', e.target.value)}
                           className="form-input" />
+                        {/* Préréglages rapides */}
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {[
+                            { label: '0 (aucun)', gb: '0' },
+                            { label: '20 Mo', gb: String(20 / 1024) },
+                            { label: '100 Mo', gb: String(100 / 1024) },
+                            { label: '500 Mo', gb: String(500 / 1024) },
+                            { label: '1 Go', gb: '1' },
+                            { label: '5 Go', gb: '5' },
+                            { label: '10 Go', gb: '10' },
+                          ].map(p => (
+                            <button key={p.label} type="button" onClick={() => set('storageGb', p.gb)}
+                              className="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          {(() => {
+                            const gb = Number(form.storageGb)
+                            if (!gb || gb <= 0) return '⛔ Quota à 0 → upload de fichiers impossible pour ce plan.'
+                            const mo = gb * 1024
+                            return mo < 1024 ? `≈ ${Math.round(mo)} Mo — upload activé` : `${gb} Go — upload activé`
+                          })()}
+                        </p>
                       </div>
                       <div>
                         <label className="form-label">Groupes créés max <span className="text-red-500">*</span></label>
@@ -688,7 +713,13 @@ export default function AdminPlansPage() {
                         <ToggleFeature label="Setlists" icon="🎶" checked={form.hasSetlists} onChange={(v) => set('hasSetlists', v)} />
                         <ToggleFeature label="Fiche technique" icon="📋" checked={form.hasFicheTechnique} onChange={(v) => set('hasFicheTechnique', v)} />
                         <ToggleFeature label="Page publique" icon="🌐" checked={form.hasMaPage} onChange={(v) => set('hasMaPage', v)} />
-                        <ToggleFeature label="Soumissions fichiers" icon="📬" checked={form.hasFileSubmissions} onChange={(v) => set('hasFileSubmissions', v)} />
+                        {/* Upload de fichiers : dérivé automatiquement du quota (Go > 0) */}
+                        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                          <span className="text-sm text-gray-600">📬 Upload de fichiers</span>
+                          <span className={`text-xs font-semibold ${Number(form.storageGb) > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                            {Number(form.storageGb) > 0 ? 'Activé (quota > 0)' : 'Désactivé (quota 0)'}
+                          </span>
+                        </div>
                         <ToggleFeature label="Gestion des co-chefs" icon="👥" checked={form.hasCoChefs} onChange={(v) => set('hasCoChefs', v)} />
                         <ToggleFeature label="Support prioritaire" icon="⭐" checked={form.hasPrioritySupport} onChange={(v) => set('hasPrioritySupport', v)} />
                         <ToggleFeature label="Statistiques avancées" icon="📊" checked={form.hasStats} onChange={(v) => set('hasStats', v)} />

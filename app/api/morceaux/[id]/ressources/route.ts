@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { detectResourceType } from '@/lib/utils'
-import { PLANS } from '@/lib/plans'
 import { coChefCanDo } from '@/lib/permissions'
 import { getGroupStorageInfo, GB } from '@/lib/storage'
 import formidable from 'formidable'
@@ -61,10 +60,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
   if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
 
-  // Check if plan allows file uploads (applies to file uploads only, not URL links)
-  const dbPlan = await prisma.plan.findUnique({ where: { key: group.plan }, select: { hasFileSubmissions: true } })
-  const planAllowsUploads = isAdmin || !dbPlan || dbPlan.hasFileSubmissions
-
   // Co-chef permission check
   if (!isAdmin && membership?.groupRole === 'CHEF') {
     if (!coChefCanDo(group, userId, isAdmin, 'ressources', 'create')) {
@@ -72,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   }
 
-  // JSON body = URL resource
+  // JSON body = URL resource (lien — ne consomme aucun stockage, toujours autorisé)
   const contentType = req.headers.get('content-type') || ''
   if (contentType.includes('application/json')) {
     const { url, name } = await req.json()
@@ -90,10 +85,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(resource, { status: 201 })
   }
 
-  // Block file upload if plan doesn't allow it
-  if (!planAllowsUploads) {
+  // ── Upload de fichier : règle unique = quota effectif > 0 ──────────────────
+  const storageInfo = await getGroupStorageInfo(song.groupId)
+  if (storageInfo.limitBytes <= 0) {
     return NextResponse.json({
-      error: 'L\'upload de fichiers n\'est pas disponible avec votre plan actuel. Passez au plan Pro pour partager des partitions et ressources avec votre groupe.',
+      error: "L'ajout de fichiers n'est pas disponible avec ce plan (quota de stockage à 0). Passez à un plan avec stockage pour partager des partitions et ressources.",
       code: 'PLAN_FEATURE_LOCKED',
     }, { status: 403 })
   }
@@ -134,9 +130,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Aucun fichier reçu.' }, { status: 400 })
     }
 
-    // Check storage quota — shared across all founder's groups (or per-group if override set)
+    // Check storage quota — réutilise storageInfo calculé plus haut
     const fileSize = uploadedFile.size || 0
-    const storageInfo = await getGroupStorageInfo(song.groupId)
     if (storageInfo.usedBytes + fileSize > storageInfo.limitBytes) {
       fs.unlinkSync(uploadedFile.filepath) // clean up tmp file
       const label = storageInfo.hasOverride

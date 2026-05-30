@@ -107,6 +107,16 @@ export async function getGroupStorageInfo(groupId: number): Promise<StorageInfo>
   }
 }
 
+/** L'ajout de fichiers est-il possible ? (quota effectif strictement > 0) */
+export function uploadsEnabled(info: StorageInfo): boolean {
+  return info.limitBytes > 0
+}
+
+/** Espace restant en octets (jamais négatif) */
+export function remainingBytes(info: StorageInfo): number {
+  return Math.max(0, info.limitBytes - info.usedBytes)
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`
