@@ -345,7 +345,7 @@ export default function KilometriqueCalculatorPage() {
             <td>${fmtL(results.vehicleRows.reduce((s,v)=>s+v.litres,0))}</td>
             <td>${fmt(results.totalFuel)}</td>
             <td>${results.totalTolls > 0 ? fmt(results.totalTolls) : '—'}</td>
-            <td>${fmt(results.grandTotal)}</td>
+            <td>${fmt(results.totalFrais)}</td>
           </tr>
         </tbody>
       </table>
