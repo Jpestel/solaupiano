@@ -79,6 +79,7 @@ export default function AdminPlansPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPlan, setEditingPlan] = useState<PlanWithCount | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
+  const [storageUnit, setStorageUnit] = useState<'Mo' | 'Go'>('Go')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<PlanWithCount | null>(null)
@@ -151,6 +152,7 @@ export default function AdminPlansPage() {
   const openCreate = () => {
     setEditingPlan(null)
     setForm({ ...EMPTY_FORM, sortOrder: plans.length })
+    setStorageUnit('Go')
     setError('')
     setTab('general')
     const defaults: Record<string, boolean> = {}
@@ -162,6 +164,8 @@ export default function AdminPlansPage() {
   const openEdit = (p: PlanWithCount) => {
     setEditingPlan(p)
     setForm(planToForm(p))
+    // Affiche en Mo si quota < 1 Go (et > 0), sinon en Go
+    setStorageUnit(p.storageGb > 0 && p.storageGb < 1 ? 'Mo' : 'Go')
     setError('')
     setTab('general')
     setModalOpen(true)
@@ -621,22 +625,45 @@ export default function AdminPlansPage() {
                     </p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="form-label">Stockage (Go) <span className="text-red-500">*</span></label>
-                        <input type="number" step="0.01" min="0" value={form.storageGb}
-                          onChange={(e) => set('storageGb', e.target.value)}
-                          className="form-input" />
+                        <label className="form-label">Stockage <span className="text-red-500">*</span></label>
+                        {/* Valeur affichée selon l'unité choisie ; stockage interne en Go (Float) */}
+                        <div className="flex gap-2">
+                          <input
+                            type="number" step={storageUnit === 'Mo' ? '1' : '0.5'} min="0"
+                            value={(() => {
+                              const gb = Number(form.storageGb) || 0
+                              const v = storageUnit === 'Mo' ? gb * 1024 : gb
+                              // évite les flottants moches (20.000000001)
+                              return Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100)
+                            })()}
+                            onChange={(e) => {
+                              const num = Number(e.target.value)
+                              const gb = storageUnit === 'Mo' ? num / 1024 : num
+                              set('storageGb', String(gb))
+                            }}
+                            className="form-input flex-1" />
+                          <select
+                            value={storageUnit}
+                            onChange={(e) => setStorageUnit(e.target.value as 'Mo' | 'Go')}
+                            className="form-input w-20 flex-shrink-0"
+                          >
+                            <option value="Mo">Mo</option>
+                            <option value="Go">Go</option>
+                          </select>
+                        </div>
                         {/* Préréglages rapides */}
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           {[
-                            { label: '0 (aucun)', gb: '0' },
-                            { label: '20 Mo', gb: String(20 / 1024) },
-                            { label: '100 Mo', gb: String(100 / 1024) },
-                            { label: '500 Mo', gb: String(500 / 1024) },
-                            { label: '1 Go', gb: '1' },
-                            { label: '5 Go', gb: '5' },
-                            { label: '10 Go', gb: '10' },
+                            { label: '0 (aucun)', gb: 0,        unit: 'Go' as const },
+                            { label: '20 Mo',     gb: 20 / 1024, unit: 'Mo' as const },
+                            { label: '100 Mo',    gb: 100 / 1024, unit: 'Mo' as const },
+                            { label: '500 Mo',    gb: 500 / 1024, unit: 'Mo' as const },
+                            { label: '1 Go',      gb: 1,        unit: 'Go' as const },
+                            { label: '5 Go',      gb: 5,        unit: 'Go' as const },
+                            { label: '10 Go',     gb: 10,       unit: 'Go' as const },
                           ].map(p => (
-                            <button key={p.label} type="button" onClick={() => set('storageGb', p.gb)}
+                            <button key={p.label} type="button"
+                              onClick={() => { set('storageGb', String(p.gb)); setStorageUnit(p.unit) }}
                               className="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
                               {p.label}
                             </button>
@@ -647,7 +674,7 @@ export default function AdminPlansPage() {
                             const gb = Number(form.storageGb)
                             if (!gb || gb <= 0) return '⛔ Quota à 0 → upload de fichiers impossible pour ce plan.'
                             const mo = gb * 1024
-                            return mo < 1024 ? `≈ ${Math.round(mo)} Mo — upload activé` : `${gb} Go — upload activé`
+                            return mo < 1024 ? `≈ ${Math.round(mo)} Mo — upload de fichiers activé` : `${gb % 1 === 0 ? gb : gb.toFixed(2)} Go — upload de fichiers activé`
                           })()}
                         </p>
                       </div>
