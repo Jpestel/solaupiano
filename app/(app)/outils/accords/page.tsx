@@ -368,11 +368,11 @@ export default function AccordsPage() {
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Positions & renversements</p>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-3.5 h-3.5 rounded bg-amber-500" />
+                  <div className="w-3.5 h-3.5 rounded" style={{ background: '#f59e0b' }} />
                   <span className="text-[11px] text-gray-500">Fondamentale (basse)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-3.5 h-3.5 rounded bg-indigo-500" />
+                  <div className="w-3.5 h-3.5 rounded" style={{ background: '#6366f1' }} />
                   <span className="text-[11px] text-gray-500">Autres notes</span>
                 </div>
               </div>
