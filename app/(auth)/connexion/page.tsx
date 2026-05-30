@@ -44,6 +44,8 @@ function ConnexionForm() {
     }
 
     setLoading(false)
+    // Signale à WakeUpOverlay qu'une reconnexion vient d'avoir lieu
+    sessionStorage.setItem('wakeup_pending', 'true')
     router.push(callbackUrl)
     router.refresh()
   }

@@ -99,6 +99,17 @@ export function WakeUpOverlay() {
     }
   }
 
+  // ── Déclencheur au login (flag posé par la page connexion) ─────────────────
+  useEffect(() => {
+    const pending = sessionStorage.getItem('wakeup_pending')
+    if (pending) {
+      sessionStorage.removeItem('wakeup_pending')
+      checkAndShow()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Déclencheur au réveil (onglet redevient visible après 15 min) ───────────
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
