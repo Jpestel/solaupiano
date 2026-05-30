@@ -30,7 +30,7 @@ export default async function PublicHomePage() {
 
   const [concerts, groupsLooking] = await Promise.all([
     prisma.concert.findMany({
-      where: { date: { gte: now }, isPublic: true, group: { isPublic: true, isHidden: false } },
+      where: { date: { gte: now }, isPublic: true },
       orderBy: { date: 'asc' },
       take: 15,
       include: { group: { select: { name: true, groupPage: { select: { slug: true, published: true } } } } },
