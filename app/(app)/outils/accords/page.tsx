@@ -127,8 +127,8 @@ function MiniPiano({ positions, octaves }: { positions: HitNote[]; octaves: numb
         const hit = posMap.get(k.abs)
         return (
           <rect key={`w-${i}`} x={k.x + 0.5} y={0.5} width={MW - 1} height={MH} rx={3}
-            fill={hit ? (hit.isRoot ? '#f59e0b' : '#6366f1') : '#fff'}
-            stroke={hit ? (hit.isRoot ? '#b45309' : '#4338ca') : '#d1d5db'} strokeWidth={1} />
+            fill={hit ? (hit.isRoot ? '#f59e0b' : '#3b82f6') : '#fff'}
+            stroke={hit ? (hit.isRoot ? '#b45309' : '#1d4ed8') : '#d1d5db'} strokeWidth={1} />
         )
       })}
       {/* Black keys */}
@@ -136,8 +136,8 @@ function MiniPiano({ positions, octaves }: { positions: HitNote[]; octaves: numb
         const hit = posMap.get(k.abs)
         return (
           <rect key={`b-${i}`} x={k.x} y={0} width={MBW} height={MBH} rx={2}
-            fill={hit ? (hit.isRoot ? '#fbbf24' : '#818cf8') : '#1f2937'}
-            stroke={hit ? (hit.isRoot ? '#b45309' : '#4338ca') : '#111827'} strokeWidth={1} />
+            fill={hit ? (hit.isRoot ? '#fbbf24' : '#60a5fa') : '#1f2937'}
+            stroke={hit ? (hit.isRoot ? '#b45309' : '#1d4ed8') : '#111827'} strokeWidth={1} />
         )
       })}
       {/* Labels on highlighted white keys */}
@@ -372,7 +372,7 @@ export default function AccordsPage() {
                   <span className="text-[11px] text-gray-500">Fondamentale (basse)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-3.5 h-3.5 rounded" style={{ background: '#6366f1' }} />
+                  <div className="w-3.5 h-3.5 rounded" style={{ background: '#3b82f6' }} />
                   <span className="text-[11px] text-gray-500">Autres notes</span>
                 </div>
               </div>
