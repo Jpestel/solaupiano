@@ -1425,7 +1425,7 @@ export default async function AidePage() {
                   <Step n={2}>Cliquez sur <strong>💾 Sauvegarder</strong>, nommez la simulation et choisissez le concert à lier dans le menu déroulant.</Step>
                   <Step n={3}>La simulation apparaît sur la carte du concert avec le résumé financier (coût employeur / net musiciens).</Step>
                 </ol>
-                <Note>La sauvegarde des simulations est réservée aux <strong>forfaits incluant du stockage</strong>. Les co-chefs peuvent créer des estimations si le fondateur leur en a accordé la permission.</Note>
+                <Note>La sauvegarde des simulations est réservée aux <strong>forfaits incluant du stockage</strong> (plan personnel ou plan du groupe). Pour les co-chefs, le fondateur contrôle chaque action séparément depuis <em>Permissions des co-chefs</em> : <strong>Créer</strong> (enregistrer une estimation), <strong>Sauvegarder</strong> (la lier à un concert), <strong>Modifier</strong> et <strong>Supprimer</strong>.</Note>
               </HelpCard>
             )}
             <HelpCard title="À quoi sert le simulateur cachet GUSO ?">

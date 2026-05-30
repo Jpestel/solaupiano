@@ -16,6 +16,9 @@ export type StatsPermissions = {
 
 export type EstimationPermissions = {
   create: boolean
+  save: boolean
+  update: boolean
+  delete: boolean
 }
 
 export type ChefPermissions = {
@@ -39,7 +42,7 @@ export const DEFAULT_PERMISSIONS: ChefPermissions = {
   grilles:     { create: true, update: true, delete: true },
   membres:     { add: true,    remove: true, promote: true },
   stats:       { view: true },
-  estimations: { create: true },
+  estimations: { create: true, save: true, update: true, delete: true },
 }
 
 /** Merge saved JSON over defaults (unknown fields are ignored, missing fields get defaults). */
@@ -105,6 +108,7 @@ export const MODULE_ICONS: Record<keyof ChefPermissions, string> = {
 
 export const ACTION_LABELS: Record<string, string> = {
   create:  'Créer',
+  save:    'Sauvegarder',
   update:  'Modifier',
   delete:  'Supprimer',
   add:     'Ajouter',

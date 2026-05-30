@@ -115,11 +115,13 @@ export default function KilometriqueCalculatorPage() {
 
   // ── Simulations sauvegardées ─────────────────────────────────────────────────
   interface SavedSim { id: number; label: string; updatedAt: string; data: any }
-  const [canSave,    setCanSave]    = useState(false)
+  interface Access { storage: boolean; create: boolean; save: boolean; update: boolean; delete: boolean }
+  const [access,     setAccess]     = useState<Access>({ storage: false, create: false, save: false, update: false, delete: false })
   const [savedSims,  setSavedSims]  = useState<SavedSim[]>([])
   const [saveLabel,    setSaveLabel]    = useState('')
   const [saveOpen,     setSaveOpen]     = useState(false)
   const [savingState,  setSavingState]  = useState(false)
+  const [saveError,    setSaveError]    = useState('')
   const [simsOpen,     setSimsOpen]     = useState(false)
   const [saveConcertId, setSaveConcertId] = useState<number | ''>('')
   const [userConcerts,  setUserConcerts]  = useState<{id: number; name: string; date: string; groupName: string}[]>([])
@@ -127,7 +129,7 @@ export default function KilometriqueCalculatorPage() {
   // Charge les capacités + simulations existantes au montage
   useEffect(() => {
     fetch('/api/me/simulations').then(r => r.json()).then(d => {
-      setCanSave(d.canSave ?? false)
+      if (d.access) setAccess(d.access)
       setSavedSims(d.simulations ?? [])
     }).catch(() => {})
   }, [])
@@ -151,6 +153,7 @@ export default function KilometriqueCalculatorPage() {
   const handleSave = async () => {
     if (!saveLabel.trim()) return
     setSavingState(true)
+    setSaveError('')
     const res = await fetch('/api/me/simulations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -166,6 +169,9 @@ export default function KilometriqueCalculatorPage() {
       setSavedSims(prev => [sim, ...prev])
       setSaveOpen(false)
       setSaveLabel('')
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setSaveError(d.error || 'Erreur lors de la sauvegarde.')
     }
   }
 
@@ -188,8 +194,9 @@ export default function KilometriqueCalculatorPage() {
   }
 
   const handleDelete = async (id: number) => {
-    await fetch(`/api/me/simulations/${id}`, { method: 'DELETE' })
-    setSavedSims(prev => prev.filter(s => s.id !== id))
+    const res = await fetch(`/api/me/simulations/${id}`, { method: 'DELETE' })
+    if (res.ok) setSavedSims(prev => prev.filter(s => s.id !== id))
+    else { const d = await res.json().catch(() => ({})); alert(d.error || 'Suppression impossible.') }
   }
 
   // ── Route search ────────────────────────────────────────────────────────────
@@ -445,14 +452,18 @@ export default function KilometriqueCalculatorPage() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
 
           {/* Bouton sauvegarder */}
-          {canSave ? (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={openSaveModal}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
-              >
-                💾 Sauvegarder cette simulation
-              </button>
+          {access.storage ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              {access.create ? (
+                <button
+                  onClick={openSaveModal}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                >
+                  💾 Sauvegarder cette simulation
+                </button>
+              ) : (
+                <span className="text-xs text-gray-400">🔒 Le fondateur ne vous autorise pas à créer des estimations.</span>
+              )}
               {savedSims.length > 0 && (
                 <button
                   onClick={() => setSimsOpen(v => !v)}
@@ -488,12 +499,15 @@ export default function KilometriqueCalculatorPage() {
                 >
                   Charger
                 </button>
-                <button
-                  onClick={() => handleDelete(s.id)}
-                  className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0"
-                >
-                  ×
-                </button>
+                {access.delete && (
+                  <button
+                    onClick={() => handleDelete(s.id)}
+                    className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0"
+                    title="Supprimer"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -1036,6 +1050,10 @@ export default function KilometriqueCalculatorPage() {
               <p className="text-xs text-gray-500">Donnez un nom et associez éventuellement cette estimation à un concert.</p>
             </div>
 
+            {saveError && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{saveError}</div>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Nom de la simulation <span className="text-red-500">*</span></label>
               <input
@@ -1051,27 +1069,29 @@ export default function KilometriqueCalculatorPage() {
             </div>
 
             {/* Lien optionnel avec un concert */}
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                🎭 Lier à un concert <span className="text-gray-400 font-normal">(optionnel)</span>
-              </label>
-              {userConcerts.length > 0 ? (
-                <select
-                  value={saveConcertId}
-                  onChange={e => setSaveConcertId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">— Aucun concert —</option>
-                  {userConcerts.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} · {c.groupName} · {new Date(c.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p className="text-xs text-gray-400 italic">Aucun concert à venir trouvé dans vos groupes.</p>
-              )}
-            </div>
+            {access.save && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  🎭 Lier à un concert <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                {userConcerts.length > 0 ? (
+                  <select
+                    value={saveConcertId}
+                    onChange={e => setSaveConcertId(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">— Aucun concert —</option>
+                    {userConcerts.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} · {c.groupName} · {new Date(c.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Aucun concert à venir trouvé dans vos groupes.</p>
+                )}
+              </div>
+            )}
 
             <div className="flex gap-3 pt-1">
               <button

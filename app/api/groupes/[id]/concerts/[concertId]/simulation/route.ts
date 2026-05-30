@@ -41,8 +41,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Réservé au chef du groupe.' }, { status: 403 })
   }
   const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
-  if (grp && !coChefCanDo(grp, userId, isAdmin, 'estimations', 'create')) {
-    return NextResponse.json({ error: 'Le fondateur ne vous autorise pas à créer des estimations.' }, { status: 403 })
+  if (grp && !coChefCanDo(grp, userId, isAdmin, 'estimations', 'save')) {
+    return NextResponse.json({ error: 'Le fondateur ne vous autorise pas à lier une estimation à un concert.' }, { status: 403 })
   }
   const { simulationId } = await req.json()
 

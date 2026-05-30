@@ -57,6 +57,7 @@ export function PermissionsSettings({ groupId, initialPermissions }: Permissions
     grilles:     '🎸',
     membres:     '👥',
     stats:       '📊',
+    estimations: '💰',
   }
 
   return (
