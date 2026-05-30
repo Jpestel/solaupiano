@@ -12,6 +12,7 @@ import { GroupCoverUpload } from './GroupCoverUpload'
 import { PermissionsSettings } from './PermissionsSettings'
 import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
 import { getGroupStorageInfo } from '@/lib/storage'
+import { TchatBadge } from '@/components/ui/TchatBadge'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -230,6 +231,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             iconBg: 'bg-teal-100', textColor: 'text-teal-700', border: 'border-teal-200 hover:border-teal-400 hover:bg-teal-50/60',
             chefDesc: 'Créer la page web', memberDesc: 'Voir la page',
           },
+          {
+            href: 'tchat', label: 'Tchat', icon: '💬',
+            iconBg: 'bg-pink-100', textColor: 'text-pink-700', border: 'border-pink-200 hover:border-pink-400 hover:bg-pink-50/60',
+            chefDesc: 'Messagerie du groupe', memberDesc: 'Messagerie du groupe',
+          },
         ] as const).map((link) => (
           <Link
             key={link.href}
@@ -248,8 +254,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             <svg className={`w-3.5 h-3.5 flex-shrink-0 opacity-30 group-hover:opacity-60 group-hover:translate-x-0.5 transition-all ${link.textColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            {isChef && (
+            {isChef && link.href !== 'tchat' && (
               <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white text-[9px] font-bold flex items-center justify-center shadow-sm">+</span>
+            )}
+            {link.href === 'tchat' && (
+              <TchatBadge groupId={String(groupId)} />
             )}
           </Link>
         ))}

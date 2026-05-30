@@ -152,6 +152,7 @@ model User {
   autoReminders            RehearsalAutoReminder[]
   annonces                 Annonce[]
   moduleUserOverrides      ModuleUserOverride[]
+  groupMessages            GroupMessage[]
   supportTickets           SupportTicket[]
 }
 
@@ -202,6 +203,7 @@ model Group {
   groupPage        GroupPage?
   pendingResources PendingResource[]
   moduleGroupOverrides ModuleGroupOverride[]
+  messages         GroupMessage[]
 }
 
 model GroupPage {
@@ -625,4 +627,18 @@ model Tutorial {
   published     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model GroupMessage {
+  id        Int       @id @default(autoincrement())
+  groupId   Int
+  userId    Int
+  content   String    @db.Text
+  editedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
 }
