@@ -60,16 +60,21 @@ export function PendingResourceUploader({ groupId, songId, onSubmit }: PendingRe
         if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100))
       })
       await new Promise<void>((resolve, reject) => {
-        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(xhr.responseText)))
-        xhr.onerror = () => reject(new Error('Erreur réseau'))
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) return resolve()
+          let msg = 'Erreur lors de la soumission. Veuillez réessayer.'
+          try { const d = JSON.parse(xhr.responseText); if (d?.error) msg = d.error } catch {}
+          reject(new Error(msg))
+        }
+        xhr.onerror = () => reject(new Error('Erreur réseau — vérifiez votre connexion.'))
         xhr.open('POST', `/api/groupes/${groupId}/morceaux/${songId}/soumettre`)
         xhr.send(formData)
       })
       setSuccess('Fichier soumis au chef pour validation !')
       resetState()
       onSubmit?.()
-    } catch {
-      setError('Erreur lors de la soumission. Veuillez réessayer.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur lors de la soumission. Veuillez réessayer.')
     } finally {
       setUploading(false)
     }

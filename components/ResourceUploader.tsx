@@ -71,16 +71,22 @@ export function ResourceUploader({ songId, onUpload, uploadEnabled = true }: Res
         if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100))
       })
       await new Promise<void>((resolve, reject) => {
-        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(xhr.responseText)))
-        xhr.onerror = () => reject(new Error('Erreur réseau'))
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) return resolve()
+          // Récupère le message d'erreur précis renvoyé par le serveur
+          let msg = 'Erreur lors du téléversement. Veuillez réessayer.'
+          try { const d = JSON.parse(xhr.responseText); if (d?.error) msg = d.error } catch {}
+          reject(new Error(msg))
+        }
+        xhr.onerror = () => reject(new Error('Erreur réseau — vérifiez votre connexion.'))
         xhr.open('POST', `/api/morceaux/${songId}/ressources`)
         xhr.send(formData)
       })
       setSuccess('Fichier téléversé avec succès !')
       resetState()
       onUpload?.()
-    } catch {
-      setError('Erreur lors du téléversement. Veuillez réessayer.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur lors du téléversement. Veuillez réessayer.')
     } finally {
       setUploading(false)
     }
