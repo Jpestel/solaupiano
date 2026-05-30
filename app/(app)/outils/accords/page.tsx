@@ -86,112 +86,104 @@ const CHORD_GROUPS: { name: string; types: ChordType[] }[] = [
   },
 ]
 
-// ─── Piano keyboard ────────────────────────────────────────────────────────────
-const W = 28  // white key width
-const H = 76  // white key height
-const BW = 17 // black key width
-const BH = 48 // black key height
+// ─── Mini piano keyboard (par renversement) ────────────────────────────────────
+const MW = 22  // white key width
+const MH = 66  // white key height
+const MBW = 13 // black key width
+const MBH = 42 // black key height
 
-// White key order within an octave: semitone index
-const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11] // C D E F G A B
+const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11] // C D E F G A B (semitone index)
 
-// Black key positions per octave: semitone → x offset within octave
 const BLACK_KEY_OFFSETS: Record<number, number> = {
-  1:  Math.round(W * 0.63 - BW / 2),   // C#
-  3:  Math.round(W * 1.63 - BW / 2),   // D#
-  6:  Math.round(W * 3.63 - BW / 2),   // F#
-  8:  Math.round(W * 4.57 - BW / 2),   // G#
-  10: Math.round(W * 5.57 - BW / 2),   // A#
+  1:  Math.round(MW * 0.63 - MBW / 2),   // C#
+  3:  Math.round(MW * 1.63 - MBW / 2),   // D#
+  6:  Math.round(MW * 3.63 - MBW / 2),   // F#
+  8:  Math.round(MW * 4.57 - MBW / 2),   // G#
+  10: Math.round(MW * 5.57 - MBW / 2),   // A#
 }
 
-const OCTAVE_W = WHITE_KEYS.length * W // 196px per octave
-const NUM_OCTAVES = 2
-const TOTAL_W = NUM_OCTAVES * OCTAVE_W + 1
+const MINI_OCT_W = WHITE_KEYS.length * MW
 
-interface PianoProps {
-  highlightedSemitones: Set<number>
-}
+interface HitNote { pos: number; label: string; isRoot: boolean }
 
-function PianoKeyboard({ highlightedSemitones }: PianoProps) {
-  // Build white and black key data for 2 octaves (C3, C4)
-  const whiteKeys: { x: number; semitone: number; label: string; useFlat: boolean }[] = []
-  const blackKeys: { x: number; semitone: number }[] = []
+function MiniPiano({ positions, octaves }: { positions: HitNote[]; octaves: number }) {
+  const posMap = new Map(positions.map((p) => [p.pos, p]))
+  const totalW = octaves * MINI_OCT_W + 1
 
-  for (let oct = 0; oct < NUM_OCTAVES; oct++) {
-    const octX = oct * OCTAVE_W
-    WHITE_KEYS.forEach((semitone, wIdx) => {
-      whiteKeys.push({ x: octX + wIdx * W, semitone, label: '', useFlat: false })
-    })
-    Object.entries(BLACK_KEY_OFFSETS).forEach(([st, offset]) => {
-      blackKeys.push({ x: octX + offset, semitone: Number(st) })
-    })
+  const whiteKeys: { x: number; abs: number }[] = []
+  const blackKeys: { x: number; abs: number }[] = []
+  for (let oct = 0; oct < octaves; oct++) {
+    const octX = oct * MINI_OCT_W
+    WHITE_KEYS.forEach((st, wi) => whiteKeys.push({ x: octX + wi * MW, abs: oct * 12 + st }))
+    Object.entries(BLACK_KEY_OFFSETS).forEach(([st, off]) =>
+      blackKeys.push({ x: octX + off, abs: oct * 12 + Number(st) })
+    )
   }
 
   return (
-    <svg
-      width={TOTAL_W}
-      height={H + 2}
-      viewBox={`0 0 ${TOTAL_W} ${H + 2}`}
-      className="overflow-visible"
-    >
+    <svg width={totalW} height={MH + 2} viewBox={`0 0 ${totalW} ${MH + 2}`} className="overflow-visible">
       {/* White keys */}
       {whiteKeys.map((k, i) => {
-        const highlighted = highlightedSemitones.has(k.semitone)
+        const hit = posMap.get(k.abs)
         return (
-          <rect
-            key={`w-${i}`}
-            x={k.x + 0.5}
-            y={0.5}
-            width={W - 1}
-            height={H}
-            rx={3}
-            fill={highlighted ? '#6366f1' : '#fff'}
-            stroke={highlighted ? '#4338ca' : '#d1d5db'}
-            strokeWidth={1}
-          />
+          <rect key={`w-${i}`} x={k.x + 0.5} y={0.5} width={MW - 1} height={MH} rx={3}
+            fill={hit ? (hit.isRoot ? '#f59e0b' : '#6366f1') : '#fff'}
+            stroke={hit ? (hit.isRoot ? '#b45309' : '#4338ca') : '#d1d5db'} strokeWidth={1} />
         )
       })}
-
       {/* Black keys */}
       {blackKeys.map((k, i) => {
-        const highlighted = highlightedSemitones.has(k.semitone)
+        const hit = posMap.get(k.abs)
         return (
-          <rect
-            key={`b-${i}`}
-            x={k.x}
-            y={0}
-            width={BW}
-            height={BH}
-            rx={2}
-            fill={highlighted ? '#818cf8' : '#1f2937'}
-            stroke={highlighted ? '#4338ca' : '#111827'}
-            strokeWidth={1}
-          />
+          <rect key={`b-${i}`} x={k.x} y={0} width={MBW} height={MBH} rx={2}
+            fill={hit ? (hit.isRoot ? '#fbbf24' : '#818cf8') : '#1f2937'}
+            stroke={hit ? (hit.isRoot ? '#b45309' : '#4338ca') : '#111827'} strokeWidth={1} />
         )
       })}
-
-      {/* Note labels on highlighted white keys */}
+      {/* Labels on highlighted white keys */}
       {whiteKeys.map((k, i) => {
-        if (!highlightedSemitones.has(k.semitone)) return null
+        const hit = posMap.get(k.abs)
+        if (!hit) return null
         return (
-          <text
-            key={`lw-${i}`}
-            x={k.x + W / 2}
-            y={H - 10}
-            textAnchor="middle"
-            fontSize={9}
-            fontWeight="bold"
-            fill="white"
-          >
-            ♪
+          <text key={`lw-${i}`} x={k.x + MW / 2} y={MH - 8} textAnchor="middle" fontSize={8} fontWeight="bold" fill="white">
+            {hit.label}
           </text>
         )
       })}
-
-      {/* Octave separator line */}
-      <line x1={OCTAVE_W} y1={0} x2={OCTAVE_W} y2={H} stroke="#e5e7eb" strokeWidth={1} strokeDasharray="2,2" />
+      {/* Labels on highlighted black keys */}
+      {blackKeys.map((k, i) => {
+        const hit = posMap.get(k.abs)
+        if (!hit) return null
+        return (
+          <text key={`lb-${i}`} x={k.x + MBW / 2} y={MBH - 6} textAnchor="middle" fontSize={7} fontWeight="bold" fill="#1f2937">
+            {hit.label}
+          </text>
+        )
+      })}
+      {/* Octave separators */}
+      {Array.from({ length: octaves - 1 }).map((_, i) => (
+        <line key={i} x1={(i + 1) * MINI_OCT_W} y1={0} x2={(i + 1) * MINI_OCT_W} y2={MH} stroke="#e5e7eb" strokeWidth={1} strokeDasharray="2,2" />
+      ))}
     </svg>
   )
+}
+
+const INVERSION_LABELS = ['Position fondamentale', '1ᵉʳ renversement', '2ᵉ renversement', '3ᵉ renversement', '4ᵉ renversement', '5ᵉ renversement', '6ᵉ renversement']
+
+/** Calcule les positions (absolues, octave 0 = grave) du voicing pour chaque renversement. */
+function computeInversions(pcs: number[], rootPc: number, count: number) {
+  const result: { label: string; positions: HitNote[]; notesText: string }[] = []
+  for (let k = 0; k < count; k++) {
+    const rotated = [...pcs.slice(k), ...pcs.slice(0, k)]
+    const positions: HitNote[] = []
+    rotated.forEach((pc, i) => {
+      let p = pc
+      if (i > 0) while (p <= positions[i - 1].pos) p += 12
+      positions.push({ pos: p, label: '', isRoot: pc === rootPc })
+    })
+    result.push({ label: INVERSION_LABELS[k] ?? `${k + 1}ᵉ renversement`, positions, notesText: '' })
+  }
+  return result
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -219,7 +211,19 @@ export default function AccordsPage() {
     }
   })
 
-  const highlightedSemitones = new Set(chordNotes.map((n) => n.semitone))
+  // ── Renversements ──────────────────────────────────────────────────────────
+  // Classes de hauteur dans l'ordre de l'accord (la 1ère = fondamentale)
+  const pcs = chordType.intervals.map((iv) => (root.semitone + iv) % 12)
+  const rootPc = pcs[0]
+  // On affiche jusqu'à 3 renversements (fondamentale + 1er + 2e), limité au nb de notes
+  const invCount = Math.min(3, pcs.length)
+  const inversions = computeInversions(pcs, rootPc, invCount).map((inv) => ({
+    ...inv,
+    positions: inv.positions.map((p) => ({ ...p, label: notes[p.pos % 12] })),
+    notesText: inv.positions.map((p) => notes[p.pos % 12]).join(' – '),
+  }))
+  const maxPos = Math.max(...inversions.flatMap((inv) => inv.positions.map((p) => p.pos)))
+  const keyboardOctaves = Math.max(2, Math.ceil((maxPos + 1) / 12))
 
   const chordName = `${root.label}${chordType.symbol}`
 
@@ -358,28 +362,43 @@ export default function AccordsPage() {
             </div>
           </div>
 
-          {/* Piano keyboard */}
+          {/* Piano keyboards — un par renversement */}
           <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Clavier de piano</p>
-            <div className="overflow-x-auto">
-              <div className="min-w-max pb-1">
-                <PianoKeyboard highlightedSemitones={highlightedSemitones} />
-                <div className="flex mt-2 text-[10px] text-gray-400 font-mono" style={{ width: TOTAL_W }}>
-                  <span style={{ width: OCTAVE_W }} className="text-center">Octave 1 (C – B)</span>
-                  <span style={{ width: OCTAVE_W }} className="text-center">Octave 2 (C – B)</span>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Positions & renversements</p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3.5 h-3.5 rounded bg-amber-500" />
+                  <span className="text-[11px] text-gray-500">Fondamentale (basse)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3.5 h-3.5 rounded bg-indigo-500" />
+                  <span className="text-[11px] text-gray-500">Autres notes</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 mt-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 rounded bg-indigo-500" />
-                <span className="text-xs text-gray-500">Note dans l&apos;accord</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 rounded bg-white border border-gray-300" />
-                <span className="text-xs text-gray-500">Note non utilisée</span>
-              </div>
+
+            <div className="space-y-5">
+              {inversions.map((inv, idx) => (
+                <div key={idx}>
+                  <div className="flex items-baseline gap-2 mb-1.5">
+                    <span className={`text-xs font-bold ${idx === 0 ? 'text-amber-600' : 'text-gray-700'}`}>
+                      {idx === 0 ? '⭐ ' : ''}{inv.label}
+                    </span>
+                    <span className="text-[11px] text-gray-400 font-mono">{inv.notesText}</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <div className="min-w-max pb-1">
+                      <MiniPiano positions={inv.positions} octaves={keyboardOctaves} />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
+
+            <p className="text-[11px] text-gray-400 mt-4 pt-3 border-t border-gray-100">
+              Chaque renversement déplace la note la plus grave : la basse passe à la note suivante de l&apos;accord, jouée de la gauche (grave) vers la droite (aigu).
+            </p>
           </div>
 
         </div>
