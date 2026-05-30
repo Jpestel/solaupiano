@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json()
-  const { name, date, location, notes, setlistId } = body
+  const { name, date, location, notes, setlistId, isPublic } = body
 
   const concert = await prisma.concert.update({
     where: { id: concertId },
@@ -37,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(location && { location }),
       notes: notes !== undefined ? (notes || null) : undefined,
       setlistId: setlistId !== undefined ? (setlistId ? Number(setlistId) : null) : undefined,
+      ...(isPublic !== undefined && { isPublic }),
     },
     include: {
       setlist: { select: { id: true, name: true, _count: { select: { songs: true } } } },

@@ -51,7 +51,7 @@ export default async function GroupPublicPage({ params }: { params: { slug: stri
             select: { userId: true },
           },
           concerts: {
-            where: { date: { gte: new Date() } },
+            where: { date: { gte: new Date() }, isPublic: true },
             orderBy: { date: 'asc' },
             take: 5,
             select: { id: true, name: true, date: true, location: true },

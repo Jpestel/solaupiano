@@ -321,6 +321,7 @@ model Concert {
   location  String
   notes     String?  @db.Text
   setlistId Int?
+  isPublic  Boolean  @default(true)
   createdAt DateTime @default(now())
 
   group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)

@@ -13,10 +13,11 @@ interface SetlistRef { id: number; name: string; _count: { songs: number } }
 interface Concert {
   id: number; name: string; date: string; location: string; notes?: string
   setlist?: SetlistRef | null
+  isPublic: boolean
 }
 interface GroupInfo { name: string; groupRole: string; createdBy: number | null; chefPermissions: unknown }
 
-const EMPTY_FORM = { name: '', date: '', location: '', notes: '', setlistId: '' }
+const EMPTY_FORM = { name: '', date: '', location: '', notes: '', setlistId: '', isPublic: true as boolean }
 
 export default function ConcertsPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
@@ -147,7 +148,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
     const res = await fetch(`/api/groupes/${groupId}/concerts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, setlistId: form.setlistId ? Number(form.setlistId) : null }),
+      body: JSON.stringify({ ...form, setlistId: form.setlistId ? Number(form.setlistId) : null, isPublic: form.isPublic }),
     })
     setSaving(false)
     if (!res.ok) { const d = await res.json(); setError(d.error || 'Erreur.'); return }
@@ -164,6 +165,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       location: concert.location,
       notes: concert.notes || '',
       setlistId: concert.setlist?.id ? String(concert.setlist.id) : '',
+      isPublic: concert.isPublic !== false,
     })
     setEditError('')
   }
@@ -179,6 +181,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       body: JSON.stringify({
         ...editForm,
         setlistId: editForm.setlistId ? Number(editForm.setlistId) : null,
+        isPublic: editForm.isPublic,
       }),
     })
     setEditSaving(false)
@@ -229,8 +232,14 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
   const ConcertCard = ({ concert, dim = false }: { concert: Concert; dim?: boolean }) => (
     <Card className={dim ? 'opacity-70' : ''}>
       <div className="flex items-start justify-between mb-2">
-        <h3 className={`font-semibold ${dim ? 'text-gray-600' : 'text-gray-900'}`}>{concert.name}</h3>
-        <span className="text-2xl flex-shrink-0">🎭</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className={`font-semibold truncate ${dim ? 'text-gray-600' : 'text-gray-900'}`}>{concert.name}</h3>
+          {concert.isPublic === false
+            ? <span className="flex-shrink-0 text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">🔒 Privé</span>
+            : <span className="flex-shrink-0 text-xs font-medium px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100">🌐 Public</span>
+          }
+        </div>
+        <span className="text-2xl flex-shrink-0 ml-2">🎭</span>
       </div>
       <p className={`text-sm font-medium capitalize ${dim ? 'text-gray-400' : 'text-indigo-600'}`}>{formatDateWithDay(concert.date)}</p>
       <p className="text-sm text-gray-500 mt-1">{concert.location}</p>
@@ -343,6 +352,20 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
             <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="form-input resize-none" rows={3} />
           </div>
+          {/* Visibilité publique */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-gray-800">Visible sur la page publique</p>
+              <p className="text-xs text-gray-400 mt-0.5">Les visiteurs non connectés pourront voir ce concert</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm(f => ({ ...f, isPublic: !f.isPublic }))}
+              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${form.isPublic ? 'bg-green-500' : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isPublic ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => { setCreateOpen(false); setError('') }}>Annuler</Button>
             <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Créer le concert'}</Button>
@@ -370,6 +393,20 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
           <div>
             <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>
             <textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} className="form-input resize-none" rows={3} />
+          </div>
+          {/* Visibilité publique */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-gray-800">Visible sur la page publique</p>
+              <p className="text-xs text-gray-400 mt-0.5">Les visiteurs non connectés pourront voir ce concert</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditForm(f => ({ ...f, isPublic: !f.isPublic }))}
+              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${editForm.isPublic ? 'bg-green-500' : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${editForm.isPublic ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setEditConcert(null)}>Annuler</Button>

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const body = await req.json()
-  const { name, date, location, notes, setlistId } = body
+  const { name, date, location, notes, setlistId, isPublic } = body
 
   if (!name || !date || !location) {
     return NextResponse.json({ error: 'Nom, date et lieu sont requis.' }, { status: 400 })
@@ -63,6 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       location,
       notes: notes || null,
       setlistId: setlistId ? Number(setlistId) : null,
+      isPublic: isPublic !== false,
     },
     include: { setlist: { select: { id: true, name: true, _count: { select: { songs: true } } } } },
   })
