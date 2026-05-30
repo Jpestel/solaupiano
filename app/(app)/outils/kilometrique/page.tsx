@@ -100,6 +100,7 @@ export default function KilometriqueCalculatorPage() {
   const [distance,  setDistance]  = useState<number | null>(null)
   const [manualKm,  setManualKm]  = useState('')
   const [manualMode, setManualMode] = useState(false)
+  const [localConcert, setLocalConcert] = useState(false)  // pas de frais de déplacement
   const [roundTrip, setRoundTrip] = useState(true)
   const [vehicles,  setVehicles]  = useState<Vehicle[]>([DEFAULT_VEHICLE()])
   const [expenses,    setExpenses]    = useState<Expense[]>([])
@@ -177,7 +178,7 @@ export default function KilometriqueCalculatorPage() {
     }))
     const totalExtras = expenseRows.reduce((s, e) => s + e.total, 0)
 
-    const totalFrais  = totalVehicles + totalExtras
+    const totalFrais  = localConcert ? 0 : (totalVehicles + totalExtras)
     const fraisPerPerson = totalPassengers > 0 ? totalFrais / totalPassengers : 0
 
     // ── Calcul GUSO ──────────────────────────────────────────────────────────
@@ -211,7 +212,7 @@ export default function KilometriqueCalculatorPage() {
       brut, netArtiste, coutCachetEmployeur, totalPatTaux,
       totalEmployeur, netGroupe, netPerPerson,
     }
-  }, [effectiveKm, roundTrip, vehicles, expenses, cachet, cachetMode, congesSpec, fraisCharge])
+  }, [effectiveKm, roundTrip, vehicles, expenses, cachet, cachetMode, congesSpec, fraisCharge, localConcert])
 
   // ── Print ───────────────────────────────────────────────────────────────────
 
@@ -351,18 +352,28 @@ export default function KilometriqueCalculatorPage() {
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <Link href="/tableau-de-bord" className="hover:text-indigo-600">Accueil</Link>
             <span>/</span>
-            <span className="text-gray-900">Frais kilométriques</span>
+            <span className="text-gray-900">Estimation de cachet</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">🚗 Frais kilométriques</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Estimez le coût de déplacement pour un concert — carburant, véhicules, passagers.</p>
+          <h1 className="text-2xl font-bold text-gray-900">🎭 Estimation de cachet</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Estimez le coût total d&apos;un concert — cachet, charges GUSO, frais de déplacement.</p>
         </div>
         <TutorialButton moduleKey="tool_kilometrique" />
       </div>
 
       <div className="max-w-2xl space-y-5">
 
+        {/* ── Toggle concert local ── */}
+        <label className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 cursor-pointer transition-colors ${localConcert ? 'border-teal-400 bg-teal-50' : 'border-gray-200 bg-white hover:border-teal-300'}`}>
+          <input type="checkbox" checked={localConcert} onChange={e => setLocalConcert(e.target.checked)}
+            className="w-4 h-4 text-teal-600 rounded border-gray-300 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-gray-800">📍 Concert local — pas de frais de déplacement</p>
+            <p className="text-xs text-gray-400 mt-0.5">Le groupe se déplace par ses propres moyens sans frais supplémentaires (concert dans la ville du groupe, etc.)</p>
+          </div>
+        </label>
+
         {/* ── Route ── */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+        {!localConcert && <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Itinéraire</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-3 items-end">
@@ -463,10 +474,10 @@ export default function KilometriqueCalculatorPage() {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* ── Vehicles ── */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+        {!localConcert && <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Véhicules</p>
             {vehicles.length < 8 && (
@@ -535,10 +546,10 @@ export default function KilometriqueCalculatorPage() {
               </div>
             </div>
           ))}
-        </div>
+        </div>}
 
         {/* ── Frais supplémentaires ── */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+        {!localConcert && <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Frais supplémentaires</p>
@@ -629,7 +640,7 @@ export default function KilometriqueCalculatorPage() {
           {expenses.length === 0 && (
             <p className="text-xs text-gray-400 text-center py-2">Cliquez sur un type de frais pour l&apos;ajouter.</p>
           )}
-        </div>
+        </div>}
 
         {/* ── Cachet ── */}
         <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-5 space-y-4">
@@ -688,8 +699,8 @@ export default function KilometriqueCalculatorPage() {
             </div>
           )}
 
-          {/* Qui paie les frais ? */}
-          <div>
+          {/* Qui paie les frais ? (uniquement si déplacement) */}
+          {!localConcert && <div>
             <p className="text-xs font-medium text-gray-600 mb-2">Les frais de déplacement sont à la charge de :</p>
             <div className="flex gap-2">
               {(['employeur', 'groupe'] as const).map(v => (
@@ -699,7 +710,7 @@ export default function KilometriqueCalculatorPage() {
                 </button>
               ))}
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* ── Results ── */}

@@ -58,10 +58,10 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: 'tool_kilometrique',
-    label: 'Frais kilométriques',
-    description: "Calculez le coût de déplacement pour un concert avec un ou plusieurs véhicules.",
+    label: 'Estimation de cachet',
+    description: "Estimez le cachet, les charges GUSO et les frais de déplacement pour un concert.",
     href: '/outils/kilometrique',
-    icon: '🚗',
+    icon: '🎭',
     category: 'outil',
   },
 ]
