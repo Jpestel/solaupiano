@@ -16,6 +16,7 @@ const adminNav = [
   { href: '/admin/plans',            label: 'Plans' },
   { href: '/admin/rappels',          label: 'Rappels' },
   { href: '/admin/personnalisation', label: 'Personnalisation' },
+  { href: '/admin/tutoriels',       label: 'Tutoriels vidéo' },
 ]
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {

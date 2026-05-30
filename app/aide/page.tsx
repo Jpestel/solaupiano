@@ -2,14 +2,19 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import Link from 'next/link'
 import { BackToTop } from './BackToTop'
+import { TutorialVideoSection } from './TutorialVideoSection'
 import { prisma } from '@/lib/prisma'
 import { generateFeatureList, planIcon, storageLabel, type DbPlan } from '@/lib/plans'
+import { MODULES } from '@/lib/modules'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AidePage() {
   const session = await getServerSession(authOptions)
-  const dbPlans = await prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }) as DbPlan[]
+  const [dbPlans, tutorials] = await Promise.all([
+    prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }) as Promise<DbPlan[]>,
+    prisma.tutorial.findMany({ where: { published: true }, orderBy: [{ order: 'asc' }, { createdAt: 'desc' }], select: { id: true, title: true, description: true, moduleKey: true, videoPath: true } }),
+  ])
 
   const isLoggedIn = !!session
   // Visiteur non connecté : on lui montre tout (comme un chef) pour découvrir l'app
@@ -85,6 +90,11 @@ export default async function AidePage() {
           ))}
         </div>
       </div>
+
+      {/* ─── TUTORIELS VIDÉO ─── */}
+      {tutorials.length > 0 && (
+        <TutorialVideoSection tutorials={tutorials} modules={MODULES} />
+      )}
 
       <div className="space-y-10">
 

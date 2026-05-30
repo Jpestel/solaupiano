@@ -612,3 +612,17 @@ model RehearsalAutoReminder {
   @@unique([rehearsalId, userId])
   @@index([rehearsalId])
 }
+
+model Tutorial {
+  id            Int      @id @default(autoincrement())
+  title         String
+  description   String?  @db.Text
+  moduleKey     String?  // null = général; sinon clé de lib/modules.ts
+  videoPath     String   // ex: /uploads/tutoriels/abc.mp4
+  fileName      String
+  fileSizeBytes Int
+  order         Int      @default(0)
+  published     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

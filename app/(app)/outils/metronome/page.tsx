@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import { TutorialButton } from '@/components/ui/TutorialButton'
 
 // ─── Audio engine ─────────────────────────────────────────────────────────────
 // Uses Web Audio API look-ahead scheduler (Chris Wilson pattern)
@@ -182,9 +183,12 @@ export default function MetronomePage() {
         <span>/</span>
         <span className="text-gray-900">Métronome</span>
       </div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Métronome</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Battez la mesure — de 20 à 300 BPM</p>
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Métronome</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Battez la mesure — de 20 à 300 BPM</p>
+        </div>
+        <TutorialButton moduleKey="tool_metronome" />
       </div>
 
       {/* ── Main display ─────────────────────────────────────────────────── */}

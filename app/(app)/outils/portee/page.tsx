@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { TutorialButton } from '@/components/ui/TutorialButton'
 
 /* ─── Types ──────────────────────────────────────────────────────────────────── */
 type Accidental = 'double-flat' | 'flat' | 'natural' | 'sharp' | 'double-sharp' | null
@@ -316,11 +317,14 @@ export default function PorteePage() {
   // ─ Render ──────────────────────────────────────────────────────────────────
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Saisie sur portée</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Placez des notes sur la portée pour identifier leur nom ou reconnaître un accord.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Saisie sur portée</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Placez des notes sur la portée pour identifier leur nom ou reconnaître un accord.
+          </p>
+        </div>
+        <TutorialButton moduleKey="tool_portee" />
       </div>
 
       <div className="space-y-4">

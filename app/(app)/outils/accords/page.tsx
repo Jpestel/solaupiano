@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { TutorialButton } from '@/components/ui/TutorialButton'
 
 // ─── Music theory data ────────────────────────────────────────────────────────
 
@@ -236,13 +237,16 @@ export default function AccordsPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          🎹 Dictionnaire d&apos;accords
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Sélectionne une fondamentale et une qualité d&apos;accord pour voir les notes qui le composent.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            🎹 Dictionnaire d&apos;accords
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Sélectionne une fondamentale et une qualité d&apos;accord pour voir les notes qui le composent.
+          </p>
+        </div>
+        <TutorialButton moduleKey="tool_accords" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

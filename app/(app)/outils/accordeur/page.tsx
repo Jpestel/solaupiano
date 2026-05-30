@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import { TutorialButton } from '@/components/ui/TutorialButton'
 
 // ─── Pitch detection ──────────────────────────────────────────────────────────
 
@@ -230,9 +231,12 @@ export default function AccordeurPage() {
         <span className="text-gray-900">Accordeur</span>
       </div>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Accordeur</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Guitare · Basse — utilise votre microphone</p>
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Accordeur</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Guitare · Basse — utilise votre microphone</p>
+        </div>
+        <TutorialButton moduleKey="tool_accordeur" />
       </div>
 
       {/* Instrument selector */}
