@@ -59,6 +59,14 @@ const PRESETS: { label: string; consumption: number; fuelPrice: number }[] = [
   { label: 'Camionnette',             consumption: 12.0, fuelPrice: 1.62 },
 ]
 
+// ─── Taux GUSO approchés (spectacle vivant 2025) ──────────────────────────────
+// Charges patronales hors congés spectacles
+const TAUX_PAT = 38    // %
+// Congés spectacles Audiens (spécifique spectacle vivant)
+const TAUX_CONGES = 10.25 // %
+// Charges salariales
+const TAUX_SAL = 22    // %
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmt  = (n: number) =>
@@ -94,8 +102,11 @@ export default function KilometriqueCalculatorPage() {
   const [manualMode, setManualMode] = useState(false)
   const [roundTrip, setRoundTrip] = useState(true)
   const [vehicles,  setVehicles]  = useState<Vehicle[]>([DEFAULT_VEHICLE()])
-  const [expenses,  setExpenses]  = useState<Expense[]>([])
-  const [cachet,    setCachet]    = useState('')
+  const [expenses,    setExpenses]    = useState<Expense[]>([])
+  const [cachet,      setCachet]      = useState('')
+  const [cachetMode,  setCachetMode]  = useState<'brut' | 'net'>('brut')
+  const [congesSpec,  setCongesSpec]  = useState(true)   // inclure congés spectacles
+  const [fraisCharge, setFraisCharge] = useState<'employeur' | 'groupe'>('employeur')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [routeNote, setRouteNote] = useState('')
@@ -166,15 +177,41 @@ export default function KilometriqueCalculatorPage() {
     }))
     const totalExtras = expenseRows.reduce((s, e) => s + e.total, 0)
 
-    const grandTotal  = totalVehicles + totalExtras
-    const perPerson   = totalPassengers > 0 ? grandTotal / totalPassengers : 0
+    const totalFrais  = totalVehicles + totalExtras
+    const fraisPerPerson = totalPassengers > 0 ? totalFrais / totalPassengers : 0
 
-    const cachetVal   = parseFloat(cachet.replace(',', '.') || '0') || 0
-    const solde       = cachetVal - grandTotal
-    const soldePerPerson = totalPassengers > 0 ? solde / totalPassengers : 0
+    // ── Calcul GUSO ──────────────────────────────────────────────────────────
+    const cachetRaw = parseFloat(cachet.replace(',', '.') || '0') || 0
+    const totalPatTaux = TAUX_PAT + (congesSpec ? TAUX_CONGES : 0)
 
-    return { totalKm, vehicleRows, totalVehicles, totalFuel, totalTolls, expenseRows, totalExtras, grandTotal, totalPassengers, perPerson, cachetVal, solde, soldePerPerson }
-  }, [effectiveKm, roundTrip, vehicles, expenses, cachet])
+    let brut = 0, netArtiste = 0, coutCachetEmployeur = 0
+    if (cachetRaw > 0) {
+      if (cachetMode === 'brut') {
+        brut              = cachetRaw
+        netArtiste        = brut * (1 - TAUX_SAL / 100)
+        coutCachetEmployeur = brut * (1 + totalPatTaux / 100)
+      } else {
+        // net → brut → coût employeur
+        brut              = cachetRaw / (1 - TAUX_SAL / 100)
+        netArtiste        = cachetRaw
+        coutCachetEmployeur = brut * (1 + totalPatTaux / 100)
+      }
+    }
+
+    // Coût total employeur = cachet (avec charges) + frais si à sa charge
+    const totalEmployeur = coutCachetEmployeur + (fraisCharge === 'employeur' ? totalFrais : 0)
+
+    // Net groupe = ce que perçoivent les musiciens - frais si à leur charge
+    const netGroupe      = netArtiste - (fraisCharge === 'groupe' ? totalFrais : 0)
+    const netPerPerson   = totalPassengers > 0 ? netGroupe / totalPassengers : 0
+
+    return {
+      totalKm, vehicleRows, totalVehicles, totalFuel, totalTolls,
+      expenseRows, totalExtras, totalFrais, fraisPerPerson, totalPassengers,
+      brut, netArtiste, coutCachetEmployeur, totalPatTaux,
+      totalEmployeur, netGroupe, netPerPerson,
+    }
+  }, [effectiveKm, roundTrip, vehicles, expenses, cachet, cachetMode, congesSpec, fraisCharge])
 
   // ── Print ───────────────────────────────────────────────────────────────────
 
@@ -265,32 +302,37 @@ export default function KilometriqueCalculatorPage() {
             </tr>
           </tbody>
         </table>` : ''}
-      <table style="margin-top:16px;border:2px solid #e0e7ff;border-radius:10px;overflow:hidden">
-        <tbody>
-          ${results.cachetVal > 0 ? `
-          <tr style="background:#fffbeb">
-            <td style="padding:12px 16px;font-weight:700;color:#92400e">💰 Cachet prévu</td>
-            <td style="padding:12px 16px;text-align:right;font-size:18px;font-weight:800;color:#92400e">${fmt(results.cachetVal)}</td>
-          </tr>` : ''}
-          <tr style="background:#4f46e5;color:white">
-            <td style="padding:12px 16px;font-weight:700">🚗 Total frais de déplacement</td>
-            <td style="padding:12px 16px;text-align:right;font-size:18px;font-weight:800">${fmt(results.grandTotal)}</td>
-          </tr>
-          ${results.cachetVal > 0 ? `
-          <tr style="background:${results.solde >= 0 ? '#f0fdf4' : '#fef2f2'}">
-            <td style="padding:12px 16px;font-weight:700;color:${results.solde >= 0 ? '#15803d' : '#dc2626'}">${results.solde >= 0 ? '✅ Solde net après frais' : '⚠️ Déficit'}</td>
-            <td style="padding:12px 16px;text-align:right;font-size:20px;font-weight:800;color:${results.solde >= 0 ? '#15803d' : '#dc2626'}">${fmt(results.solde)}</td>
-          </tr>` : ''}
-          ${results.totalPassengers > 1 ? `
-          <tr style="background:#f9fafb">
-            <td style="padding:8px 16px;font-size:12px;color:#6b7280">Par personne (${results.totalPassengers} pers.)</td>
-            <td style="padding:8px 16px;text-align:right;font-size:13px;font-weight:700;color:#374151">
-              ${results.cachetVal > 0 ? `Solde : ${fmt(results.soldePerPerson)} · ` : ''}Frais : ${fmt(results.perPerson)}
-            </td>
-          </tr>` : ''}
-        </tbody>
-      </table>
-      <div class="disclaimer">⚠️ Estimation basée sur les paramètres saisis. Distance via OpenStreetMap. Prix carburant à titre indicatif.</div>
+      ${results.brut > 0 ? `
+        <h2 style="font-size:14px;font-weight:700;color:#374151;margin:20px 0 8px">Récapitulatif financier</h2>
+        <table style="border:2px solid #e5e7eb;border-radius:10px;overflow:hidden">
+          <thead><tr style="background:#f97316;color:white">
+            <th style="padding:10px 14px;text-align:left">🏢 Ce que paie l'employeur</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:8px 14px">Cachet brut</td><td style="padding:8px 14px;text-align:right;font-weight:600">${fmt(results.brut)}</td></tr>
+            <tr><td style="padding:8px 14px">+ Charges patronales (${results.totalPatTaux.toFixed(1)} %)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#ea580c">+ ${fmt(results.coutCachetEmployeur - results.brut)}</td></tr>
+            ${fraisCharge === 'employeur' ? `<tr><td style="padding:8px 14px">+ Frais de déplacement (remboursés)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#ea580c">+ ${fmt(results.totalFrais)}</td></tr>` : ''}
+            <tr style="background:#fff7ed"><td style="padding:10px 14px;font-weight:700;color:#c2410c">= TOTAL employeur</td><td style="padding:10px 14px;text-align:right;font-size:16px;font-weight:800;color:#c2410c">${fmt(results.totalEmployeur)}</td></tr>
+          </tbody>
+          <thead><tr style="background:#16a34a;color:white">
+            <th style="padding:10px 14px;text-align:left">🎵 Ce que perçoivent les musiciens</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:8px 14px">Cachet brut</td><td style="padding:8px 14px;text-align:right;font-weight:600">${fmt(results.brut)}</td></tr>
+            <tr><td style="padding:8px 14px">− Charges salariales (${TAUX_SAL} %)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#dc2626">− ${fmt(results.brut * TAUX_SAL / 100)}</td></tr>
+            ${fraisCharge === 'groupe' ? `<tr><td style="padding:8px 14px">− Frais de déplacement (à charge du groupe)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#dc2626">− ${fmt(results.totalFrais)}</td></tr>` : ''}
+            <tr style="background:${results.netGroupe >= 0 ? '#f0fdf4' : '#fef2f2'}">
+              <td style="padding:10px 14px;font-weight:700;color:${results.netGroupe >= 0 ? '#15803d' : '#dc2626'}">${results.netGroupe >= 0 ? '= NET GROUPE' : '= DÉFICIT'}</td>
+              <td style="padding:10px 14px;text-align:right;font-size:16px;font-weight:800;color:${results.netGroupe >= 0 ? '#15803d' : '#dc2626'}">${fmt(results.netGroupe)}</td>
+            </tr>
+            ${results.totalPassengers > 1 ? `<tr style="background:#f9fafb"><td style="padding:8px 14px;font-size:12px;color:#6b7280">Par personne (${results.totalPassengers} pers.)</td><td style="padding:8px 14px;text-align:right;font-weight:700;color:#374151">${fmt(results.netPerPerson)}</td></tr>` : ''}
+          </tbody>
+        </table>` : `
+        <div style="margin:16px 0;padding:14px 16px;background:#eff6ff;border-radius:10px;display:flex;justify-content:space-between">
+          <span style="font-weight:700;color:#1e40af">Total frais de déplacement</span>
+          <span style="font-size:18px;font-weight:800;color:#1e40af">${fmt(results.totalFrais)}</span>
+        </div>`}
+      <div class="disclaimer">⚠️ Taux de charges approchés (spectacle vivant, 2025). Distance via OpenStreetMap.</div>
       <div class="footer">
         <span>Sol au piano · solaupiano.fr</span>
         <span>${date}</span>
@@ -590,25 +632,73 @@ export default function KilometriqueCalculatorPage() {
         </div>
 
         {/* ── Cachet ── */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Cachet du concert</p>
-          <p className="text-[11px] text-gray-400 mb-3">Montant brut prévu — sera comparé aux frais pour estimer le solde net.</p>
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-xs">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={cachet}
-                onChange={e => setCachet(e.target.value)}
-                placeholder="ex : 1200"
-                className="w-full rounded-lg border border-amber-300 bg-white pl-4 pr-10 py-2.5 text-lg font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">€</span>
+        <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-5 space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cachet du concert</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Les charges GUSO sont calculées automatiquement (taux approchés 2025).</p>
+          </div>
+
+          {/* Brut / Net toggle + saisie */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex rounded-lg border border-amber-300 overflow-hidden text-xs font-semibold">
+              <button onClick={() => setCachetMode('brut')}
+                className={`px-3 py-2 transition-colors ${cachetMode === 'brut' ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-50'}`}>
+                Brut déclaré
+              </button>
+              <button onClick={() => setCachetMode('net')}
+                className={`px-3 py-2 transition-colors ${cachetMode === 'net' ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-50'}`}>
+                Net artiste souhaité
+              </button>
             </div>
-            <p className="text-xs text-gray-400 leading-relaxed max-w-xs">
-              💡 Pour estimer le net artiste après charges sociales, utilisez le{' '}
-              <a href="/outils/cachet" className="text-indigo-600 hover:underline font-medium">simulateur GUSO →</a>
-            </p>
+            <div className="relative">
+              <input
+                type="text" inputMode="decimal"
+                value={cachet} onChange={e => setCachet(e.target.value)}
+                placeholder={cachetMode === 'brut' ? 'ex : 1200' : 'ex : 936'}
+                className="w-36 rounded-lg border border-amber-300 bg-white pl-3 pr-8 py-2 text-base font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">€</span>
+            </div>
+          </div>
+
+          {/* Option congés spectacles */}
+          <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-600">
+            <input type="checkbox" checked={congesSpec} onChange={e => setCongesSpec(e.target.checked)}
+              className="w-4 h-4 text-amber-500 rounded border-gray-300" />
+            Inclure les congés spectacles ({TAUX_CONGES} % — Audiens, spectacle vivant)
+          </label>
+
+          {/* Preview GUSO inline */}
+          {results && results.brut > 0 && (
+            <div className="rounded-lg bg-white border border-amber-100 px-4 py-3 grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Brut déclaré</p>
+                <p className="text-base font-black text-gray-800">{fmt(results.brut)}</p>
+              </div>
+              <div className="border-x border-amber-100">
+                <p className="text-[10px] text-orange-400 uppercase tracking-wide mb-0.5">Coût employeur</p>
+                <p className="text-base font-black text-orange-700">{fmt(results.coutCachetEmployeur)}</p>
+                <p className="text-[10px] text-orange-300">+{results.totalPatTaux.toFixed(1)}% charges</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-green-500 uppercase tracking-wide mb-0.5">Net artiste</p>
+                <p className="text-base font-black text-green-700">{fmt(results.netArtiste)}</p>
+                <p className="text-[10px] text-green-400">−{TAUX_SAL}% charges</p>
+              </div>
+            </div>
+          )}
+
+          {/* Qui paie les frais ? */}
+          <div>
+            <p className="text-xs font-medium text-gray-600 mb-2">Les frais de déplacement sont à la charge de :</p>
+            <div className="flex gap-2">
+              {(['employeur', 'groupe'] as const).map(v => (
+                <button key={v} onClick={() => setFraisCharge(v)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${fraisCharge === v ? 'bg-amber-500 text-white border-amber-500' : 'border-gray-200 text-gray-600 hover:border-amber-300'}`}>
+                  {v === 'employeur' ? '🏢 L\'employeur (remboursés)' : '🎵 Le groupe (déduits du net)'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -668,56 +758,109 @@ export default function KilometriqueCalculatorPage() {
               </div>
             )}
 
-            {/* Récapitulatif financier */}
-            <div className="rounded-xl overflow-hidden border border-gray-200">
+            {/* ── Récapitulatif financier complet ── */}
+            {results.brut > 0 ? (
+              <div className="space-y-3">
 
-              {/* Cachet (si renseigné) */}
-              {results.cachetVal > 0 && (
-                <div className="flex items-center justify-between px-5 py-3 bg-amber-50 border-b border-amber-100">
-                  <div>
-                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">💰 Cachet prévu</p>
+                {/* Côté employeur */}
+                <div className="rounded-xl overflow-hidden border border-orange-200">
+                  <div className="bg-orange-500 px-4 py-2">
+                    <p className="text-white text-xs font-bold uppercase tracking-wide">🏢 Ce que paie l&apos;employeur</p>
                   </div>
-                  <p className="text-xl font-black text-amber-700">{fmt(results.cachetVal)}</p>
+                  <div className="bg-white divide-y divide-orange-50">
+                    <div className="flex justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Cachet brut</span>
+                      <span className="font-semibold">{fmt(results.brut)}</span>
+                    </div>
+                    <div className="flex justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">+ Charges patronales ({results.totalPatTaux.toFixed(1)} %)</span>
+                      <span className="font-semibold text-orange-600">+ {fmt(results.coutCachetEmployeur - results.brut)}</span>
+                    </div>
+                    {fraisCharge === 'employeur' && (
+                      <div className="flex justify-between px-4 py-2.5 text-sm">
+                        <div>
+                          <span className="text-gray-600">+ Frais de déplacement remboursés</span>
+                          <div className="text-xs text-gray-400 mt-0.5">⛽ {fmt(results.totalFuel)}{results.totalTolls > 0 ? ` · 🛣️ ${fmt(results.totalTolls)}` : ''}{results.totalExtras > 0 ? ` · ➕ ${fmt(results.totalExtras)}` : ''}</div>
+                        </div>
+                        <span className="font-semibold text-orange-600">+ {fmt(results.totalFrais)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between px-4 py-3 bg-orange-50 font-bold">
+                      <span className="text-orange-800">= TOTAL employeur</span>
+                      <span className="text-xl text-orange-700">{fmt(results.totalEmployeur)}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
 
-              {/* Total frais */}
-              <div className="flex items-center justify-between px-5 py-3 bg-indigo-600">
-                <div>
-                  <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">🚗 Total frais de déplacement</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                    <span className="text-indigo-300 text-xs">⛽ {fmt(results.totalFuel)}</span>
-                    {results.totalTolls > 0 && <span className="text-indigo-300 text-xs">🛣️ {fmt(results.totalTolls)}</span>}
-                    {results.totalExtras > 0 && <span className="text-indigo-300 text-xs">➕ {fmt(results.totalExtras)}</span>}
+                {/* Côté musiciens */}
+                <div className="rounded-xl overflow-hidden border border-green-200">
+                  <div className="bg-green-600 px-4 py-2">
+                    <p className="text-white text-xs font-bold uppercase tracking-wide">🎵 Ce que perçoivent les musiciens</p>
+                  </div>
+                  <div className="bg-white divide-y divide-green-50">
+                    <div className="flex justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Cachet brut</span>
+                      <span className="font-semibold">{fmt(results.brut)}</span>
+                    </div>
+                    <div className="flex justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">− Charges salariales ({TAUX_SAL} %)</span>
+                      <span className="font-semibold text-red-400">− {fmt(results.brut * TAUX_SAL / 100)}</span>
+                    </div>
+                    <div className="flex justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">= Cachet net artiste</span>
+                      <span className="font-semibold text-green-700">{fmt(results.netArtiste)}</span>
+                    </div>
+                    {fraisCharge === 'groupe' && (
+                      <div className="flex justify-between px-4 py-2.5 text-sm">
+                        <div>
+                          <span className="text-gray-600">− Frais de déplacement (à votre charge)</span>
+                          <div className="text-xs text-gray-400 mt-0.5">⛽ {fmt(results.totalFuel)}{results.totalTolls > 0 ? ` · 🛣️ ${fmt(results.totalTolls)}` : ''}{results.totalExtras > 0 ? ` · ➕ ${fmt(results.totalExtras)}` : ''}</div>
+                        </div>
+                        <span className="font-semibold text-red-400">− {fmt(results.totalFrais)}</span>
+                      </div>
+                    )}
+                    <div className={`flex justify-between px-4 py-3 font-bold ${results.netGroupe >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                      <div>
+                        <span className={results.netGroupe >= 0 ? 'text-green-800' : 'text-red-700'}>
+                          = {results.netGroupe >= 0 ? '✅ Net groupe' : '⚠️ Déficit'}
+                        </span>
+                        {results.totalPassengers > 1 && (
+                          <p className={`text-xs font-normal mt-0.5 ${results.netGroupe >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {fmt(results.netPerPerson)} / personne ({results.totalPassengers} pers.)
+                          </p>
+                        )}
+                      </div>
+                      <span className={`text-2xl ${results.netGroupe >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                        {fmt(results.netGroupe)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-black text-white">{fmt(results.grandTotal)}</p>
-                  {results.totalPassengers > 1 && (
-                    <p className="text-indigo-300 text-xs mt-0.5">{fmt(results.perPerson)} / pers.</p>
-                  )}
-                </div>
+
+                <p className="text-[10px] text-gray-400">⚠️ Taux de charges approchés (2025, spectacle vivant). Utilisez le <a href="/outils/cachet" className="text-indigo-500 hover:underline">simulateur GUSO</a> pour un calcul exact.</p>
               </div>
 
-              {/* Solde net (si cachet renseigné) */}
-              {results.cachetVal > 0 && (
-                <div className={`flex items-center justify-between px-5 py-4 ${results.solde >= 0 ? 'bg-green-50 border-t border-green-100' : 'bg-red-50 border-t border-red-100'}`}>
+            ) : (
+              /* Sans cachet : juste le total frais */
+              <div className="rounded-xl overflow-hidden border border-indigo-200">
+                <div className="bg-indigo-600 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
                   <div>
-                    <p className={`text-xs font-semibold uppercase tracking-wide ${results.solde >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                      {results.solde >= 0 ? '✅ Solde net après frais' : '⚠️ Déficit'}
-                    </p>
+                    <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">🚗 Total frais de déplacement</p>
+                    <div className="flex flex-wrap gap-x-3 mt-1">
+                      <span className="text-indigo-300 text-xs">⛽ {fmt(results.totalFuel)}</span>
+                      {results.totalTolls > 0 && <span className="text-indigo-300 text-xs">🛣️ {fmt(results.totalTolls)}</span>}
+                      {results.totalExtras > 0 && <span className="text-indigo-300 text-xs">➕ {fmt(results.totalExtras)}</span>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-black text-white">{fmt(results.totalFrais)}</p>
                     {results.totalPassengers > 1 && (
-                      <p className={`text-xs mt-0.5 ${results.solde >= 0 ? 'text-green-500' : 'text-red-400'}`}>
-                        {fmt(results.soldePerPerson)} / personne ({results.totalPassengers} pers.)
-                      </p>
+                      <p className="text-indigo-300 text-xs mt-0.5">{fmt(results.fraisPerPerson)} / pers.</p>
                     )}
                   </div>
-                  <p className={`text-3xl font-black ${results.solde >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                    {results.solde >= 0 ? '' : ''}{fmt(results.solde)}
-                  </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Disclaimer + print */}
             <div className="flex items-start justify-between gap-3 flex-wrap">
