@@ -99,6 +99,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         },
         orderBy: { createdAt: 'asc' },
       },
+      groupPage: { select: { slug: true, published: true } },
     },
   })
 
@@ -150,6 +151,16 @@ export default async function GroupePage({ params }: { params: { id: string } })
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            {group.groupPage?.published && group.groupPage?.slug && (
+              <a
+                href={`/${group.groupPage.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 transition-colors"
+              >
+                🌐 Page publique →
+              </a>
+            )}
             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
               group.isPublic
                 ? 'bg-green-100 text-green-700'

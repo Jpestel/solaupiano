@@ -30,10 +30,10 @@ export default async function PublicHomePage() {
 
   const [concerts, groupsLooking] = await Promise.all([
     prisma.concert.findMany({
-      where: { date: { gte: now }, group: { isPublic: true } },
+      where: { date: { gte: now }, isPublic: true, group: { isPublic: true, isHidden: false } },
       orderBy: { date: 'asc' },
       take: 15,
-      include: { group: { select: { name: true } } },
+      include: { group: { select: { name: true, groupPage: { select: { slug: true, published: true } } } } },
     }),
     prisma.group.findMany({
       where: { isPublic: true, lookingFor: { not: null } },
@@ -167,7 +167,13 @@ export default async function PublicHomePage() {
                     <DateBox date={concert.date} color="purple" />
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-gray-900 text-sm">{concert.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{concert.group.name}</p>
+                      {concert.group.groupPage?.published && concert.group.groupPage?.slug ? (
+                        <Link href={`/${concert.group.groupPage.slug}`} className="text-xs text-indigo-600 hover:underline mt-0.5 inline-block">
+                          {concert.group.name} →
+                        </Link>
+                      ) : (
+                        <p className="text-xs text-gray-500 mt-0.5">{concert.group.name}</p>
+                      )}
                       <p className="text-xs text-gray-400 mt-0.5">{concert.location}</p>
                     </div>
                     <p className="flex-shrink-0 text-xs text-purple-600 font-medium capitalize hidden sm:block">
