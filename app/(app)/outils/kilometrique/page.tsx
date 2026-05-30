@@ -13,6 +13,7 @@ interface Vehicle {
   consumption: number // L/100km
   fuelPrice: number   // €/L
   passengers: number
+  tolls: number       // € péages aller simple par véhicule
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -26,6 +27,7 @@ const DEFAULT_VEHICLE = (): Vehicle => ({
   consumption: 7.0,
   fuelPrice: 1.82,
   passengers: 4,
+  tolls: 0,
 })
 
 const PRESETS: { label: string; consumption: number; fuelPrice: number }[] = [
@@ -121,20 +123,27 @@ export default function KilometriqueCalculatorPage() {
     const totalKm = effectiveKm * (roundTrip ? 2 : 1)
     if (!totalKm) return null
 
+    const trips = roundTrip ? 2 : 1
+
     const vehicleRows = vehicles.map(v => {
       const litresPerVehicle = totalKm * v.consumption / 100
       const litresTotal      = litresPerVehicle * v.count
-      const costPerVehicle   = litresPerVehicle * v.fuelPrice
-      const costTotal        = costPerVehicle * v.count
+      const fuelCostUnit     = litresPerVehicle * v.fuelPrice
+      const fuelCostTotal    = fuelCostUnit * v.count
+      const tollCostUnit     = v.tolls * trips          // péage aller (× 2 si AR)
+      const tollCostTotal    = tollCostUnit * v.count
+      const costTotal        = fuelCostTotal + tollCostTotal
       const passTotal        = v.count * v.passengers
-      return { ...v, litresPerVehicle, litresTotal, costPerVehicle, costTotal, passTotal }
+      return { ...v, litresPerVehicle, litresTotal, fuelCostUnit, fuelCostTotal, tollCostUnit, tollCostTotal, costTotal, passTotal }
     })
 
     const grandTotal      = vehicleRows.reduce((s, r) => s + r.costTotal, 0)
+    const totalFuel       = vehicleRows.reduce((s, r) => s + r.fuelCostTotal, 0)
+    const totalTolls      = vehicleRows.reduce((s, r) => s + r.tollCostTotal, 0)
     const totalPassengers = vehicleRows.reduce((s, r) => s + r.passTotal, 0)
     const perPerson       = totalPassengers > 0 ? grandTotal / totalPassengers : 0
 
-    return { totalKm, vehicleRows, grandTotal, totalPassengers, perPerson }
+    return { totalKm, vehicleRows, grandTotal, totalFuel, totalTolls, totalPassengers, perPerson }
   }, [effectiveKm, roundTrip, vehicles])
 
   // ── Print ───────────────────────────────────────────────────────────────────
@@ -151,6 +160,8 @@ export default function KilometriqueCalculatorPage() {
         <td>${v.fuelPrice.toFixed(2).replace('.', ',')} €/L</td>
         <td>${v.passTotal} pers.</td>
         <td>${fmtL(v.litresTotal)}</td>
+        <td>${fmt(v.fuelCostTotal)}</td>
+        <td>${v.tollCostTotal > 0 ? fmt(v.tollCostTotal) : '—'}</td>
         <td><strong>${fmt(v.costTotal)}</strong></td>
       </tr>`).join('')
 
@@ -193,20 +204,21 @@ export default function KilometriqueCalculatorPage() {
       </div>
       <table>
         <thead><tr>
-          <th>Véhicule</th><th>Conso.</th><th>Carburant</th><th>Passagers</th><th>Litres</th><th>Coût</th>
+          <th>Véhicule</th><th>Conso.</th><th>Carburant</th><th>Passagers</th><th>Litres</th><th>⛽ Carburant</th><th>🛣️ Péages</th><th>Total</th>
         </tr></thead>
         <tbody>
           ${vehicleRows}
           <tr class="total-row">
-            <td colspan="3">Total (${results.totalPassengers} personnes)</td>
-            <td></td>
+            <td colspan="4">Total (${results.totalPassengers} personnes)</td>
             <td>${fmtL(results.vehicleRows.reduce((s,v)=>s+v.litresTotal,0))}</td>
+            <td>${fmt(results.totalFuel)}</td>
+            <td>${results.totalTolls > 0 ? fmt(results.totalTolls) : '—'}</td>
             <td>${fmt(results.grandTotal)}</td>
           </tr>
         </tbody>
       </table>
       ${results.totalPassengers > 0 ? `<p style="font-size:14px;font-weight:700;color:#4f46e5;margin-bottom:8px">→ Coût par personne : ${fmt(results.perPerson)}</p>` : ''}
-      <div class="disclaimer">⚠️ Estimation basée sur les paramètres saisis. Frais de péage non inclus. Distance via OpenStreetMap.</div>
+      <div class="disclaimer">⚠️ Estimation basée sur les paramètres saisis. Frais de parking non inclus. Distance via OpenStreetMap.</div>
       <div class="footer">
         <span>Sol au piano · solaupiano.fr</span>
         <span>${date}</span>
@@ -380,7 +392,7 @@ export default function KilometriqueCalculatorPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <div>
                   <label className="block text-[10px] text-gray-400 font-medium mb-1">Nb véhicules</label>
                   <input type="number" min={1} max={20} value={v.count} onChange={e => updateVehicle(v.id, { count: parseInt(e.target.value) || 1 })}
@@ -401,6 +413,16 @@ export default function KilometriqueCalculatorPage() {
                   <input type="number" min={1} max={20} value={v.passengers} onChange={e => updateVehicle(v.id, { passengers: parseInt(e.target.value) || 1 })}
                     className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                 </div>
+                <div>
+                  <label className="block text-[10px] text-gray-400 font-medium mb-1">
+                    Péages aller (€)
+                    <a href="https://www.autoroutes.fr/index.htm?lang=fr" target="_blank" rel="noreferrer"
+                      className="ml-1 text-indigo-400 hover:text-indigo-600" title="Consulter autoroutes.fr">ⓘ</a>
+                  </label>
+                  <input type="number" min={0} step={0.10} value={v.tolls} onChange={e => updateVehicle(v.id, { tolls: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                </div>
               </div>
             </div>
           ))}
@@ -417,14 +439,30 @@ export default function KilometriqueCalculatorPage() {
             {/* Per-vehicle breakdown */}
             <div className="space-y-2">
               {results.vehicleRows.map(v => (
-                <div key={v.id} className="rounded-xl bg-white border border-indigo-100 px-4 py-3 flex items-center gap-3 flex-wrap">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-gray-800">{v.count}× {v.label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{v.consumption.toFixed(1).replace('.', ',')} L/100km · {v.fuelPrice.toFixed(2).replace('.', ',')} €/L · {v.passTotal} passager{v.passTotal > 1 ? 's' : ''}</p>
+                <div key={v.id} className="rounded-xl bg-white border border-indigo-100 px-4 py-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-800">{v.count}× {v.label}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {v.consumption.toFixed(1).replace('.', ',')} L/100km · {v.fuelPrice.toFixed(2).replace('.', ',')} €/L · {v.passTotal} passager{v.passTotal > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-lg font-black text-indigo-700">{fmt(v.costTotal)}</p>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-lg font-black text-indigo-700">{fmt(v.costTotal)}</p>
-                    <p className="text-xs text-gray-400">{fmtL(v.litresTotal)}</p>
+                  {/* Détail carburant + péages */}
+                  <div className="mt-2 flex gap-3 flex-wrap">
+                    <span className="text-xs text-gray-500">
+                      ⛽ Carburant : <strong>{fmt(v.fuelCostTotal)}</strong>
+                      <span className="text-gray-400 ml-1">({fmtL(v.litresTotal)})</span>
+                    </span>
+                    {v.tollCostTotal > 0 && (
+                      <span className="text-xs text-gray-500">
+                        🛣️ Péages : <strong>{fmt(v.tollCostTotal)}</strong>
+                        <span className="text-gray-400 ml-1">({fmt(v.tolls)} × {v.count} véh.{roundTrip ? ' × 2' : ''})</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -433,8 +471,14 @@ export default function KilometriqueCalculatorPage() {
             {/* Grand total */}
             <div className="rounded-xl bg-indigo-600 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">Total carburant</p>
+                <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">Total</p>
                 <p className="text-3xl font-black text-white mt-0.5">{fmt(results.grandTotal)}</p>
+                <div className="flex gap-3 mt-1">
+                  <span className="text-indigo-300 text-xs">⛽ {fmt(results.totalFuel)}</span>
+                  {results.totalTolls > 0 && (
+                    <span className="text-indigo-300 text-xs">🛣️ {fmt(results.totalTolls)}</span>
+                  )}
+                </div>
               </div>
               {results.totalPassengers > 1 && (
                 <div className="text-right">
@@ -447,7 +491,7 @@ export default function KilometriqueCalculatorPage() {
             {/* Disclaimer + print */}
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <p className="text-[10px] text-gray-400 leading-relaxed max-w-xs">
-                ⚠️ Frais de péage et de parking non inclus. Distance estimée via OpenStreetMap. Prix carburant à titre indicatif.
+                ⚠️ Frais de parking non inclus. Distance estimée via OpenStreetMap. Prix carburant à titre indicatif.
               </p>
               <button
                 onClick={handlePrint}
