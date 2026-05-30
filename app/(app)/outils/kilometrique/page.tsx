@@ -464,8 +464,8 @@ export default function KilometriqueCalculatorPage() {
             </div>
           ) : (
             <p className="text-xs text-gray-400">
-              💾 Sauvegarde disponible avec les{' '}
-              <a href="/tarifs" className="text-indigo-500 hover:underline">forfaits incluant du stockage →</a>
+              💾 Sauvegarde disponible si votre plan personnel ou le plan de votre groupe inclut du stockage.{' '}
+              <a href="/tarifs" className="text-indigo-500 hover:underline">Voir les forfaits →</a>
             </p>
           )}
         </div>

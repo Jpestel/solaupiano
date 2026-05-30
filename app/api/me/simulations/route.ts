@@ -5,15 +5,30 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// Vérifie si le plan de l'utilisateur inclut du stockage
-async function canSaveSimulations(userPlan: string): Promise<boolean> {
-  if (userPlan === 'ADMIN') return true // admins toujours autorisés
-  const plan = await prisma.plan.findUnique({
+// Vérifie si l'utilisateur peut sauvegarder des simulations :
+// - plan personnel avec stockage, OU
+// - chef d'un groupe avec un plan incluant du stockage
+async function canSaveSimulations(userId: number, userPlan: string): Promise<boolean> {
+  // 1. Plan personnel
+  const personalPlan = await prisma.plan.findUnique({
     where: { key: userPlan },
     select: { storageGb: true },
   })
-  // storageGb peut être un Decimal Prisma — on le convertit
-  return plan !== null && Number(plan.storageGb) > 0
+  if (personalPlan && Number(personalPlan.storageGb) > 0) return true
+
+  // 2. Chef (ou co-chef) d'un groupe avec plan payant incluant du stockage
+  const chefMemberships = await prisma.groupMember.findMany({
+    where:  { userId, groupRole: 'CHEF' },
+    select: { group: { select: { plan: true } } },
+  })
+  if (chefMemberships.length === 0) return false
+
+  const groupPlanKeys = [...new Set(chefMemberships.map(m => m.group.plan))]
+  const groupPlans = await prisma.plan.findMany({
+    where:  { key: { in: groupPlanKeys } },
+    select: { key: true, storageGb: true },
+  })
+  return groupPlans.some(p => Number(p.storageGb) > 0)
 }
 
 // GET — liste des simulations + flag canSave
@@ -25,7 +40,7 @@ export async function GET() {
   const userPlan = session.user.userPlan ?? 'MUSICIEN'
   const isAdmin  = session.user.siteRole === 'ADMIN'
 
-  const canSave = isAdmin || await canSaveSimulations(userPlan)
+  const canSave = isAdmin || await canSaveSimulations(userId, userPlan)
 
   const simulations = canSave
     ? await prisma.cachetSimulation.findMany({
@@ -51,7 +66,7 @@ export async function POST(req: NextRequest) {
   const userPlan = session.user.userPlan ?? 'MUSICIEN'
   const isAdmin  = session.user.siteRole === 'ADMIN'
 
-  if (!isAdmin && !await canSaveSimulations(userPlan)) {
+  if (!isAdmin && !await canSaveSimulations(userId, userPlan)) {
     return NextResponse.json({ error: 'Votre forfait ne permet pas de sauvegarder des simulations.' }, { status: 403 })
   }
 
