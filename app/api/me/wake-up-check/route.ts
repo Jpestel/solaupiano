@@ -33,7 +33,9 @@ export async function GET() {
   })
 
   const missingPresences = upcomingRehearsals
-    .filter(r => r.attendances.length === 0)
+    // INCERTAIN = statut auto-créé à la création de la répétition → pas encore répondu
+    // On exclut le statut PRESENT et ABSENT qui sont des réponses actives
+    .filter(r => r.attendances.length === 0 || r.attendances[0]?.status === 'INCERTAIN')
     .slice(0, 5)
     .map(r => ({
       rehearsalId: r.id,
@@ -72,7 +74,9 @@ export async function GET() {
 
   if (nextWithSongs) {
     const pending = nextWithSongs.songs.filter(
-      rs => rs.song.userProgress.length === 0
+      rs =>
+        rs.song.userProgress.length === 0 ||
+        rs.song.userProgress[0]?.status === 'A_TRAVAILLER'
     ).length
     nextRehearsal = {
       rehearsalId: nextWithSongs.id,
