@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { DbPlan, COLOR_MAP, generateFeatureList } from '@/lib/plans'
+import { DbPlan, COLOR_MAP, generateFeatureList, storageLabel } from '@/lib/plans'
 import { MODULES } from '@/lib/modules'
 
 type PlanWithCount = DbPlan & { groupCount: number }
@@ -361,7 +361,7 @@ export default function AdminPlansPage() {
                   {/* Key metrics */}
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                      💾 {p.storageGb} Go
+                      💾 {p.storageGb > 0 ? storageLabel(p.storageGb) : 'Aucun stockage'}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
                       🎵 {p.maxGroups === 1 ? '1 groupe' : `${p.maxGroups} groupes max`}
@@ -823,7 +823,7 @@ export default function AdminPlansPage() {
                             Actuel
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500">{form.storageGb} Go de stockage</p>
+                        <p className="text-xs text-gray-500">{Number(form.storageGb) > 0 ? `${storageLabel(Number(form.storageGb))} de stockage` : 'Aucun stockage'}</p>
                         <p className={`text-base font-bold mt-2 ${COLOR_MAP[form.color]?.text}`}>
                           {form.priceMonthly !== '' ? `${Number(form.priceMonthly || 0).toFixed(2).replace('.', ',')} €` : 'Gratuit'}
                           {form.priceMonthly !== '' && <span className="text-xs font-normal text-gray-500">/mois</span>}
