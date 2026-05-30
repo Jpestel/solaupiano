@@ -79,6 +79,7 @@ export default async function AidePage() {
             { href: '#accordeur', label: '🎙️ Accordeur' },
             { href: '#metronome', label: '🥁 Métronome' },
             { href: '#portee', label: '🎼 Portée' },
+            { href: '#cachet-guso', label: '💶 Cachet GUSO' },
             { href: '#stats', label: '📊 Statistiques' },
             { href: '#annonces', label: '📢 Annonces' },
             { href: '#plans', label: '📦 Plans' },
@@ -1408,6 +1409,45 @@ export default async function AidePage() {
               <Tip>Si une annonce est refusée, le motif est indiqué par l&apos;administrateur — vous pouvez la corriger et la soumettre à nouveau.</Tip>
             </HelpCard>
 
+          </div>
+        </section>
+
+        {/* ─── CACHET GUSO ─── */}
+        <section id="cachet-guso">
+          <SectionTitle icon="💶" title="Simulateur cachet GUSO" color="green" tutorials={tf('tool_cachet')} />
+          <div className="space-y-4">
+            <HelpCard title="À quoi sert le simulateur cachet GUSO ?">
+              <p>Le <strong>GUSO</strong> (Guichet Unique du Spectacle Occasionnel) est la plateforme obligatoire pour les employeurs occasionnels de spectacle vivant. Le simulateur vous aide à estimer :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-orange-100 bg-orange-50 p-3">
+                  <p className="text-sm font-bold text-orange-700 mb-1">🏢 Côté employeur</p>
+                  <p className="text-xs text-gray-600">Combien vous coûtera réellement l&apos;artiste (brut + charges patronales + congés spectacles ~10 %).</p>
+                </div>
+                <div className="rounded-lg border border-green-100 bg-green-50 p-3">
+                  <p className="text-sm font-bold text-green-700 mb-1">🎵 Côté artiste</p>
+                  <p className="text-xs text-gray-600">Combien l&apos;artiste percevra réellement (brut − charges salariales ~22 %).</p>
+                </div>
+              </div>
+            </HelpCard>
+            <HelpCard title="Comment utiliser le simulateur">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Choisissez votre point de départ : <strong>salaire brut</strong>, <strong>budget employeur</strong> ou <strong>net artiste souhaité</strong>.</Step>
+                <Step n={2}>Saisissez le montant — les trois valeurs se calculent automatiquement.</Step>
+                <Step n={3}>Activez ou désactivez les <strong>congés spectacles</strong> (10,25 %) selon votre situation (spectacle vivant = activé par défaut).</Step>
+                <Step n={4}>Cliquez sur <em>&quot;Voir le détail&quot;</em> pour afficher la ventilation complète des cotisations.</Step>
+              </ol>
+              <Tip>Le numéro GUSO de l&apos;artiste est à renseigner dans son <Link href="/profil" className="text-indigo-600 hover:underline font-medium">profil Sol au piano</Link> pour le retrouver facilement avant un contrat.</Tip>
+              <Note>Les taux affichés sont indicatifs (spectacle vivant, CDU, 2025). Utilisez <a href="https://www.guso.fr" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">guso.fr</a> pour un calcul officiel.</Note>
+            </HelpCard>
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-sm font-semibold text-indigo-800">Accéder au simulateur</p>
+                <p className="text-xs text-indigo-600 mt-0.5">Disponible dans la barre de navigation → Cachet GUSO</p>
+              </div>
+              <Link href="/outils/cachet" className="flex-shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors">
+                Ouvrir le simulateur →
+              </Link>
+            </div>
           </div>
         </section>
 

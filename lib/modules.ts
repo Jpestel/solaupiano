@@ -48,6 +48,14 @@ export const MODULES: ModuleDef[] = [
     icon: '📢',
     category: 'feature',
   },
+  {
+    key: 'tool_cachet',
+    label: 'Simulateur cachet GUSO',
+    description: "Estimez le coût employeur et le net artiste pour un cachet de spectacle vivant.",
+    href: '/outils/cachet',
+    icon: '💶',
+    category: 'outil',
+  },
 ]
 
 export function getModuleDef(key: string): ModuleDef | undefined {
