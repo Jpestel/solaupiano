@@ -95,6 +95,7 @@ export default function KilometriqueCalculatorPage() {
   const [roundTrip, setRoundTrip] = useState(true)
   const [vehicles,  setVehicles]  = useState<Vehicle[]>([DEFAULT_VEHICLE()])
   const [expenses,  setExpenses]  = useState<Expense[]>([])
+  const [cachet,    setCachet]    = useState('')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [routeNote, setRouteNote] = useState('')
@@ -165,11 +166,15 @@ export default function KilometriqueCalculatorPage() {
     }))
     const totalExtras = expenseRows.reduce((s, e) => s + e.total, 0)
 
-    const grandTotal = totalVehicles + totalExtras
-    const perPerson  = totalPassengers > 0 ? grandTotal / totalPassengers : 0
+    const grandTotal  = totalVehicles + totalExtras
+    const perPerson   = totalPassengers > 0 ? grandTotal / totalPassengers : 0
 
-    return { totalKm, vehicleRows, totalVehicles, totalFuel, totalTolls, expenseRows, totalExtras, grandTotal, totalPassengers, perPerson }
-  }, [effectiveKm, roundTrip, vehicles, expenses])
+    const cachetVal   = parseFloat(cachet.replace(',', '.') || '0') || 0
+    const solde       = cachetVal - grandTotal
+    const soldePerPerson = totalPassengers > 0 ? solde / totalPassengers : 0
+
+    return { totalKm, vehicleRows, totalVehicles, totalFuel, totalTolls, expenseRows, totalExtras, grandTotal, totalPassengers, perPerson, cachetVal, solde, soldePerPerson }
+  }, [effectiveKm, roundTrip, vehicles, expenses, cachet])
 
   // ── Print ───────────────────────────────────────────────────────────────────
 
@@ -260,11 +265,31 @@ export default function KilometriqueCalculatorPage() {
             </tr>
           </tbody>
         </table>` : ''}
-      <div style="margin:16px 0;padding:14px 16px;background:#eff6ff;border-radius:10px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:15px;font-weight:700;color:#1e40af">Total déplacement</span>
-        <span style="font-size:20px;font-weight:800;color:#1e40af">${fmt(results.grandTotal)}</span>
-      </div>
-      ${results.totalPassengers > 1 ? `<p style="font-size:14px;font-weight:700;color:#4f46e5;margin-bottom:8px">→ Coût par personne (${results.totalPassengers} pers.) : ${fmt(results.perPerson)}</p>` : ''}
+      <table style="margin-top:16px;border:2px solid #e0e7ff;border-radius:10px;overflow:hidden">
+        <tbody>
+          ${results.cachetVal > 0 ? `
+          <tr style="background:#fffbeb">
+            <td style="padding:12px 16px;font-weight:700;color:#92400e">💰 Cachet prévu</td>
+            <td style="padding:12px 16px;text-align:right;font-size:18px;font-weight:800;color:#92400e">${fmt(results.cachetVal)}</td>
+          </tr>` : ''}
+          <tr style="background:#4f46e5;color:white">
+            <td style="padding:12px 16px;font-weight:700">🚗 Total frais de déplacement</td>
+            <td style="padding:12px 16px;text-align:right;font-size:18px;font-weight:800">${fmt(results.grandTotal)}</td>
+          </tr>
+          ${results.cachetVal > 0 ? `
+          <tr style="background:${results.solde >= 0 ? '#f0fdf4' : '#fef2f2'}">
+            <td style="padding:12px 16px;font-weight:700;color:${results.solde >= 0 ? '#15803d' : '#dc2626'}">${results.solde >= 0 ? '✅ Solde net après frais' : '⚠️ Déficit'}</td>
+            <td style="padding:12px 16px;text-align:right;font-size:20px;font-weight:800;color:${results.solde >= 0 ? '#15803d' : '#dc2626'}">${fmt(results.solde)}</td>
+          </tr>` : ''}
+          ${results.totalPassengers > 1 ? `
+          <tr style="background:#f9fafb">
+            <td style="padding:8px 16px;font-size:12px;color:#6b7280">Par personne (${results.totalPassengers} pers.)</td>
+            <td style="padding:8px 16px;text-align:right;font-size:13px;font-weight:700;color:#374151">
+              ${results.cachetVal > 0 ? `Solde : ${fmt(results.soldePerPerson)} · ` : ''}Frais : ${fmt(results.perPerson)}
+            </td>
+          </tr>` : ''}
+        </tbody>
+      </table>
       <div class="disclaimer">⚠️ Estimation basée sur les paramètres saisis. Distance via OpenStreetMap. Prix carburant à titre indicatif.</div>
       <div class="footer">
         <span>Sol au piano · solaupiano.fr</span>
@@ -564,6 +589,29 @@ export default function KilometriqueCalculatorPage() {
           )}
         </div>
 
+        {/* ── Cachet ── */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Cachet du concert</p>
+          <p className="text-[11px] text-gray-400 mb-3">Montant brut prévu — sera comparé aux frais pour estimer le solde net.</p>
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-xs">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={cachet}
+                onChange={e => setCachet(e.target.value)}
+                placeholder="ex : 1200"
+                className="w-full rounded-lg border border-amber-300 bg-white pl-4 pr-10 py-2.5 text-lg font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">€</span>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed max-w-xs">
+              💡 Pour estimer le net artiste après charges sociales, utilisez le{' '}
+              <a href="/outils/cachet" className="text-indigo-600 hover:underline font-medium">simulateur GUSO →</a>
+            </p>
+          </div>
+        </div>
+
         {/* ── Results ── */}
         {results && (
           <div ref={printRef} className="rounded-xl border-2 border-indigo-200 bg-indigo-50/40 p-5 space-y-4">
@@ -620,27 +668,53 @@ export default function KilometriqueCalculatorPage() {
               </div>
             )}
 
-            {/* Grand total */}
-            <div className="rounded-xl bg-indigo-600 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">
-                  Total déplacement
-                </p>
-                <p className="text-3xl font-black text-white mt-0.5">{fmt(results.grandTotal)}</p>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                  <span className="text-indigo-300 text-xs">⛽ {fmt(results.totalFuel)}</span>
-                  {results.totalTolls > 0 && (
-                    <span className="text-indigo-300 text-xs">🛣️ {fmt(results.totalTolls)}</span>
-                  )}
-                  {results.totalExtras > 0 && (
-                    <span className="text-indigo-300 text-xs">➕ {fmt(results.totalExtras)}</span>
+            {/* Récapitulatif financier */}
+            <div className="rounded-xl overflow-hidden border border-gray-200">
+
+              {/* Cachet (si renseigné) */}
+              {results.cachetVal > 0 && (
+                <div className="flex items-center justify-between px-5 py-3 bg-amber-50 border-b border-amber-100">
+                  <div>
+                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">💰 Cachet prévu</p>
+                  </div>
+                  <p className="text-xl font-black text-amber-700">{fmt(results.cachetVal)}</p>
+                </div>
+              )}
+
+              {/* Total frais */}
+              <div className="flex items-center justify-between px-5 py-3 bg-indigo-600">
+                <div>
+                  <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">🚗 Total frais de déplacement</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                    <span className="text-indigo-300 text-xs">⛽ {fmt(results.totalFuel)}</span>
+                    {results.totalTolls > 0 && <span className="text-indigo-300 text-xs">🛣️ {fmt(results.totalTolls)}</span>}
+                    {results.totalExtras > 0 && <span className="text-indigo-300 text-xs">➕ {fmt(results.totalExtras)}</span>}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-black text-white">{fmt(results.grandTotal)}</p>
+                  {results.totalPassengers > 1 && (
+                    <p className="text-indigo-300 text-xs mt-0.5">{fmt(results.perPerson)} / pers.</p>
                   )}
                 </div>
               </div>
-              {results.totalPassengers > 1 && (
-                <div className="text-right">
-                  <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">{results.totalPassengers} personnes</p>
-                  <p className="text-xl font-bold text-white mt-0.5">{fmt(results.perPerson)} / pers.</p>
+
+              {/* Solde net (si cachet renseigné) */}
+              {results.cachetVal > 0 && (
+                <div className={`flex items-center justify-between px-5 py-4 ${results.solde >= 0 ? 'bg-green-50 border-t border-green-100' : 'bg-red-50 border-t border-red-100'}`}>
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-wide ${results.solde >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                      {results.solde >= 0 ? '✅ Solde net après frais' : '⚠️ Déficit'}
+                    </p>
+                    {results.totalPassengers > 1 && (
+                      <p className={`text-xs mt-0.5 ${results.solde >= 0 ? 'text-green-500' : 'text-red-400'}`}>
+                        {fmt(results.soldePerPerson)} / personne ({results.totalPassengers} pers.)
+                      </p>
+                    )}
+                  </div>
+                  <p className={`text-3xl font-black ${results.solde >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                    {results.solde >= 0 ? '' : ''}{fmt(results.solde)}
+                  </p>
                 </div>
               )}
             </div>
