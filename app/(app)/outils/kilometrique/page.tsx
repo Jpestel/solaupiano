@@ -15,6 +15,13 @@ interface Vehicle {
   tolls: number       // € péages aller simple
 }
 
+interface Expense {
+  id: string
+  label: string
+  unitAmount: number  // € par unité
+  qty: number         // nombre d'unités
+}
+
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const uid = () => Math.random().toString(36).slice(2, 8)
@@ -27,6 +34,21 @@ const DEFAULT_VEHICLE = (n = 1): Vehicle => ({
   passengers: 4,
   tolls: 0,
 })
+
+const EXPENSE_SUGGESTIONS = [
+  { icon: '🚌', label: 'Location véhicule' },
+  { icon: '🚍', label: 'Car de tournée' },
+  { icon: '⛴️', label: 'Ferry' },
+  { icon: '🚂', label: 'Train' },
+  { icon: '✈️', label: 'Avion' },
+  { icon: '🅿️', label: 'Parking' },
+  { icon: '🏨', label: 'Hébergement' },
+  { icon: '🚢', label: 'Bateau / croisière' },
+  { icon: '🚕', label: 'Taxi / VTC' },
+  { icon: '🎒', label: 'Bagages / excédents' },
+  { icon: '🔧', label: 'Assistance routière' },
+  { icon: '📦', label: 'Transport matériel' },
+]
 
 const PRESETS: { label: string; consumption: number; fuelPrice: number }[] = [
   { label: 'Petite voiture essence', consumption: 5.5,  fuelPrice: 1.78 },
@@ -72,6 +94,7 @@ export default function KilometriqueCalculatorPage() {
   const [manualMode, setManualMode] = useState(false)
   const [roundTrip, setRoundTrip] = useState(true)
   const [vehicles,  setVehicles]  = useState<Vehicle[]>([DEFAULT_VEHICLE()])
+  const [expenses,  setExpenses]  = useState<Expense[]>([])
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [routeNote, setRouteNote] = useState('')
@@ -131,14 +154,22 @@ export default function KilometriqueCalculatorPage() {
       return { ...v, litres, fuelCost, tollCost, costTotal }
     })
 
-    const grandTotal      = vehicleRows.reduce((s, r) => s + r.costTotal, 0)
+    const totalVehicles   = vehicleRows.reduce((s, r) => s + r.costTotal, 0)
     const totalFuel       = vehicleRows.reduce((s, r) => s + r.fuelCost, 0)
     const totalTolls      = vehicleRows.reduce((s, r) => s + r.tollCost, 0)
     const totalPassengers = vehicleRows.reduce((s, r) => s + r.passengers, 0)
-    const perPerson       = totalPassengers > 0 ? grandTotal / totalPassengers : 0
 
-    return { totalKm, vehicleRows, grandTotal, totalFuel, totalTolls, totalPassengers, perPerson }
-  }, [effectiveKm, roundTrip, vehicles])
+    const expenseRows = expenses.map(e => ({
+      ...e,
+      total: e.unitAmount * e.qty,
+    }))
+    const totalExtras = expenseRows.reduce((s, e) => s + e.total, 0)
+
+    const grandTotal = totalVehicles + totalExtras
+    const perPerson  = totalPassengers > 0 ? grandTotal / totalPassengers : 0
+
+    return { totalKm, vehicleRows, totalVehicles, totalFuel, totalTolls, expenseRows, totalExtras, grandTotal, totalPassengers, perPerson }
+  }, [effectiveKm, roundTrip, vehicles, expenses])
 
   // ── Print ───────────────────────────────────────────────────────────────────
 
@@ -211,8 +242,30 @@ export default function KilometriqueCalculatorPage() {
           </tr>
         </tbody>
       </table>
-      ${results.totalPassengers > 0 ? `<p style="font-size:14px;font-weight:700;color:#4f46e5;margin-bottom:8px">→ Coût par personne : ${fmt(results.perPerson)}</p>` : ''}
-      <div class="disclaimer">⚠️ Estimation basée sur les paramètres saisis. Frais de parking non inclus. Distance via OpenStreetMap.</div>
+      ${results.expenseRows.length > 0 ? `
+        <h2 style="font-size:14px;font-weight:700;color:#374151;margin:20px 0 8px">Frais supplémentaires</h2>
+        <table>
+          <thead><tr><th>Poste</th><th>Montant unitaire</th><th>Quantité</th><th>Total</th></tr></thead>
+          <tbody>
+            ${results.expenseRows.map(e => `
+              <tr>
+                <td>${e.label || 'Sans libellé'}</td>
+                <td>${fmt(e.unitAmount)}</td>
+                <td>${e.qty}</td>
+                <td><strong>${fmt(e.total)}</strong></td>
+              </tr>`).join('')}
+            <tr class="total-row">
+              <td colspan="3">Sous-total frais supplémentaires</td>
+              <td>${fmt(results.totalExtras)}</td>
+            </tr>
+          </tbody>
+        </table>` : ''}
+      <div style="margin:16px 0;padding:14px 16px;background:#eff6ff;border-radius:10px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:15px;font-weight:700;color:#1e40af">Total déplacement</span>
+        <span style="font-size:20px;font-weight:800;color:#1e40af">${fmt(results.grandTotal)}</span>
+      </div>
+      ${results.totalPassengers > 1 ? `<p style="font-size:14px;font-weight:700;color:#4f46e5;margin-bottom:8px">→ Coût par personne (${results.totalPassengers} pers.) : ${fmt(results.perPerson)}</p>` : ''}
+      <div class="disclaimer">⚠️ Estimation basée sur les paramètres saisis. Distance via OpenStreetMap. Prix carburant à titre indicatif.</div>
       <div class="footer">
         <span>Sol au piano · solaupiano.fr</span>
         <span>${date}</span>
@@ -417,6 +470,100 @@ export default function KilometriqueCalculatorPage() {
           ))}
         </div>
 
+        {/* ── Frais supplémentaires ── */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Frais supplémentaires</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">Location, ferry, train, hébergement, parking…</p>
+            </div>
+          </div>
+
+          {/* Suggestions rapides */}
+          <div className="flex flex-wrap gap-1.5">
+            {EXPENSE_SUGGESTIONS.map(s => (
+              <button
+                key={s.label}
+                onClick={() => setExpenses(es => [...es, { id: uid(), label: `${s.icon} ${s.label}`, unitAmount: 0, qty: 1 }])}
+                className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs text-gray-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+              >
+                {s.icon} {s.label}
+              </button>
+            ))}
+            <button
+              onClick={() => setExpenses(es => [...es, { id: uid(), label: '', unitAmount: 0, qty: 1 }])}
+              className="inline-flex items-center gap-1 rounded-full border border-dashed border-indigo-300 bg-indigo-50 px-2.5 py-1 text-xs text-indigo-600 hover:bg-indigo-100 transition-colors font-medium"
+            >
+              ✏️ Autre…
+            </button>
+          </div>
+
+          {/* Lignes de frais */}
+          {expenses.length > 0 && (
+            <div className="space-y-2">
+              {expenses.map(e => (
+                <div key={e.id} className="flex items-center gap-2 flex-wrap">
+                  {/* Libellé */}
+                  <input
+                    type="text"
+                    value={e.label}
+                    onChange={ev => setExpenses(es => es.map(x => x.id === e.id ? { ...x, label: ev.target.value } : x))}
+                    placeholder="Libellé"
+                    className="flex-1 min-w-[140px] rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  />
+                  {/* Montant unitaire */}
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={e.unitAmount}
+                      onChange={ev => setExpenses(es => es.map(x => x.id === e.id ? { ...x, unitAmount: parseFloat(ev.target.value) || 0 } : x))}
+                      placeholder="0"
+                      className="w-24 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                    <span className="text-xs text-gray-400">€</span>
+                  </div>
+                  {/* Quantité */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-400">×</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={e.qty}
+                      onChange={ev => setExpenses(es => es.map(x => x.id === e.id ? { ...x, qty: parseInt(ev.target.value) || 1 } : x))}
+                      className="w-14 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                  </div>
+                  {/* Sous-total */}
+                  <span className="text-sm font-semibold text-indigo-700 w-20 text-right tabular-nums">
+                    {fmt(e.unitAmount * e.qty)}
+                  </span>
+                  {/* Supprimer */}
+                  <button
+                    onClick={() => setExpenses(es => es.filter(x => x.id !== e.id))}
+                    className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              {/* Sous-total frais */}
+              <div className="flex justify-end pt-1 border-t border-gray-100">
+                <span className="text-xs text-gray-500 mr-2">Sous-total frais :</span>
+                <span className="text-sm font-bold text-gray-700">
+                  {fmt(expenses.reduce((s, e) => s + e.unitAmount * e.qty, 0))}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {expenses.length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-2">Cliquez sur un type de frais pour l&apos;ajouter.</p>
+          )}
+        </div>
+
         {/* ── Results ── */}
         {results && (
           <div ref={printRef} className="rounded-xl border-2 border-indigo-200 bg-indigo-50/40 p-5 space-y-4">
@@ -457,15 +604,36 @@ export default function KilometriqueCalculatorPage() {
               ))}
             </div>
 
+            {/* Frais supplémentaires dans les résultats */}
+            {results.expenseRows.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Frais supplémentaires</p>
+                {results.expenseRows.map(e => (
+                  <div key={e.id} className="flex items-center justify-between rounded-xl bg-white border border-gray-200 px-4 py-2.5">
+                    <span className="text-sm text-gray-700">{e.label || 'Sans libellé'}</span>
+                    <span className="text-sm font-semibold text-gray-800 tabular-nums">
+                      {e.qty > 1 && <span className="text-gray-400 font-normal text-xs mr-1">{fmt(e.unitAmount)} × {e.qty}</span>}
+                      {fmt(e.total)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Grand total */}
             <div className="rounded-xl bg-indigo-600 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">Total</p>
+                <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">
+                  Total déplacement
+                </p>
                 <p className="text-3xl font-black text-white mt-0.5">{fmt(results.grandTotal)}</p>
-                <div className="flex gap-3 mt-1">
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
                   <span className="text-indigo-300 text-xs">⛽ {fmt(results.totalFuel)}</span>
                   {results.totalTolls > 0 && (
                     <span className="text-indigo-300 text-xs">🛣️ {fmt(results.totalTolls)}</span>
+                  )}
+                  {results.totalExtras > 0 && (
+                    <span className="text-indigo-300 text-xs">➕ {fmt(results.totalExtras)}</span>
                   )}
                 </div>
               </div>
@@ -480,7 +648,7 @@ export default function KilometriqueCalculatorPage() {
             {/* Disclaimer + print */}
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <p className="text-[10px] text-gray-400 leading-relaxed max-w-xs">
-                ⚠️ Frais de parking non inclus. Distance estimée via OpenStreetMap. Prix carburant à titre indicatif.
+                ⚠️ Distance estimée via OpenStreetMap. Prix carburant à titre indicatif.
               </p>
               <button
                 onClick={handlePrint}
