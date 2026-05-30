@@ -75,7 +75,7 @@ export default async function TarifsPage() {
 
   const storagePerGroup = groupPlans.some(p => p.hasFileSubmissions)
   const storageText = storagePerGroup
-    ? `Le stockage est propre à chaque groupe. ${paidPlans.map(p => `${p.label} : ${storageLabel(p.storageGb)}`).join(', ')}.`
+    ? `Le quota de stockage est partagé entre TOUS vos groupes — ce n'est pas un quota par groupe. ${paidPlans.map(p => `Plan ${p.label} : ${storageLabel(p.storageGb)} au total pour l'ensemble de vos groupes`).join('. ')}.`
     : 'Le stockage de fichiers est disponible sur les plans payants.'
 
   return (

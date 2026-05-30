@@ -495,7 +495,7 @@ export default async function AidePage() {
                   </div>
                 ))}
               </div>
-              <Note>Le stockage est partagé entre tous les membres du groupe. La barre de stockage est visible sur la page d&apos;accueil du groupe.</Note>
+              <Note>Le quota de stockage est <strong>partagé entre tous vos groupes</strong> (pas un quota par groupe). La barre visible sur chaque groupe affiche la consommation totale de votre compte.</Note>
             </HelpCard>
 
             <HelpCard title="Suivi de progression">
@@ -1469,7 +1469,7 @@ export default async function AidePage() {
           <div className="space-y-4">
 
             <HelpCard title="Plans de groupe">
-              <p>Le plan est attaché à <strong>chaque groupe</strong> individuellement (pas au compte utilisateur). Il détermine les fonctionnalités disponibles et l&apos;espace de stockage.</p>
+              <p>Le plan est attaché à <strong>chaque groupe</strong> individuellement. Il détermine les fonctionnalités disponibles. Le quota de stockage, lui, est <strong>partagé entre tous vos groupes</strong> — ce n&apos;est pas un quota par groupe.</p>
               <div className={`mt-4 grid grid-cols-1 gap-3 ${dbPlans.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
                 {dbPlans.map(p => (
                   <PlanDetailCard
@@ -1488,12 +1488,12 @@ export default async function AidePage() {
             </HelpCard>
 
             <HelpCard title="Stockage">
-              <p>Le stockage est <strong>propre à chaque groupe</strong> — il n&apos;est pas partagé entre vos différents groupes. Il comptabilise tous les fichiers attachés aux morceaux (partitions PDF, fichiers audio, images…).</p>
+              <p>Le quota de stockage est <strong>partagé entre TOUS vos groupes</strong> — ce n&apos;est pas un quota par groupe. Si votre plan inclut 5 Go, ces 5 Go sont répartis librement entre l&apos;ensemble de vos groupes. Il comptabilise tous les fichiers attachés aux morceaux (partitions PDF, fichiers audio, images…).</p>
               <ul className="mt-3 space-y-1.5">
                 {dbPlans.map(p => (
                   <li key={p.key}>
                     {planIcon(p)} <strong>Plan {p.label}</strong> —{' '}
-                    {p.hasFileSubmissions ? `${storageLabel(p.storageGb)} par groupe` : 'sans stockage de fichiers'}
+                    {p.hasFileSubmissions ? `${storageLabel(p.storageGb)} partagés (tous groupes)` : 'sans stockage de fichiers'}
                   </li>
                 ))}
               </ul>
@@ -1668,7 +1668,7 @@ export default async function AidePage() {
               Oui. Le fondateur du groupe peut nommer autant de co-chefs qu&apos;il le souhaite depuis le panneau <strong>Membres</strong>. Il peut aussi configurer les permissions de chaque co-chef (quels modules il peut modifier) depuis la section <em>Permissions des co-chefs</em> en bas de la page du groupe. Cette fonctionnalité est disponible à partir du plan <strong>Pro</strong>.
             </FaqItem>
             <FaqItem question="Le stockage est-il partagé entre tous mes groupes ?">
-              Non. Chaque groupe dispose de son propre quota de stockage, indépendant des autres groupes. Un groupe en plan Gratuit a 1 Go, un groupe Pro a 5 Go, un groupe Premium a 10 Go — même si vous êtes membre de plusieurs groupes.
+              <strong>Oui — le quota de stockage est partagé entre TOUS vos groupes.</strong> Ce n&apos;est pas un quota par groupe : si votre plan inclut 5 Go, ces 5 Go sont communs à l&apos;ensemble de vos groupes. Par exemple, si vous avez 3 groupes et que le premier utilise 3 Go, il ne reste que 2 Go pour les deux autres. La barre de stockage visible sur chaque groupe affiche la consommation globale du compte.
             </FaqItem>
             <FaqItem question="Qui peut accéder aux statistiques du groupe ?">
               Seuls les <strong>chefs</strong> du groupe y ont accès (fondateur et co-chefs). Les membres simples ne voient pas les statistiques. De plus, le module nécessite un <strong>plan payant</strong> (Pro ou Premium). Le fondateur peut restreindre l&apos;accès aux co-chefs depuis les paramètres de permissions.
