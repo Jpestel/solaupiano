@@ -221,6 +221,7 @@ export default async function AidePage() {
                     <li>✓ Invite et gère les membres</li>
                     <li>✓ Accède aux paramètres du groupe</li>
                     <li>✓ Consulte les statistiques du groupe</li>
+                    <li>✓ Crée des estimations de cachet pour les concerts</li>
                   </ul>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -238,7 +239,7 @@ export default async function AidePage() {
                   </ul>
                 </div>
               </div>
-              <Note>Un groupe peut avoir <strong>plusieurs chefs</strong>. Le fondateur du groupe peut nommer des co-chefs depuis le panneau membres, et configurer finement leurs permissions (quels modules ils peuvent modifier) depuis la section <em>Permissions des co-chefs</em> en bas de la page du groupe.</Note>
+              <Note>Un groupe peut avoir <strong>plusieurs chefs</strong>. Le fondateur du groupe peut nommer des co-chefs depuis le panneau membres, et configurer finement leurs permissions depuis la section <em>Permissions des co-chefs</em> en bas de la page du groupe. Les modules contrôlables sont : Répétitions, Répertoire, Ressources, Setlists, Concerts, Grilles d&apos;accords, Membres, Statistiques et <strong>Estimation de cachet</strong>.</Note>
             </HelpCard>
           </div>
         </section>
@@ -1414,8 +1415,19 @@ export default async function AidePage() {
 
         {/* ─── CACHET GUSO ─── */}
         <section id="cachet-guso">
-          <SectionTitle icon="💶" title="Simulateur cachet GUSO" color="green" tutorials={tf('tool_cachet')} />
+          <SectionTitle icon="💶" title="Estimation de cachet & frais de déplacement" color="green" tutorials={tf('tool_cachet')} />
           <div className="space-y-4">
+            {isCreateur && (
+              <HelpCard title="Lier une estimation à un concert" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <p>L&apos;outil <strong>Estimation de cachet</strong> (accessible depuis la navigation) permet de calculer le coût complet d&apos;un concert. En sauvegardant une simulation, vous pouvez l&apos;associer directement à un concert :</p>
+                <ol className="space-y-2 mt-2">
+                  <Step n={1}>Créez votre estimation dans l&apos;outil (<strong>cachet, frais de déplacement, péages, hébergement…</strong>).</Step>
+                  <Step n={2}>Cliquez sur <strong>💾 Sauvegarder</strong>, nommez la simulation et choisissez le concert à lier dans le menu déroulant.</Step>
+                  <Step n={3}>La simulation apparaît sur la carte du concert avec le résumé financier (coût employeur / net musiciens).</Step>
+                </ol>
+                <Note>La sauvegarde des simulations est réservée aux <strong>forfaits incluant du stockage</strong>. Les co-chefs peuvent créer des estimations si le fondateur leur en a accordé la permission.</Note>
+              </HelpCard>
+            )}
             <HelpCard title="À quoi sert le simulateur cachet GUSO ?">
               <p>Le <strong>GUSO</strong> (Guichet Unique du Spectacle Occasionnel) est la plateforme obligatoire pour les employeurs occasionnels de spectacle vivant. Le simulateur vous aide à estimer :</p>
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">

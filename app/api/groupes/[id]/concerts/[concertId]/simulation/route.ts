@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { coChefCanDo } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +29,21 @@ export async function PUT(req: NextRequest, { params }: Params) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId    = Number(session.user.id)
+  const groupId   = Number(params.id)
   const concertId = Number(params.concertId)
+  const isAdmin   = session.user.siteRole === 'ADMIN'
+
+  // Vérifier membership + permission estimations.create
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId, groupId } },
+  })
+  if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
+    return NextResponse.json({ error: 'Réservé au chef du groupe.' }, { status: 403 })
+  }
+  const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
+  if (grp && !coChefCanDo(grp, userId, isAdmin, 'estimations', 'create')) {
+    return NextResponse.json({ error: 'Le fondateur ne vous autorise pas à créer des estimations.' }, { status: 403 })
+  }
   const { simulationId } = await req.json()
 
   if (simulationId === null) {

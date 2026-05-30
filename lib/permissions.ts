@@ -14,6 +14,10 @@ export type StatsPermissions = {
   view: boolean
 }
 
+export type EstimationPermissions = {
+  create: boolean
+}
+
 export type ChefPermissions = {
   repetitions: StandardPermissions
   repertoire: StandardPermissions
@@ -23,6 +27,7 @@ export type ChefPermissions = {
   grilles: StandardPermissions
   membres: MembresPermissions
   stats: StatsPermissions
+  estimations: EstimationPermissions
 }
 
 export const DEFAULT_PERMISSIONS: ChefPermissions = {
@@ -34,6 +39,7 @@ export const DEFAULT_PERMISSIONS: ChefPermissions = {
   grilles:     { create: true, update: true, delete: true },
   membres:     { add: true,    remove: true, promote: true },
   stats:       { view: true },
+  estimations: { create: true },
 }
 
 /** Merge saved JSON over defaults (unknown fields are ignored, missing fields get defaults). */
@@ -82,6 +88,19 @@ export const MODULE_LABELS: Record<keyof ChefPermissions, string> = {
   grilles:     "Grilles d'accords",
   membres:     'Membres',
   stats:       'Statistiques',
+  estimations: 'Estimation de cachet',
+}
+
+export const MODULE_ICONS: Record<keyof ChefPermissions, string> = {
+  repetitions: '🎵',
+  repertoire:  '🎼',
+  ressources:  '📎',
+  setlists:    '🎶',
+  concerts:    '🎭',
+  grilles:     '🎸',
+  membres:     '👥',
+  stats:       '📊',
+  estimations: '💰',
 }
 
 export const ACTION_LABELS: Record<string, string> = {
