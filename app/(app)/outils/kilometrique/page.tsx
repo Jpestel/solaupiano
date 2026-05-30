@@ -117,10 +117,12 @@ export default function KilometriqueCalculatorPage() {
   interface SavedSim { id: number; label: string; updatedAt: string; data: any }
   const [canSave,    setCanSave]    = useState(false)
   const [savedSims,  setSavedSims]  = useState<SavedSim[]>([])
-  const [saveLabel,  setSaveLabel]  = useState('')
-  const [saveOpen,   setSaveOpen]   = useState(false)
-  const [savingState, setSavingState] = useState(false)
-  const [simsOpen,   setSimsOpen]   = useState(false)
+  const [saveLabel,    setSaveLabel]    = useState('')
+  const [saveOpen,     setSaveOpen]     = useState(false)
+  const [savingState,  setSavingState]  = useState(false)
+  const [simsOpen,     setSimsOpen]     = useState(false)
+  const [saveConcertId, setSaveConcertId] = useState<number | ''>('')
+  const [userConcerts,  setUserConcerts]  = useState<{id: number; name: string; date: string; groupName: string}[]>([])
 
   // Charge les capacités + simulations existantes au montage
   useEffect(() => {
@@ -137,13 +139,26 @@ export default function KilometriqueCalculatorPage() {
     cachet, cachetMode, congesSpec, fraisCharge,
   })
 
+  const openSaveModal = async () => {
+    setSaveLabel(''); setSaveConcertId(''); setSaveOpen(true)
+    // Charger les concerts accessibles pour les lier
+    if (userConcerts.length === 0) {
+      const res = await fetch('/api/me/concerts-chef')
+      if (res.ok) setUserConcerts(await res.json())
+    }
+  }
+
   const handleSave = async () => {
     if (!saveLabel.trim()) return
     setSavingState(true)
     const res = await fetch('/api/me/simulations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label: saveLabel.trim(), data: currentState() }),
+      body: JSON.stringify({
+        label: saveLabel.trim(),
+        data: currentState(),
+        concertId: saveConcertId ? Number(saveConcertId) : null,
+      }),
     })
     setSavingState(false)
     if (res.ok) {
@@ -433,7 +448,7 @@ export default function KilometriqueCalculatorPage() {
           {canSave ? (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => { setSaveLabel(''); setSaveOpen(true) }}
+                onClick={openSaveModal}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
               >
                 💾 Sauvegarder cette simulation
@@ -1015,20 +1030,50 @@ export default function KilometriqueCalculatorPage() {
       {/* ── Modale sauvegarde ── */}
       {saveOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setSaveOpen(false)}>
-          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-bold text-gray-900 mb-1">💾 Sauvegarder la simulation</h3>
-            <p className="text-xs text-gray-500 mb-4">Donnez un nom pour retrouver facilement cette simulation.</p>
-            <input
-              type="text"
-              autoFocus
-              value={saveLabel}
-              onChange={e => setSaveLabel(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSave()}
-              placeholder="ex : Concert Caen — mars 2026"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
-              maxLength={80}
-            />
-            <div className="flex gap-3">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div>
+              <h3 className="text-base font-bold text-gray-900 mb-1">💾 Sauvegarder la simulation</h3>
+              <p className="text-xs text-gray-500">Donnez un nom et associez éventuellement cette estimation à un concert.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nom de la simulation <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                autoFocus
+                value={saveLabel}
+                onChange={e => setSaveLabel(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSave()}
+                placeholder="ex : Concert Caen — mars 2026"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                maxLength={80}
+              />
+            </div>
+
+            {/* Lien optionnel avec un concert */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                🎭 Lier à un concert <span className="text-gray-400 font-normal">(optionnel)</span>
+              </label>
+              {userConcerts.length > 0 ? (
+                <select
+                  value={saveConcertId}
+                  onChange={e => setSaveConcertId(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">— Aucun concert —</option>
+                  {userConcerts.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} · {c.groupName} · {new Date(c.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-xs text-gray-400 italic">Aucun concert à venir trouvé dans vos groupes.</p>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-1">
               <button
                 onClick={handleSave}
                 disabled={!saveLabel.trim() || savingState}

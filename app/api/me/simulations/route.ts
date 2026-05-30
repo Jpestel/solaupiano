@@ -31,7 +31,11 @@ export async function GET() {
     ? await prisma.cachetSimulation.findMany({
         where:   { userId },
         orderBy: { updatedAt: 'desc' },
-        select:  { id: true, label: true, createdAt: true, updatedAt: true, data: true },
+        select:  {
+          id: true, label: true, createdAt: true, updatedAt: true, data: true,
+          concertId: true,
+          concert: { select: { id: true, name: true, date: true, groupId: true } },
+        },
       })
     : []
 
@@ -51,7 +55,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Votre forfait ne permet pas de sauvegarder des simulations.' }, { status: 403 })
   }
 
-  const { label, data } = await req.json()
+  const { label, data, concertId } = await req.json()
   if (!label?.trim()) return NextResponse.json({ error: 'Un nom est requis.' }, { status: 400 })
   if (!data)          return NextResponse.json({ error: 'Données manquantes.' }, { status: 400 })
 
@@ -60,8 +64,12 @@ export async function POST(req: NextRequest) {
   if (count >= 50) return NextResponse.json({ error: 'Limite de 50 simulations atteinte.' }, { status: 400 })
 
   const simulation = await prisma.cachetSimulation.create({
-    data: { userId, label: label.trim(), data },
-    select: { id: true, label: true, createdAt: true, updatedAt: true, data: true },
+    data: { userId, label: label.trim(), data, concertId: concertId ?? null },
+    select: {
+      id: true, label: true, createdAt: true, updatedAt: true, data: true,
+      concertId: true,
+      concert: { select: { id: true, name: true, date: true, groupId: true } },
+    },
   })
 
   return NextResponse.json(simulation, { status: 201 })

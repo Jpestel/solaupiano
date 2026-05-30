@@ -14,13 +14,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const sim = await prisma.cachetSimulation.findUnique({ where: { id } })
   if (!sim || sim.userId !== userId) return NextResponse.json({ error: 'Non trouvé.' }, { status: 404 })
 
-  const { label } = await req.json()
-  if (!label?.trim()) return NextResponse.json({ error: 'Nom requis.' }, { status: 400 })
+  const { label, concertId } = await req.json()
 
   const updated = await prisma.cachetSimulation.update({
     where: { id },
-    data:  { label: label.trim() },
-    select: { id: true, label: true, updatedAt: true },
+    data: {
+      ...(label?.trim() ? { label: label.trim() } : {}),
+      ...(concertId !== undefined ? { concertId: concertId ?? null } : {}),
+    },
+    select: {
+      id: true, label: true, updatedAt: true, concertId: true,
+      concert: { select: { id: true, name: true, date: true, groupId: true } },
+    },
   })
   return NextResponse.json(updated)
 }

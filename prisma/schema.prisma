@@ -327,9 +327,10 @@ model Concert {
   isPublic  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  setlist     Setlist?     @relation(fields: [setlistId], references: [id], onDelete: SetNull)
+  group       Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  setlist     Setlist?            @relation(fields: [setlistId], references: [id], onDelete: SetNull)
   stageLayout StageLayout?
+  simulations CachetSimulation[]
 }
 
 model StageLayout {
@@ -619,14 +620,17 @@ model RehearsalAutoReminder {
 model CachetSimulation {
   id        Int      @id @default(autoincrement())
   userId    Int
+  concertId Int?     // lié optionnellement à un concert
   label     String   // nom donné par l'utilisateur
   data      Json     // état complet du simulateur (sérialisé)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concert Concert? @relation(fields: [concertId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([concertId])
 }
 
 model Tutorial {

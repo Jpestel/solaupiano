@@ -10,10 +10,12 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 
 interface SetlistRef { id: number; name: string; _count: { songs: number } }
+interface SimulationRef { id: number; label: string; data: any }
 interface Concert {
   id: number; name: string; date: string; location: string; notes?: string
   setlist?: SetlistRef | null
   isPublic: boolean
+  simulation?: SimulationRef | null
 }
 interface GroupInfo { name: string; groupRole: string; createdBy: number | null; chefPermissions: unknown }
 
@@ -128,7 +130,20 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       fetch(`/api/groupes/${groupId}`),
       fetch(`/api/groupes/${groupId}/setlists`),
     ])
-    if (concRes.ok) setConcerts(await concRes.json())
+    if (concRes.ok) {
+      const concerts: Concert[] = await concRes.json()
+      // Charger les simulations liées en parallèle
+      const sims = await Promise.all(
+        concerts.map(c =>
+          fetch(`/api/groupes/${groupId}/concerts/${c.id}/simulation`)
+            .then(r => r.ok ? r.json() : { simulation: null })
+            .then(d => ({ concertId: c.id, simulation: d.simulation }))
+            .catch(() => ({ concertId: c.id, simulation: null }))
+        )
+      )
+      const simMap = Object.fromEntries(sims.map(s => [s.concertId, s.simulation]))
+      setConcerts(concerts.map(c => ({ ...c, simulation: simMap[c.id] ?? null })))
+    }
     if (slRes.ok) setSetlists(await slRes.json())
     if (grpRes.ok) {
       const g = await grpRes.json()
@@ -280,6 +295,36 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
           🗺️ Plan de scène →
         </Link>
       </div>
+
+      {/* Estimation financière liée */}
+      {concert.simulation ? (
+        <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <p className="text-xs font-semibold text-amber-800">📊 {concert.simulation.label}</p>
+              {concert.simulation.data?.cachet && (
+                <p className="text-[10px] text-amber-600 mt-0.5">
+                  Cachet {concert.simulation.data.cachetMode === 'net' ? 'net' : 'brut'} : {concert.simulation.data.cachet} €
+                  {concert.simulation.data.localConcert ? ' · Concert local' : concert.simulation.data.departure && concert.simulation.data.arrival ? ` · ${concert.simulation.data.departure} → ${concert.simulation.data.arrival}` : ''}
+                </p>
+              )}
+            </div>
+            <Link
+              href="/outils/kilometrique"
+              className="text-[10px] font-medium text-amber-700 hover:text-amber-900 underline flex-shrink-0"
+            >
+              Voir →
+            </Link>
+          </div>
+        </div>
+      ) : isChef && (
+        <Link
+          href="/outils/kilometrique"
+          className="mt-2 inline-flex items-center gap-1 text-[10px] text-gray-400 hover:text-indigo-600 transition-colors"
+        >
+          + Ajouter une estimation financière
+        </Link>
+      )}
 
       {(chefCan('concerts', 'update') || chefCan('concerts', 'delete')) && (
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
