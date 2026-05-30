@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getGroupStorageInfo } from '@/lib/storage'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -47,7 +48,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
   }
 
-  return NextResponse.json({ ...group, storageUsedBytes: String(group.storageUsedBytes) })
+  // Stockage : l'upload de fichiers est possible si le quota effectif > 0
+  const storageInfo = await getGroupStorageInfo(groupId)
+
+  return NextResponse.json({
+    ...group,
+    storageUsedBytes: String(group.storageUsedBytes),
+    uploadEnabled: storageInfo.limitBytes > 0,
+    storageLimitBytes: storageInfo.limitBytes,
+    storageUsedTotalBytes: storageInfo.usedBytes,
+  })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

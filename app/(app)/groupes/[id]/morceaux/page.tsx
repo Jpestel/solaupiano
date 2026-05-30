@@ -56,6 +56,7 @@ interface GroupInfo {
   groupRole: string
   createdBy: number | null
   chefPermissions: unknown
+  uploadEnabled: boolean
 }
 
 interface PendingResource {
@@ -102,7 +103,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, uploadEnabled: g.uploadEnabled ?? false })
       if (role === 'CHEF') {
         const pendingRes = await fetch(`/api/groupes/${groupId}/soumissions`)
         if (pendingRes.ok) setPendingResources(await pendingRes.json())
@@ -365,7 +366,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                           + Ressource
                         </Button>
                       )}
-                      {!isChef && (
+                      {!isChef && groupInfo?.uploadEnabled && (
                         <button
                           onClick={() => setSubmitSongId(song.id === submitSongId ? null : song.id)}
                           className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-2.5 py-1 text-xs font-medium text-amber-700 hover:border-amber-400 hover:bg-amber-50 transition-colors"
@@ -383,6 +384,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                 <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                   <ResourceUploader
                     songId={song.id}
+                    uploadEnabled={groupInfo?.uploadEnabled ?? false}
                     onUpload={() => { setUploadSongId(null); fetchData() }}
                   />
                 </div>

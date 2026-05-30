@@ -6,10 +6,11 @@ import { getResourceIcon } from '@/lib/utils'
 interface ResourceUploaderProps {
   songId: number
   onUpload?: () => void
+  uploadEnabled?: boolean   // false = plan sans stockage (quota 0) → fichiers bloqués
 }
 
-export function ResourceUploader({ songId, onUpload }: ResourceUploaderProps) {
-  const [mode, setMode] = useState<'file' | 'url'>('file')
+export function ResourceUploader({ songId, onUpload, uploadEnabled = true }: ResourceUploaderProps) {
+  const [mode, setMode] = useState<'file' | 'url'>(uploadEnabled ? 'file' : 'url')
 
   // File state
   const [isDragging, setIsDragging] = useState(false)
@@ -108,10 +109,10 @@ export function ResourceUploader({ songId, onUpload }: ResourceUploaderProps) {
 
   return (
     <div className="space-y-4">
-      {/* Mode tabs */}
+      {/* Mode tabs — l'onglet Fichier disparaît si le plan n'autorise pas le stockage */}
       <div className="flex rounded-lg border border-gray-200 p-1 bg-white w-fit gap-1">
         {[
-          { key: 'file', label: '📁 Fichier' },
+          ...(uploadEnabled ? [{ key: 'file', label: '📁 Fichier' }] : []),
           { key: 'url', label: '🔗 Lien URL' },
         ].map((tab) => (
           <button
@@ -126,6 +127,14 @@ export function ResourceUploader({ songId, onUpload }: ResourceUploaderProps) {
           </button>
         ))}
       </div>
+
+      {!uploadEnabled && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          📁 L&apos;upload de fichiers n&apos;est pas inclus dans le plan de ce groupe (stockage à 0).
+          Vous pouvez ajouter des <strong>liens</strong> (YouTube, SoundCloud…) sans limite.{' '}
+          <a href="/tarifs" className="font-semibold underline hover:text-amber-900">Voir les forfaits avec stockage →</a>
+        </div>
+      )}
 
       {mode === 'file' ? (
         <>
