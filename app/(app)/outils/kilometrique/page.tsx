@@ -9,21 +9,19 @@ import { TutorialButton } from '@/components/ui/TutorialButton'
 interface Vehicle {
   id: string
   label: string
-  count: number
   consumption: number // L/100km
   fuelPrice: number   // €/L
   passengers: number
-  tolls: number       // € péages aller simple par véhicule
+  tolls: number       // € péages aller simple
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const uid = () => Math.random().toString(36).slice(2, 8)
 
-const DEFAULT_VEHICLE = (): Vehicle => ({
+const DEFAULT_VEHICLE = (n = 1): Vehicle => ({
   id: uid(),
-  label: 'Véhicule',
-  count: 1,
+  label: `Véhicule ${n}`,
   consumption: 7.0,
   fuelPrice: 1.82,
   passengers: 4,
@@ -126,21 +124,17 @@ export default function KilometriqueCalculatorPage() {
     const trips = roundTrip ? 2 : 1
 
     const vehicleRows = vehicles.map(v => {
-      const litresPerVehicle = totalKm * v.consumption / 100
-      const litresTotal      = litresPerVehicle * v.count
-      const fuelCostUnit     = litresPerVehicle * v.fuelPrice
-      const fuelCostTotal    = fuelCostUnit * v.count
-      const tollCostUnit     = v.tolls * trips          // péage aller (× 2 si AR)
-      const tollCostTotal    = tollCostUnit * v.count
-      const costTotal        = fuelCostTotal + tollCostTotal
-      const passTotal        = v.count * v.passengers
-      return { ...v, litresPerVehicle, litresTotal, fuelCostUnit, fuelCostTotal, tollCostUnit, tollCostTotal, costTotal, passTotal }
+      const litres    = totalKm * v.consumption / 100
+      const fuelCost  = litres * v.fuelPrice
+      const tollCost  = v.tolls * trips
+      const costTotal = fuelCost + tollCost
+      return { ...v, litres, fuelCost, tollCost, costTotal }
     })
 
     const grandTotal      = vehicleRows.reduce((s, r) => s + r.costTotal, 0)
-    const totalFuel       = vehicleRows.reduce((s, r) => s + r.fuelCostTotal, 0)
-    const totalTolls      = vehicleRows.reduce((s, r) => s + r.tollCostTotal, 0)
-    const totalPassengers = vehicleRows.reduce((s, r) => s + r.passTotal, 0)
+    const totalFuel       = vehicleRows.reduce((s, r) => s + r.fuelCost, 0)
+    const totalTolls      = vehicleRows.reduce((s, r) => s + r.tollCost, 0)
+    const totalPassengers = vehicleRows.reduce((s, r) => s + r.passengers, 0)
     const perPerson       = totalPassengers > 0 ? grandTotal / totalPassengers : 0
 
     return { totalKm, vehicleRows, grandTotal, totalFuel, totalTolls, totalPassengers, perPerson }
@@ -155,13 +149,13 @@ export default function KilometriqueCalculatorPage() {
 
     const vehicleRows = results.vehicleRows.map(v => `
       <tr>
-        <td>${v.count}× ${v.label}</td>
+        <td>${v.label}</td>
         <td>${v.consumption.toFixed(1).replace('.', ',')} L/100 km</td>
         <td>${v.fuelPrice.toFixed(2).replace('.', ',')} €/L</td>
-        <td>${v.passTotal} pers.</td>
-        <td>${fmtL(v.litresTotal)}</td>
-        <td>${fmt(v.fuelCostTotal)}</td>
-        <td>${v.tollCostTotal > 0 ? fmt(v.tollCostTotal) : '—'}</td>
+        <td>${v.passengers} pers.</td>
+        <td>${fmtL(v.litres)}</td>
+        <td>${fmt(v.fuelCost)}</td>
+        <td>${v.tollCost > 0 ? fmt(v.tollCost) : '—'}</td>
         <td><strong>${fmt(v.costTotal)}</strong></td>
       </tr>`).join('')
 
@@ -210,7 +204,7 @@ export default function KilometriqueCalculatorPage() {
           ${vehicleRows}
           <tr class="total-row">
             <td colspan="4">Total (${results.totalPassengers} personnes)</td>
-            <td>${fmtL(results.vehicleRows.reduce((s,v)=>s+v.litresTotal,0))}</td>
+            <td>${fmtL(results.vehicleRows.reduce((s,v)=>s+v.litres,0))}</td>
             <td>${fmt(results.totalFuel)}</td>
             <td>${results.totalTolls > 0 ? fmt(results.totalTolls) : '—'}</td>
             <td>${fmt(results.grandTotal)}</td>
@@ -355,9 +349,9 @@ export default function KilometriqueCalculatorPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Véhicules</p>
-            {vehicles.length < 4 && (
+            {vehicles.length < 8 && (
               <button
-                onClick={() => setVehicles(vs => [...vs, { ...DEFAULT_VEHICLE(), label: `Véhicule ${vs.length + 1}` }])}
+                onClick={() => setVehicles(vs => [...vs, DEFAULT_VEHICLE(vs.length + 1)])}
                 className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
               >
                 + Ajouter un véhicule
@@ -392,12 +386,7 @@ export default function KilometriqueCalculatorPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                <div>
-                  <label className="block text-[10px] text-gray-400 font-medium mb-1">Nb véhicules</label>
-                  <input type="number" min={1} max={20} value={v.count} onChange={e => updateVehicle(v.id, { count: parseInt(e.target.value) || 1 })}
-                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-[10px] text-gray-400 font-medium mb-1">Conso. (L/100km)</label>
                   <input type="number" min={1} max={30} step={0.1} value={v.consumption} onChange={e => updateVehicle(v.id, { consumption: parseFloat(e.target.value) || 7 })}
@@ -409,7 +398,7 @@ export default function KilometriqueCalculatorPage() {
                     className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-400 font-medium mb-1">Passagers / véh.</label>
+                  <label className="block text-[10px] text-gray-400 font-medium mb-1">Nb passagers</label>
                   <input type="number" min={1} max={20} value={v.passengers} onChange={e => updateVehicle(v.id, { passengers: parseInt(e.target.value) || 1 })}
                     className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                 </div>
@@ -442,9 +431,9 @@ export default function KilometriqueCalculatorPage() {
                 <div key={v.id} className="rounded-xl bg-white border border-indigo-100 px-4 py-3">
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-800">{v.count}× {v.label}</p>
+                      <p className="text-sm font-semibold text-gray-800">{v.label}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {v.consumption.toFixed(1).replace('.', ',')} L/100km · {v.fuelPrice.toFixed(2).replace('.', ',')} €/L · {v.passTotal} passager{v.passTotal > 1 ? 's' : ''}
+                        {v.consumption.toFixed(1).replace('.', ',')} L/100km · {v.fuelPrice.toFixed(2).replace('.', ',')} €/L · {v.passengers} passager{v.passengers > 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -454,13 +443,13 @@ export default function KilometriqueCalculatorPage() {
                   {/* Détail carburant + péages */}
                   <div className="mt-2 flex gap-3 flex-wrap">
                     <span className="text-xs text-gray-500">
-                      ⛽ Carburant : <strong>{fmt(v.fuelCostTotal)}</strong>
-                      <span className="text-gray-400 ml-1">({fmtL(v.litresTotal)})</span>
+                      ⛽ Carburant : <strong>{fmt(v.fuelCost)}</strong>
+                      <span className="text-gray-400 ml-1">({fmtL(v.litres)})</span>
                     </span>
-                    {v.tollCostTotal > 0 && (
+                    {v.tollCost > 0 && (
                       <span className="text-xs text-gray-500">
-                        🛣️ Péages : <strong>{fmt(v.tollCostTotal)}</strong>
-                        <span className="text-gray-400 ml-1">({fmt(v.tolls)} × {v.count} véh.{roundTrip ? ' × 2' : ''})</span>
+                        🛣️ Péages : <strong>{fmt(v.tollCost)}</strong>
+                        <span className="text-gray-400 ml-1">({fmt(v.tolls)}{roundTrip ? ' × 2' : ''})</span>
                       </span>
                     )}
                   </div>
