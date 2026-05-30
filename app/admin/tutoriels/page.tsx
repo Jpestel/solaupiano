@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { MODULES } from '@/lib/modules'
+import { TUTORIAL_CATEGORIES } from '@/lib/tutorial-categories'
 
 interface Tutorial {
   id: number
@@ -16,10 +16,7 @@ interface Tutorial {
   createdAt: string
 }
 
-const MODULE_OPTIONS = [
-  { key: '', label: '— Général (pas de module spécifique) —' },
-  ...MODULES.map(m => ({ key: m.key, label: `${m.icon} ${m.label}` })),
-]
+const GROUPS = ['Fonctionnalités', 'Outils'] as const
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`
@@ -146,7 +143,8 @@ export default function AdminTutorielsPage() {
 
   const labelForModule = (key: string | null) => {
     if (!key) return 'Général'
-    return MODULE_OPTIONS.find(m => m.key === key)?.label ?? key
+    const cat = TUTORIAL_CATEGORIES.find(c => c.key === key)
+    return cat ? `${cat.icon} ${cat.label}` : key
   }
 
   if (loading) return <div className="text-gray-500">Chargement…</div>
@@ -255,10 +253,17 @@ export default function AdminTutorielsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Module associé</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie associée</label>
                 <select value={form.moduleKey} onChange={e => setForm(f => ({ ...f, moduleKey: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  {MODULE_OPTIONS.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
+                  <option value="">— Général (aucune catégorie) —</option>
+                  {GROUPS.map(group => (
+                    <optgroup key={group} label={group}>
+                      {TUTORIAL_CATEGORIES.filter(c => c.group === group).map(c => (
+                        <option key={c.key} value={c.key}>{c.icon} {c.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 
@@ -311,10 +316,17 @@ export default function AdminTutorielsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Module associé</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie associée</label>
                 <select value={editForm.moduleKey} onChange={e => setEditForm(f => ({ ...f, moduleKey: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  {MODULE_OPTIONS.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
+                  <option value="">— Général (aucune catégorie) —</option>
+                  {GROUPS.map(group => (
+                    <optgroup key={group} label={group}>
+                      {TUTORIAL_CATEGORIES.filter(c => c.group === group).map(c => (
+                        <option key={c.key} value={c.key}>{c.icon} {c.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 

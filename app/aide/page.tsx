@@ -3,9 +3,9 @@ import { authOptions } from '@/lib/auth'
 import Link from 'next/link'
 import { BackToTop } from './BackToTop'
 import { TutorialVideoSection } from './TutorialVideoSection'
+import { SectionTutorials } from '@/components/ui/SectionTutorials'
 import { prisma } from '@/lib/prisma'
 import { generateFeatureList, planIcon, storageLabel, type DbPlan } from '@/lib/plans'
-import { MODULES } from '@/lib/modules'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +20,8 @@ export default async function AidePage() {
   // Visiteur non connecté : on lui montre tout (comme un chef) pour découvrir l'app
   const isCreateur = !isLoggedIn || session.user.userPlan === 'CREATEUR'
   const planLabel = !isLoggedIn ? 'Visiteur' : isCreateur ? "Chef d'orchestre" : 'Musicien'
+  // Helper : tutoriels filtrés par catégorie pour injection inline
+  const tf = (key: string) => tutorials.filter(t => t.moduleKey === key)
   const planColor = !isLoggedIn
     ? 'bg-gray-100 text-gray-600 border-gray-200'
     : isCreateur
@@ -93,14 +95,14 @@ export default async function AidePage() {
 
       {/* ─── TUTORIELS VIDÉO ─── */}
       {tutorials.length > 0 && (
-        <TutorialVideoSection tutorials={tutorials} modules={MODULES} />
+        <TutorialVideoSection tutorials={tutorials} />
       )}
 
       <div className="space-y-10">
 
         {/* ─── PROFIL ─── */}
         <section id="profil">
-          <SectionTitle icon="👤" title="Mon profil" color="blue" />
+          <SectionTitle icon="👤" title="Mon profil" color="blue" tutorials={tf('feature_profil')} />
           <div className="space-y-4">
             <HelpCard title="Informations personnelles">
               <p>Depuis la page <strong>Mon profil</strong>, vous pouvez modifier :</p>
@@ -150,7 +152,7 @@ export default async function AidePage() {
 
         {/* ─── GROUPES ─── */}
         <section id="groupes">
-          <SectionTitle icon="👥" title="Mes groupes" color="indigo" />
+          <SectionTitle icon="👥" title="Mes groupes" color="indigo" tutorials={tf('feature_groupes')} />
           <div className="space-y-4">
 
             {isCreateur && (
@@ -242,7 +244,7 @@ export default async function AidePage() {
 
         {/* ─── RÉPÉTITIONS ─── */}
         <section id="repetitions">
-          <SectionTitle icon="🎵" title="Répétitions" color="blue" />
+          <SectionTitle icon="🎵" title="Répétitions" color="blue" tutorials={tf('feature_repetitions')} />
           <div className="space-y-4">
 
             {isCreateur && (
@@ -279,7 +281,7 @@ export default async function AidePage() {
 
         {/* ─── CONCERTS ─── */}
         <section id="concerts">
-          <SectionTitle icon="🎭" title="Concerts" color="purple" />
+          <SectionTitle icon="🎭" title="Concerts" color="purple" tutorials={tf('feature_concerts')} />
           <div className="space-y-4">
 
             {isCreateur && (
@@ -302,7 +304,7 @@ export default async function AidePage() {
 
         {/* ─── PLAN DE SCÈNE ─── */}
         <section id="plan-scene">
-          <SectionTitle icon="🗺️" title="Plan de scène" color="orange" />
+          <SectionTitle icon="🗺️" title="Plan de scène" color="orange" tutorials={tf('feature_plan_scene')} />
           <div className="space-y-4">
 
             {isCreateur && (
@@ -341,7 +343,7 @@ export default async function AidePage() {
 
         {/* ─── FICHE TECHNIQUE ─── */}
         <section id="fiche-technique">
-          <SectionTitle icon="📋" title="Fiche technique" color="rose" />
+          <SectionTitle icon="📋" title="Fiche technique" color="rose" tutorials={tf('feature_fiche_technique')} />
           <div className="space-y-4">
 
             <HelpCard title="À quoi sert la fiche technique ?">
@@ -393,7 +395,7 @@ export default async function AidePage() {
 
         {/* ─── PAGE PUBLIQUE ─── */}
         <section id="ma-page">
-          <SectionTitle icon="🌐" title="Page publique du groupe" color="teal" />
+          <SectionTitle icon="🌐" title="Page publique du groupe" color="teal" tutorials={tf('feature_ma_page')} />
           <div className="space-y-4">
 
             <HelpCard title="À quoi sert la page publique ?">
@@ -461,7 +463,7 @@ export default async function AidePage() {
 
         {/* ─── RÉPERTOIRE ─── */}
         <section id="repertoire">
-          <SectionTitle icon="🎼" title="Répertoire" color="indigo" />
+          <SectionTitle icon="🎼" title="Répertoire" color="indigo" tutorials={tf('feature_repertoire')} />
           <div className="space-y-4">
 
             {isCreateur && (
@@ -507,7 +509,7 @@ export default async function AidePage() {
 
         {/* ─── SETLISTS ─── */}
         <section id="setlists">
-          <SectionTitle icon="🎶" title="Setlists" color="green" />
+          <SectionTitle icon="🎶" title="Setlists" color="green" tutorials={tf('feature_setlists')} />
           <div className="space-y-4">
 
             {isCreateur && (
@@ -548,7 +550,7 @@ export default async function AidePage() {
 
         {/* ─── GRILLES D'ACCORDS ─── */}
         <section id="grilles">
-          <SectionTitle icon="🎸" title="Grilles d'accords" color="orange" />
+          <SectionTitle icon="🎸" title="Grilles d'accords" color="orange" tutorials={tf('feature_grilles')} />
           <div className="space-y-4">
 
             {isCreateur && (
@@ -675,7 +677,7 @@ export default async function AidePage() {
 
         {/* ─── PAROLES ─── */}
         <section id="paroles">
-          <SectionTitle icon="🎤" title="Paroles" color="rose" />
+          <SectionTitle icon="🎤" title="Paroles" color="rose" tutorials={tf('feature_paroles')} />
           <div className="space-y-4">
 
             {isCreateur && (
@@ -744,7 +746,7 @@ export default async function AidePage() {
 
         {/* ─── TABLATURES ─── */}
         <section id="tablatures">
-          <SectionTitle icon="🎸" title="Tablatures" color="indigo" />
+          <SectionTitle icon="🎸" title="Tablatures" color="indigo" tutorials={tf('feature_tablatures')} />
           <div className="space-y-4">
 
             {isCreateur && (
@@ -866,7 +868,7 @@ export default async function AidePage() {
 
         {/* ─── DICTIONNAIRE D'ACCORDS ─── */}
         <section id="accords">
-          <SectionTitle icon="🎹" title="Dictionnaire d'accords" color="blue" />
+          <SectionTitle icon="🎹" title="Dictionnaire d'accords" color="blue" tutorials={tf('tool_accords')} />
           <div className="space-y-4">
 
             <HelpCard title="À quoi ça sert ?">
@@ -942,7 +944,7 @@ export default async function AidePage() {
 
         {/* ─── ACCORDEUR ─── */}
         <section id="accordeur">
-          <SectionTitle icon="🎙️" title="Accordeur" color="green" />
+          <SectionTitle icon="🎙️" title="Accordeur" color="green" tutorials={tf('tool_accordeur')} />
           <div className="space-y-4">
 
             <HelpCard title="À quoi ça sert ?">
@@ -1013,7 +1015,7 @@ export default async function AidePage() {
 
         {/* ─── MÉTRONOME ─── */}
         <section id="metronome">
-          <SectionTitle icon="🥁" title="Métronome" color="indigo" />
+          <SectionTitle icon="🥁" title="Métronome" color="indigo" tutorials={tf('tool_metronome')} />
           <div className="space-y-4">
 
             <HelpCard title="À quoi ça sert ?">
@@ -1093,7 +1095,7 @@ export default async function AidePage() {
 
         {/* ─── PORTÉE MUSICALE ─── */}
         <section id="portee">
-          <SectionTitle icon="🎼" title="Portée musicale" color="violet" />
+          <SectionTitle icon="🎼" title="Portée musicale" color="violet" tutorials={tf('tool_portee')} />
           <div className="space-y-4">
 
             <HelpCard title="À quoi ça sert ?">
@@ -1225,7 +1227,7 @@ export default async function AidePage() {
 
         {/* ─── STATISTIQUES ─── */}
         <section id="stats">
-          <SectionTitle icon="📊" title="Statistiques" color="violet" />
+          <SectionTitle icon="📊" title="Statistiques" color="violet" tutorials={tf('feature_stats')} />
           <div className="space-y-4">
 
             <HelpCard title="À quoi servent les statistiques ?">
@@ -1344,7 +1346,7 @@ export default async function AidePage() {
 
         {/* ─── ANNONCES ─── */}
         <section id="annonces">
-          <SectionTitle icon="📢" title="Annonces" color="orange" />
+          <SectionTitle icon="📢" title="Annonces" color="orange" tutorials={tf('feature_annonces')} />
           <div className="space-y-4">
 
             <HelpCard title="À quoi servent les annonces ?">
@@ -1693,7 +1695,10 @@ export default async function AidePage() {
 
 /* ─── Small reusable components ─── */
 
-function SectionTitle({ icon, title, color }: { icon: string; title: string; color: string }) {
+function SectionTitle({ icon, title, color, tutorials }: {
+  icon: string; title: string; color: string
+  tutorials?: { id: number; title: string; description: string | null; videoPath: string }[]
+}) {
   const colors: Record<string, string> = {
     blue: 'border-blue-200 bg-blue-50 text-blue-700',
     indigo: 'border-indigo-200 bg-indigo-50 text-indigo-700',
@@ -1706,10 +1711,15 @@ function SectionTitle({ icon, title, color }: { icon: string; title: string; col
     gray: 'border-gray-200 bg-gray-100 text-gray-700',
   }
   return (
-    <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 mb-4 ${colors[color] || colors.gray}`}>
-      <span className="text-2xl">{icon}</span>
-      <h2 className="text-lg font-bold">{title}</h2>
-    </div>
+    <>
+      <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 mb-4 ${colors[color] || colors.gray}`}>
+        <span className="text-2xl">{icon}</span>
+        <h2 className="text-lg font-bold">{title}</h2>
+      </div>
+      {tutorials && tutorials.length > 0 && (
+        <SectionTutorials tutorials={tutorials} />
+      )}
+    </>
   )
 }
 
