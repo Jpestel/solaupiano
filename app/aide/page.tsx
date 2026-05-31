@@ -66,15 +66,19 @@ export default async function AidePage() {
             { href: '#profil', label: '👤 Mon profil' },
             { href: '#groupes', label: '👥 Mes groupes' },
             { href: '#repetitions', label: '🎵 Répétitions' },
+            { href: '#disponibilites', label: '🗓 Disponibilités' },
             { href: '#concerts', label: '🎭 Concerts' },
             { href: '#plan-scene', label: '🗺️ Plan de scène' },
             { href: '#fiche-technique', label: '📋 Fiche technique' },
             { href: '#ma-page', label: '🌐 Page publique' },
+            { href: '#tchat', label: '💬 Tchat' },
+            { href: '#ressources', label: '📒 Ressources' },
             { href: '#repertoire', label: '🎼 Répertoire' },
             { href: '#setlists', label: '🎶 Setlists' },
             { href: '#grilles', label: '🎸 Grilles' },
             { href: '#paroles', label: '🎤 Paroles' },
             { href: '#tablatures', label: '🎸 Tablatures' },
+            { href: '#sequences', label: '🎚 Séquences' },
             { href: '#accords', label: '🎹 Accords' },
             { href: '#accordeur', label: '🎙️ Accordeur' },
             { href: '#metronome', label: '🥁 Métronome' },
@@ -113,6 +117,15 @@ export default async function AidePage() {
                 <li><span className="font-medium">Instruments</span> — indiqués sur votre fiche membre dans chaque groupe</li>
                 <li><span className="font-medium">Mot de passe</span> — changez-le à tout moment depuis votre profil</li>
               </ul>
+            </HelpCard>
+
+            <HelpCard title="Mon matériel 🎛️">
+              <p>Renseignez votre <strong>setup complet</strong> (instruments, claviers, amplis, micros, effets, câbles, accessoires…) une seule fois sur votre profil.</p>
+              <Tip>Ce matériel est ensuite réutilisable, notamment pour <strong>pré-remplir la fiche technique</strong> de vos groupes.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Mes rôles">
+              <p>Votre profil récapitule votre <strong>rôle dans chacun de vos groupes</strong> : 👑 Chef d&apos;orchestre, ⭐ Co-chef ou 🎵 Membre.</p>
             </HelpCard>
 
             <HelpCard title="Plan utilisateur">
@@ -278,6 +291,25 @@ export default async function AidePage() {
                 <p>Depuis la fiche d&apos;une répétition, vous pouvez associer des morceaux du répertoire à travailler lors de cette séance. Les membres voient quels morceaux sont prévus.</p>
               </HelpCard>
             )}
+          </div>
+        </section>
+
+        {/* ─── DISPONIBILITÉS ─── */}
+        <section id="disponibilites">
+          <SectionTitle icon="🗓" title="Disponibilités" color="orange" tutorials={tf('feature_disponibilites')} />
+          <div className="space-y-4">
+            <HelpCard title="Indiquer ses indisponibilités">
+              <p>Chaque membre (chef inclus) déclare ses dates d&apos;indisponibilité depuis la carte <strong>🗓 Disponibilités</strong> du groupe.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Une <strong>date</strong> seule, ou une <strong>plage</strong> (« Du … Au … »)</li>
+                <li>Un <strong>motif</strong> optionnel (vacances, travail, déplacement…)</li>
+                <li>Chacun gère librement ses propres indisponibilités</li>
+              </ul>
+            </HelpCard>
+            <HelpCard title="Savoir qui est disponible" badge={{ label: 'Pratique pour le chef', color: 'indigo' }}>
+              <p>L&apos;outil <strong>🔎 Vérifier une date</strong> affiche, pour un jour donné, qui est <strong>disponible ✅</strong> et qui ne l&apos;est pas <strong>⛔</strong> (avec le motif).</p>
+              <Tip>Au moment de <strong>créer une répétition ou un concert</strong>, un bandeau sous le champ Date signale automatiquement les membres indisponibles ce jour-là.</Tip>
+            </HelpCard>
           </div>
         </section>
 
@@ -463,6 +495,40 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── TCHAT ─── */}
+        <section id="tchat">
+          <SectionTitle icon="💬" title="Messagerie du groupe (Tchat)" color="rose" tutorials={tf('feature_tchat')} />
+          <div className="space-y-4">
+            <HelpCard title="Discuter entre membres">
+              <p>Le <strong>Tchat</strong> est un fil de discussion privé, réservé aux membres d&apos;un même groupe.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Messages en quasi temps réel (rafraîchissement automatique)</li>
+                <li><strong>Emojis</strong> et <strong>liens cliquables</strong> automatiques</li>
+                <li>Un badge signale les <strong>nouveaux messages</strong> non lus</li>
+              </ul>
+              <Note>Chacun peut supprimer ses propres messages ; le chef (et l&apos;admin) peuvent modérer n&apos;importe quel message.</Note>
+            </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── RESSOURCES PARTAGÉES ─── */}
+        <section id="ressources">
+          <SectionTitle icon="📒" title="Ressources partagées (carnet du groupe)" color="teal" tutorials={tf('feature_ressources_partagees')} />
+          <div className="space-y-4">
+            <HelpCard title="Partager des ressources entre membres">
+              <p>Le <strong>carnet</strong> rassemble tout ce que le groupe veut garder sous la main :</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>Liens</strong> vers des sites web</li>
+                <li><strong>Boutiques</strong> de musiciens (adresse physique)</li>
+                <li><strong>Contacts</strong> (téléphone, email)</li>
+                <li><strong>Notes</strong> libres</li>
+                <li><strong>Fichiers</strong> (décomptés du quota de stockage du groupe)</li>
+              </ul>
+              <Note>Visible uniquement par les membres du groupe.</Note>
+            </HelpCard>
+          </div>
+        </section>
+
         {/* ─── RÉPERTOIRE ─── */}
         <section id="repertoire">
           <SectionTitle icon="🎼" title="Répertoire" color="indigo" tutorials={tf('feature_repertoire')} />
@@ -496,6 +562,24 @@ export default async function AidePage() {
                 ))}
               </div>
               <Note>Le quota de stockage est <strong>partagé entre tous vos groupes</strong> (pas un quota par groupe). La barre visible sur chaque groupe affiche la consommation totale de votre compte.</Note>
+            </HelpCard>
+
+            <HelpCard title="Tempo & métronome par morceau">
+              <p>Renseignez le <strong>tempo (BPM)</strong> d&apos;un morceau : un badge <span className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">🥁 BPM</span> apparaît et lance un <strong>métronome visuel et sonore</strong> (son coupable avant le lancement).</p>
+              <ul className="mt-2 space-y-1">
+                <li>Affichage <strong>plein écran</strong> (gros repère) ou <strong>fenêtre flottante</strong> déplaçable et redimensionnable</li>
+                <li>La fenêtre reste <strong>toujours au premier plan</strong>, même au-dessus d&apos;une partition PDF ouverte en plein écran</li>
+              </ul>
+              <Tip>Le tempo sert aussi de base au <strong>prompteur</strong> de paroles et au <strong>décompte</strong> du mode séquences.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Outils par morceau">
+              <p>Sur chaque morceau, des boutons donnent accès à :</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>🎤 Paroles</strong> (avec prompteur), <strong>🎸 Tablature</strong>, <strong>🎚 Séquences</strong> (backing tracks)</li>
+                <li>Les <strong>vidéos</strong> attachées se lisent dans une fenêtre intégrée à l&apos;application</li>
+              </ul>
+              <Note>Les modules <strong>Paroles</strong>, <strong>Métronome</strong> et <strong>Séquences</strong> peuvent être inclus ou non selon l&apos;offre du groupe (ils apparaissent grisés 🔒 si non inclus).</Note>
             </HelpCard>
 
             <HelpCard title="Suivi de progression">
@@ -734,6 +818,16 @@ export default async function AidePage() {
               <Tip>Pensez à passer le téléphone ou la tablette en mode ne pas déranger avant de monter sur scène !</Tip>
             </HelpCard>
 
+            <HelpCard title="Prompteur 📜 (défilement automatique)">
+              <p>Le bouton <strong>📜 Prompteur</strong> (depuis les paroles ou depuis le Mode scène) fait <strong>défiler automatiquement</strong> les paroles, à une vitesse déduite du <strong>tempo (BPM)</strong> du morceau.</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>Délai de démarrage</strong> réglable : laissez passer une intro musicale, ou le temps de lire la 1ère phrase</li>
+                <li><strong>Vitesse</strong> et <strong>taille de police</strong> ajustables en direct, pause / reprise</li>
+                <li>Repère de lecture central, molette pour recaler manuellement</li>
+              </ul>
+              <Tip>Pour un défilement bien calé, renseignez le <strong>tempo</strong> du morceau dans le répertoire.</Tip>
+            </HelpCard>
+
             <HelpCard title="Impression des paroles">
               <p>Le bouton <strong>🖨️ Imprimer</strong> génère une feuille A4 propre avec :</p>
               <ul className="mt-2 space-y-1">
@@ -865,6 +959,28 @@ export default async function AidePage() {
               </ul>
             </HelpCard>
 
+          </div>
+        </section>
+
+        {/* ─── SÉQUENCES ─── */}
+        <section id="sequences">
+          <SectionTitle icon="🎚" title="Séquences & backing tracks" color="green" tutorials={tf('feature_sequences')} />
+          <div className="space-y-4">
+            <HelpCard title="Ajouter des séquences à un morceau" badge={{ label: 'Chef seulement', color: 'indigo' }}>
+              <p>Depuis un morceau du répertoire, bouton <strong>🎚 Séquences</strong> : importez des <strong>backing tracks</strong> audio (MP3, WAV, OGG…) ou des fichiers <strong>MIDI</strong> (.mid).</p>
+              <Note>Les fichiers sont décomptés du quota de stockage du groupe.</Note>
+            </HelpCard>
+            <HelpCard title="Lecteur audio avec séparation click / backing">
+              <p>Pour chaque séquence audio, choisissez le mode de sortie :</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>Stéréo normale</strong></li>
+                <li><strong>Click G / Backing D</strong> : clic dans le canal gauche, playback dans le canal droit, avec <strong>volumes indépendants</strong> et coupure possible du clic</li>
+              </ul>
+              <p className="mt-2">Les fichiers MIDI sont lus par un synthé du navigateur (pré-écoute des notes).</p>
+            </HelpCard>
+            <HelpCard title="Mode scène (par setlist)">
+              <p>Depuis une <strong>setlist</strong>, le bouton <strong>🎚 Mode séquences</strong> enchaîne automatiquement les backing tracks des morceaux : <strong>décompte au tempo</strong>, lecture, précédent / suivant et <strong>enchaînement automatique</strong>.</p>
+            </HelpCard>
           </div>
         </section>
 
