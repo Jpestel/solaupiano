@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { cleanupSongFiles } from '@/lib/file-cleanup'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -79,6 +80,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
-  await prisma.song.delete({ where: { id: songId } })
+  const freed = await cleanupSongFiles(songId)
+  await prisma.$transaction([
+    prisma.song.delete({ where: { id: songId } }),
+    ...(freed > 0
+      ? [prisma.$executeRaw`UPDATE \`Group\` SET storageUsedBytes = GREATEST(0, storageUsedBytes - ${freed}) WHERE id = ${song.groupId}` as any]
+      : []),
+  ])
   return NextResponse.json({ success: true })
 }

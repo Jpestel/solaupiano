@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { unlinkPublicFile } from '@/lib/file-cleanup'
 
 async function requireAdmin(session: Awaited<ReturnType<typeof getServerSession>>) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
@@ -69,7 +70,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const target = await prisma.user.findUnique({
     where: { id: targetId },
-    select: { siteRole: true, _count: { select: { groups: true } } },
+    select: { siteRole: true, avatarUrl: true, _count: { select: { groups: true } } },
   })
 
   if (!target) return NextResponse.json({ error: 'Utilisateur introuvable.' }, { status: 404 })
@@ -80,6 +81,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: 'Cet utilisateur est membre d\'un groupe. Retirez-le de ses groupes avant de le supprimer.' }, { status: 400 })
   }
 
+  if (target.avatarUrl) unlinkPublicFile(target.avatarUrl)
   await prisma.user.delete({ where: { id: targetId } })
 
   return NextResponse.json({ success: true })

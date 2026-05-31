@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
+import { cleanupSongFiles } from '@/lib/file-cleanup'
 
 async function requireChef(session: Awaited<ReturnType<typeof getServerSession>>, groupId: number) {
   if (!session) return false
@@ -68,7 +69,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     }
   }
 
-  await prisma.song.delete({ where: { id: songId } })
+  // Supprime les fichiers du disque + récupère les octets à rendre au quota,
+  // AVANT de supprimer le morceau (le cascade DB effacerait les lignes sinon).
+  const freed = await cleanupSongFiles(songId)
+  await prisma.$transaction([
+    prisma.song.delete({ where: { id: songId } }),
+    ...(freed > 0
+      ? [prisma.$executeRaw`UPDATE \`Group\` SET storageUsedBytes = GREATEST(0, storageUsedBytes - ${freed}) WHERE id = ${groupId}` as any]
+      : []),
+  ])
 
   return NextResponse.json({ ok: true })
 }

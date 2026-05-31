@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getGroupStorageInfo } from '@/lib/storage'
+import { cleanupGroupFiles } from '@/lib/file-cleanup'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -143,6 +144,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
   }
 
+  // Nettoie tous les fichiers du groupe sur le disque avant suppression
+  await cleanupGroupFiles(groupId)
   await prisma.group.delete({ where: { id: groupId } })
 
   return NextResponse.json({ success: true })
