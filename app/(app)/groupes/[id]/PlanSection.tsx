@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { DbPlan, COLOR_MAP, formatBytes, storagePercent } from '@/lib/plans'
+import { DbPlan, COLOR_MAP, formatBytes, storagePercent, storageLabel } from '@/lib/plans'
 
 interface PlanSectionProps {
   currentPlanKey: string
@@ -377,7 +377,7 @@ export function PlanSection({
                       <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                         isCurrent ? `${pc.bg} ${pc.text} border ${pc.border}` : 'bg-gray-100 text-gray-600 border border-gray-200'
                       }`}>
-                        💾 {p.storageGb} Go
+                        💾 {p.storageGb > 0 ? storageLabel(p.storageGb) : 'Aucun stockage'}
                       </span>
                       {/* Groups */}
                       <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
@@ -479,7 +479,7 @@ export function PlanSection({
                               <p className="text-[10px] font-semibold text-red-700 flex items-start gap-1">
                                 <span className="flex-shrink-0">⚠️</span>
                                 <span>
-                                  Vous utilisez <strong>{formatBytes(usedBytes)}</strong> — ce plan n&apos;inclut que <strong>{p.storageGb} Go</strong>. Libérez de l&apos;espace d&apos;abord.
+                                  Vous utilisez <strong>{formatBytes(usedBytes)}</strong> — ce plan n&apos;inclut que <strong>{storageLabel(p.storageGb)}</strong>. Libérez de l&apos;espace d&apos;abord.
                                 </span>
                               </p>
                             </div>
