@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { LyricsPrompter } from '@/components/ui/LyricsPrompter'
 
 // ─── Marker config ──────────────────────────────────────────────────────────
 const MARKERS = [
@@ -95,12 +96,14 @@ export default function ParolesPage({
   const [savedContent, setSavedContent] = useState('')
   const [songTitle, setSongTitle] = useState('')
   const [songArtist, setSongArtist] = useState('')
+  const [songTempo, setSongTempo] = useState<number | null>(null)
   const [groupName, setGroupName] = useState('')
   const [isChef, setIsChef] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit')
   const [stageMode, setStageMode] = useState(false)
+  const [prompterMode, setPrompterMode] = useState(false)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -116,8 +119,8 @@ export default function ParolesPage({
       ])
       if (songRes.ok) {
         const songs = await songRes.json()
-        const song = songs.find((s: { id: number; title: string; artist?: string }) => s.id === Number(songId))
-        if (song) { setSongTitle(song.title); setSongArtist(song.artist || '') }
+        const song = songs.find((s: { id: number; title: string; artist?: string; tempo?: number }) => s.id === Number(songId))
+        if (song) { setSongTitle(song.title); setSongArtist(song.artist || ''); setSongTempo(song.tempo ?? null) }
       }
       if (lyricsRes.ok) {
         const data = await lyricsRes.json()
@@ -228,6 +231,19 @@ export default function ParolesPage({
 
   const isDirty = content !== savedContent
 
+  // ── Prompteur overlay ──
+  if (prompterMode) {
+    return (
+      <LyricsPrompter
+        content={content}
+        title={songTitle}
+        artist={songArtist}
+        bpm={songTempo}
+        onClose={() => setPrompterMode(false)}
+      />
+    )
+  }
+
   // ── Stage mode overlay ──
   if (stageMode) {
     return (
@@ -336,6 +352,16 @@ export default function ParolesPage({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               Mode scène
+            </button>
+          )}
+          {/* Prompteur */}
+          {content.trim() && (
+            <button
+              onClick={() => setPrompterMode(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
+              title="Défilement automatique des paroles selon le tempo"
+            >
+              📜 Prompteur
             </button>
           )}
         </div>
