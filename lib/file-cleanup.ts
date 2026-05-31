@@ -31,8 +31,16 @@ export async function listOrphanFiles(): Promise<OrphanFile[]> {
     if (!c.startsWith('/uploads/')) return
     try { exact.add(decodeURIComponent(c)) } catch { exact.add(c) }
   }
+  // Extrait TOUT chemin /uploads/... contenu dans un champ JSON / texte riche
+  // (ex: photos de cartes membres, plans de scène, fiches techniques, descriptions).
+  const scan = (text?: string | null) => {
+    if (!text) return
+    const re = /\/uploads\/[^\s"'<>)\\]+/g
+    const matches = text.match(re)
+    if (matches) for (const m of matches) add(m)
+  }
 
-  const [resources, sequences, pendings, shared, tutorials, users, groups] = await Promise.all([
+  const [resources, sequences, pendings, shared, tutorials, users, groups, annonces, pages, techRiders, stageLayouts] = await Promise.all([
     prisma.resource.findMany({ select: { filePath: true } }),
     prisma.songSequence.findMany({ select: { filePath: true } }),
     prisma.pendingResource.findMany({ select: { filePath: true } }),
@@ -40,6 +48,10 @@ export async function listOrphanFiles(): Promise<OrphanFile[]> {
     prisma.tutorial.findMany({ select: { videoPath: true } }),
     prisma.user.findMany({ select: { avatarUrl: true } }),
     prisma.group.findMany({ select: { id: true, coverUrl: true } }),
+    prisma.annonce.findMany({ select: { photoPath: true, description: true } }),
+    prisma.groupPage.findMany({ select: { memberCards: true, bio: true } }),
+    prisma.techRider.findMany({ select: { content: true } }),
+    prisma.stageLayout.findMany({ select: { content: true } }),
   ])
   resources.forEach((r) => add(r.filePath))
   sequences.forEach((r) => add(r.filePath))
@@ -48,7 +60,18 @@ export async function listOrphanFiles(): Promise<OrphanFile[]> {
   tutorials.forEach((r) => add(r.videoPath))
   users.forEach((r) => add(r.avatarUrl))
   groups.forEach((r) => add(r.coverUrl))
+  // Annonces : photo (chemin direct) + description (texte riche)
+  annonces.forEach((a) => { add(a.photoPath); scan(a.description) })
+  // Champs JSON / texte riche pouvant contenir des chemins /uploads/...
+  pages.forEach((p) => { scan(JSON.stringify(p.memberCards)); scan(p.bio) })
+  techRiders.forEach((t) => scan(JSON.stringify(t.content)))
+  stageLayouts.forEach((s) => scan(JSON.stringify(s.content)))
   const groupIds = new Set(groups.map((g) => String(g.id)))
+
+  // Marge de sécurité : ne jamais considérer orphelin un fichier modifié récemment
+  // (un upload peut être en cours / sa ligne en base juste après l'écriture disque).
+  const SAFETY_MS = 24 * 60 * 60 * 1000
+  const now = Date.now()
 
   const orphans: OrphanFile[] = []
   const walk = (dir: string) => {
@@ -64,6 +87,7 @@ export async function listOrphanFiles(): Promise<OrphanFile[]> {
       }
       let st: fs.Stats
       try { st = fs.statSync(fp) } catch { continue }
+      if (now - st.mtimeMs < SAFETY_MS) continue // fichier trop récent → on ne le touche pas
       const sub = path.relative(UPLOADS_ROOT, path.dirname(fp)).split(path.sep)[0] || ''
       const category = ['covers', 'avatars', 'group-pages', 'tutoriels'].includes(sub) ? sub : 'ressources'
       orphans.push({ path: rel, name: e.name, sizeBytes: st.size, mtime: st.mtime.toISOString(), category })
