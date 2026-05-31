@@ -143,9 +143,10 @@ export default async function TableauDeBordPage({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
           </svg>
           <div>
-            <p className="text-sm font-medium text-amber-800">Accès non autorisé</p>
+            <p className="text-sm font-medium text-amber-800">Fonctionnalité non incluse dans votre plan</p>
             <p className="text-sm text-amber-700 mt-0.5">
-              Vous n'avez pas accès à l'outil <strong>{moduleBloque}</strong>. Contactez l'administrateur si vous pensez qu'il s'agit d'une erreur.
+              <strong>{moduleBloque}</strong> n'est pas disponible avec votre plan actuel.{' '}
+              <a href="/tarifs" className="font-semibold underline hover:text-amber-900">Découvrir les plans qui l'incluent →</a>
             </p>
           </div>
         </div>
