@@ -37,17 +37,40 @@ export async function hasModuleAccess(userId: number, moduleKey: string): Promis
     }
   }
 
-  // 3. Plan-based access — check user's plan
-  // Get user's plan (userPlan field on User)
+  // 3. Plan-based access — résolu sur l'ensemble des plans applicables à l'utilisateur :
+  //    - le plan de chacun de ses groupes (le plan du groupe paie / débloque)
+  //    - son plan utilisateur (MUSICIEN / CREATEUR) en complément
+  //    Règle "meilleur plan gagne" : si AU MOINS un plan autorise le module, c'est autorisé.
+  //    Pour un plan donné, l'absence d'enregistrement ModuleAccess = ouvert (permissif).
   const userRecord = await prisma.user.findUnique({
     where: { id: userId },
-    select: { userPlan: true },
+    select: {
+      userPlan: true,
+      groups: { select: { group: { select: { plan: true } } } },
+    },
   })
   if (userRecord) {
-    const planAccess = await prisma.moduleAccess.findUnique({
-      where: { moduleKey_planKey: { moduleKey, planKey: userRecord.userPlan } },
+    // Les plans de groupe priment (c'est l'abonnement du groupe qui débloque).
+    // L'utilisateur sans aucun groupe est évalué sur son plan personnel (MUSICIEN).
+    const candidatePlans = new Set<string>()
+    if (userRecord.groups.length > 0) {
+      for (const g of userRecord.groups) candidatePlans.add(g.group.plan)
+    } else {
+      candidatePlans.add(userRecord.userPlan)
+    }
+
+    const records = await prisma.moduleAccess.findMany({
+      where: { moduleKey, planKey: { in: [...candidatePlans] } },
     })
-    if (planAccess !== null) return planAccess.enabled
+    const recordByPlan = new Map(records.map(r => [r.planKey, r.enabled]))
+
+    // Pour chaque plan candidat : autorisé si pas d'enregistrement (ouvert) OU enabled=true
+    for (const plan of candidatePlans) {
+      const rec = recordByPlan.get(plan)
+      if (rec === undefined || rec === true) return true   // meilleur plan gagne
+    }
+    // Tous les plans candidats ont un enregistrement explicite à false
+    return false
   }
 
   // 4. Default: open to all

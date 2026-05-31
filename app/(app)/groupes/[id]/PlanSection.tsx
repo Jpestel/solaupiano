@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { DbPlan, COLOR_MAP, formatBytes, storagePercent, storageLabel } from '@/lib/plans'
+import { MODULES } from '@/lib/modules'
+
+interface ModuleAccessRec { moduleKey: string; planKey: string; enabled: boolean }
 
 interface PlanSectionProps {
   currentPlanKey: string
@@ -13,6 +16,7 @@ interface PlanSectionProps {
   isChef: boolean
   memberCount?: number
   allPlans: DbPlan[]
+  moduleAccess?: ModuleAccessRec[]
   groupId: number
   stripeSubscriptionId?: string | null
 }
@@ -26,10 +30,16 @@ export function PlanSection({
   isChef,
   memberCount = 1,
   allPlans,
+  moduleAccess = [],
   groupId,
   stripeSubscriptionId,
 }: PlanSectionProps) {
   const router = useRouter()
+  // Module (outil) activé pour un plan : enregistrement explicite, sinon ouvert par défaut
+  const isModuleEnabled = (planKey: string, moduleKey: string) => {
+    const rec = moduleAccess.find(r => r.planKey === planKey && r.moduleKey === moduleKey)
+    return rec !== undefined ? rec.enabled : true
+  }
   const usedBytes = Number(storageUsedBytes)
   const currentPlan = allPlans.find((p) => p.key === currentPlanKey) ?? allPlans[0]
   // Use shared/override limit instead of plan's own storageGb for the gauge
@@ -437,6 +447,24 @@ export function PlanSection({
                           <span className="leading-tight">{m.icon} {m.label}</span>
                         </div>
                       ))}
+
+                      {/* Outils & modules (accordeur, métronome, annonces, simulateurs…) */}
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Outils & modules</p>
+                        {MODULES.map((mod) => {
+                          const ok = isModuleEnabled(p.key, mod.key)
+                          return (
+                            <div key={mod.key} className={`flex items-center gap-1.5 text-[11px] ${ok ? 'text-gray-700' : 'text-gray-300'}`}>
+                              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
+                                ok ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                              }`}>
+                                {ok ? '✓' : '✕'}
+                              </span>
+                              <span className="leading-tight">{mod.icon} {mod.label}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
 
                     {/* ── Prix + CTA ── */}

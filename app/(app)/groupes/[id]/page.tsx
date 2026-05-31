@@ -56,10 +56,23 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   // Check plan features (stats + member limit + storage)
   const groupMeta = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true, maxMembersOverride: true, storageQuotaOverrideGb: true } })
-  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, maxMembersPerGroup: true } }) : null
+  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, maxMembersPerGroup: true } }) : null
   const planHasStats = isAdminUser || (planData?.hasStats ?? false)
+  // Fonctionnalités débloquées par le plan (admin = tout)
+  const planFeatures = {
+    grilles:        isAdminUser || (planData?.hasGrilles ?? true),
+    setlists:       isAdminUser || (planData?.hasSetlists ?? true),
+    concerts:       isAdminUser || (planData?.hasConcerts ?? true),
+    ficheTechnique: isAdminUser || (planData?.hasFicheTechnique ?? true),
+    maPage:         isAdminUser || (planData?.hasMaPage ?? true),
+  }
   // Effective member limit: override (if set by admin) > plan limit > null (unlimited)
   const effectiveMemberLimit = groupMeta?.maxMembersOverride ?? planData?.maxMembersPerGroup ?? null
+  // Accès aux modules (outils) par plan — pour l'affichage des cartes
+  const allModuleAccess = await prisma.moduleAccess.findMany({
+    select: { moduleKey: true, planKey: true, enabled: true },
+  })
+
   // Shared storage info
   const storageInfo = await getGroupStorageInfo(groupId)
 
@@ -236,7 +249,17 @@ export default async function GroupePage({ params }: { params: { id: string } })
             iconBg: 'bg-pink-100', textColor: 'text-pink-700', border: 'border-pink-200 hover:border-pink-400 hover:bg-pink-50/60',
             chefDesc: 'Messagerie du groupe', memberDesc: 'Messagerie du groupe',
           },
-        ] as const).map((link) => (
+        ] as const)
+          // Masque les fonctionnalités non incluses dans le plan du groupe
+          .filter((link) => {
+            if (link.href === 'concerts')        return planFeatures.concerts
+            if (link.href === 'setlists')        return planFeatures.setlists
+            if (link.href === 'grilles')         return planFeatures.grilles
+            if (link.href === 'fiche-technique') return planFeatures.ficheTechnique
+            if (link.href === 'ma-page')         return planFeatures.maPage
+            return true
+          })
+          .map((link) => (
           <Link
             key={link.href}
             href={`/groupes/${groupId}/${link.href}`}
@@ -303,6 +326,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         isChef={isChef}
         memberCount={group.members.length}
         allPlans={allPlans}
+        moduleAccess={allModuleAccess}
         groupId={groupId}
         stripeSubscriptionId={group.stripeSubscriptionId ?? null}
       />
