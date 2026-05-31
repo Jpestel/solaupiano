@@ -163,7 +163,8 @@ function Fader({ label, vol, setVol, muted, setMuted, color, hideMute }: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Lecteur MIDI (Tone.js — synthé navigateur, pour pré-écoute)
+// Lecteur MIDI (Web Audio natif — synthé oscillateurs, pour pré-écoute)
+// Parsing via @tonejs/midi, restitution sans dépendance audio externe.
 // ─────────────────────────────────────────────────────────────────────────────
 function MidiSeqPlayer({ seq }: { seq: Sequence }) {
   const [playing, setPlaying] = useState(false)
@@ -171,24 +172,19 @@ function MidiSeqPlayer({ seq }: { seq: Sequence }) {
   const [err, setErr] = useState('')
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
-  const partRef = useRef<any>(null)
-  const synthRef = useRef<any>(null)
-  const toneRef = useRef<any>(null)
+
+  const ctxRef = useRef<AudioContext | null>(null)
+  const oscsRef = useRef<OscillatorNode[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const cleanup = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current)
     pollRef.current = null
-    try {
-      const Tone = toneRef.current
-      const tr = Tone ? (Tone.Transport ?? Tone.getTransport?.()) : null
-      if (tr) { tr.stop(); tr.cancel() }
-      if (partRef.current) { partRef.current.dispose(); partRef.current = null }
-      if (synthRef.current) { synthRef.current.releaseAll?.(); }
-    } catch {}
+    oscsRef.current.forEach((o) => { try { o.stop() } catch {} })
+    oscsRef.current = []
   }, [])
 
-  useEffect(() => () => cleanup(), [cleanup])
+  useEffect(() => () => { cleanup(); try { ctxRef.current?.close() } catch {} }, [cleanup])
 
   const stop = () => { cleanup(); setPlaying(false); setProgress(0) }
 
@@ -197,12 +193,8 @@ function MidiSeqPlayer({ seq }: { seq: Sequence }) {
     setLoading(true); setErr('')
     try {
       const midiMod: any = await import('@tonejs/midi')
-      const toneMod: any = await import('tone')
       const Midi = midiMod.Midi ?? midiMod.default?.Midi ?? midiMod.default
-      const Tone = toneMod.Transport || toneMod.start ? toneMod : (toneMod.default ?? toneMod)
-      toneRef.current = Tone
       if (!Midi) throw new Error('@tonejs/midi non chargé')
-      if (!Tone?.start) throw new Error('Tone.js non chargé')
 
       const res = await fetch(encodeURI(seq.filePath))
       if (!res.ok) throw new Error(`Fichier inaccessible (HTTP ${res.status})`)
@@ -210,37 +202,52 @@ function MidiSeqPlayer({ seq }: { seq: Sequence }) {
       const midi = new Midi(buf)
       setDuration(midi.duration)
 
-      await Tone.start()
-      const transport = Tone.Transport ?? Tone.getTransport?.()
-      if (!transport) throw new Error('Transport Tone indisponible')
-      transport.stop(); transport.cancel(); transport.position = 0
-
-      if (!synthRef.current) {
-        synthRef.current = new Tone.PolySynth(Tone.Synth).toDestination()
-        synthRef.current.volume.value = -6
+      if (!ctxRef.current) {
+        const Ctx = window.AudioContext || (window as any).webkitAudioContext
+        ctxRef.current = new Ctx()
       }
-      const synth = synthRef.current
+      const ctx = ctxRef.current!
+      await ctx.resume()
 
-      const events: { time: number; name: string; duration: number; velocity: number }[] = []
+      const master = ctx.createGain()
+      master.gain.value = 0.8
+      master.connect(ctx.destination)
+
+      const startAt = ctx.currentTime + 0.15
+      const oscs: OscillatorNode[] = []
       midi.tracks.forEach((track: any) => {
-        track.notes.forEach((n: any) => events.push({ time: n.time, name: n.name, duration: n.duration, velocity: n.velocity }))
+        const isDrum = track.channel === 9
+        track.notes.forEach((n: any) => {
+          if (isDrum) return // on ignore la batterie (canal 10) pour la pré-écoute mélodique
+          const t0 = startAt + n.time
+          const t1 = t0 + Math.max(0.08, n.duration)
+          const freq = 440 * Math.pow(2, (n.midi - 69) / 12)
+          const osc = ctx.createOscillator()
+          const g = ctx.createGain()
+          osc.type = 'triangle'
+          osc.frequency.value = freq
+          const peak = Math.max(0.04, (n.velocity ?? 0.7) * 0.16)
+          g.gain.setValueAtTime(0.0001, t0)
+          g.gain.linearRampToValueAtTime(peak, t0 + 0.012)
+          g.gain.setValueAtTime(peak, Math.max(t0 + 0.012, t1 - 0.06))
+          g.gain.exponentialRampToValueAtTime(0.0001, t1)
+          osc.connect(g); g.connect(master)
+          osc.start(t0); osc.stop(t1 + 0.05)
+          oscs.push(osc)
+        })
       })
+      oscsRef.current = oscs
 
-      const part = new Tone.Part((time: number, ev: any) => {
-        synth.triggerAttackRelease(ev.name, ev.duration, time, ev.velocity)
-      }, events as any)
-      part.start(0)
-      partRef.current = part
+      if (oscs.length === 0) throw new Error('Aucune note mélodique à jouer dans ce fichier.')
 
-      transport.start()
       setPlaying(true)
       setLoading(false)
 
       pollRef.current = setInterval(() => {
-        const sec = transport.seconds
-        setProgress(sec)
+        const sec = ctx.currentTime - startAt
+        setProgress(Math.max(0, sec))
         if (sec >= midi.duration) stop()
-      }, 200)
+      }, 150)
     } catch (e: any) {
       console.error('MIDI play error:', e)
       setErr(`Lecture MIDI impossible : ${e?.message || e}`)
