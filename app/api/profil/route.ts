@@ -9,12 +9,13 @@ export async function GET() {
 
   const userId = Number(session.user.id)
 
-  const [user, groupCount, masterCount, nextRehearsal] = await Promise.all([
+  const [user, groupCount, foundedGroupsCount, masterCount, nextRehearsal] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       include: { instruments: { include: { instrument: true } } },
     }),
     prisma.groupMember.count({ where: { userId } }),
+    prisma.group.count({ where: { createdBy: userId } }),
     prisma.userSongProgress.count({ where: { userId, status: 'MAITRISE' } }),
     prisma.rehearsal.findFirst({
       where: {
@@ -31,8 +32,10 @@ export async function GET() {
   const { password, ...safeUser } = user
   return NextResponse.json({
     ...safeUser,
+    foundedGroupsCount,
     stats: {
       groupCount,
+      foundedGroupsCount,
       masterCount,
       nextRehearsal: nextRehearsal
         ? { ...nextRehearsal, date: nextRehearsal.date.toISOString() }
@@ -53,6 +56,16 @@ export async function PATCH(req: NextRequest) {
   }
 
   const validPlans = ['MUSICIEN', 'CREATEUR']
+  // Interdit le retour au plan Musicien tant que l'utilisateur est fondateur d'un groupe
+  if (userPlan === 'MUSICIEN') {
+    const foundedGroups = await prisma.group.count({ where: { createdBy: userId } })
+    if (foundedGroups > 0) {
+      return NextResponse.json({
+        error: 'Vous ne pouvez pas repasser en plan Musicien tant que vous êtes chef d\'un groupe. Supprimez ou transférez vos groupes d\'abord.',
+        code: 'STILL_FOUNDER',
+      }, { status: 409 })
+    }
+  }
   const planData = userPlan && validPlans.includes(userPlan) ? { userPlan } : {}
   const digestData = typeof weeklyDigestOptOut === 'boolean' ? { weeklyDigestOptOut } : {}
   const reminderData = typeof rehearsalReminderOptOut === 'boolean' ? { rehearsalReminderOptOut } : {}

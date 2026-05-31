@@ -21,6 +21,7 @@ interface ProfileData {
   avatarUrl?: string | null
   siteRole: string
   userPlan: string
+  foundedGroupsCount?: number
   gusoNumber?: string | null
   weeklyDigestOptOut: boolean
   rehearsalReminderOptOut: boolean
@@ -81,6 +82,7 @@ export default function ProfilPage() {
   const [avatarError, setAvatarError] = useState('')
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [planSuccess, setPlanSuccess] = useState('')
+  const [planError, setPlanError] = useState('')
 
   const [gusoNumber, setGusoNumber] = useState('')
   const [weeklyDigestOptOut, setWeeklyDigestOptOut] = useState(false)
@@ -173,6 +175,7 @@ export default function ProfilPage() {
     if (!profile || profile.userPlan === newPlan) return
     setPlanSaving(true)
     setPlanSuccess('')
+    setPlanError('')
     const res = await fetch('/api/profil', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -183,6 +186,9 @@ export default function ProfilPage() {
       await fetchData()
       setPlanSuccess('Plan mis à jour avec succès.')
       await update({ userPlan: newPlan })
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setPlanError(d.error || 'Erreur lors du changement de plan.')
     }
   }
 
@@ -676,58 +682,81 @@ export default function ProfilPage() {
                   ✓ {planSuccess}
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                {([
-                  {
-                    value: 'MUSICIEN',
-                    icon: '🎵',
-                    label: 'Musicien',
-                    desc: 'Je rejoins des groupes existants',
-                    badge: 'Gratuit',
-                  },
-                  {
-                    value: 'CREATEUR',
-                    icon: '🎼',
-                    label: "Chef d'orchestre",
-                    desc: 'Je crée et gère mon groupe',
-                    badge: 'Gratuit',
-                  },
-                ] as const).map((opt) => {
-                  const isActive = profile.userPlan === opt.value
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      disabled={planSaving || isActive}
-                      onClick={() => handlePlanChange(opt.value)}
-                      className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all disabled:cursor-default ${
-                        isActive
-                          ? 'border-indigo-500 bg-indigo-50'
-                          : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50'
-                      }`}
-                    >
-                      <span className="text-2xl">{opt.icon}</span>
-                      <div>
-                        <p className={`text-sm font-bold ${isActive ? 'text-indigo-700' : 'text-gray-700'}`}>{opt.label}</p>
-                        <p className="text-xs text-gray-500 mt-0.5 leading-tight">{opt.desc}</p>
-                      </div>
-                      {isActive ? (
-                        <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                          ✓ Plan actuel
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-500">
-                          {opt.badge}
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-              <p className="text-xs text-gray-400 mt-3 flex items-start gap-1.5">
-                <span className="mt-0.5 flex-shrink-0">⚠️</span>
-                Passer en plan Musicien vous empêchera de créer de nouveaux groupes.
-              </p>
+              {planError && (
+                <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                  {planError}
+                </div>
+              )}
+              {(() => {
+                const isFounder = (profile.foundedGroupsCount ?? 0) > 0
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      {([
+                        {
+                          value: 'MUSICIEN',
+                          icon: '🎵',
+                          label: 'Musicien',
+                          desc: 'Je rejoins des groupes existants',
+                          badge: 'Gratuit',
+                        },
+                        {
+                          value: 'CREATEUR',
+                          icon: '🎼',
+                          label: "Chef d'orchestre",
+                          desc: 'Je crée et gère mon groupe',
+                          badge: 'Gratuit',
+                        },
+                      ] as const).map((opt) => {
+                        const isActive = profile.userPlan === opt.value
+                        // Le plan Musicien est verrouillé tant qu'on est fondateur d'un groupe
+                        const isLocked = opt.value === 'MUSICIEN' && isFounder && !isActive
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            disabled={planSaving || isActive || isLocked}
+                            onClick={() => handlePlanChange(opt.value)}
+                            title={isLocked ? 'Indisponible : vous êtes chef d\'un groupe' : undefined}
+                            className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all disabled:cursor-default ${
+                              isActive
+                                ? 'border-indigo-500 bg-indigo-50'
+                                : isLocked
+                                  ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
+                                  : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50'
+                            }`}
+                          >
+                            <span className="text-2xl">{isLocked ? '🔒' : opt.icon}</span>
+                            <div>
+                              <p className={`text-sm font-bold ${isActive ? 'text-indigo-700' : 'text-gray-700'}`}>{opt.label}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-tight">{opt.desc}</p>
+                            </div>
+                            {isActive ? (
+                              <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                                ✓ Plan actuel
+                              </span>
+                            ) : isLocked ? (
+                              <span className="rounded-full bg-gray-200 px-2.5 py-0.5 text-xs text-gray-500">
+                                Indisponible
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-500">
+                                {opt.badge}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-3 flex items-start gap-1.5">
+                      <span className="mt-0.5 flex-shrink-0">⚠️</span>
+                      {isFounder
+                        ? 'Vous êtes chef d\'au moins un groupe : le plan Musicien est indisponible. Supprimez vos groupes pour y repasser. (Être chef permet déjà de rejoindre d\'autres groupes en tant que musicien.)'
+                        : 'Passer en plan Musicien vous empêchera de créer de nouveaux groupes.'}
+                    </p>
+                  </>
+                )
+              })()}
             </Card>
           )}
 
