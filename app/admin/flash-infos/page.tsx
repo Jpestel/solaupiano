@@ -204,6 +204,11 @@ export default function AdminFlashInfosPage() {
                 <input value={form.ctaUrl} onChange={(e) => set('ctaUrl', e.target.value)} placeholder="/aide ou https://…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
               </div>
             </div>
+            <p className="text-xs text-gray-400 -mt-1">
+              Lien interne (`/calendrier`, `/aide`…) ou externe (`https://…`). Astuce : utilisez{' '}
+              <code className="bg-gray-100 rounded px-1">{'{groupId}'}</code> pour pointer vers <strong>un groupe du membre</strong>{' '}
+              (ex. <code className="bg-gray-100 rounded px-1">/groupes/{'{groupId}'}/disponibilites</code>). S'il a plusieurs groupes, on lui demandera lequel.
+            </p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
