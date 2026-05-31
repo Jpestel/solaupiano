@@ -251,8 +251,11 @@ export default function KilometriqueCalculatorPage() {
   const effectiveKm = distance ?? parseFloat(manualKm.replace(',', '.') || '0')
 
   const results = useMemo(() => {
-    const totalKm = effectiveKm * (roundTrip ? 2 : 1)
-    if (!totalKm) return null
+    const totalKm = localConcert ? 0 : effectiveKm * (roundTrip ? 2 : 1)
+    const cachetEntered = (parseFloat(cachet.replace(',', '.') || '0') || 0) > 0
+    // On affiche le résultat dès qu'il y a quelque chose à montrer :
+    // concert local, distance saisie, ou cachet renseigné
+    if (!localConcert && !totalKm && !cachetEntered) return null
 
     const trips = roundTrip ? 2 : 1
 
@@ -342,7 +345,7 @@ export default function KilometriqueCalculatorPage() {
     const pw = window.open('', '_blank', 'width=800,height=960')
     if (!pw) return
     pw.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-      <title>Devis frais kilométriques — ${departure} → ${arrival}</title>
+      <title>Devis estimation de cachet${departure && arrival ? ` — ${departure} → ${arrival}` : ''}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:-apple-system,Arial,sans-serif;padding:40px;color:#111;max-width:740px;margin:0 auto}
@@ -368,11 +371,15 @@ export default function KilometriqueCalculatorPage() {
         <button class="btn-print" onclick="window.print()">🖨️&nbsp; Imprimer</button>
         <button class="btn-close" onclick="window.close()">✕ Fermer</button>
       </div>
-      <h1>🚗 Devis frais kilométriques</h1>
-      <div class="sub">Établi le ${date}</div>
+      <h1>🎭 Devis estimation de cachet</h1>
+      <div class="sub">Établi le ${date}${regimeLabel ? ` · Régime : ${regimeLabel}` : ''}</div>
+      ${localConcert ? `
       <div class="meta">
-        <div class="meta-item"><div class="l">Départ</div><div class="v">${departure}</div></div>
-        <div class="meta-item"><div class="l">Destination</div><div class="v">${arrival}</div></div>
+        <div class="meta-item"><div class="l">Déplacement</div><div class="v">📍 Concert local (sans frais)</div></div>
+      </div>` : `
+      <div class="meta">
+        ${departure ? `<div class="meta-item"><div class="l">Départ</div><div class="v">${departure}</div></div>` : ''}
+        ${arrival ? `<div class="meta-item"><div class="l">Destination</div><div class="v">${arrival}</div></div>` : ''}
         <div class="meta-item"><div class="l">Type de trajet</div><div class="v">${tripLabel}</div></div>
         <div class="meta-item"><div class="l">Distance</div><div class="v">${fmtKm(results.totalKm)}</div></div>
       </div>
@@ -390,8 +397,8 @@ export default function KilometriqueCalculatorPage() {
             <td>${fmt(results.totalFrais)}</td>
           </tr>
         </tbody>
-      </table>
-      ${results.expenseRows.length > 0 ? `
+      </table>`}
+      ${!localConcert && results.expenseRows.length > 0 ? `
         <h2 style="font-size:14px;font-weight:700;color:#374151;margin:20px 0 8px">Frais supplémentaires</h2>
         <table>
           <thead><tr><th>Poste</th><th>Montant unitaire</th><th>Quantité</th><th>Total</th></tr></thead>
@@ -920,12 +927,13 @@ export default function KilometriqueCalculatorPage() {
         {results && (
           <div ref={printRef} className="rounded-xl border-2 border-indigo-200 bg-indigo-50/40 p-5 space-y-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Résultat — {departure && arrival ? `${departure} → ${arrival}` : 'Estimation'}
-              {' · '}{roundTrip ? 'Aller-retour' : 'Aller simple'}{' · '}{fmtKm(results.totalKm)}
+              {localConcert
+                ? 'Résultat — 📍 Concert local (sans déplacement)'
+                : <>Résultat — {departure && arrival ? `${departure} → ${arrival}` : 'Estimation'}{' · '}{roundTrip ? 'Aller-retour' : 'Aller simple'}{' · '}{fmtKm(results.totalKm)}</>}
             </p>
 
-            {/* Per-vehicle breakdown */}
-            <div className="space-y-2">
+            {/* Per-vehicle breakdown — masqué si concert local */}
+            {!localConcert && <div className="space-y-2">
               {results.vehicleRows.map(v => (
                 <div key={v.id} className="rounded-xl bg-white border border-indigo-100 px-4 py-3">
                   <div className="flex items-center gap-3 flex-wrap">
@@ -954,10 +962,10 @@ export default function KilometriqueCalculatorPage() {
                   </div>
                 </div>
               ))}
-            </div>
+            </div>}
 
             {/* Frais supplémentaires dans les résultats */}
-            {results.expenseRows.length > 0 && (
+            {!localConcert && results.expenseRows.length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Frais supplémentaires</p>
                 {results.expenseRows.map(e => (
