@@ -7,6 +7,7 @@ import { RoleBadge } from '@/components/ui/Badge'
 import { CreateGroupButton } from './CreateGroupButton'
 import { JoinPublicGroupsSection } from './JoinPublicGroupsSection'
 import { QuickInvite } from './QuickInvite'
+import { GroupMembersPanel } from './GroupMembersPanel'
 
 export default async function GroupesPage() {
   const session = await getServerSession(authOptions)
@@ -88,6 +89,10 @@ export default async function GroupesPage() {
       group: {
         include: {
           _count: { select: { members: true, rehearsals: true, songs: true } },
+          members: {
+            select: { userId: true, groupRole: true, user: { select: { name: true } } },
+            orderBy: { groupRole: 'asc' },
+          },
         },
       },
     },
@@ -156,7 +161,8 @@ export default async function GroupesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {memberships.map(({ group, groupRole }) => (
-            <div key={group.id} className="relative">
+            <div key={group.id}>
+             <div className="relative">
               <Link href={`/groupes/${group.id}`}>
                 <Card className="h-full hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
                   <div className="flex items-start justify-between mb-3">
@@ -180,6 +186,13 @@ export default async function GroupesPage() {
                 </Card>
               </Link>
               {groupRole === 'CHEF' && <QuickInvite groupId={group.id} groupName={group.name} />}
+             </div>
+              <GroupMembersPanel
+                groupId={group.id}
+                members={group.members}
+                createdBy={group.createdBy ?? null}
+                currentUserId={userId}
+              />
             </div>
           ))}
         </div>
