@@ -18,7 +18,7 @@ export async function GET() {
     select: { groupId: true },
   })
   const groupIds = memberships.map(m => m.groupId)
-  if (!groupIds.length) return NextResponse.json({ missingPresences: [], nextRehearsal: null, groupsLatestMessage: [] })
+  if (!groupIds.length) return NextResponse.json({ missingPresences: [], nextRehearsal: null, groupsLatestMessage: [], pendingPolls: [] })
 
   // ── 1. Présences manquantes ───────────────────────────────────────────────
   // Répétitions à venir où l'utilisateur n'a pas de record Attendance
@@ -111,5 +111,29 @@ export async function GET() {
     lastMessageAt: m.createdAt.toISOString(),
   }))
 
-  return NextResponse.json({ missingPresences, nextRehearsal, groupsLatestMessage })
+  // ── 4. Sondages ouverts non (entièrement) répondus ────────────────────────
+  const openPolls = await prisma.poll.findMany({
+    where: { groupId: { in: groupIds }, closed: false },
+    include: {
+      group:   { select: { name: true } },
+      _count:  { select: { options: true } },
+      options: { select: { votes: { where: { userId }, select: { id: true } } } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+
+  const pendingPolls = openPolls
+    .map(p => ({
+      id:        p.id,
+      groupId:   p.groupId,
+      groupName: p.group.name,
+      title:     p.title,
+      total:     p._count.options,
+      answered:  p.options.filter(o => o.votes.length > 0).length,
+    }))
+    .filter(p => p.answered < p.total)
+    .slice(0, 5)
+
+  return NextResponse.json({ missingPresences, nextRehearsal, groupsLatestMessage, pendingPolls })
 }

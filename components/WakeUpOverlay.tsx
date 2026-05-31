@@ -19,10 +19,15 @@ interface GroupMessage {
   groupId: number; groupName: string; lastMessageId: number; lastMessageAt: string
 }
 
+interface PendingPoll {
+  id: number; groupId: number; groupName: string; title: string; total: number; answered: number
+}
+
 interface WakeUpData {
   missingPresences: MissingPresence[]
   nextRehearsal: NextRehearsal | null
   groupsLatestMessage: GroupMessage[]
+  pendingPolls: PendingPoll[]
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -48,6 +53,7 @@ function SectionCard({
     indigo: 'bg-indigo-50 border-indigo-200',
     green:  'bg-green-50  border-green-200',
     pink:   'bg-pink-50   border-pink-200',
+    violet: 'bg-violet-50 border-violet-200',
   }
   return (
     <div className={`rounded-xl border p-4 ${bg[color] ?? bg.indigo}`}>
@@ -86,8 +92,9 @@ export function WakeUpOverlay() {
       const hasPresences = d.missingPresences.length > 0
       const hasRehearsal = !!d.nextRehearsal && d.nextRehearsal.pendingSongs > 0
       const hasChats = newChats.length > 0
+      const hasPolls = (d.pendingPolls?.length ?? 0) > 0
 
-      if (!hasPresences && !hasRehearsal && !hasChats) return
+      if (!hasPresences && !hasRehearsal && !hasChats && !hasPolls) return
 
       setData({
         ...d,
@@ -133,6 +140,7 @@ export function WakeUpOverlay() {
   const newChats    = data.groupsLatestMessage
   const rehearsal   = data.nextRehearsal
   const presences   = data.missingPresences
+  const polls       = data.pendingPolls ?? []
 
   const close = () => setVisible(false)
 
@@ -248,6 +256,32 @@ export function WakeUpOverlay() {
                 className="mt-3 inline-flex items-center gap-1 rounded-lg bg-pink-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-pink-500 transition-colors"
               >
                 Lire le tchat →
+              </Link>
+            </SectionCard>
+          )}
+
+          {/* 4. Sondages en attente de réponse */}
+          {polls.length > 0 && (
+            <SectionCard icon="📊" color="violet" title={
+              polls.length === 1 ? 'Un sondage attend votre réponse' : `${polls.length} sondages attendent votre réponse`
+            }>
+              <ul className="text-sm text-gray-600 space-y-1 mt-1">
+                {polls.map(p => (
+                  <li key={p.id} className="flex items-start gap-1.5">
+                    <span className="text-violet-400 mt-0.5">·</span>
+                    <span>
+                      <strong>{p.title}</strong> — {p.groupName}
+                      {p.answered > 0 && <span className="text-gray-400"> ({p.answered}/{p.total} dates répondues)</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={`/groupes/${polls[0].groupId}/sondages/${polls[0].id}`}
+                onClick={close}
+                className="mt-3 inline-flex items-center gap-1 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors"
+              >
+                Répondre au sondage →
               </Link>
             </SectionCard>
           )}
