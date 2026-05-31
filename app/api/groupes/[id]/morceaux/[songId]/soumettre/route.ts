@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { detectResourceType } from '@/lib/utils'
 import { getGroupStorageInfo } from '@/lib/storage'
+import { getEmailTemplate } from '@/lib/get-email-template'
 import { Resend } from 'resend'
 import formidable from 'formidable'
 import fs from 'fs'
@@ -112,32 +113,35 @@ export async function POST(
   const submitter = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } })
 
   const reviewUrl = `https://solaupiano.fr/groupes/${groupId}/morceaux`
+  const fileLabel = nameField || originalName
+
+  const tpl = await getEmailTemplate('resource_submission')
+  const { subject, introHtml, outroHtml } = tpl.render({
+    submitterName: submitter?.name ?? 'Un membre',
+    songTitle: song.title,
+    groupName: group?.name ?? '',
+    fileName: fileLabel,
+  })
 
   for (const chef of chefs) {
     await resend.emails.send({
       from: 'Sol au piano <noreply@solaupiano.fr>',
       to: chef.user.email,
-      subject: `[Sol au piano] Nouvelle soumission pour « ${song.title} »`,
+      subject,
       html: `
         <div style="font-family:-apple-system,Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#111;">
           <div style="font-size:28px;margin-bottom:16px;">🎵</div>
-          <h2 style="font-size:20px;font-weight:700;margin:0 0 8px;">Nouvelle soumission de fichier</h2>
-          <p style="color:#6b7280;margin:0 0 24px;font-size:15px;">
-            <strong>${submitter?.name}</strong> a soumis un fichier pour le morceau <strong>« ${song.title} »</strong>
-            dans le groupe <strong>${group?.name}</strong>.
-          </p>
-          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:24px;">
+          ${introHtml}
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin:16px 0 24px;">
             <p style="margin:0;font-size:14px;color:#374151;">
-              📎 <strong>${nameField || originalName}</strong><br>
+              📎 <strong>${fileLabel}</strong><br>
               <span style="color:#9ca3af;font-size:12px;">Type : ${resourceType}</span>
             </p>
           </div>
           <a href="${reviewUrl}" style="display:inline-block;background:#4f46e5;color:white;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px;">
             Voir les soumissions en attente →
           </a>
-          <p style="color:#9ca3af;font-size:12px;margin-top:24px;">
-            Acceptez ou refusez le fichier depuis le répertoire du groupe. Les fichiers refusés sont supprimés automatiquement.
-          </p>
+          <div style="margin-top:24px;color:#9ca3af;font-size:12px;">${outroHtml}</div>
         </div>
       `,
     }).catch(() => {}) // fail silently — submission is still saved

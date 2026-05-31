@@ -171,6 +171,44 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
       { key: 'adminComment', description: 'Commentaire de l\'admin (si renseigné)' },
     ],
   },
+  {
+    key: 'resource_submission',
+    name: 'Soumission de fichier (chef)',
+    description: 'Envoyé aux chefs quand un membre propose un fichier pour un morceau.',
+    defaultSubject: 'Nouvelle soumission pour « {{songTitle}} » — {{groupName}}',
+    defaultIntro: '{{submitterName}} a soumis un fichier pour le morceau « {{songTitle}} » dans le groupe {{groupName}}.',
+    defaultOutro: 'Acceptez ou refusez ce fichier depuis le répertoire du groupe. Les fichiers refusés sont supprimés automatiquement.',
+    variables: [
+      { key: 'submitterName', description: 'Nom du membre qui soumet' },
+      { key: 'songTitle', description: 'Titre du morceau' },
+      { key: 'groupName', description: 'Nom du groupe' },
+      { key: 'fileName', description: 'Nom du fichier soumis' },
+    ],
+  },
+  {
+    key: 'tech_rider',
+    name: 'Envoi de fiche technique',
+    description: 'Envoyé par le chef à un organisateur pour transmettre la fiche technique du groupe.',
+    defaultSubject: 'Fiche technique — {{groupName}}',
+    defaultIntro: 'Bonjour,\n\nVeuillez trouver ci-dessous la fiche technique de {{groupName}}.',
+    defaultOutro: 'N\'hésitez pas à nous contacter pour toute question concernant cette fiche.',
+    variables: [
+      { key: 'groupName', description: 'Nom du groupe' },
+    ],
+  },
+  {
+    key: 'group_page_contact',
+    name: 'Message via page publique',
+    description: 'Envoyé aux chefs quand un visiteur écrit via le formulaire de contact de la page publique.',
+    defaultSubject: '💬 Nouveau message de {{senderName}} — {{groupName}}',
+    defaultIntro: 'Vous avez reçu un nouveau message via la page publique du groupe {{groupName}}.',
+    defaultOutro: 'Répondez directement à cet e-mail pour recontacter {{senderName}}.',
+    variables: [
+      { key: 'senderName', description: 'Nom de l\'expéditeur' },
+      { key: 'senderEmail', description: 'Email de l\'expéditeur' },
+      { key: 'groupName', description: 'Nom du groupe' },
+    ],
+  },
 ]
 
 export function getTemplateDef(key: string): EmailTemplateDef | undefined {

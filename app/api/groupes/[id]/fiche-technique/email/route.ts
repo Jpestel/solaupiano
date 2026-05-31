@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getEmailTemplate } from '@/lib/get-email-template'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -15,7 +16,7 @@ function formatSection(title: string, rows: string[]): string {
     </div>`
 }
 
-function buildEmailHtml(content: any, groupName: string, shareUrl?: string): string {
+function buildEmailHtml(content: any, groupName: string, shareUrl?: string, introHtml = '', outroHtml = ''): string {
   const s = content.stage ?? {}
   const snd = content.sound ?? {}
   const lt = content.lights ?? {}
@@ -69,6 +70,8 @@ function buildEmailHtml(content: any, groupName: string, shareUrl?: string): str
         <h1 style="margin:0;font-size:20px;font-weight:800;color:#1e1b4b;">Sol au piano</h1>
       </div>
 
+      ${introHtml ? `<div style="margin-bottom:20px;">${introHtml}</div>` : ''}
+
       <div style="background:#f0f4ff;border-radius:12px;padding:16px 20px;margin-bottom:24px;border-left:4px solid #4f46e5;">
         <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Fiche technique</div>
         <div style="font-size:20px;font-weight:800;color:#111;">${groupName}</div>
@@ -96,6 +99,8 @@ function buildEmailHtml(content: any, groupName: string, shareUrl?: string): str
           Voir la fiche technique en ligne →
         </a>
       </div>` : ''}
+
+      ${outroHtml ? `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">${outroHtml}</div>` : ''}
 
       <div style="margin-top:28px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:11px;color:#9ca3af;">
         Envoyé via solaupiano.fr
@@ -133,12 +138,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const baseUrl = process.env.NEXTAUTH_URL ?? 'https://solaupiano.fr'
   const shareUrl = rider.shareToken ? `${baseUrl}/fiche/${rider.shareToken}` : undefined
 
-  const html = buildEmailHtml(rider.content, group.name, shareUrl)
+  const tpl = await getEmailTemplate('tech_rider')
+  const rendered = tpl.render({ groupName: group.name })
+
+  const html = buildEmailHtml(rider.content, group.name, shareUrl, rendered.introHtml, rendered.outroHtml)
 
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
-    subject: subject || `Fiche technique — ${group.name}`,
+    // Sujet saisi par le chef en priorité, sinon le sujet du template
+    subject: subject || rendered.subject,
     html,
   })
 
