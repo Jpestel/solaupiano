@@ -261,6 +261,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             iconBg: 'bg-amber-100', textColor: 'text-amber-700', border: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/60',
             chefDesc: 'Voir qui est dispo', memberDesc: 'Mes indisponibilités',
           },
+          {
+            href: 'sondages', label: 'Sondages', icon: '📊',
+            iconBg: 'bg-violet-100', textColor: 'text-violet-700', border: 'border-violet-200 hover:border-violet-400 hover:bg-violet-50/60',
+            chefDesc: 'Créer des sondages de dates', memberDesc: 'Répondre aux sondages',
+          },
         ] as const)
           // Masque les fonctionnalités non incluses dans le plan du groupe
           .filter((link) => {

@@ -67,6 +67,7 @@ export default async function AidePage() {
             { href: '#groupes', label: '👥 Mes groupes' },
             { href: '#repetitions', label: '🎵 Répétitions' },
             { href: '#disponibilites', label: '🗓 Disponibilités' },
+            { href: '#sondages', label: '📊 Sondages' },
             { href: '#concerts', label: '🎭 Concerts' },
             { href: '#plan-scene', label: '🗺️ Plan de scène' },
             { href: '#fiche-technique', label: '📋 Fiche technique' },
@@ -309,6 +310,27 @@ export default async function AidePage() {
             <HelpCard title="Savoir qui est disponible" badge={{ label: 'Pratique pour le chef', color: 'indigo' }}>
               <p>L&apos;outil <strong>🔎 Vérifier une date</strong> affiche, pour un jour donné, qui est <strong>disponible ✅</strong> et qui ne l&apos;est pas <strong>⛔</strong> (avec le motif).</p>
               <Tip>Au moment de <strong>créer une répétition ou un concert</strong>, un bandeau sous le champ Date signale automatiquement les membres indisponibles ce jour-là.</Tip>
+            </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── SONDAGES ─── */}
+        <section id="sondages">
+          <SectionTitle icon="📊" title="Sondages (dates)" color="violet" tutorials={tf('feature_sondages')} />
+          <div className="space-y-4">
+            {isCreateur && (
+              <HelpCard title="Créer un sondage" badge={{ label: 'Chef seulement', color: 'indigo' }}>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Ouvrez la carte <strong>📊 Sondages</strong> du groupe puis <strong>+ Nouveau sondage</strong>.</Step>
+                  <Step n={2}>Donnez un titre (ex : « Date de la prochaine répétition »), puis ajoutez plusieurs <strong>dates proposées</strong> (avec une note optionnelle : heure, salle…).</Step>
+                  <Step n={3}>Chaque membre répondra <strong>Présent / Absent / Incertain</strong> pour chaque date.</Step>
+                </ol>
+                <Tip>Vous pouvez <strong>clôturer</strong> un sondage (plus de votes) ou le supprimer à tout moment.</Tip>
+              </HelpCard>
+            )}
+            <HelpCard title="Répondre et lire les résultats">
+              <p>Dans la section <strong>Ma réponse</strong>, indiquez votre disponibilité pour chaque date (modifiable tant que le sondage est ouvert).</p>
+              <p className="mt-2">Le tableau de <strong>résultats</strong> récapitule les réponses de tous les membres, avec les <strong>totaux par date</strong> (<span className="text-green-700">✅ présents</span> / <span className="text-amber-600">❓ incertains</span> / <span className="text-red-600">⛔ absents</span>) et une <strong>⭐ meilleure date</strong> (celle qui réunit le plus de présents).</p>
             </HelpCard>
           </div>
         </section>
