@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { GroupRoleBadge } from '@/components/ui/Badge'
+import { GearManager } from './GearManager'
 import { formatDateWithDay } from '@/lib/utils'
 
 interface Instrument {
@@ -759,6 +760,14 @@ export default function ProfilPage() {
                   </>
                 )
               })()}
+            </Card>
+          )}
+
+          {/* Mon matériel */}
+          {!isAdmin && (
+            <Card>
+              <CardHeader title="🎚️ Mon matériel" subtitle="Votre setup complet de musicien." />
+              <GearManager />
             </Card>
           )}
 

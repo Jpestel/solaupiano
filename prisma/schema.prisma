@@ -156,6 +156,24 @@ model User {
   groupMessages            GroupMessage[]
   supportTickets           SupportTicket[]
   cachetSimulations        CachetSimulation[]
+  gear                     UserGear[]
+}
+
+model UserGear {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  category  String   // INSTRUMENT, AMP, MIC, EFFECT, DRUMS, KEYS, CABLE, AUDIO, ACCESSORY, OTHER
+  name      String   // ex: "Fender Stratocaster"
+  brand     String?  // marque
+  details   String?  @db.Text // précisions / specs
+  quantity  Int      @default(1)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Instrument {
