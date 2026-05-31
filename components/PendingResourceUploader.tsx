@@ -36,7 +36,8 @@ export function PendingResourceUploader({ groupId, songId, onSubmit }: PendingRe
     setError('')
     if (!name) setName(file.name.replace(/\.[^/.]+$/, ''))
     const mime = file.type
-    if (mime.startsWith('audio/')) setType('AUDIO')
+    if (mime.startsWith('video/')) setType('VIDEO')
+    else if (mime.startsWith('audio/')) setType('AUDIO')
     else if (mime === 'application/pdf') setType('PDF')
     else if (mime.startsWith('image/')) setType('IMAGE')
     else setType('AUTRE')
@@ -102,7 +103,7 @@ export function PendingResourceUploader({ groupId, songId, onSubmit }: PendingRe
           type="file"
           className="hidden"
           onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-          accept=".pdf,.mp3,.wav,.flac,.aac,.ogg,.m4a,.jpg,.jpeg,.png,.gif,.webp"
+          accept=".pdf,.mp3,.wav,.flac,.aac,.ogg,.m4a,.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.m4v,.ogv"
         />
         <div className="text-4xl mb-2">{selectedFile ? getResourceIcon(type) : '📁'}</div>
         {selectedFile ? (
@@ -126,6 +127,7 @@ export function PendingResourceUploader({ groupId, songId, onSubmit }: PendingRe
             <select value={type} onChange={(e) => setType(e.target.value)} className="form-input">
               <option value="PDF">📄 PDF</option>
               <option value="AUDIO">🎵 Audio</option>
+              <option value="VIDEO">🎬 Vidéo</option>
               <option value="IMAGE">🎼 Partition / Image</option>
               <option value="GRILLE">🎸 Grille d&apos;accords</option>
               <option value="AUTRE">📎 Autre</option>

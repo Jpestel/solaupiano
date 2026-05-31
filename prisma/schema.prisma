@@ -107,6 +107,7 @@ enum SongProgressStatus {
 enum ResourceType {
   PDF
   AUDIO
+  VIDEO
   IMAGE
   GRILLE
   LIEN

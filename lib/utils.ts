@@ -28,6 +28,8 @@ export function getResourceIcon(type: string): string {
   switch (type) {
     case 'AUDIO':
       return '🎵'
+    case 'VIDEO':
+      return '🎬'
     case 'PDF':
       return '📄'
     case 'GRILLE':
@@ -46,6 +48,8 @@ export function getResourceTypeLabel(type: string): string {
   switch (type) {
     case 'AUDIO':
       return 'Audio'
+    case 'VIDEO':
+      return 'Vidéo'
     case 'PDF':
       return 'PDF'
     case 'GRILLE':
@@ -102,16 +106,24 @@ export function getVideoEmbedUrl(url: string): string | null {
 }
 
 export function detectResourceType(mimeType: string, filename: string): string {
+  if (mimeType.startsWith('video/')) return 'VIDEO'
   if (mimeType.startsWith('audio/')) return 'AUDIO'
   if (mimeType === 'application/pdf') return 'PDF'
   if (mimeType.startsWith('image/')) return 'IMAGE'
 
   const ext = filename.split('.').pop()?.toLowerCase()
+  if (['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv', 'ogv'].includes(ext || '')) return 'VIDEO'
   if (['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(ext || '')) return 'AUDIO'
   if (ext === 'pdf') return 'PDF'
   if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) return 'IMAGE'
 
   return 'AUTRE'
+}
+
+/** Vrai si une URL/chemin pointe vers un fichier vidéo lisible directement */
+export function isVideoFile(path: string): boolean {
+  const ext = path.split('?')[0].split('.').pop()?.toLowerCase()
+  return ['mp4', 'webm', 'mov', 'm4v', 'ogv'].includes(ext || '')
 }
 
 export function clsx(...classes: (string | boolean | undefined | null)[]): string {

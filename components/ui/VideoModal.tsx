@@ -3,12 +3,13 @@
 import { useEffect } from 'react'
 
 interface VideoModalProps {
-  url: string        // embed URL (already resolved)
+  url: string        // embed URL (iframe) ou chemin de fichier vidéo (local)
   title: string
   onClose: () => void
+  local?: boolean    // true = fichier vidéo uploadé → balise <video>
 }
 
-export function VideoModal({ url, title, onClose }: VideoModalProps) {
+export function VideoModal({ url, title, onClose, local = false }: VideoModalProps) {
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -38,15 +39,24 @@ export function VideoModal({ url, title, onClose }: VideoModalProps) {
           </button>
         </div>
         {/* Video */}
-        <div className="relative" style={{ paddingBottom: '56.25%' /* 16:9 */ }}>
-          <iframe
+        {local ? (
+          <video
             src={url}
-            title={title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="absolute inset-0 w-full h-full"
+            controls
+            autoPlay
+            className="w-full max-h-[75vh] bg-black"
           />
-        </div>
+        ) : (
+          <div className="relative" style={{ paddingBottom: '56.25%' /* 16:9 */ }}>
+            <iframe
+              src={url}
+              title={title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            />
+          </div>
+        )}
       </div>
     </div>
   )
