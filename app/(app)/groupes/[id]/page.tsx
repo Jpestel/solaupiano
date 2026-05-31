@@ -346,7 +346,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
           groupRole,
           user: { id: user.id, name: user.name, avatarUrl: user.avatarUrl ?? null, instruments: user.instruments },
         }))}
-        showInvite={isChef && !group.isPublic}
+        showInvite={isChef}
         isChef={isChef}
         canManage={canManageMembers}
         isAdmin={isAdminUser}

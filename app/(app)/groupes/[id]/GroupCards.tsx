@@ -218,10 +218,7 @@ export function GroupCards({
       spanFull: true,
       node: (
         <Card className="rounded-none border-0">
-          <CardHeader title="Inviter un musicien" />
-          <p className="text-sm text-gray-500 mb-3">
-            Ce groupe est privé. Invitez des musiciens inscrits sur la plateforme par leur adresse email.
-          </p>
+          <CardHeader title="➕ Inviter un musicien" />
           <InvitePanel groupId={groupId} />
         </Card>
       ),
