@@ -59,13 +59,22 @@ const PRESETS: { label: string; consumption: number; fuelPrice: number }[] = [
   { label: 'Camionnette',             consumption: 12.0, fuelPrice: 1.62 },
 ]
 
-// ─── Taux GUSO approchés (spectacle vivant 2025) ──────────────────────────────
+// ─── Taux de charges approchés (spectacle vivant 2025) ────────────────────────
 // Charges patronales hors congés spectacles
 const TAUX_PAT = 38    // %
 // Congés spectacles Audiens (spécifique spectacle vivant)
 const TAUX_CONGES = 10.25 // %
 // Charges salariales
 const TAUX_SAL = 22    // %
+
+// ─── Régimes de paiement du cachet ────────────────────────────────────────────
+type Regime = 'guso' | 'licencie' | 'facture'
+const REGIMES: { key: Regime; icon: string; label: string; desc: string; salariat: boolean }[] = [
+  { key: 'guso',     icon: '🎫', label: 'GUSO',                desc: 'Spectacle occasionnel — employeur non professionnel du spectacle', salariat: true },
+  { key: 'licencie', icon: '🏛️', label: 'Employeur licencié', desc: 'Organisateur de spectacle déclaré (régime général / intermittence)', salariat: true },
+  { key: 'facture',  icon: '🧾', label: 'Facture / net',       desc: 'Auto-entrepreneur, association, forfait net — sans charges salariales', salariat: false },
+]
+const isSalariatRegime = (r: Regime) => r !== 'facture'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -105,6 +114,7 @@ export default function KilometriqueCalculatorPage() {
   const [vehicles,  setVehicles]  = useState<Vehicle[]>([DEFAULT_VEHICLE()])
   const [expenses,    setExpenses]    = useState<Expense[]>([])
   const [cachet,      setCachet]      = useState('')
+  const [regime,      setRegime]      = useState<Regime>('guso')
   const [cachetMode,  setCachetMode]  = useState<'brut' | 'net'>('brut')
   const [congesSpec,  setCongesSpec]  = useState(true)   // inclure congés spectacles
   const [fraisCharge, setFraisCharge] = useState<'employeur' | 'groupe'>('employeur')
@@ -138,7 +148,7 @@ export default function KilometriqueCalculatorPage() {
     localConcert, departure, arrival,
     distance, manualKm, manualMode, roundTrip,
     vehicles, expenses,
-    cachet, cachetMode, congesSpec, fraisCharge,
+    cachet, regime, cachetMode, congesSpec, fraisCharge,
   })
 
   const openSaveModal = async () => {
@@ -187,6 +197,7 @@ export default function KilometriqueCalculatorPage() {
     if (d.vehicles      !== undefined) setVehicles(d.vehicles)
     if (d.expenses      !== undefined) setExpenses(d.expenses)
     if (d.cachet        !== undefined) setCachet(d.cachet)
+    if (d.regime        !== undefined) setRegime(d.regime)
     if (d.cachetMode    !== undefined) setCachetMode(d.cachetMode)
     if (d.congesSpec    !== undefined) setCongesSpec(d.congesSpec)
     if (d.fraisCharge   !== undefined) setFraisCharge(d.fraisCharge)
@@ -267,19 +278,26 @@ export default function KilometriqueCalculatorPage() {
     const totalFrais  = localConcert ? 0 : (totalVehicles + totalExtras)
     const fraisPerPerson = totalPassengers > 0 ? totalFrais / totalPassengers : 0
 
-    // ── Calcul GUSO ──────────────────────────────────────────────────────────
+    // ── Calcul du cachet selon le régime ───────────────────────────────────────
     const cachetRaw = parseFloat(cachet.replace(',', '.') || '0') || 0
-    const totalPatTaux = TAUX_PAT + (congesSpec ? TAUX_CONGES : 0)
+    const salariat = isSalariatRegime(regime)
+    const totalPatTaux = salariat ? TAUX_PAT + (congesSpec ? TAUX_CONGES : 0) : 0
+    const salTaux = salariat ? TAUX_SAL : 0
 
     let brut = 0, netArtiste = 0, coutCachetEmployeur = 0
     if (cachetRaw > 0) {
-      if (cachetMode === 'brut') {
+      if (!salariat) {
+        // Facture / forfait net : montant versé = montant perçu (pas de charges salariales)
+        brut = cachetRaw
+        netArtiste = cachetRaw
+        coutCachetEmployeur = cachetRaw
+      } else if (cachetMode === 'brut') {
         brut              = cachetRaw
-        netArtiste        = brut * (1 - TAUX_SAL / 100)
+        netArtiste        = brut * (1 - salTaux / 100)
         coutCachetEmployeur = brut * (1 + totalPatTaux / 100)
       } else {
         // net → brut → coût employeur
-        brut              = cachetRaw / (1 - TAUX_SAL / 100)
+        brut              = cachetRaw / (1 - salTaux / 100)
         netArtiste        = cachetRaw
         coutCachetEmployeur = brut * (1 + totalPatTaux / 100)
       }
@@ -295,10 +313,10 @@ export default function KilometriqueCalculatorPage() {
     return {
       totalKm, vehicleRows, totalVehicles, totalFuel, totalTolls,
       expenseRows, totalExtras, totalFrais, fraisPerPerson, totalPassengers,
-      brut, netArtiste, coutCachetEmployeur, totalPatTaux,
+      brut, netArtiste, coutCachetEmployeur, totalPatTaux, salariat, salTaux,
       totalEmployeur, netGroupe, netPerPerson,
     }
-  }, [effectiveKm, roundTrip, vehicles, expenses, cachet, cachetMode, congesSpec, fraisCharge, localConcert])
+  }, [effectiveKm, roundTrip, vehicles, expenses, cachet, regime, cachetMode, congesSpec, fraisCharge, localConcert])
 
   // ── Print ───────────────────────────────────────────────────────────────────
 
@@ -306,6 +324,8 @@ export default function KilometriqueCalculatorPage() {
     if (!results) return
     const date = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
     const tripLabel = roundTrip ? 'Aller-retour' : 'Aller simple'
+    const regimeLabel = REGIMES.find(r => r.key === regime)?.label ?? ''
+    const cachetLineLabel = results.salariat ? 'Cachet brut' : 'Cachet (facture / net)'
 
     const vehicleRows = results.vehicleRows.map(v => `
       <tr>
@@ -390,14 +410,14 @@ export default function KilometriqueCalculatorPage() {
           </tbody>
         </table>` : ''}
       ${results.brut > 0 ? `
-        <h2 style="font-size:14px;font-weight:700;color:#374151;margin:20px 0 8px">Récapitulatif financier</h2>
+        <h2 style="font-size:14px;font-weight:700;color:#374151;margin:20px 0 8px">Récapitulatif financier <span style="font-weight:500;color:#9ca3af">· Régime : ${regimeLabel}</span></h2>
         <table style="border:2px solid #e5e7eb;border-radius:10px;overflow:hidden">
           <thead><tr style="background:#f97316;color:white">
             <th style="padding:10px 14px;text-align:left">🏢 Ce que paie l'employeur</th><th></th>
           </tr></thead>
           <tbody>
-            <tr><td style="padding:8px 14px">Cachet brut</td><td style="padding:8px 14px;text-align:right;font-weight:600">${fmt(results.brut)}</td></tr>
-            <tr><td style="padding:8px 14px">+ Charges patronales (${results.totalPatTaux.toFixed(1)} %)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#ea580c">+ ${fmt(results.coutCachetEmployeur - results.brut)}</td></tr>
+            <tr><td style="padding:8px 14px">${cachetLineLabel}</td><td style="padding:8px 14px;text-align:right;font-weight:600">${fmt(results.brut)}</td></tr>
+            ${results.salariat ? `<tr><td style="padding:8px 14px">+ Charges patronales (${results.totalPatTaux.toFixed(1)} %)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#ea580c">+ ${fmt(results.coutCachetEmployeur - results.brut)}</td></tr>` : ''}
             ${fraisCharge === 'employeur' ? `<tr><td style="padding:8px 14px">+ Frais de déplacement (remboursés)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#ea580c">+ ${fmt(results.totalFrais)}</td></tr>` : ''}
             <tr style="background:#fff7ed"><td style="padding:10px 14px;font-weight:700;color:#c2410c">= TOTAL employeur</td><td style="padding:10px 14px;text-align:right;font-size:16px;font-weight:800;color:#c2410c">${fmt(results.totalEmployeur)}</td></tr>
           </tbody>
@@ -405,8 +425,8 @@ export default function KilometriqueCalculatorPage() {
             <th style="padding:10px 14px;text-align:left">🎵 Ce que perçoivent les musiciens</th><th></th>
           </tr></thead>
           <tbody>
-            <tr><td style="padding:8px 14px">Cachet brut</td><td style="padding:8px 14px;text-align:right;font-weight:600">${fmt(results.brut)}</td></tr>
-            <tr><td style="padding:8px 14px">− Charges salariales (${TAUX_SAL} %)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#dc2626">− ${fmt(results.brut * TAUX_SAL / 100)}</td></tr>
+            <tr><td style="padding:8px 14px">${cachetLineLabel}</td><td style="padding:8px 14px;text-align:right;font-weight:600">${fmt(results.brut)}</td></tr>
+            ${results.salariat ? `<tr><td style="padding:8px 14px">− Charges salariales (${results.salTaux} %)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#dc2626">− ${fmt(results.brut * results.salTaux / 100)}</td></tr>` : ''}
             ${fraisCharge === 'groupe' ? `<tr><td style="padding:8px 14px">− Frais de déplacement (à charge du groupe)</td><td style="padding:8px 14px;text-align:right;font-weight:600;color:#dc2626">− ${fmt(results.totalFrais)}</td></tr>` : ''}
             <tr style="background:${results.netGroupe >= 0 ? '#f0fdf4' : '#fef2f2'}">
               <td style="padding:10px 14px;font-weight:700;color:${results.netGroupe >= 0 ? '#15803d' : '#dc2626'}">${results.netGroupe >= 0 ? '= NET GROUPE' : '= DÉFICIT'}</td>
@@ -441,7 +461,7 @@ export default function KilometriqueCalculatorPage() {
             <span className="text-gray-900">Estimation de cachet</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">🎭 Estimation de cachet</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Estimez le coût total d&apos;un concert — cachet, charges GUSO, frais de déplacement.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Estimez le coût total d&apos;un concert — cachet (GUSO, employeur licencié ou facture), charges et frais de déplacement.</p>
         </div>
         <TutorialButton moduleKey="tool_kilometrique" />
       </div>
@@ -797,57 +817,89 @@ export default function KilometriqueCalculatorPage() {
         <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-5 space-y-4">
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cachet du concert</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">Les charges GUSO sont calculées automatiquement (taux approchés 2025).</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Choisissez le régime de paiement, puis saisissez le montant.</p>
           </div>
 
-          {/* Brut / Net toggle + saisie */}
+          {/* Sélecteur de régime */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {REGIMES.map(r => (
+              <button key={r.key} onClick={() => setRegime(r.key)}
+                className={`text-left rounded-xl border-2 px-3 py-2.5 transition-colors ${regime === r.key ? 'border-amber-400 bg-amber-50' : 'border-gray-200 bg-white hover:border-amber-300'}`}>
+                <span className="text-sm font-semibold text-gray-800">{r.icon} {r.label}</span>
+                <span className="block text-[10px] text-gray-400 leading-tight mt-0.5">{r.desc}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Saisie du montant (+ brut/net si salariat) */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex rounded-lg border border-amber-300 overflow-hidden text-xs font-semibold">
-              <button onClick={() => setCachetMode('brut')}
-                className={`px-3 py-2 transition-colors ${cachetMode === 'brut' ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-50'}`}>
-                Brut déclaré
-              </button>
-              <button onClick={() => setCachetMode('net')}
-                className={`px-3 py-2 transition-colors ${cachetMode === 'net' ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-50'}`}>
-                Net artiste souhaité
-              </button>
-            </div>
+            {results?.salariat && (
+              <div className="flex rounded-lg border border-amber-300 overflow-hidden text-xs font-semibold">
+                <button onClick={() => setCachetMode('brut')}
+                  className={`px-3 py-2 transition-colors ${cachetMode === 'brut' ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-50'}`}>
+                  Brut déclaré
+                </button>
+                <button onClick={() => setCachetMode('net')}
+                  className={`px-3 py-2 transition-colors ${cachetMode === 'net' ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-50'}`}>
+                  Net artiste souhaité
+                </button>
+              </div>
+            )}
             <div className="relative">
               <input
                 type="text" inputMode="decimal"
                 value={cachet} onChange={e => setCachet(e.target.value)}
-                placeholder={cachetMode === 'brut' ? 'ex : 1200' : 'ex : 936'}
+                placeholder={regime === 'facture' ? 'ex : 1000' : cachetMode === 'brut' ? 'ex : 1200' : 'ex : 936'}
                 className="w-36 rounded-lg border border-amber-300 bg-white pl-3 pr-8 py-2 text-base font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">€</span>
             </div>
+            {!results?.salariat && (
+              <span className="text-[11px] text-gray-500">Montant facturé = montant perçu (l&apos;artiste déclare lui-même ses cotisations).</span>
+            )}
           </div>
 
-          {/* Option congés spectacles */}
-          <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-600">
-            <input type="checkbox" checked={congesSpec} onChange={e => setCongesSpec(e.target.checked)}
-              className="w-4 h-4 text-amber-500 rounded border-gray-300" />
-            Inclure les congés spectacles ({TAUX_CONGES} % — Audiens, spectacle vivant)
-          </label>
+          {/* Option congés spectacles (régimes salariat uniquement) */}
+          {results?.salariat && (
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-600">
+              <input type="checkbox" checked={congesSpec} onChange={e => setCongesSpec(e.target.checked)}
+                className="w-4 h-4 text-amber-500 rounded border-gray-300" />
+              Inclure les congés spectacles ({TAUX_CONGES} % — Audiens, spectacle vivant)
+            </label>
+          )}
 
-          {/* Preview GUSO inline */}
+          {/* Preview inline */}
           {results && results.brut > 0 && (
-            <div className="rounded-lg bg-white border border-amber-100 px-4 py-3 grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Brut déclaré</p>
-                <p className="text-base font-black text-gray-800">{fmt(results.brut)}</p>
+            results.salariat ? (
+              <div className="rounded-lg bg-white border border-amber-100 px-4 py-3 grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Brut déclaré</p>
+                  <p className="text-base font-black text-gray-800">{fmt(results.brut)}</p>
+                </div>
+                <div className="border-x border-amber-100">
+                  <p className="text-[10px] text-orange-400 uppercase tracking-wide mb-0.5">Coût employeur</p>
+                  <p className="text-base font-black text-orange-700">{fmt(results.coutCachetEmployeur)}</p>
+                  <p className="text-[10px] text-orange-300">+{results.totalPatTaux.toFixed(1)}% charges</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-green-500 uppercase tracking-wide mb-0.5">Net artiste</p>
+                  <p className="text-base font-black text-green-700">{fmt(results.netArtiste)}</p>
+                  <p className="text-[10px] text-green-400">−{results.salTaux}% charges</p>
+                </div>
               </div>
-              <div className="border-x border-amber-100">
-                <p className="text-[10px] text-orange-400 uppercase tracking-wide mb-0.5">Coût employeur</p>
-                <p className="text-base font-black text-orange-700">{fmt(results.coutCachetEmployeur)}</p>
-                <p className="text-[10px] text-orange-300">+{results.totalPatTaux.toFixed(1)}% charges</p>
+            ) : (
+              <div className="rounded-lg bg-white border border-amber-100 px-4 py-3 grid grid-cols-2 gap-3 text-center">
+                <div className="border-r border-amber-100">
+                  <p className="text-[10px] text-orange-400 uppercase tracking-wide mb-0.5">Versé par l&apos;employeur</p>
+                  <p className="text-base font-black text-orange-700">{fmt(results.coutCachetEmployeur)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-green-500 uppercase tracking-wide mb-0.5">Perçu par l&apos;artiste</p>
+                  <p className="text-base font-black text-green-700">{fmt(results.netArtiste)}</p>
+                  <p className="text-[10px] text-green-400">sans charge salariale</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-green-500 uppercase tracking-wide mb-0.5">Net artiste</p>
-                <p className="text-base font-black text-green-700">{fmt(results.netArtiste)}</p>
-                <p className="text-[10px] text-green-400">−{TAUX_SAL}% charges</p>
-              </div>
-            </div>
+            )
           )}
 
           {/* Qui paie les frais ? (uniquement si déplacement) */}
@@ -931,13 +983,15 @@ export default function KilometriqueCalculatorPage() {
                   </div>
                   <div className="bg-white divide-y divide-orange-50">
                     <div className="flex justify-between px-4 py-2.5 text-sm">
-                      <span className="text-gray-600">Cachet brut</span>
+                      <span className="text-gray-600">{results.salariat ? 'Cachet brut' : 'Cachet (facture / net)'}</span>
                       <span className="font-semibold">{fmt(results.brut)}</span>
                     </div>
-                    <div className="flex justify-between px-4 py-2.5 text-sm">
-                      <span className="text-gray-600">+ Charges patronales ({results.totalPatTaux.toFixed(1)} %)</span>
-                      <span className="font-semibold text-orange-600">+ {fmt(results.coutCachetEmployeur - results.brut)}</span>
-                    </div>
+                    {results.salariat && (
+                      <div className="flex justify-between px-4 py-2.5 text-sm">
+                        <span className="text-gray-600">+ Charges patronales ({results.totalPatTaux.toFixed(1)} %)</span>
+                        <span className="font-semibold text-orange-600">+ {fmt(results.coutCachetEmployeur - results.brut)}</span>
+                      </div>
+                    )}
                     {fraisCharge === 'employeur' && (
                       <div className="flex justify-between px-4 py-2.5 text-sm">
                         <div>
@@ -961,17 +1015,21 @@ export default function KilometriqueCalculatorPage() {
                   </div>
                   <div className="bg-white divide-y divide-green-50">
                     <div className="flex justify-between px-4 py-2.5 text-sm">
-                      <span className="text-gray-600">Cachet brut</span>
+                      <span className="text-gray-600">{results.salariat ? 'Cachet brut' : 'Cachet (facture / net)'}</span>
                       <span className="font-semibold">{fmt(results.brut)}</span>
                     </div>
-                    <div className="flex justify-between px-4 py-2.5 text-sm">
-                      <span className="text-gray-600">− Charges salariales ({TAUX_SAL} %)</span>
-                      <span className="font-semibold text-red-400">− {fmt(results.brut * TAUX_SAL / 100)}</span>
-                    </div>
-                    <div className="flex justify-between px-4 py-2.5 text-sm">
-                      <span className="text-gray-600">= Cachet net artiste</span>
-                      <span className="font-semibold text-green-700">{fmt(results.netArtiste)}</span>
-                    </div>
+                    {results.salariat && (
+                      <>
+                        <div className="flex justify-between px-4 py-2.5 text-sm">
+                          <span className="text-gray-600">− Charges salariales ({results.salTaux} %)</span>
+                          <span className="font-semibold text-red-400">− {fmt(results.brut * results.salTaux / 100)}</span>
+                        </div>
+                        <div className="flex justify-between px-4 py-2.5 text-sm">
+                          <span className="text-gray-600">= Cachet net artiste</span>
+                          <span className="font-semibold text-green-700">{fmt(results.netArtiste)}</span>
+                        </div>
+                      </>
+                    )}
                     {fraisCharge === 'groupe' && (
                       <div className="flex justify-between px-4 py-2.5 text-sm">
                         <div>
@@ -999,7 +1057,11 @@ export default function KilometriqueCalculatorPage() {
                   </div>
                 </div>
 
-                <p className="text-[10px] text-gray-400">⚠️ Taux de charges approchés (2025, spectacle vivant). Utilisez le <a href="/outils/cachet" className="text-indigo-500 hover:underline">simulateur GUSO</a> pour un calcul exact.</p>
+                <p className="text-[10px] text-gray-400">
+                  {results.salariat
+                    ? <>⚠️ Taux de charges approchés (2025, spectacle vivant). Utilisez le <a href="/outils/cachet" className="text-indigo-500 hover:underline">simulateur GUSO</a> pour un calcul exact.</>
+                    : <>ℹ️ Régime facture / net : l&apos;artiste perçoit le montant facturé et déclare lui-même ses cotisations (auto-entrepreneur, association, etc.).</>}
+                </p>
               </div>
 
             ) : (
