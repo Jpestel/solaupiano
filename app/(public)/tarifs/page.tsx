@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import Link from 'next/link'
 import type { DbPlan } from '@/lib/plans'
 import {
@@ -30,10 +32,12 @@ function fmtPriceLabel(price: number | null | undefined) {
 }
 
 export default async function TarifsPage() {
-  const [groupPlans, allModuleAccess] = await Promise.all([
+  const [groupPlans, allModuleAccess, session] = await Promise.all([
     prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }) as Promise<DbPlan[]>,
     prisma.moduleAccess.findMany(),
+    getServerSession(authOptions),
   ])
+  const isLoggedIn = !!session
 
   // Helper — default: enabled if no explicit record
   const isModEnabled = (planKey: string, moduleKey: string): boolean => {
@@ -95,10 +99,18 @@ export default async function TarifsPage() {
           </Link>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link href="/aide" className="hidden md:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors">Aide</Link>
-            <Link href="/connexion" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors">Se connecter</Link>
-            <Link href="/inscription" className="rounded-lg bg-indigo-600 px-3 sm:px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors whitespace-nowrap">
-              S&apos;inscrire
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/tableau-de-bord" className="rounded-lg bg-indigo-600 px-3 sm:px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors whitespace-nowrap">
+                ← Tableau de bord
+              </Link>
+            ) : (
+              <>
+                <Link href="/connexion" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors">Se connecter</Link>
+                <Link href="/inscription" className="rounded-lg bg-indigo-600 px-3 sm:px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors whitespace-nowrap">
+                  S&apos;inscrire
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -280,18 +292,37 @@ export default async function TarifsPage() {
 
         {/* ── CTA ── */}
         <section className="rounded-2xl bg-indigo-600 px-5 py-8 sm:py-10 text-center text-white">
-          <h2 className="text-xl sm:text-2xl font-bold mb-2">Prêt à commencer ?</h2>
-          <p className="text-indigo-100 text-sm mb-5">
-            L&apos;inscription est gratuite. Évoluez vers un plan payant quand vous en avez besoin.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/inscription" className="rounded-xl bg-white text-indigo-700 font-semibold px-6 py-3 text-sm hover:bg-indigo-50 transition-colors shadow-sm">
-              Créer mon compte gratuitement
-            </Link>
-            <Link href="/connexion" className="rounded-xl border border-indigo-400 text-white font-semibold px-6 py-3 text-sm hover:bg-indigo-500 transition-colors">
-              Déjà inscrit ? Se connecter
-            </Link>
-          </div>
+          {isLoggedIn ? (
+            <>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">Besoin de plus ?</h2>
+              <p className="text-indigo-100 text-sm mb-5">
+                Pour changer le plan d&apos;un groupe, ouvrez-le et choisissez votre formule dans la section « Plans &amp; tarifs ».
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/groupes" className="rounded-xl bg-white text-indigo-700 font-semibold px-6 py-3 text-sm hover:bg-indigo-50 transition-colors shadow-sm">
+                  Mes groupes
+                </Link>
+                <Link href="/tableau-de-bord" className="rounded-xl border border-indigo-400 text-white font-semibold px-6 py-3 text-sm hover:bg-indigo-500 transition-colors">
+                  ← Tableau de bord
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">Prêt à commencer ?</h2>
+              <p className="text-indigo-100 text-sm mb-5">
+                L&apos;inscription est gratuite. Évoluez vers un plan payant quand vous en avez besoin.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/inscription" className="rounded-xl bg-white text-indigo-700 font-semibold px-6 py-3 text-sm hover:bg-indigo-50 transition-colors shadow-sm">
+                  Créer mon compte gratuitement
+                </Link>
+                <Link href="/connexion" className="rounded-xl border border-indigo-400 text-white font-semibold px-6 py-3 text-sm hover:bg-indigo-500 transition-colors">
+                  Déjà inscrit ? Se connecter
+                </Link>
+              </div>
+            </>
+          )}
         </section>
       </div>
 
