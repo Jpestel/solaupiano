@@ -209,6 +209,48 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
       { key: 'groupName', description: 'Nom du groupe' },
     ],
   },
+  {
+    key: 'support_ticket_admin',
+    name: 'Ticket support reçu (admin)',
+    description: 'Notification envoyée à l\'admin à la réception d\'un nouveau ticket d\'assistance.',
+    defaultSubject: '[Support #{{ticketId}}] {{ticketSubject}}',
+    defaultIntro: 'Un nouveau ticket d\'assistance vient d\'être soumis.',
+    defaultOutro: '',
+    variables: [
+      { key: 'ticketId', description: 'Numéro du ticket' },
+      { key: 'ticketSubject', description: 'Sujet du ticket' },
+      { key: 'category', description: 'Catégorie de la demande' },
+      { key: 'userName', description: 'Nom du demandeur' },
+      { key: 'userEmail', description: 'Email du demandeur' },
+    ],
+  },
+  {
+    key: 'support_confirmation',
+    name: 'Confirmation de demande (membre)',
+    description: 'Accusé de réception envoyé à l\'utilisateur après l\'envoi d\'une demande d\'assistance.',
+    defaultSubject: 'Votre demande a bien été reçue — #{{ticketId}}',
+    defaultIntro: 'Bonjour {{userName}},\n\nNous avons bien reçu votre message et reviendrons vers vous rapidement.',
+    defaultOutro: 'Vous pouvez suivre l\'avancement de votre demande depuis la page Assistance.',
+    variables: [
+      { key: 'userName', description: 'Prénom du demandeur' },
+      { key: 'ticketId', description: 'Numéro du ticket' },
+      { key: 'ticketSubject', description: 'Sujet du ticket' },
+    ],
+  },
+  {
+    key: 'support_reply',
+    name: 'Réponse à une demande (membre)',
+    description: 'Envoyé à l\'utilisateur quand l\'admin répond à son ticket d\'assistance.',
+    defaultSubject: 'Réponse à votre demande #{{ticketId}} — {{ticketSubject}}',
+    defaultIntro: 'Bonjour {{userName}},\n\nL\'équipe Sol au piano a répondu à votre demande d\'assistance.',
+    defaultOutro: 'Vous pouvez consulter votre demande et y répondre depuis la page Assistance.',
+    variables: [
+      { key: 'userName', description: 'Prénom du demandeur' },
+      { key: 'ticketId', description: 'Numéro du ticket' },
+      { key: 'ticketSubject', description: 'Sujet du ticket' },
+      { key: 'adminReply', description: 'Réponse de l\'administrateur' },
+    ],
+  },
 ]
 
 export function getTemplateDef(key: string): EmailTemplateDef | undefined {

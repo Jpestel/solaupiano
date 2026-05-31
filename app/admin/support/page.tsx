@@ -219,8 +219,8 @@ export default function AdminSupportPage() {
               {/* Note admin */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">
-                  Réponse / note interne
-                  <span className="ml-1 text-gray-400 normal-case font-normal">(visible par l&apos;utilisateur)</span>
+                  Réponse à l&apos;utilisateur
+                  <span className="ml-1 text-gray-400 normal-case font-normal">(visible sur sa page Assistance + envoyée par e-mail)</span>
                 </label>
                 <textarea
                   value={noteInput}
@@ -234,7 +234,7 @@ export default function AdminSupportPage() {
                     disabled={saving || noteInput === (active.adminNote ?? '')}
                     onClick={() => updateTicket(active.id, { adminNote: noteInput })}
                     className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors">
-                    {saving ? 'Sauvegarde…' : 'Enregistrer la réponse'}
+                    {saving ? 'Envoi…' : '✉️ Envoyer la réponse'}
                   </button>
                 </div>
               </div>

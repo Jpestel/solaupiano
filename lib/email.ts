@@ -557,12 +557,21 @@ export async function sendSupportTicketToAdmin(
        </div>`
     : ''
 
+  const tpl = await getEmailTemplate('support_ticket_admin')
+  const { subject, introHtml, outroHtml } = tpl.render({
+    ticketId: String(ticket.id),
+    ticketSubject: ticket.subject,
+    category: CATEGORY_LABELS[ticket.category] ?? ticket.category,
+    userName: ticket.userName,
+    userEmail: ticket.userEmail,
+  })
+
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: adminEmail,
-    subject: `[Support #${ticket.id}] ${ticket.subject}`,
+    subject,
     html: emailWrapper(`
-      <h2 style="font-size:18px;font-weight:700;color:#111827;margin:0 0 4px;">Nouveau ticket de support</h2>
+      ${introHtml}
       <p style="font-size:13px;color:#6b7280;margin:0 0 20px;">${CATEGORY_LABELS[ticket.category] ?? ticket.category}</p>
       ${priorityBadge}
       ${dataBox(`
@@ -571,6 +580,7 @@ export async function sendSupportTicketToAdmin(
         <p style="margin:0;font-size:12px;color:#6b7280;">De : <strong>${ticket.userName}</strong> &lt;${ticket.userEmail}&gt;</p>
       `, 'gray')}
       ${ctaButton(`${baseUrl}/admin/support`, 'Voir les tickets →')}
+      ${outroHtml}
     `),
   })
 }
@@ -585,22 +595,59 @@ export async function sendSupportConfirmationToUser(
     ? 'En tant que membre d\'un plan avec support prioritaire, votre demande sera traitée en priorité.'
     : 'Nous traitons les demandes dans l\'ordre d\'arrivée, généralement sous 24–48h.'
 
+  const tpl = await getEmailTemplate('support_confirmation')
+  const { subject, introHtml, outroHtml } = tpl.render({
+    userName,
+    ticketId: String(ticket.id),
+    ticketSubject: ticket.subject,
+  })
+
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
-    subject: `Votre demande a bien été reçue — #${ticket.id}`,
+    subject,
     html: emailWrapper(`
-      <h2 style="font-size:18px;font-weight:700;color:#111827;margin:0 0 4px;">Demande reçue ✅</h2>
-      <p style="font-size:14px;color:#374151;margin:0 0 20px;">Bonjour ${userName}, nous avons bien reçu votre message.</p>
+      ${introHtml}
       ${dataBox(`
         <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Ticket <strong>#${ticket.id}</strong></p>
         <p style="margin:0;font-size:15px;font-weight:600;color:#111827;">${ticket.subject}</p>
       `)}
       <p style="font-size:13px;color:#374151;margin:16px 0;">${delayText}</p>
       ${ctaButton(`${baseUrl}/assistance`, 'Voir mes demandes →')}
-      <p style="color:#9ca3af;font-size:12px;text-align:center;margin:12px 0 0;">
-        Sol au piano — Si vous n'avez pas soumis cette demande, ignorez cet email.
-      </p>
+      ${outroHtml}
+    `),
+  })
+}
+
+// ─── Réponse de l'admin à un ticket (→ membre) ────────────────────────────────
+export async function sendSupportReply(
+  to: string,
+  userName: string,
+  ticket: { id: number; subject: string; reply: string },
+  baseUrl: string
+) {
+  const tpl = await getEmailTemplate('support_reply')
+  const { subject, introHtml, outroHtml } = tpl.render({
+    userName,
+    ticketId: String(ticket.id),
+    ticketSubject: ticket.subject,
+    adminReply: ticket.reply,
+  })
+  const safeReply = ticket.reply.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${dataBox(`
+        <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Votre demande #${ticket.id}</p>
+        <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#111827;">${ticket.subject}</p>
+        <p style="margin:0;font-size:13px;color:#374151;white-space:pre-wrap;border-top:1px solid #e5e7eb;padding-top:12px;">${safeReply}</p>
+      `, 'blue')}
+      ${ctaButton(`${baseUrl}/assistance`, 'Voir ma demande →')}
+      ${outroHtml}
     `),
   })
 }
