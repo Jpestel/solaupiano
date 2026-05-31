@@ -5,6 +5,74 @@ import { prisma } from '@/lib/prisma'
 const PUBLIC_DIR = path.join(process.cwd(), 'public')
 const UPLOADS_ROOT = path.join(PUBLIC_DIR, 'uploads')
 
+export interface OrphanFile {
+  path: string       // chemin public (/uploads/...)
+  name: string
+  sizeBytes: number
+  mtime: string
+  category: string   // ressources | covers | avatars | group-pages | tutoriels
+}
+
+/**
+ * Liste tous les fichiers de /uploads qui ne sont plus référencés en base.
+ * Résolution des références :
+ *  - chemins exacts : ressources, séquences, soumissions, ressources partagées,
+ *    tutoriels, avatars utilisateurs, couvertures de groupe.
+ *  - /uploads/group-pages/{groupId}-… : référencé si le groupe existe encore.
+ *  - .gitkeep : toujours protégé.
+ */
+export async function listOrphanFiles(): Promise<OrphanFile[]> {
+  if (!fs.existsSync(UPLOADS_ROOT)) return []
+
+  const exact = new Set<string>()
+  const add = (p?: string | null) => {
+    if (!p) return
+    const c = p.split('?')[0].split('#')[0]
+    if (!c.startsWith('/uploads/')) return
+    try { exact.add(decodeURIComponent(c)) } catch { exact.add(c) }
+  }
+
+  const [resources, sequences, pendings, shared, tutorials, users, groups] = await Promise.all([
+    prisma.resource.findMany({ select: { filePath: true } }),
+    prisma.songSequence.findMany({ select: { filePath: true } }),
+    prisma.pendingResource.findMany({ select: { filePath: true } }),
+    prisma.groupSharedResource.findMany({ select: { filePath: true } }),
+    prisma.tutorial.findMany({ select: { videoPath: true } }),
+    prisma.user.findMany({ select: { avatarUrl: true } }),
+    prisma.group.findMany({ select: { id: true, coverUrl: true } }),
+  ])
+  resources.forEach((r) => add(r.filePath))
+  sequences.forEach((r) => add(r.filePath))
+  pendings.forEach((r) => add(r.filePath))
+  shared.forEach((r) => add(r.filePath))
+  tutorials.forEach((r) => add(r.videoPath))
+  users.forEach((r) => add(r.avatarUrl))
+  groups.forEach((r) => add(r.coverUrl))
+  const groupIds = new Set(groups.map((g) => String(g.id)))
+
+  const orphans: OrphanFile[] = []
+  const walk = (dir: string) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fp = path.join(dir, e.name)
+      if (e.isDirectory()) { walk(fp); continue }
+      if (e.name === '.gitkeep') continue
+      const rel = '/uploads/' + path.relative(UPLOADS_ROOT, fp).split(path.sep).join('/')
+      if (exact.has(rel)) continue
+      if (rel.startsWith('/uploads/group-pages/')) {
+        const gid = e.name.split('-')[0]
+        if (groupIds.has(gid)) continue
+      }
+      let st: fs.Stats
+      try { st = fs.statSync(fp) } catch { continue }
+      const sub = path.relative(UPLOADS_ROOT, path.dirname(fp)).split(path.sep)[0] || ''
+      const category = ['covers', 'avatars', 'group-pages', 'tutoriels'].includes(sub) ? sub : 'ressources'
+      orphans.push({ path: rel, name: e.name, sizeBytes: st.size, mtime: st.mtime.toISOString(), category })
+    }
+  }
+  walk(UPLOADS_ROOT)
+  return orphans.sort((a, b) => b.sizeBytes - a.sizeBytes)
+}
+
 /**
  * Supprime un fichier local (/uploads/...) du disque.
  * Ignore les URLs externes / liens / valeurs vides. Tolère un suffixe ?v=…

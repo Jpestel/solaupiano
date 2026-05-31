@@ -17,6 +17,7 @@ const adminNav = [
   { href: '/admin/rappels',          label: 'Rappels' },
   { href: '/admin/personnalisation', label: 'Personnalisation' },
   { href: '/admin/tutoriels',       label: 'Tutoriels vidéo' },
+  { href: '/admin/fichiers',         label: 'Fichiers orphelins' },
 ]
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
