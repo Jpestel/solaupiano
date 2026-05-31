@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 /**
  * Métronome par morceau :
@@ -8,6 +9,12 @@ import { useState, useRef, useEffect } from 'react'
  *  - mode fenêtre flottante déplaçable & redimensionnable (reste visible
  *    dans un coin pendant la lecture d'une partition par ex.)
  *  - son coupable AVANT et pendant la lecture.
+ *
+ * IMPORTANT : la fenêtre / l'overlay sont rendus via un portail dont la cible
+ * suit l'élément en plein écran natif (Fullscreen API). Quand une partition PDF
+ * passe en plein écran natif, le navigateur ne rend QUE cet élément (« top
+ * layer ») — un simple position:fixed disparaîtrait derrière. En se reparentant
+ * dans l'élément plein écran, le métronome reste TOUJOURS au premier plan.
  */
 export function SongMetronome({ bpm }: { bpm: number }) {
   const [running, setRunning] = useState(false)
@@ -15,6 +22,7 @@ export function SongMetronome({ bpm }: { bpm: number }) {
   const [windowed, setWindowed] = useState(false)
   const [beat, setBeat] = useState(-1)
   const [pos, setPos] = useState({ x: 24, y: 24 })
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
 
   const audioCtxRef = useRef<AudioContext | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -23,6 +31,18 @@ export function SongMetronome({ bpm }: { bpm: number }) {
   const dragRef = useRef<{ dx: number; dy: number } | null>(null)
 
   useEffect(() => { mutedRef.current = muted }, [muted])
+
+  // ── Cible du portail : suit l'élément en plein écran natif ──────────────────
+  useEffect(() => {
+    const update = () => setPortalTarget(document.fullscreenElement as HTMLElement || document.body)
+    update()
+    document.addEventListener('fullscreenchange', update)
+    document.addEventListener('webkitfullscreenchange', update as any)
+    return () => {
+      document.removeEventListener('fullscreenchange', update)
+      document.removeEventListener('webkitfullscreenchange', update as any)
+    }
+  }, [])
 
   const click = (accent: boolean) => {
     if (mutedRef.current) return
@@ -86,29 +106,16 @@ export function SongMetronome({ bpm }: { bpm: number }) {
   const isAccent = beat === 0
   const circleColor = beat < 0 ? '#374151' : isAccent ? '#f59e0b' : '#6366f1'
 
-  return (
-    <span className="inline-flex items-center gap-1">
-      {/* Badge déclencheur */}
-      <button
-        type="button"
-        onClick={() => (running ? stop() : start())}
-        className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
-        title="Lancer le métronome"
-      >
-        🥁 {bpm} BPM
-      </button>
-      <button
-        type="button"
-        onClick={() => setMuted(m => !m)}
-        className={`rounded-full border px-1.5 py-1 text-xs transition-colors ${muted ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
-        title={muted ? 'Son coupé (cliquez pour réactiver)' : 'Couper le son (garder le visuel)'}
-      >
-        {muted ? '🔇' : '🔊'}
-      </button>
-
+  // ── Overlays (portés dans l'élément plein écran courant) ────────────────────
+  const overlays = (
+    <>
       {/* ── Mode plein écran ── */}
       {running && !windowed && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-900/95 backdrop-blur-sm" onClick={stop}>
+        <div
+          className="fixed inset-0 flex flex-col items-center justify-center bg-gray-900/95 backdrop-blur-sm"
+          style={{ zIndex: 2147483647 }}
+          onClick={stop}
+        >
           <div className="flex flex-col items-center gap-8" onClick={(e) => e.stopPropagation()}>
             <div
               className="rounded-full flex items-center justify-center transition-all duration-75 ease-out"
@@ -151,8 +158,8 @@ export function SongMetronome({ bpm }: { bpm: number }) {
       {/* ── Mode fenêtre flottante (déplaçable + redimensionnable) ── */}
       {running && windowed && (
         <div
-          className="fixed z-50 rounded-xl shadow-2xl border border-gray-700 bg-gray-900 overflow-hidden flex flex-col"
-          style={{ left: pos.x, top: pos.y, width: 200, height: 240, minWidth: 150, minHeight: 180, resize: 'both' }}
+          className="fixed rounded-xl shadow-2xl border border-gray-700 bg-gray-900 overflow-hidden flex flex-col"
+          style={{ left: pos.x, top: pos.y, width: 200, height: 240, minWidth: 150, minHeight: 180, resize: 'both', zIndex: 2147483647 }}
         >
           {/* Barre de titre (poignée de déplacement) */}
           <div
@@ -192,6 +199,30 @@ export function SongMetronome({ bpm }: { bpm: number }) {
           </div>
         </div>
       )}
+    </>
+  )
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      {/* Badge déclencheur */}
+      <button
+        type="button"
+        onClick={() => (running ? stop() : start())}
+        className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+        title="Lancer le métronome"
+      >
+        🥁 {bpm} BPM
+      </button>
+      <button
+        type="button"
+        onClick={() => setMuted(m => !m)}
+        className={`rounded-full border px-1.5 py-1 text-xs transition-colors ${muted ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+        title={muted ? 'Son coupé (cliquez pour réactiver)' : 'Couper le son (garder le visuel)'}
+      >
+        {muted ? '🔇' : '🔊'}
+      </button>
+
+      {portalTarget && createPortal(overlays, portalTarget)}
     </span>
   )
 }
