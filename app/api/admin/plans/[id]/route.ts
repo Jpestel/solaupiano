@@ -20,6 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     maxSetlists, maxConcerts, maxCharts, maxFilesPerSong,
     hasGrilles, hasConcerts, hasSetlists, hasFicheTechnique,
     hasMaPage, hasCoChefs, hasPrioritySupport, hasStats, hasFileSubmissions,
+    hasMetronome, hasParoles,
     color,
   } = body
 
@@ -49,6 +50,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(hasCoChefs !== undefined && { hasCoChefs: Boolean(hasCoChefs) }),
       ...(hasPrioritySupport !== undefined && { hasPrioritySupport: Boolean(hasPrioritySupport) }),
       ...(hasStats !== undefined && { hasStats: Boolean(hasStats) }),
+      ...(hasMetronome !== undefined && { hasMetronome: Boolean(hasMetronome) }),
+      ...(hasParoles !== undefined && { hasParoles: Boolean(hasParoles) }),
       // hasFileSubmissions est dérivé du quota : upload possible ⟺ stockage > 0
       ...(storageGb !== undefined && { hasFileSubmissions: Number(storageGb) > 0 }),
       ...(color !== undefined && { color: String(color) }),

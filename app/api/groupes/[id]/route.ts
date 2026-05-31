@@ -51,12 +51,29 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // Stockage : l'upload de fichiers est possible si le quota effectif > 0
   const storageInfo = await getGroupStorageInfo(groupId)
 
+  // Fonctionnalités débloquées par le plan du groupe (défaut permissif si pas de plan trouvé)
+  const planRec = await prisma.plan.findUnique({
+    where: { key: group.plan },
+    select: { hasMetronome: true, hasParoles: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasStats: true },
+  })
+  const planFeatures = {
+    hasMetronome: planRec?.hasMetronome ?? true,
+    hasParoles: planRec?.hasParoles ?? true,
+    hasGrilles: planRec?.hasGrilles ?? true,
+    hasSetlists: planRec?.hasSetlists ?? true,
+    hasConcerts: planRec?.hasConcerts ?? true,
+    hasFicheTechnique: planRec?.hasFicheTechnique ?? true,
+    hasMaPage: planRec?.hasMaPage ?? true,
+    hasStats: planRec?.hasStats ?? true,
+  }
+
   return NextResponse.json({
     ...group,
     storageUsedBytes: String(group.storageUsedBytes),
     uploadEnabled: storageInfo.limitBytes > 0,
     storageLimitBytes: storageInfo.limitBytes,
     storageUsedTotalBytes: storageInfo.usedBytes,
+    planFeatures,
   })
 }
 

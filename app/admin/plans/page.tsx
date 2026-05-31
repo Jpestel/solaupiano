@@ -18,6 +18,7 @@ const EMPTY_FORM = {
   maxMembersPerGroup: '', maxSongsPerGroup: '', maxSetlists: '', maxConcerts: '', maxCharts: '', maxFilesPerSong: '',
   hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
   hasMaPage: true, hasCoChefs: true, hasPrioritySupport: false, hasStats: false, hasFileSubmissions: true,
+  hasMetronome: true, hasParoles: true,
   color: 'gray',
 }
 
@@ -48,6 +49,8 @@ function planToForm(p: PlanWithCount): FormState {
     hasPrioritySupport: p.hasPrioritySupport,
     hasStats: p.hasStats,
     hasFileSubmissions: p.hasFileSubmissions,
+    hasMetronome: p.hasMetronome,
+    hasParoles: p.hasParoles,
     color: p.color,
     stripePriceId: p.stripePriceId ?? '',
   }
@@ -381,6 +384,8 @@ export default function AdminPlansPage() {
                   {/* Feature pills */}
                   <div className="flex flex-wrap gap-1.5">
                     {[
+                      { on: p.hasParoles, label: "Paroles" },
+                      { on: p.hasMetronome, label: "Métronome" },
                       { on: p.hasGrilles, label: "Grilles" },
                       { on: p.hasConcerts, label: "Concerts" },
                       { on: p.hasSetlists, label: "Setlists" },
@@ -735,6 +740,8 @@ export default function AdminPlansPage() {
                     <div>
                       <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Fonctionnalités groupe</p>
                       <div className="flex flex-wrap gap-2">
+                        <ToggleFeature label="Paroles & prompteur" icon="🎤" checked={form.hasParoles} onChange={(v) => set('hasParoles', v)} />
+                        <ToggleFeature label="Métronome" icon="🥁" checked={form.hasMetronome} onChange={(v) => set('hasMetronome', v)} />
                         <ToggleFeature label="Grilles d'accords" icon="🎸" checked={form.hasGrilles} onChange={(v) => set('hasGrilles', v)} />
                         <ToggleFeature label="Concerts" icon="🎭" checked={form.hasConcerts} onChange={(v) => set('hasConcerts', v)} />
                         <ToggleFeature label="Setlists" icon="🎶" checked={form.hasSetlists} onChange={(v) => set('hasSetlists', v)} />

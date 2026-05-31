@@ -16,7 +16,7 @@ import { createPortal } from 'react-dom'
  * layer ») — un simple position:fixed disparaîtrait derrière. En se reparentant
  * dans l'élément plein écran, le métronome reste TOUJOURS au premier plan.
  */
-export function SongMetronome({ bpm }: { bpm: number }) {
+export function SongMetronome({ bpm, enabled = true }: { bpm: number; enabled?: boolean }) {
   const [running, setRunning] = useState(false)
   const [muted, setMuted] = useState(false)
   const [windowed, setWindowed] = useState(false)
@@ -201,6 +201,18 @@ export function SongMetronome({ bpm }: { bpm: number }) {
       )}
     </>
   )
+
+  // Métronome non inclus dans l'offre du groupe → badge grisé non cliquable
+  if (!enabled) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-300 cursor-not-allowed"
+        title="Le métronome n'est pas inclus dans l'offre de ce groupe"
+      >
+        🥁 {bpm} BPM 🔒
+      </span>
+    )
+  }
 
   return (
     <span className="inline-flex items-center gap-1">

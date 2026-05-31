@@ -65,6 +65,8 @@ model Plan {
   hasStats           Boolean @default(false)
   hasFileSubmissions Boolean @default(true)
   hasAnnonces        Boolean @default(false)
+  hasMetronome       Boolean @default(true)
+  hasParoles         Boolean @default(true)
 
   color     String   @default("gray")
 

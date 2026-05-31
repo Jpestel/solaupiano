@@ -59,6 +59,8 @@ interface GroupInfo {
   createdBy: number | null
   chefPermissions: unknown
   uploadEnabled: boolean
+  hasMetronome: boolean
+  hasParoles: boolean
 }
 
 interface PendingResource {
@@ -105,7 +107,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, uploadEnabled: g.uploadEnabled ?? false })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, uploadEnabled: g.uploadEnabled ?? false, hasMetronome: g.planFeatures?.hasMetronome ?? true, hasParoles: g.planFeatures?.hasParoles ?? true })
       if (role === 'CHEF') {
         const pendingRes = await fetch(`/api/groupes/${groupId}/soumissions`)
         if (pendingRes.ok) setPendingResources(await pendingRes.json())
@@ -336,19 +338,28 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                           ⏱ {formatDuration(song.durationSeconds)}
                         </span>
                       ) : null}
-                      {song.tempo ? <SongMetronome bpm={song.tempo} /> : null}
+                      {song.tempo ? <SongMetronome bpm={song.tempo} enabled={groupInfo?.hasMetronome ?? true} /> : null}
                     </div>
                     {song.artist && <p className="text-sm text-gray-500 mt-0.5">{song.artist}</p>}
                     {song.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{song.notes}</p>}
                     {/* Boutons déplacés sous le titre/artiste sur mobile */}
                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                      <Link
-                        href={`/groupes/${groupId}/morceaux/${song.id}/paroles`}
-                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-rose-300 hover:text-rose-600 transition-colors"
-                      >
-                        🎤 Paroles
-                        {song.lyrics && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 ml-0.5" />}
-                      </Link>
+                      {(groupInfo?.hasParoles ?? true) ? (
+                        <Link
+                          href={`/groupes/${groupId}/morceaux/${song.id}/paroles`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-rose-300 hover:text-rose-600 transition-colors"
+                        >
+                          🎤 Paroles
+                          {song.lyrics && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 ml-0.5" />}
+                        </Link>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-300 cursor-not-allowed"
+                          title="Les paroles ne sont pas incluses dans l'offre de ce groupe"
+                        >
+                          🎤 Paroles 🔒
+                        </span>
+                      )}
                       <Link
                         href={`/groupes/${groupId}/morceaux/${song.id}/tablature`}
                         className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
