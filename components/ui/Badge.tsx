@@ -67,16 +67,19 @@ export function AttendanceBadge({ status }: { status: string }) {
 export function GroupRoleBadge({ groupRole, isFounder }: { groupRole: string; isFounder: boolean }) {
   let cls = 'border-gray-200 bg-white text-gray-600'
   let label = 'Membre'
+  let icon = '🎵'
   if (isFounder) {
     cls = 'border-amber-200 bg-amber-100 text-amber-700'
     label = "Chef d'orchestre"
+    icon = '👑'
   } else if (groupRole === 'CHEF') {
     cls = 'border-blue-200 bg-blue-100 text-blue-700'
     label = 'Co-chef'
+    icon = '⭐'
   }
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${cls}`}>
-      {label}
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${cls}`}>
+      <span>{icon}</span>{label}
     </span>
   )
 }

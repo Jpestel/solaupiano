@@ -20,7 +20,7 @@ export function GroupMembersPanel({
   const hasCoChefs = coChefs.length > 0
 
   const roleLabel = (m: Member) =>
-    m.userId === createdBy ? 'Fondateur' : m.groupRole === 'CHEF' ? 'Co-chef' : 'Membre'
+    m.userId === createdBy ? '👑 Chef d\'orchestre' : m.groupRole === 'CHEF' ? '⭐ Co-chef' : '🎵 Membre'
   const roleCls = (m: Member) =>
     m.userId === createdBy
       ? 'bg-amber-100 text-amber-700 border-amber-200'
