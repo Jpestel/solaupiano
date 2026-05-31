@@ -3,17 +3,24 @@
 import { useState, useRef, useEffect } from 'react'
 
 /**
- * Métronome par morceau : repère visuel GRAND (pour jouer en le regardant)
- * + sonore (clic), avec coupure du son possible AVANT et pendant la lecture.
+ * Métronome par morceau :
+ *  - mode plein écran (grand repère pour jouer en le regardant)
+ *  - mode fenêtre flottante déplaçable & redimensionnable (reste visible
+ *    dans un coin pendant la lecture d'une partition par ex.)
+ *  - son coupable AVANT et pendant la lecture.
  */
 export function SongMetronome({ bpm }: { bpm: number }) {
   const [running, setRunning] = useState(false)
   const [muted, setMuted] = useState(false)
+  const [windowed, setWindowed] = useState(false)
   const [beat, setBeat] = useState(-1)
+  const [pos, setPos] = useState({ x: 24, y: 24 })
+
   const audioCtxRef = useRef<AudioContext | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const beatRef = useRef(0)
   const mutedRef = useRef(false)
+  const dragRef = useRef<{ dx: number; dy: number } | null>(null)
 
   useEffect(() => { mutedRef.current = muted }, [muted])
 
@@ -47,8 +54,7 @@ export function SongMetronome({ bpm }: { bpm: number }) {
     setRunning(true)
     const interval = 60000 / bpm
     const tick = () => {
-      const accent = beatRef.current % 4 === 0
-      click(accent)
+      click(beatRef.current % 4 === 0)
       setBeat(beatRef.current % 4)
       beatRef.current++
     }
@@ -58,7 +64,27 @@ export function SongMetronome({ bpm }: { bpm: number }) {
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current) }, [])
 
+  // ── Déplacement de la fenêtre flottante ────────────────────────────────────
+  const onDragStart = (e: React.PointerEvent) => {
+    dragRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y }
+    const move = (ev: PointerEvent) => {
+      if (!dragRef.current) return
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - 80, ev.clientX - dragRef.current.dx)),
+        y: Math.max(0, Math.min(window.innerHeight - 40, ev.clientY - dragRef.current.dy)),
+      })
+    }
+    const up = () => {
+      dragRef.current = null
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
   const isAccent = beat === 0
+  const circleColor = beat < 0 ? '#374151' : isAccent ? '#f59e0b' : '#6366f1'
 
   return (
     <span className="inline-flex items-center gap-1">
@@ -71,7 +97,6 @@ export function SongMetronome({ bpm }: { bpm: number }) {
       >
         🥁 {bpm} BPM
       </button>
-      {/* Mute disponible AVANT le lancement */}
       <button
         type="button"
         onClick={() => setMuted(m => !m)}
@@ -81,17 +106,15 @@ export function SongMetronome({ bpm }: { bpm: number }) {
         {muted ? '🔇' : '🔊'}
       </button>
 
-      {/* Grand visuel plein écran pendant la lecture */}
-      {running && (
+      {/* ── Mode plein écran ── */}
+      {running && !windowed && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-900/95 backdrop-blur-sm" onClick={stop}>
           <div className="flex flex-col items-center gap-8" onClick={(e) => e.stopPropagation()}>
-            {/* Gros cercle pulsant */}
             <div
               className="rounded-full flex items-center justify-center transition-all duration-75 ease-out"
               style={{
-                width: 'min(60vw, 320px)',
-                height: 'min(60vw, 320px)',
-                backgroundColor: beat < 0 ? '#374151' : isAccent ? '#f59e0b' : '#6366f1',
+                width: 'min(60vw, 320px)', height: 'min(60vw, 320px)',
+                backgroundColor: circleColor,
                 transform: beat < 0 ? 'scale(0.85)' : 'scale(1)',
                 boxShadow: beat < 0 ? 'none' : `0 0 80px ${isAccent ? '#f59e0b88' : '#6366f188'}`,
               }}
@@ -100,39 +123,72 @@ export function SongMetronome({ bpm }: { bpm: number }) {
                 {beat < 0 ? '' : beat + 1}
               </span>
             </div>
-
-            {/* Indicateurs de temps 1-2-3-4 */}
             <div className="flex items-center gap-3">
               {[0, 1, 2, 3].map(b => (
-                <span key={b}
-                  className="rounded-full transition-all"
-                  style={{
-                    width: beat === b ? 22 : 14,
-                    height: beat === b ? 22 : 14,
-                    backgroundColor: beat === b ? (b === 0 ? '#f59e0b' : '#818cf8') : '#4b5563',
-                  }}
-                />
+                <span key={b} className="rounded-full transition-all" style={{
+                  width: beat === b ? 22 : 14, height: beat === b ? 22 : 14,
+                  backgroundColor: beat === b ? (b === 0 ? '#f59e0b' : '#818cf8') : '#4b5563',
+                }} />
               ))}
             </div>
-
             <p className="text-white text-2xl font-bold">{bpm} <span className="text-gray-400 text-lg font-normal">BPM</span></p>
-
-            {/* Contrôles */}
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setMuted(m => !m)}
-                className="rounded-xl bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 text-sm font-semibold transition-colors"
-              >
+              <button onClick={() => setMuted(m => !m)} className="rounded-xl bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 text-sm font-semibold transition-colors">
                 {muted ? '🔇 Son coupé' : '🔊 Son activé'}
               </button>
-              <button
-                onClick={stop}
-                className="rounded-xl bg-white text-gray-900 px-6 py-2.5 text-sm font-bold hover:bg-gray-100 transition-colors"
-              >
+              <button onClick={() => setWindowed(true)} className="rounded-xl bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 text-sm font-semibold transition-colors">
+                🗗 Réduire en fenêtre
+              </button>
+              <button onClick={stop} className="rounded-xl bg-white text-gray-900 px-6 py-2.5 text-sm font-bold hover:bg-gray-100 transition-colors">
                 ⏹ Arrêter
               </button>
             </div>
-            <p className="text-gray-400 text-xs">Cliquez n&apos;importe où pour arrêter</p>
+            <p className="text-gray-400 text-xs">Cliquez en dehors pour arrêter</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mode fenêtre flottante (déplaçable + redimensionnable) ── */}
+      {running && windowed && (
+        <div
+          className="fixed z-50 rounded-xl shadow-2xl border border-gray-700 bg-gray-900 overflow-hidden flex flex-col"
+          style={{ left: pos.x, top: pos.y, width: 200, height: 240, minWidth: 150, minHeight: 180, resize: 'both' }}
+        >
+          {/* Barre de titre (poignée de déplacement) */}
+          <div
+            onPointerDown={onDragStart}
+            className="flex items-center justify-between px-2 py-1.5 bg-gray-800 cursor-move select-none flex-shrink-0"
+          >
+            <span className="text-[11px] font-semibold text-gray-300">🥁 {bpm} BPM</span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setMuted(m => !m)} className="text-xs px-1 hover:opacity-80" title={muted ? 'Activer le son' : 'Couper le son'}>
+                {muted ? '🔇' : '🔊'}
+              </button>
+              <button onClick={() => setWindowed(false)} className="text-xs px-1 hover:opacity-80 text-gray-300" title="Plein écran">⛶</button>
+              <button onClick={stop} className="text-xs px-1 hover:opacity-80 text-gray-300" title="Arrêter">✕</button>
+            </div>
+          </div>
+          {/* Corps : cercle pulsant */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 p-2">
+            <div
+              className="rounded-full flex items-center justify-center transition-all duration-75 ease-out"
+              style={{
+                width: '62%', aspectRatio: '1 / 1',
+                backgroundColor: circleColor,
+                transform: beat < 0 ? 'scale(0.85)' : 'scale(1)',
+                boxShadow: beat < 0 ? 'none' : `0 0 28px ${isAccent ? '#f59e0b88' : '#6366f188'}`,
+              }}
+            >
+              <span className="text-white font-black text-4xl leading-none">{beat < 0 ? '' : beat + 1}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {[0, 1, 2, 3].map(b => (
+                <span key={b} className="rounded-full transition-all" style={{
+                  width: beat === b ? 9 : 6, height: beat === b ? 9 : 6,
+                  backgroundColor: beat === b ? (b === 0 ? '#f59e0b' : '#818cf8') : '#4b5563',
+                }} />
+              ))}
+            </div>
           </div>
         </div>
       )}
