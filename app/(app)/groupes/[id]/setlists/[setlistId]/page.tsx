@@ -14,6 +14,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { SetlistSequenceStage } from '@/components/ui/SetlistSequenceStage'
 
 interface Song { id: number; title: string; artist?: string; durationSeconds?: number | null }
 interface SetlistEntry { song: Song; position: number }
@@ -22,7 +23,7 @@ interface Setlist {
   id: number; name: string; description?: string; groupId: number; showDuration: boolean
   songs: SetlistEntry[]; concerts: Concert[]
 }
-interface GroupSong { id: number; title: string; artist?: string; durationSeconds?: number | null }
+interface GroupSong { id: number; title: string; artist?: string; durationSeconds?: number | null; tempo?: number | null }
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -98,6 +99,8 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
   const [groupSongs, setGroupSongs] = useState<GroupSong[]>([])
   const [groupRole, setGroupRole] = useState<string>('MEMBRE')
   const [groupName, setGroupName] = useState('')
+  const [hasSequences, setHasSequences] = useState(true)
+  const [stageOpen, setStageOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [addingId, setAddingId] = useState<number | null>(null)
@@ -128,6 +131,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
       setGroupRole(role)
       setGroupName(g.name)
+      setHasSequences(g.planFeatures?.hasSequences ?? true)
     }
     if (songsRes.ok) setGroupSongs(await songsRes.json())
     setLoading(false)
@@ -202,6 +206,15 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
   const setlistIds = new Set(songs.map((s) => s.song.id))
   const availableSongs = groupSongs.filter((s) => !setlistIds.has(s.id))
 
+  // Liste ordonnée pour le mode scène (tempo récupéré depuis le répertoire)
+  const tempoById = new Map(groupSongs.map((s) => [s.id, s.tempo ?? null]))
+  const stageSongs = songs.map((e) => ({
+    id: e.song.id,
+    title: e.song.title,
+    artist: e.song.artist ?? null,
+    tempo: tempoById.get(e.song.id) ?? null,
+  }))
+
   const showDuration = setlist?.showDuration ?? false
   const songsWithDuration = songs.filter((s) => s.song.durationSeconds)
   const songsWithoutDuration = songs.filter((s) => !s.song.durationSeconds)
@@ -212,6 +225,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
 
   return (
     <div>
+      {stageOpen && <SetlistSequenceStage songs={stageSongs} onClose={() => setStageOpen(false)} />}
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
         <Link href="/groupes" className="hover:text-indigo-600">Mes groupes</Link>
@@ -231,6 +245,16 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
           <p className="text-sm text-gray-400 mt-1">{songs.length} morceau{songs.length > 1 ? 'x' : ''}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Mode séquences (scène) — visible pour tous les membres */}
+          {hasSequences && songs.length > 0 && (
+            <button
+              onClick={() => setStageOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
+              title="Lancer les séquences de la setlist en mode scène"
+            >
+              🎚 Mode séquences
+            </button>
+          )}
           {/* Print button — visible for all members */}
           <button
             onClick={() => {
