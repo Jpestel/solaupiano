@@ -181,7 +181,8 @@ function MidiSeqPlayer({ seq }: { seq: Sequence }) {
     pollRef.current = null
     try {
       const Tone = toneRef.current
-      if (Tone) { Tone.getTransport().stop(); Tone.getTransport().cancel() }
+      const tr = Tone ? (Tone.Transport ?? Tone.getTransport?.()) : null
+      if (tr) { tr.stop(); tr.cancel() }
       if (partRef.current) { partRef.current.dispose(); partRef.current = null }
       if (synthRef.current) { synthRef.current.releaseAll?.(); }
     } catch {}
@@ -203,7 +204,7 @@ function MidiSeqPlayer({ seq }: { seq: Sequence }) {
       setDuration(midi.duration)
 
       await Tone.start()
-      const transport = Tone.getTransport()
+      const transport = Tone.Transport ?? Tone.getTransport?.()
       transport.stop(); transport.cancel(); transport.position = 0
 
       if (!synthRef.current) {
