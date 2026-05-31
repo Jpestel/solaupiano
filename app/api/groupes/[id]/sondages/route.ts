@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendPollCreatedEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,5 +64,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       options: { create: parsed },
     },
   })
+
+  // Notifie par e-mail les membres du groupe (sauf le créateur)
+  const [group, members] = await Promise.all([
+    prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+    prisma.groupMember.findMany({
+      where: { groupId, userId: { not: userId } },
+      include: { user: { select: { email: true, name: true } } },
+    }),
+  ])
+  if (group && members.length > 0) {
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+    sendPollCreatedEmail(
+      members.map((m) => ({ email: m.user.email, name: m.user.name })),
+      group.name,
+      groupId,
+      { id: poll.id, title: poll.title, options: parsed.map((p) => ({ date: p.date, note: p.note })) },
+      baseUrl
+    ).catch(console.error)
+  }
+
   return NextResponse.json(poll, { status: 201 })
 }

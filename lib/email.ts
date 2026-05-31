@@ -103,6 +103,45 @@ export async function sendRehearsalNotification(
   )
 }
 
+// ─── Nouveau sondage ─────────────────────────────────────────────────────────
+
+export async function sendPollCreatedEmail(
+  members: { email: string; name: string }[],
+  groupName: string,
+  groupId: number,
+  poll: { id: number; title: string; options: { date: Date; note: string | null }[] },
+  baseUrl: string
+) {
+  const url = `${baseUrl}/groupes/${groupId}/sondages/${poll.id}`
+  const tpl = await getEmailTemplate('poll_created')
+  const datesHtml = poll.options
+    .map((o) => {
+      const d = new Date(o.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+      return `<p style="margin: 0 0 4px; font-size: 13px; color: #5b21b6; text-transform: capitalize;">📅 ${d}${o.note ? ` — <span style="text-transform:none;">${o.note}</span>` : ''}</p>`
+    })
+    .join('')
+
+  await Promise.all(
+    members.map(({ email, name }) => {
+      const { subject, introHtml, outroHtml } = tpl.render({ memberName: name, groupName, pollTitle: poll.title })
+      return resend.emails.send({
+        from: 'Sol au piano <noreply@solaupiano.fr>',
+        to: email,
+        subject,
+        html: emailWrapper(`
+          ${introHtml}
+          ${dataBox(`
+            <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #5b21b6;">📊 ${poll.title}</p>
+            ${datesHtml}
+          `)}
+          ${outroHtml}
+          ${ctaButton(url, 'Répondre au sondage →')}
+        `),
+      })
+    })
+  )
+}
+
 // ─── 2. Rappel automatique répétition ────────────────────────────────────────
 
 export async function sendRehearsalAutoReminderEmail(

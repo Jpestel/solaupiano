@@ -21,6 +21,19 @@ export interface EmailTemplateDef {
 
 export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
   {
+    key: 'poll_created',
+    name: 'Nouveau sondage',
+    description: 'Envoyé aux membres quand le chef crée un sondage de dates.',
+    defaultSubject: 'Nouveau sondage — {{groupName}}',
+    defaultIntro: 'Bonjour {{memberName}},\n\nUn nouveau sondage « {{pollTitle}} » a été créé pour votre groupe {{groupName}}. Merci d\'indiquer vos disponibilités pour les dates proposées.',
+    defaultOutro: 'Votre réponse aide le groupe à choisir la meilleure date !',
+    variables: [
+      { key: 'memberName', description: 'Prénom du membre' },
+      { key: 'groupName', description: 'Nom du groupe' },
+      { key: 'pollTitle', description: 'Titre du sondage' },
+    ],
+  },
+  {
     key: 'rehearsal_notification',
     name: 'Nouvelle répétition',
     description: 'Envoyé aux membres quand une répétition est planifiée par le chef.',
