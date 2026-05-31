@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
+import { GroupRoleBadge } from '@/components/ui/Badge'
 
 interface Member {
   userId: number
@@ -161,11 +162,7 @@ export default function MembresPanel({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-medium text-gray-900 truncate">{member.user.name}</p>
-                {member.groupRole === 'CHEF' && (
-                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                    Chef d&apos;orchestre
-                  </span>
-                )}
+                <GroupRoleBadge groupRole={member.groupRole} isFounder={member.userId === createdBy} />
                 {isSelf && (
                   <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-500">Moi</span>
                 )}
