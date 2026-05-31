@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendGroupWelcomeEmail, sendMemberRemovedEmail } from '@/lib/email'
 import { coChefCanDo } from '@/lib/permissions'
+import { cleanupGroupFiles } from '@/lib/file-cleanup'
 
 async function checkAccess(session: Awaited<ReturnType<typeof getServerSession>>, groupId: number) {
   if (!session) return false
@@ -153,6 +154,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const remaining = await tx.groupMember.count({ where: { groupId } })
 
     if (remaining === 0) {
+      // Le groupe se dissout : on efface d'abord tous les fichiers du disque
+      // (les lignes existent encore, cleanupGroupFiles peut donc les retrouver).
+      await cleanupGroupFiles(groupId)
       // Explicitly remove child records before deleting the group
       const songIds = (await tx.song.findMany({ where: { groupId }, select: { id: true } })).map((s) => s.id)
       const rehearsalIds = (await tx.rehearsal.findMany({ where: { groupId }, select: { id: true } })).map((r) => r.id)
