@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/ui/Badge'
 import { CreateGroupButton } from './CreateGroupButton'
 import { JoinPublicGroupsSection } from './JoinPublicGroupsSection'
+import { QuickInvite } from './QuickInvite'
 
 export default async function GroupesPage() {
   const session = await getServerSession(authOptions)
@@ -48,28 +49,31 @@ export default async function GroupesPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {allGroups.map((group) => (
-              <Link key={group.id} href={`/groupes/${group.id}`}>
-                <Card className="h-full hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-11 h-11 rounded-xl overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
-                      {group.coverUrl
-                        ? <img src={group.coverUrl} alt={group.name} className="w-full h-full object-cover" />
-                        : group.name.charAt(0)
-                      }
+              <div key={group.id} className="relative">
+                <Link href={`/groupes/${group.id}`}>
+                  <Card className="h-full hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-11 h-11 rounded-xl overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
+                        {group.coverUrl
+                          ? <img src={group.coverUrl} alt={group.name} className="w-full h-full object-cover" />
+                          : group.name.charAt(0)
+                        }
+                      </div>
+                      <RoleBadge role="CHEF" />
                     </div>
-                    <RoleBadge role="CHEF" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-1">{group.name}</h3>
-                  {group.description && (
-                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">{group.description}</p>
-                  )}
-                  <div className="flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
-                    <span>{group._count.members} membre{group._count.members > 1 ? 's' : ''}</span>
-                    <span>{group._count.rehearsals} répétition{group._count.rehearsals > 1 ? 's' : ''}</span>
-                    <span>{group._count.songs} morceau{group._count.songs > 1 ? 'x' : ''}</span>
-                  </div>
-                </Card>
-              </Link>
+                    <h3 className="font-semibold text-gray-900 mb-1">{group.name}</h3>
+                    {group.description && (
+                      <p className="text-sm text-gray-500 mb-3 line-clamp-2">{group.description}</p>
+                    )}
+                    <div className="flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100 pr-20">
+                      <span>{group._count.members} membre{group._count.members > 1 ? 's' : ''}</span>
+                      <span>{group._count.rehearsals} répétition{group._count.rehearsals > 1 ? 's' : ''}</span>
+                      <span>{group._count.songs} morceau{group._count.songs > 1 ? 'x' : ''}</span>
+                    </div>
+                  </Card>
+                </Link>
+                <QuickInvite groupId={group.id} groupName={group.name} />
+              </div>
             ))}
           </div>
         )}
@@ -152,28 +156,31 @@ export default async function GroupesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {memberships.map(({ group, groupRole }) => (
-            <Link key={group.id} href={`/groupes/${group.id}`}>
-              <Card className="h-full hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-11 h-11 rounded-xl overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
-                    {group.coverUrl
-                      ? <img src={group.coverUrl} alt={group.name} className="w-full h-full object-cover" />
-                      : group.name.charAt(0)
-                    }
+            <div key={group.id} className="relative">
+              <Link href={`/groupes/${group.id}`}>
+                <Card className="h-full hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-11 h-11 rounded-xl overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
+                      {group.coverUrl
+                        ? <img src={group.coverUrl} alt={group.name} className="w-full h-full object-cover" />
+                        : group.name.charAt(0)
+                      }
+                    </div>
+                    <RoleBadge role={groupRole} />
                   </div>
-                  <RoleBadge role={groupRole} />
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-1">{group.name}</h3>
-                {group.description && (
-                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">{group.description}</p>
-                )}
-                <div className="flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
-                  <span>{group._count.members} membre{group._count.members > 1 ? 's' : ''}</span>
-                  <span>{group._count.rehearsals} répétition{group._count.rehearsals > 1 ? 's' : ''}</span>
-                  <span>{group._count.songs} morceau{group._count.songs > 1 ? 'x' : ''}</span>
-                </div>
-              </Card>
-            </Link>
+                  <h3 className="font-semibold text-gray-900 mb-1">{group.name}</h3>
+                  {group.description && (
+                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">{group.description}</p>
+                  )}
+                  <div className={`flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100 ${groupRole === 'CHEF' ? 'pr-20' : ''}`}>
+                    <span>{group._count.members} membre{group._count.members > 1 ? 's' : ''}</span>
+                    <span>{group._count.rehearsals} répétition{group._count.rehearsals > 1 ? 's' : ''}</span>
+                    <span>{group._count.songs} morceau{group._count.songs > 1 ? 'x' : ''}</span>
+                  </div>
+                </Card>
+              </Link>
+              {groupRole === 'CHEF' && <QuickInvite groupId={group.id} groupName={group.name} />}
+            </div>
           ))}
         </div>
       )}
