@@ -1493,7 +1493,7 @@ export default async function AidePage() {
                 {dbPlans.map(p => (
                   <li key={p.key}>
                     {planIcon(p)} <strong>Plan {p.label}</strong> —{' '}
-                    {p.hasFileSubmissions ? `${storageLabel(p.storageGb)} partagés (tous groupes)` : 'sans stockage de fichiers'}
+                    {p.hasFileSubmissions ? `${storageLabel(p.storageGb)}${p.maxGroups > 1 ? ' partagés (tous groupes)' : ''}` : 'sans stockage de fichiers'}
                   </li>
                 ))}
               </ul>

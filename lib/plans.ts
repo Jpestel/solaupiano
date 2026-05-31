@@ -148,7 +148,7 @@ export function generateFeatureList(p: DbPlan): string[] {
 
   // Storage / file sharing
   if (p.hasFileSubmissions) {
-    f.push(`${storageLabel(p.storageGb)} de stockage partagé entre tous vos groupes`)
+    f.push(`${storageLabel(p.storageGb)} de stockage${p.maxGroups > 1 ? ' partagé entre tous vos groupes' : ''}`)
   } else {
     f.push('Sans stockage de fichiers partagés')
   }
@@ -211,7 +211,7 @@ export function buildCardFeatures(p: DbPlan, isFree: boolean): PlanFeatureRow[] 
   })
 
   if (p.hasFileSubmissions) {
-    f.push({ ok: true, label: `Upload de fichiers — ${storageLabel(p.storageGb)} (partagé, tous groupes)` })
+    f.push({ ok: true, label: `Upload de fichiers — ${storageLabel(p.storageGb)}${p.maxGroups > 1 ? ' (partagé, tous groupes)' : ''}` })
   } else {
     f.push({ ok: false, label: 'Upload de fichiers / partitions' })
   }
@@ -250,7 +250,7 @@ export const COMP_ROWS: CompRowDef[] = [
   { label: 'Morceaux / groupe',      musicien: '—',  get: p => p.maxSongsPerGroup !== null ? `${p.maxSongsPerGroup} max` : 'Illimité' },
   { label: 'Répétitions',            musicien: '—',  get: () => 'Illimitées' },
   { label: 'Upload de fichiers',     musicien: '—',  get: p => p.hasFileSubmissions ? '✓' : '—' },
-  { label: 'Stockage (tous groupes)', musicien: '—',  get: p => p.hasFileSubmissions ? storageLabel(p.storageGb) : '—' },
+  { label: 'Stockage',               musicien: '—',  get: p => p.hasFileSubmissions ? storageLabel(p.storageGb) : '—' },
   { label: "Grilles d'accords",      musicien: '—',  get: p => p.hasGrilles ? '✓' : '—' },
   { label: 'Concerts',               musicien: '✓',  get: p => p.hasConcerts ? '✓' : '—' },
   { label: 'Setlists',               musicien: '—',  get: p => p.hasSetlists ? '✓' : '—' },

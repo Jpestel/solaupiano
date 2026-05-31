@@ -140,7 +140,7 @@ export default function InscriptionPage() {
                 <ul className="text-[11px] text-gray-500 text-left space-y-0.5 w-full px-1">
                   <li>✓ Rejoindre un ou plusieurs groupes</li>
                   <li>✓ Créer et gérer <strong>1 groupe</strong></li>
-                  <li>✓ 1 Go de stockage (tous groupes)</li>
+                  <li>✓ Stockage de fichiers inclus</li>
                   <li className="text-indigo-500 text-[10px]">↑ Pro : 3 groupes, 5 Go · Premium : 5 groupes, 10 Go</li>
                 </ul>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
