@@ -67,6 +67,7 @@ model Plan {
   hasAnnonces        Boolean @default(false)
   hasMetronome       Boolean @default(true)
   hasParoles         Boolean @default(true)
+  hasSequences       Boolean @default(true)
 
   color     String   @default("gray")
 
@@ -116,6 +117,16 @@ enum ResourceType {
   AUTRE
 }
 
+enum SequenceKind {
+  AUDIO
+  MIDI
+}
+
+enum SequenceChannelMode {
+  STEREO    // lecture stéréo normale
+  SPLIT_LR  // canal gauche = click, canal droit = backing (volumes indépendants)
+}
+
 enum JoinRequestStatus {
   PENDING
   ACCEPTED
@@ -160,6 +171,7 @@ model User {
   cachetSimulations        CachetSimulation[]
   gear                     UserGear[]
   sharedResources          GroupSharedResource[]
+  songSequences            SongSequence[]
 }
 
 model UserGear {
@@ -432,6 +444,25 @@ model Song {
   chordCharts      ChordChart[]
   lyrics           SongLyrics?
   tab              SongTab?
+  sequences        SongSequence[]
+}
+
+model SongSequence {
+  id          Int                 @id @default(autoincrement())
+  songId      Int
+  kind        SequenceKind        @default(AUDIO)
+  title       String
+  filePath    String              @db.Text
+  fileSize    Int                 @default(0)
+  channelMode SequenceChannelMode @default(STEREO)
+  order       Int                 @default(0)
+  createdById Int?
+  createdAt   DateTime            @default(now())
+
+  song      Song  @relation(fields: [songId], references: [id], onDelete: Cascade)
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([songId])
 }
 
 model SongLyrics {

@@ -341,6 +341,7 @@ export function PlanSection({
                   { icon: '🎼', label: 'Répertoire', ok: true },
                   { icon: '🎤', label: 'Paroles & prompteur', ok: p.hasParoles },
                   { icon: '🥁', label: 'Métronome', ok: p.hasMetronome },
+                  { icon: '🎚', label: 'Lecteur de séquences', ok: p.hasSequences },
                   { icon: '🎸', label: "Grilles d'accords", ok: p.hasGrilles },
                   { icon: '🎶', label: 'Setlists', ok: p.hasSetlists },
                   { icon: '🎭', label: 'Concerts', ok: p.hasConcerts },

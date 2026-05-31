@@ -18,7 +18,7 @@ const EMPTY_FORM = {
   maxMembersPerGroup: '', maxSongsPerGroup: '', maxSetlists: '', maxConcerts: '', maxCharts: '', maxFilesPerSong: '',
   hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
   hasMaPage: true, hasCoChefs: true, hasPrioritySupport: false, hasStats: false, hasFileSubmissions: true,
-  hasMetronome: true, hasParoles: true,
+  hasMetronome: true, hasParoles: true, hasSequences: true,
   color: 'gray',
 }
 
@@ -51,6 +51,7 @@ function planToForm(p: PlanWithCount): FormState {
     hasFileSubmissions: p.hasFileSubmissions,
     hasMetronome: p.hasMetronome,
     hasParoles: p.hasParoles,
+    hasSequences: p.hasSequences,
     color: p.color,
     stripePriceId: p.stripePriceId ?? '',
   }
@@ -386,6 +387,7 @@ export default function AdminPlansPage() {
                     {[
                       { on: p.hasParoles, label: "Paroles" },
                       { on: p.hasMetronome, label: "Métronome" },
+                      { on: p.hasSequences, label: "Séquences" },
                       { on: p.hasGrilles, label: "Grilles" },
                       { on: p.hasConcerts, label: "Concerts" },
                       { on: p.hasSetlists, label: "Setlists" },
@@ -742,6 +744,7 @@ export default function AdminPlansPage() {
                       <div className="flex flex-wrap gap-2">
                         <ToggleFeature label="Paroles & prompteur" icon="🎤" checked={form.hasParoles} onChange={(v) => set('hasParoles', v)} />
                         <ToggleFeature label="Métronome" icon="🥁" checked={form.hasMetronome} onChange={(v) => set('hasMetronome', v)} />
+                        <ToggleFeature label="Lecteur de séquences" icon="🎚" checked={form.hasSequences} onChange={(v) => set('hasSequences', v)} />
                         <ToggleFeature label="Grilles d'accords" icon="🎸" checked={form.hasGrilles} onChange={(v) => set('hasGrilles', v)} />
                         <ToggleFeature label="Concerts" icon="🎭" checked={form.hasConcerts} onChange={(v) => set('hasConcerts', v)} />
                         <ToggleFeature label="Setlists" icon="🎶" checked={form.hasSetlists} onChange={(v) => set('hasSetlists', v)} />

@@ -27,6 +27,7 @@ export interface DbPlan {
   hasFileSubmissions: boolean
   hasMetronome: boolean
   hasParoles: boolean
+  hasSequences: boolean
   color: string
   stripePriceId: string | null
   createdAt: Date
@@ -175,6 +176,7 @@ export function generateFeatureList(p: DbPlan): string[] {
   // Feature modules
   if (p.hasParoles) f.push('Paroles & prompteur')
   if (p.hasMetronome) f.push('Métronome par morceau')
+  if (p.hasSequences) f.push('Lecteur de séquences (audio & MIDI)')
   if (p.hasGrilles) f.push("Grilles d'accords")
   if (p.hasSetlists) f.push('Setlists')
   if (p.hasConcerts) f.push('Concerts')
@@ -224,6 +226,7 @@ export function buildCardFeatures(p: DbPlan, isFree: boolean): PlanFeatureRow[] 
   const mods: string[] = []
   if (p.hasParoles) mods.push('paroles')
   if (p.hasMetronome) mods.push('métronome')
+  if (p.hasSequences) mods.push('séquences')
   if (p.hasGrilles) mods.push('Grilles')
   if (p.hasSetlists) mods.push('setlists')
   if (p.hasFicheTechnique) mods.push('fiche tech.')
@@ -259,6 +262,7 @@ export const COMP_ROWS: CompRowDef[] = [
   { label: 'Stockage',               musicien: '—',  get: p => p.hasFileSubmissions ? storageLabel(p.storageGb) : '—' },
   { label: 'Paroles & prompteur',    musicien: '—',  get: p => p.hasParoles ? '✓' : '—' },
   { label: 'Métronome',              musicien: '—',  get: p => p.hasMetronome ? '✓' : '—' },
+  { label: 'Lecteur de séquences',   musicien: '—',  get: p => p.hasSequences ? '✓' : '—' },
   { label: "Grilles d'accords",      musicien: '—',  get: p => p.hasGrilles ? '✓' : '—' },
   { label: 'Concerts',               musicien: '✓',  get: p => p.hasConcerts ? '✓' : '—' },
   { label: 'Setlists',               musicien: '—',  get: p => p.hasSetlists ? '✓' : '—' },
@@ -280,7 +284,7 @@ export const DEFAULT_PLAN_SEEDS = [
     maxConcerts: null, maxCharts: null, maxFilesPerSong: null,
     hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
     hasMaPage: true, hasCoChefs: true, hasPrioritySupport: false, hasStats: false,
-    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, color: 'gray',
+    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, hasSequences: true, color: 'gray',
   },
   {
     key: 'PRO', label: 'Pro', description: "Pour les groupes actifs qui veulent aller plus loin.",
@@ -290,7 +294,7 @@ export const DEFAULT_PLAN_SEEDS = [
     maxConcerts: null, maxCharts: null, maxFilesPerSong: null,
     hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
     hasMaPage: true, hasCoChefs: true, hasPrioritySupport: true, hasStats: false,
-    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, color: 'indigo',
+    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, hasSequences: true, color: 'indigo',
   },
   {
     key: 'PREMIUM', label: 'Premium', description: 'La puissance maximale pour les professionnels.',
@@ -300,7 +304,7 @@ export const DEFAULT_PLAN_SEEDS = [
     maxConcerts: null, maxCharts: null, maxFilesPerSong: null,
     hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
     hasMaPage: true, hasCoChefs: true, hasPrioritySupport: true, hasStats: true,
-    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, color: 'purple',
+    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, hasSequences: true, color: 'purple',
   },
 ]
 

@@ -61,6 +61,7 @@ interface GroupInfo {
   uploadEnabled: boolean
   hasMetronome: boolean
   hasParoles: boolean
+  hasSequences: boolean
 }
 
 interface PendingResource {
@@ -107,7 +108,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, uploadEnabled: g.uploadEnabled ?? false, hasMetronome: g.planFeatures?.hasMetronome ?? true, hasParoles: g.planFeatures?.hasParoles ?? true })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, uploadEnabled: g.uploadEnabled ?? false, hasMetronome: g.planFeatures?.hasMetronome ?? true, hasParoles: g.planFeatures?.hasParoles ?? true, hasSequences: g.planFeatures?.hasSequences ?? true })
       if (role === 'CHEF') {
         const pendingRes = await fetch(`/api/groupes/${groupId}/soumissions`)
         if (pendingRes.ok) setPendingResources(await pendingRes.json())
@@ -367,6 +368,21 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                         🎸 Tablature
                         {song.tab && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 ml-0.5" />}
                       </Link>
+                      {(groupInfo?.hasSequences ?? true) ? (
+                        <Link
+                          href={`/groupes/${groupId}/morceaux/${song.id}/sequences`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-600 transition-colors"
+                        >
+                          🎚 Séquences
+                        </Link>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-300 cursor-not-allowed"
+                          title="Le lecteur de séquences n'est pas inclus dans l'offre de ce groupe"
+                        >
+                          🎚 Séquences 🔒
+                        </span>
+                      )}
                       {isChef && (chefCan('repertoire', 'update') || chefCan('repertoire', 'delete')) && (
                         <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>
                           Éditer
