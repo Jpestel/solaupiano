@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendGroupWelcomeEmail } from '@/lib/email'
+import { coChefCanDo } from '@/lib/permissions'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -17,6 +18,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
   if (!isAdmin && (!membership || membership.groupRole !== 'CHEF')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  }
+
+  // Permission co-chef : ajout de membres
+  const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
+  if (grp && !coChefCanDo(grp, userId, isAdmin, 'membres', 'add')) {
+    return NextResponse.json({ error: 'Le fondateur ne vous autorise pas à ajouter des membres.' }, { status: 403 })
   }
 
   const { email } = await req.json()
