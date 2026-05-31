@@ -251,6 +251,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             iconBg: 'bg-pink-100', textColor: 'text-pink-700', border: 'border-pink-200 hover:border-pink-400 hover:bg-pink-50/60',
             chefDesc: 'Messagerie du groupe', memberDesc: 'Messagerie du groupe',
           },
+          {
+            href: 'ressources-partagees', label: 'Ressources', icon: '📒',
+            iconBg: 'bg-cyan-100', textColor: 'text-cyan-700', border: 'border-cyan-200 hover:border-cyan-400 hover:bg-cyan-50/60',
+            chefDesc: 'Liens, contacts, fichiers', memberDesc: 'Liens, contacts, fichiers',
+          },
         ] as const)
           // Masque les fonctionnalités non incluses dans le plan du groupe
           .filter((link) => {

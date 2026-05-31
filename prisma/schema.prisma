@@ -157,6 +157,7 @@ model User {
   supportTickets           SupportTicket[]
   cachetSimulations        CachetSimulation[]
   gear                     UserGear[]
+  sharedResources          GroupSharedResource[]
 }
 
 model UserGear {
@@ -224,6 +225,28 @@ model Group {
   pendingResources PendingResource[]
   moduleGroupOverrides ModuleGroupOverride[]
   messages         GroupMessage[]
+  sharedResources  GroupSharedResource[]
+}
+
+model GroupSharedResource {
+  id          Int      @id @default(autoincrement())
+  groupId     Int
+  type        String   // LINK, SHOP, CONTACT, NOTE, FILE
+  title       String
+  url         String?  // LINK
+  address     String?  // SHOP (adresse physique)
+  phone       String?  // CONTACT
+  email       String?  // CONTACT
+  note        String?  @db.Text // description / contenu libre
+  filePath    String?  // FILE
+  fileSize    Int?     // FILE (octets)
+  createdById Int
+  createdAt   DateTime @default(now())
+
+  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy User  @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
 }
 
 model GroupPage {
