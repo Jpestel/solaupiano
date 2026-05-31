@@ -79,7 +79,7 @@ export default async function PublicFichePage({ params }: { params: { token: str
               {(s.members ?? []).length > 0 && (
                 <div className="mt-4 overflow-x-auto">
                   {(() => {
-                    const hasGuso = s.members.some((m: any) => m.gusoNumber)
+                    const hasGuso = c.showGuso !== false && s.members.some((m: any) => m.gusoNumber)
                     return (
                       <table className="w-full text-sm">
                         <thead>

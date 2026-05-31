@@ -12,6 +12,7 @@ interface SoundChannel { id: string; source: string; type: string; notes: string
 
 interface TechRiderContent {
   contactName: string; contactPhone: string; contactEmail: string; genre: string; generalNotes: string
+  showGuso?: boolean
   stage: { minWidth: string; minDepth: string; setupDuration: string; soundcheckDuration: string; powerNeeds: string; members: StageMember[]; notes: string }
   sound: { totalChannels: number; channels: SoundChannel[]; monitorsCount: number; inEar: boolean; diCount: number; subwoofer: boolean; notes: string }
   lights: { hasFrontLight: boolean; hasBackLight: boolean; hasFog: boolean; hasStrobe: boolean; customRequests: string; notes: string }
@@ -23,6 +24,7 @@ interface GroupMember { userId: number; name: string; groupRole: string; gusoNum
 
 const DEFAULT: TechRiderContent = {
   contactName: '', contactPhone: '', contactEmail: '', genre: '', generalNotes: '',
+  showGuso: true,
   stage: { minWidth: '', minDepth: '', setupDuration: '', soundcheckDuration: '', powerNeeds: '', members: [], notes: '' },
   sound: { totalChannels: 0, channels: [], monitorsCount: 2, inEar: false, diCount: 0, subwoofer: false, notes: '' },
   lights: { hasFrontLight: false, hasBackLight: false, hasFog: false, hasStrobe: false, customRequests: '', notes: '' },
@@ -331,9 +333,22 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
 
             {/* Membres sur scène */}
             <div>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
                 <h3 className="text-sm font-semibold text-gray-700">Musiciens & backline</h3>
-                {isChef && <button onClick={addStageMember} className="text-sm text-indigo-600 hover:text-indigo-500 font-medium">+ Ajouter</button>}
+                <div className="flex items-center gap-4">
+                  {isChef && (
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={content.showGuso !== false}
+                        onChange={e => setContent(c => ({ ...c, showGuso: e.target.checked }))}
+                        className="w-4 h-4 text-indigo-600 rounded border-gray-300"
+                      />
+                      Afficher la colonne N° GUSO
+                    </label>
+                  )}
+                  {isChef && <button onClick={addStageMember} className="text-sm text-indigo-600 hover:text-indigo-500 font-medium">+ Ajouter</button>}
+                </div>
               </div>
               {content.stage.members.length === 0 ? (
                 <p className="text-sm text-gray-400 italic">Aucun musicien ajouté.</p>
@@ -346,6 +361,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                         <th className="text-left px-3 py-2">Instrument</th>
                         <th className="text-left px-3 py-2">Position</th>
                         <th className="text-left px-3 py-2">Backline / Besoins</th>
+                        {content.showGuso !== false && (
                         <th className="text-left px-3 py-2">
                           <span className="flex items-center gap-1">
                             N° GUSO
@@ -363,6 +379,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                             </span>
                           </span>
                         </th>
+                        )}
                         {isChef && <th className="w-8" />}
                       </tr>
                     </thead>
@@ -373,7 +390,9 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                           <td className="px-3 py-2"><input disabled={!isChef} value={m.instrument} onChange={e => updStageMember(m.id, { instrument: e.target.value })} className={`${inp} py-1.5`} placeholder="Guitare" /></td>
                           <td className="px-3 py-2"><input disabled={!isChef} value={m.position} onChange={e => updStageMember(m.id, { position: e.target.value })} className={`${inp} py-1.5`} placeholder="Jardin" /></td>
                           <td className="px-3 py-2"><input disabled={!isChef} value={m.backline} onChange={e => updStageMember(m.id, { backline: e.target.value })} className={`${inp} py-1.5`} placeholder="Ampli Fender Twin 65W" /></td>
+                          {content.showGuso !== false && (
                           <td className="px-3 py-2"><input disabled={!isChef} value={m.gusoNumber ?? ''} onChange={e => updStageMember(m.id, { gusoNumber: e.target.value })} className={`${inp} py-1.5`} placeholder="123456789" /></td>
+                          )}
                           {isChef && <td className="px-2 py-2"><button onClick={() => delStageMember(m.id)} className="text-gray-300 hover:text-red-500 text-lg leading-none">×</button></td>}
                         </tr>
                       ))}
