@@ -96,7 +96,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       uploadDir,
       keepExtensions: true,
       maxFileSize: 100 * 1024 * 1024,
-      filename: (name, ext) => `${Date.now()}-${name}${ext}`,
+      // Nom de fichier ASCII sans espaces (URL fiable) — le titre lisible est stocké en base
+      filename: (name, ext) => `${Date.now()}-seq${(ext || '').toLowerCase()}`,
     })
 
     const contentType = req.headers.get('content-type') || ''

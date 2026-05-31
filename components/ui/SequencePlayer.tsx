@@ -88,7 +88,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     <div className="rounded-lg border border-gray-200 bg-white p-3">
       <audio
         ref={audioRef}
-        src={seq.filePath}
+        src={encodeURI(seq.filePath)}
         preload="metadata"
         onLoadedMetadata={(e) => setDur((e.target as HTMLAudioElement).duration)}
         onTimeUpdate={(e) => setCur((e.target as HTMLAudioElement).currentTime)}
@@ -196,15 +196,23 @@ function MidiSeqPlayer({ seq }: { seq: Sequence }) {
     if (playing) { stop(); return }
     setLoading(true); setErr('')
     try {
-      const [{ Midi }, Tone] = await Promise.all([import('@tonejs/midi'), import('tone')])
+      const midiMod: any = await import('@tonejs/midi')
+      const toneMod: any = await import('tone')
+      const Midi = midiMod.Midi ?? midiMod.default?.Midi ?? midiMod.default
+      const Tone = toneMod.Transport || toneMod.start ? toneMod : (toneMod.default ?? toneMod)
       toneRef.current = Tone
-      const res = await fetch(seq.filePath)
+      if (!Midi) throw new Error('@tonejs/midi non chargé')
+      if (!Tone?.start) throw new Error('Tone.js non chargé')
+
+      const res = await fetch(encodeURI(seq.filePath))
+      if (!res.ok) throw new Error(`Fichier inaccessible (HTTP ${res.status})`)
       const buf = await res.arrayBuffer()
       const midi = new Midi(buf)
       setDuration(midi.duration)
 
       await Tone.start()
       const transport = Tone.Transport ?? Tone.getTransport?.()
+      if (!transport) throw new Error('Transport Tone indisponible')
       transport.stop(); transport.cancel(); transport.position = 0
 
       if (!synthRef.current) {
@@ -233,9 +241,9 @@ function MidiSeqPlayer({ seq }: { seq: Sequence }) {
         setProgress(sec)
         if (sec >= midi.duration) stop()
       }, 200)
-    } catch (e) {
-      console.error(e)
-      setErr('Lecture MIDI impossible dans ce navigateur.')
+    } catch (e: any) {
+      console.error('MIDI play error:', e)
+      setErr(`Lecture MIDI impossible : ${e?.message || e}`)
       setLoading(false)
       setPlaying(false)
     }

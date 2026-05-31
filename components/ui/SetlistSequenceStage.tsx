@@ -113,7 +113,7 @@ export function SetlistSequenceStage({ songs, onClose }: { songs: StageSong[]; o
     const a = audioRef.current
     if (!a || !seq) return
     a.pause(); setPlaying(false); setCur(0); setDur(0)
-    a.src = seq.filePath
+    a.src = encodeURI(seq.filePath)
     a.load()
     if (autoPlayNextRef.current) {
       autoPlayNextRef.current = false
