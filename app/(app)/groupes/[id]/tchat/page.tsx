@@ -35,6 +35,30 @@ function sameDay(a: string, b: string) {
   return new Date(a).toDateString() === new Date(b).toDateString()
 }
 
+function fmtBytes(b: number): string {
+  if (b < 1024) return `${b} o`
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} Ko`
+  if (b < 1024 * 1024 * 1024) return `${(b / 1024 / 1024).toFixed(1)} Mo`
+  return `${(b / 1024 / 1024 / 1024).toFixed(2)} Go`
+}
+
+// Palette d'emojis fréquents pour le tchat
+const EMOJIS = [
+  '😀','😁','😂','🤣','😊','😍','😎','🤩','😉','😜','🤔','🙄','😬','😢','😭','😤','😡','🥳','😴','🤗',
+  '👍','👎','👏','🙌','🙏','💪','🤝','✌️','🤘','👌','👋','🔥','✨','⭐','🎉','🎊','❤️','🧡','💚','💙',
+  '🎵','🎶','🎸','🎹','🥁','🎤','🎺','🎷','🎻','🎼','🎧','🔊','📅','✅','❌','⚠️','💡','👀','🚀','💯',
+]
+
+// Transforme les URLs en liens cliquables (échappe le HTML au passage)
+function renderContent(text: string): React.ReactNode {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g)
+  return parts.map((part, i) =>
+    /^https?:\/\//.test(part)
+      ? <a key={i} href={part} target="_blank" rel="noreferrer" className="underline break-all hover:opacity-80">{part}</a>
+      : <span key={i}>{part}</span>
+  )
+}
+
 function Avatar({ user, size = 8 }: { user: MsgUser; size?: number }) {
   const s = `w-${size} h-${size}`
   if (user.avatarUrl) {
@@ -69,11 +93,15 @@ export default function TchatPage({ params }: { params: { id: string } }) {
 
   const [input, setInput]         = useState('')
   const [sending, setSending]     = useState(false)
+  const [emojiOpen, setEmojiOpen] = useState(false)
 
   const [editId, setEditId]       = useState<number | null>(null)
   const [editContent, setEditContent] = useState('')
 
   const [deleteId, setDeleteId]   = useState<number | null>(null)
+
+  // Stockage (informatif) — les messages texte ne consomment PAS ce quota
+  const [storage, setStorage] = useState<{ used: number; limit: number } | null>(null)
 
   const bottomRef  = useRef<HTMLDivElement>(null)
   const inputRef   = useRef<HTMLTextAreaElement>(null)
@@ -117,6 +145,9 @@ export default function TchatPage({ params }: { params: { id: string } }) {
       setGroupName(g.name ?? '')
       const me = g.members?.find((m: any) => m.userId === userId)
       setIsChef(isAdmin || me?.groupRole === 'CHEF')
+      if (typeof g.storageLimitBytes === 'number' && g.storageLimitBytes > 0) {
+        setStorage({ used: g.storageUsedTotalBytes ?? 0, limit: g.storageLimitBytes })
+      }
     }
     setLoading(false)
     setTimeout(() => scrollToBottom(), 50)
@@ -215,6 +246,11 @@ export default function TchatPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const insertEmoji = (emoji: string) => {
+    setInput(prev => (prev + emoji).slice(0, 2000))
+    inputRef.current?.focus()
+  }
+
   // ── Edit ────────────────────────────────────────────────────────────────────
 
   const startEdit = (msg: Message) => {
@@ -265,10 +301,29 @@ export default function TchatPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Header */}
-      <div className="flex items-center gap-3 mb-3 flex-shrink-0">
+      <div className="flex items-center gap-3 mb-3 flex-shrink-0 flex-wrap">
         <h1 className="text-xl font-bold text-gray-900">💬 Tchat du groupe</h1>
         <span className="text-xs text-gray-400">Messages privés — visibles uniquement par les membres</span>
       </div>
+
+      {/* Barre de quota de stockage (informatif) */}
+      {storage && (() => {
+        const pct = Math.min(100, (storage.used / storage.limit) * 100)
+        return (
+          <div className="mb-3 flex-shrink-0 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+            <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
+              <span>💾 Stockage du groupe (fichiers) — {fmtBytes(storage.used)} / {fmtBytes(storage.limit)}</span>
+              <span>{pct.toFixed(0)} %</span>
+            </div>
+            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-amber-400' : 'bg-indigo-500'}`} style={{ width: `${pct}%` }} />
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1">
+              ℹ️ Les messages du tchat sont du texte et ne consomment pas ce quota — il ne concerne que les fichiers du répertoire.
+            </p>
+          </div>
+        )
+      })()}
 
       {/* Messages area */}
       <div
@@ -363,7 +418,7 @@ export default function TchatPage({ params }: { params: { id: string } }) {
                         ? 'bg-indigo-600 text-white rounded-br-sm'
                         : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm shadow-sm'
                     }`}>
-                      {msg.content}
+                      {renderContent(msg.content)}
                       {msg.editedAt && (
                         <span className={`text-[10px] ml-1.5 ${isOwn ? 'text-indigo-200' : 'text-gray-400'}`}>(modifié)</span>
                       )}
@@ -403,14 +458,38 @@ export default function TchatPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 mt-3">
-        <div className="flex items-end gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-3 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-colors">
+      <div className="flex-shrink-0 mt-3 relative">
+        {/* Sélecteur d'emojis */}
+        {emojiOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setEmojiOpen(false)} />
+            <div className="absolute bottom-full mb-2 left-0 z-20 w-72 max-h-48 overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-xl p-2 grid grid-cols-8 gap-0.5">
+              {EMOJIS.map(em => (
+                <button key={em} type="button"
+                  onClick={() => { insertEmoji(em); }}
+                  className="text-xl rounded-lg hover:bg-gray-100 p-1 transition-colors">
+                  {em}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="flex items-end gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-3 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-colors">
+          <button
+            type="button"
+            onClick={() => setEmojiOpen(v => !v)}
+            className={`flex-shrink-0 rounded-lg p-1.5 text-xl leading-none transition-colors ${emojiOpen ? 'bg-indigo-50' : 'hover:bg-gray-100'}`}
+            title="Insérer un emoji"
+          >
+            😊
+          </button>
           <textarea
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Écrivez un message… (Entrée pour envoyer, Maj+Entrée pour un saut de ligne)"
+            placeholder="Écrivez un message…"
             className="flex-1 resize-none text-sm text-gray-800 placeholder-gray-400 focus:outline-none bg-transparent max-h-32"
             rows={1}
             style={{ height: 'auto', minHeight: '24px' }}
