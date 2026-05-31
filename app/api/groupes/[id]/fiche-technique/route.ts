@@ -30,6 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           select: {
             id: true, name: true, gusoNumber: true,
             instruments: { include: { instrument: { select: { name: true } } } },
+            gear: { orderBy: { order: 'asc' }, select: { category: true, name: true, brand: true, quantity: true } },
           },
         },
       },
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       groupRole: m.groupRole,
       gusoNumber: m.user.gusoNumber ?? '',
       instruments: m.user.instruments.map((ui) => ui.instrument.name),
+      gear: m.user.gear.map((g) => ({ category: g.category, name: g.name, brand: g.brand, quantity: g.quantity })),
     })),
   })
 }

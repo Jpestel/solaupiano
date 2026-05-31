@@ -18,7 +18,8 @@ interface TechRiderContent {
   hospitality: { totalPersons: number; meals: boolean; mealsDetails: string; drinks: string; accommodation: boolean; accommodationRooms: string; parkingSpots: string; notes: string }
 }
 
-interface GroupMember { userId: number; name: string; groupRole: string; gusoNumber: string; instruments: string[] }
+interface GearItem { category: string; name: string; brand: string | null; quantity: number }
+interface GroupMember { userId: number; name: string; groupRole: string; gusoNumber: string; instruments: string[]; gear?: GearItem[] }
 
 const DEFAULT: TechRiderContent = {
   contactName: '', contactPhone: '', contactEmail: '', genre: '', generalNotes: '',
@@ -106,14 +107,36 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
   }
 
   // ─── Pre-fill from members ─────────────────────────────────────────────────
+  // Construit la chaîne backline depuis le matériel du membre (ampli, instruments, effets…)
+  const gearToBackline = (gear?: GroupMember['gear']): string => {
+    if (!gear || gear.length === 0) return ''
+    const STAGE_CATS = ['AMP', 'INSTRUMENT', 'KEYS', 'DRUMS', 'EFFECT']
+    return gear
+      .filter(g => STAGE_CATS.includes(g.category))
+      .map(g => {
+        const label = [g.brand, g.name].filter(Boolean).join(' ')
+        return g.quantity > 1 ? `${g.quantity}× ${label}` : label
+      })
+      .join(', ')
+  }
+
   const prefillFromMembers = () => {
     const members: StageMember[] = groupMembers.map(m => ({
-      id: uid(), name: m.name, instrument: m.instruments[0] ?? '', position: '', backline: '', gusoNumber: m.gusoNumber ?? '',
+      id: uid(),
+      name: m.name,
+      instrument: m.instruments[0] ?? '',
+      position: '',
+      backline: gearToBackline(m.gear),
+      gusoNumber: m.gusoNumber ?? '',
     }))
     setContent(c => ({ ...c, stage: { ...c.stage, members } }))
-    const channels: SoundChannel[] = groupMembers.flatMap(m =>
-      m.instruments.map(inst => ({ id: uid(), source: `${m.name} — ${inst}`, type: guessType(inst), notes: '' }))
-    )
+    // Canaux son : instruments du membre + micros déclarés dans son matériel
+    const channels: SoundChannel[] = groupMembers.flatMap(m => {
+      const fromInstruments = m.instruments.map(inst => ({ id: uid(), source: `${m.name} — ${inst}`, type: guessType(inst), notes: '' }))
+      const micGear = (m.gear ?? []).filter(g => g.category === 'MIC')
+      const fromMics = micGear.map(g => ({ id: uid(), source: `${m.name} — ${[g.brand, g.name].filter(Boolean).join(' ')}`, type: 'Micro', notes: '' }))
+      return [...fromInstruments, ...fromMics]
+    })
     setContent(c => ({ ...c, sound: { ...c.sound, channels, totalChannels: channels.length, totalPersons: groupMembers.length } }))
     setContent(c => ({ ...c, hospitality: { ...c.hospitality, totalPersons: groupMembers.length } }))
   }
@@ -243,7 +266,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
       {/* Pre-fill hint */}
       {isChef && content.stage.members.length === 0 && groupMembers.length > 0 && (
         <div className="mb-5 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-sm text-indigo-700">✨ Pré-remplir automatiquement à partir des membres du groupe ?</p>
+          <p className="text-sm text-indigo-700">✨ Pré-remplir automatiquement depuis les membres et leur matériel (« Mon matériel ») ?</p>
           <button onClick={prefillFromMembers} className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 whitespace-nowrap">
             Oui, pré-remplir →
           </button>
