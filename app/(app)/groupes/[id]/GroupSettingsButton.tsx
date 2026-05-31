@@ -19,9 +19,11 @@ interface Props {
   initialIsPublic: boolean
   initialIsHidden: boolean
   initialLookingFor: string[]
+  isFounder?: boolean
+  memberCount?: number
 }
 
-export function GroupSettingsButton({ groupId, initialName, initialDescription, initialIsPublic, initialIsHidden, initialLookingFor }: Props) {
+export function GroupSettingsButton({ groupId, initialName, initialDescription, initialIsPublic, initialIsHidden, initialLookingFor, isFounder = false, memberCount = 1 }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(initialName)
@@ -30,6 +32,27 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
   const [lookingFor, setLookingFor] = useState<string[]>(initialLookingFor)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Suppression du groupe
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const canDelete = memberCount <= 1   // seul dans le groupe
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    setDeleteError('')
+    const res = await fetch(`/api/groupes/${groupId}`, { method: 'DELETE' })
+    if (res.ok) {
+      router.push('/groupes')
+      router.refresh()
+      return
+    }
+    const d = await res.json().catch(() => ({}))
+    setDeleteError(d.error || 'Suppression impossible.')
+    setDeleting(false)
+    setConfirmDelete(false)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,6 +89,8 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
     setVisibility(toVisibility(initialIsPublic, initialIsHidden))
     setLookingFor(initialLookingFor)
     setError('')
+    setConfirmDelete(false)
+    setDeleteError('')
   }
 
   return (
@@ -159,6 +184,52 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
                 </button>
               </div>
             </form>
+
+            {/* ── Zone de suppression (fondateur uniquement) ── */}
+            {isFounder && (
+              <div className="mt-6 pt-5 border-t border-gray-200">
+                <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2">Zone de danger</p>
+
+                {deleteError && (
+                  <p className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{deleteError}</p>
+                )}
+
+                {canDelete ? (
+                  confirmDelete ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                      <p className="text-sm text-red-800 font-medium mb-1">Supprimer définitivement « {initialName} » ?</p>
+                      <p className="text-xs text-red-600 mb-3">Cette action est irréversible — répétitions, morceaux, setlists, fichiers… tout sera supprimé.</p>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={handleDelete} disabled={deleting}
+                          className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60 transition-colors">
+                          {deleting ? 'Suppression…' : 'Oui, supprimer définitivement'}
+                        </button>
+                        <button type="button" onClick={() => setConfirmDelete(false)}
+                          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => { setConfirmDelete(true); setDeleteError('') }}
+                      className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors">
+                      🗑 Supprimer le groupe
+                    </button>
+                  )
+                ) : (
+                  <div>
+                    <button type="button" disabled
+                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-400 cursor-not-allowed">
+                      🗑 Supprimer le groupe
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                      Impossible de supprimer ce groupe car d&apos;autres membres (en plus de vous, le fondateur) en font partie.
+                      Retirez d&apos;abord tous les autres membres depuis l&apos;onglet <strong>Membres</strong>, puis revenez ici.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

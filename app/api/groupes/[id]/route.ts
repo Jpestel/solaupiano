@@ -99,9 +99,32 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
-  if (session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
+  const userId = Number(session.user.id)
   const groupId = Number(params.id)
+  const isAdmin = session.user.siteRole === 'ADMIN'
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { createdBy: true, _count: { select: { members: true } } },
+  })
+  if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
+
+  // L'admin peut toujours supprimer
+  if (!isAdmin) {
+    // Sinon, réservé au fondateur du groupe
+    if (group.createdBy !== userId) {
+      return NextResponse.json({ error: 'Seul le fondateur du groupe peut le supprimer.' }, { status: 403 })
+    }
+    // Et uniquement s'il est le seul membre
+    if (group._count.members > 1) {
+      return NextResponse.json({
+        error: 'Impossible de supprimer ce groupe : d\'autres membres en font encore partie. Retirez d\'abord tous les autres membres, puis supprimez le groupe.',
+        code: 'GROUP_HAS_MEMBERS',
+      }, { status: 409 })
+    }
+  }
+
   await prisma.group.delete({ where: { id: groupId } })
 
   return NextResponse.json({ success: true })
