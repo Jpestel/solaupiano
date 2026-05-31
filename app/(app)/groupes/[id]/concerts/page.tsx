@@ -28,6 +28,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
   const [concerts, setConcerts] = useState<Concert[]>([])
   const [setlists, setSetlists] = useState<SetlistRef[]>([])
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null)
+  const [unavs, setUnavs] = useState<{ userId: number; startDate: string; endDate: string; note: string | null; user: { name: string } }[]>([])
   const [loading, setLoading] = useState(true)
 
   // Create
@@ -125,11 +126,13 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
   }
 
   const fetchData = async () => {
-    const [concRes, grpRes, slRes] = await Promise.all([
+    const [concRes, grpRes, slRes, unavRes] = await Promise.all([
       fetch(`/api/groupes/${groupId}/concerts`),
       fetch(`/api/groupes/${groupId}`),
       fetch(`/api/groupes/${groupId}/setlists`),
+      fetch(`/api/groupes/${groupId}/indisponibilites`),
     ])
+    if (unavRes.ok) setUnavs(await unavRes.json())
     if (concRes.ok) {
       const concerts: Concert[] = await concRes.json()
       // Charger les simulations liées en parallèle
@@ -387,6 +390,16 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
           <div>
             <label className="form-label">Date <span className="text-red-500">*</span></label>
             <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="form-input" />
+            {form.date && (() => {
+              const day = form.date
+              const busy = unavs.filter((u) => u.startDate.slice(0, 10) <= day && day <= u.endDate.slice(0, 10))
+              if (busy.length === 0) return <p className="mt-1.5 text-xs text-green-600">✅ Aucun membre indisponible ce jour-là.</p>
+              return (
+                <div className="mt-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                  ⚠️ <strong>{busy.length} indisponible{busy.length > 1 ? 's' : ''}</strong> ce jour : {busy.map((u) => u.user.name + (u.note ? ` (${u.note})` : '')).join(', ')}
+                </div>
+              )
+            })()}
           </div>
           <div>
             <label className="form-label">Lieu <span className="text-red-500">*</span></label>

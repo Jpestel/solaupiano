@@ -256,6 +256,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             iconBg: 'bg-cyan-100', textColor: 'text-cyan-700', border: 'border-cyan-200 hover:border-cyan-400 hover:bg-cyan-50/60',
             chefDesc: 'Liens, contacts, fichiers', memberDesc: 'Liens, contacts, fichiers',
           },
+          {
+            href: 'disponibilites', label: 'Disponibilités', icon: '🗓',
+            iconBg: 'bg-amber-100', textColor: 'text-amber-700', border: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/60',
+            chefDesc: 'Voir qui est dispo', memberDesc: 'Mes indisponibilités',
+          },
         ] as const)
           // Masque les fonctionnalités non incluses dans le plan du groupe
           .filter((link) => {

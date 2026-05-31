@@ -36,6 +36,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
   const [rehearsals, setRehearsals] = useState<Rehearsal[]>([])
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null)
   const [members, setMembers] = useState<Member[]>([])
+  const [unavs, setUnavs] = useState<{ userId: number; startDate: string; endDate: string; note: string | null; user: { name: string } }[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({
@@ -51,10 +52,12 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
   const [error, setError] = useState('')
 
   const fetchData = async () => {
-    const [repRes, grpRes] = await Promise.all([
+    const [repRes, grpRes, unavRes] = await Promise.all([
       fetch(`/api/groupes/${groupId}/repetitions`),
       fetch(`/api/groupes/${groupId}`),
+      fetch(`/api/groupes/${groupId}/indisponibilites`),
     ])
+    if (unavRes.ok) setUnavs(await unavRes.json())
     if (repRes.ok) setRehearsals(await repRes.json())
     if (grpRes.ok) {
       const g = await grpRes.json()
@@ -200,6 +203,19 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
                 className="form-input"
               />
+              {form.date && (() => {
+                const day = form.date
+                const busy = unavs.filter((u) => u.startDate.slice(0, 10) <= day && day <= u.endDate.slice(0, 10))
+                if (busy.length === 0) return (
+                  <p className="mt-1.5 text-xs text-green-600">✅ Aucun membre n'a signalé d'indisponibilité ce jour-là.</p>
+                )
+                return (
+                  <div className="mt-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                    ⚠️ <strong>{busy.length} indisponible{busy.length > 1 ? 's' : ''}</strong> ce jour :{' '}
+                    {busy.map((u) => u.user.name + (u.note ? ` (${u.note})` : '')).join(', ')}
+                  </div>
+                )
+              })()}
             </div>
             <div>
               <label className="form-label">Heure de début *</label>

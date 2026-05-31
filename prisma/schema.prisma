@@ -172,6 +172,7 @@ model User {
   gear                     UserGear[]
   sharedResources          GroupSharedResource[]
   songSequences            SongSequence[]
+  unavailabilities         Unavailability[]
 }
 
 model UserGear {
@@ -240,6 +241,23 @@ model Group {
   moduleGroupOverrides ModuleGroupOverride[]
   messages         GroupMessage[]
   sharedResources  GroupSharedResource[]
+  unavailabilities Unavailability[]
+}
+
+model Unavailability {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  groupId   Int
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  note      String?
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([userId])
 }
 
 model GroupSharedResource {
