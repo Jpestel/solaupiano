@@ -25,8 +25,8 @@ export function GroupMembersPanel({
     m.userId === createdBy
       ? 'bg-amber-100 text-amber-700 border-amber-200'
       : m.groupRole === 'CHEF'
-        ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
-        : 'bg-gray-100 text-gray-600 border-gray-200'
+        ? 'bg-blue-100 text-blue-700 border-blue-200'
+        : 'bg-white text-gray-600 border-gray-200'
 
   return (
     <div className="mt-1.5 rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2">

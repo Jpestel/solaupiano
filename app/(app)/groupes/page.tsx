@@ -3,7 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Card } from '@/components/ui/Card'
-import { RoleBadge } from '@/components/ui/Badge'
+import { RoleBadge, GroupRoleBadge } from '@/components/ui/Badge'
 import { CreateGroupButton } from './CreateGroupButton'
 import { JoinPublicGroupsSection } from './JoinPublicGroupsSection'
 import { QuickInvite } from './QuickInvite'
@@ -172,7 +172,7 @@ export default async function GroupesPage() {
                         : group.name.charAt(0)
                       }
                     </div>
-                    <RoleBadge role={groupRole} />
+                    <GroupRoleBadge groupRole={groupRole} isFounder={group.createdBy === userId} />
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-1">{group.name}</h3>
                   {group.description && (

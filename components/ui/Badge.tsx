@@ -59,6 +59,28 @@ export function AttendanceBadge({ status }: { status: string }) {
   return <Badge variant={variant}>{label}</Badge>
 }
 
+/**
+ * Badge de rôle dans un groupe, distinguant le fondateur des co-chefs.
+ * Couleurs littérales (non affectées par le thème du site) :
+ * fondateur = orange, co-chef = bleu, membre = blanc/gris.
+ */
+export function GroupRoleBadge({ groupRole, isFounder }: { groupRole: string; isFounder: boolean }) {
+  let cls = 'border-gray-200 bg-white text-gray-600'
+  let label = 'Membre'
+  if (isFounder) {
+    cls = 'border-amber-200 bg-amber-100 text-amber-700'
+    label = "Chef d'orchestre"
+  } else if (groupRole === 'CHEF') {
+    cls = 'border-blue-200 bg-blue-100 text-blue-700'
+    label = 'Co-chef'
+  }
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${cls}`}>
+      {label}
+    </span>
+  )
+}
+
 export function RoleBadge({ role }: { role: string }) {
   const map: Record<string, { variant: BadgeVariant; label: string }> = {
     CHEF: { variant: 'chef', label: "Chef d'orchestre" },
