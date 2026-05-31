@@ -173,6 +173,56 @@ model User {
   sharedResources          GroupSharedResource[]
   songSequences            SongSequence[]
   unavailabilities         Unavailability[]
+  flashInfoViews           FlashInfoView[]
+}
+
+enum FlashInfoType {
+  INFO
+  ASTUCE
+  NEWS
+  ALERTE
+}
+
+enum FlashInfoUnit {
+  HOUR
+  DAY
+  WEEK
+  MONTH
+}
+
+model FlashInfo {
+  id            Int           @id @default(autoincrement())
+  type          FlashInfoType @default(INFO)
+  title         String
+  content       String        @db.Text
+  ctaLabel      String?       // libellé d'un bouton d'action optionnel
+  ctaUrl        String?       // lien du bouton (interne ou externe)
+  active        Boolean       @default(true)
+  startAt       DateTime?     // début de la fenêtre de diffusion
+  endAt         DateTime?     // fin de la fenêtre de diffusion
+  recurring     Boolean       @default(false) // false = une seule fois par utilisateur
+  intervalValue Int           @default(1)
+  intervalUnit  FlashInfoUnit @default(DAY)
+  maxDisplays   Int?          // nombre max d'affichages par utilisateur (null = illimité)
+  priority      Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  views FlashInfoView[]
+}
+
+model FlashInfoView {
+  id          Int      @id @default(autoincrement())
+  flashInfoId Int
+  userId      Int
+  count       Int      @default(0)
+  lastSeenAt  DateTime @default(now())
+
+  flashInfo FlashInfo @relation(fields: [flashInfoId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([flashInfoId, userId])
+  @@index([userId])
 }
 
 model UserGear {

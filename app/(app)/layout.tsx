@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { BottomNav } from '@/components/BottomNav'
 import { SettingsProvider, useSettings } from '@/components/SettingsProvider'
 import { WakeUpOverlay } from '@/components/WakeUpOverlay'
+import { FlashInfo } from '@/components/FlashInfo'
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -66,6 +67,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
       <BottomNav />
       <WakeUpOverlay />
+      <FlashInfo />
     </div>
   )
 }

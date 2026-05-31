@@ -17,6 +17,7 @@ const adminNav = [
   { href: '/admin/rappels',          label: 'Rappels' },
   { href: '/admin/personnalisation', label: 'Personnalisation' },
   { href: '/admin/tutoriels',       label: 'Tutoriels vidéo' },
+  { href: '/admin/flash-infos',      label: 'Flash infos' },
   { href: '/admin/fichiers',         label: 'Fichiers orphelins' },
 ]
 
