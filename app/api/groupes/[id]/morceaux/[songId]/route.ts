@@ -32,7 +32,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
-  const { title, artist, notes, durationSeconds } = await req.json()
+  const { title, artist, notes, durationSeconds, tempo } = await req.json()
   if (!title?.trim()) return NextResponse.json({ error: 'Le titre est requis.' }, { status: 400 })
 
   const song = await prisma.song.update({
@@ -42,6 +42,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       artist: artist?.trim() || null,
       notes: notes?.trim() || null,
       durationSeconds: durationSeconds != null ? Number(durationSeconds) : null,
+      tempo: tempo != null && tempo !== '' ? Math.max(20, Math.min(300, Number(tempo))) : null,
     },
   })
 

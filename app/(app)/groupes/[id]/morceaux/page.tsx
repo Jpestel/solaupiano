@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal'
 import { ResourceUploader } from '@/components/ResourceUploader'
 import { PendingResourceUploader } from '@/components/PendingResourceUploader'
 import { VideoModal } from '@/components/ui/VideoModal'
+import { SongMetronome } from '@/components/ui/SongMetronome'
 import { PdfModal } from '@/components/ui/PdfModal'
 
 interface Resource {
@@ -27,6 +28,7 @@ interface Song {
   artist?: string
   notes?: string
   durationSeconds?: number | null
+  tempo?: number | null
   resources: Resource[]
   lyrics?: { id: number } | null
   tab?: { id: number } | null
@@ -79,7 +81,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [addSongOpen, setAddSongOpen] = useState(false)
   const [editSong, setEditSong] = useState<Song | null>(null)
   const [uploadSongId, setUploadSongId] = useState<number | null>(null)
-  const [songForm, setSongForm] = useState({ title: '', artist: '', notes: '', duration: '' })
+  const [songForm, setSongForm] = useState({ title: '', artist: '', notes: '', duration: '', tempo: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
@@ -133,7 +135,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       return
     }
     setAddSongOpen(false)
-    setSongForm({ title: '', artist: '', notes: '', duration: '' })
+    setSongForm({ title: '', artist: '', notes: '', duration: '', tempo: '' })
     fetchData()
   }
 
@@ -144,6 +146,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       artist: song.artist || '',
       notes: song.notes || '',
       duration: song.durationSeconds ? formatDuration(song.durationSeconds) : '',
+      tempo: song.tempo ? String(song.tempo) : '',
     })
     setError('')
   }
@@ -333,6 +336,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                           ⏱ {formatDuration(song.durationSeconds)}
                         </span>
                       ) : null}
+                      {song.tempo ? <SongMetronome bpm={song.tempo} /> : null}
                     </div>
                     {song.artist && <p className="text-sm text-gray-500 mt-0.5">{song.artist}</p>}
                     {song.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{song.notes}</p>}
@@ -567,6 +571,16 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             />
           </div>
           <div>
+            <label className="form-label">Tempo <span className="text-gray-400 font-normal">(BPM — métronome avant de jouer)</span></label>
+            <input
+              type="number" min={20} max={300}
+              value={songForm.tempo}
+              onChange={(e) => setSongForm({ ...songForm, tempo: e.target.value })}
+              className="form-input"
+              placeholder="ex : 120"
+            />
+          </div>
+          <div>
             <label className="form-label">Notes</label>
             <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} />
           </div>
@@ -610,6 +624,16 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
               placeholder="3:45"
               pattern="^\d{1,3}:\d{2}$"
               title="Format MM:SS (ex: 3:45)"
+            />
+          </div>
+          <div>
+            <label className="form-label">Tempo <span className="text-gray-400 font-normal">(BPM — métronome avant de jouer)</span></label>
+            <input
+              type="number" min={20} max={300}
+              value={songForm.tempo}
+              onChange={(e) => setSongForm({ ...songForm, tempo: e.target.value })}
+              className="form-input"
+              placeholder="ex : 120"
             />
           </div>
           <div>

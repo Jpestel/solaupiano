@@ -49,7 +49,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json()
   const updated = await prisma.song.update({
     where: { id: songId },
-    data: { title: body.title, artist: body.artist, notes: body.notes },
+    data: {
+      title: body.title,
+      artist: body.artist,
+      notes: body.notes,
+      ...(body.durationSeconds !== undefined && { durationSeconds: body.durationSeconds != null ? Number(body.durationSeconds) : null }),
+      ...(body.tempo !== undefined && { tempo: body.tempo != null && body.tempo !== '' ? Math.max(20, Math.min(300, Number(body.tempo))) : null }),
+    },
   })
 
   return NextResponse.json(updated)

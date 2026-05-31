@@ -418,6 +418,7 @@ model Song {
   artist          String?
   notes           String?  @db.Text
   durationSeconds Int?
+  tempo           Int?     // BPM
   createdAt       DateTime @default(now())
 
   group            Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)

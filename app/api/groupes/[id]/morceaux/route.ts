@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const body = await req.json()
-  const { title, artist, notes, durationSeconds } = body
+  const { title, artist, notes, durationSeconds, tempo } = body
 
   if (!title) return NextResponse.json({ error: 'Le titre est requis.' }, { status: 400 })
 
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       artist: artist || null,
       notes: notes || null,
       durationSeconds: durationSeconds != null ? Number(durationSeconds) : null,
+      tempo: tempo != null && tempo !== '' ? Math.max(20, Math.min(300, Number(tempo))) : null,
     },
   })
 
