@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { GroupRoleBadge } from '@/components/ui/Badge'
 import { formatDateWithDay } from '@/lib/utils'
 
 interface Instrument {
@@ -22,6 +23,7 @@ interface ProfileData {
   siteRole: string
   userPlan: string
   foundedGroupsCount?: number
+  myGroups?: { id: number; name: string; coverUrl?: string | null; groupRole: string; isFounder: boolean }[]
   gusoNumber?: string | null
   weeklyDigestOptOut: boolean
   rehearsalReminderOptOut: boolean
@@ -757,6 +759,31 @@ export default function ProfilPage() {
                   </>
                 )
               })()}
+            </Card>
+          )}
+
+          {/* Mes groupes & rôles */}
+          {!isAdmin && (profile.myGroups?.length ?? 0) > 0 && (
+            <Card>
+              <CardHeader title="Mes rôles" subtitle="Votre rôle dans chacun de vos groupes." />
+              <div className="space-y-2">
+                {profile.myGroups!.map((g) => (
+                  <Link
+                    key={g.id}
+                    href={`/groupes/${g.id}`}
+                    className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
+                  >
+                    <div className="w-9 h-9 rounded-lg overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
+                      {g.coverUrl
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={g.coverUrl} alt={g.name} className="w-full h-full object-cover" />
+                        : g.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-gray-800 truncate flex-1 min-w-0">{g.name}</span>
+                    <GroupRoleBadge groupRole={g.groupRole} isFounder={g.isFounder} />
+                  </Link>
+                ))}
+              </div>
             </Card>
           )}
 

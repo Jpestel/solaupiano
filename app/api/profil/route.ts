@@ -9,7 +9,7 @@ export async function GET() {
 
   const userId = Number(session.user.id)
 
-  const [user, groupCount, foundedGroupsCount, masterCount, nextRehearsal] = await Promise.all([
+  const [user, groupCount, foundedGroupsCount, masterCount, nextRehearsal, memberships] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       include: { instruments: { include: { instrument: true } } },
@@ -25,14 +25,31 @@ export async function GET() {
       orderBy: { date: 'asc' },
       select: { id: true, date: true, location: true, groupId: true, group: { select: { name: true } } },
     }),
+    prisma.groupMember.findMany({
+      where: { userId },
+      select: {
+        groupRole: true,
+        group: { select: { id: true, name: true, createdBy: true, coverUrl: true } },
+      },
+      orderBy: { joinedAt: 'asc' },
+    }),
   ])
 
   if (!user) return NextResponse.json({ error: 'Introuvable.' }, { status: 404 })
+
+  const myGroups = memberships.map(m => ({
+    id: m.group.id,
+    name: m.group.name,
+    coverUrl: m.group.coverUrl,
+    groupRole: m.groupRole,
+    isFounder: m.group.createdBy === userId,
+  }))
 
   const { password, ...safeUser } = user
   return NextResponse.json({
     ...safeUser,
     foundedGroupsCount,
+    myGroups,
     stats: {
       groupCount,
       foundedGroupsCount,
