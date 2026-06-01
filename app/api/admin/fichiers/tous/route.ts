@@ -19,33 +19,48 @@ function statSize(rel?: string | null): number {
 }
 
 interface FileRow { label: string; name: string; type: string; sizeBytes: number; path: string; createdAt: string | null }
+interface UrlRow { label: string; name: string; url: string; type: string; createdAt: string | null }
 
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
   if (session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
-  const [groups, resources, sequences, pendings, shared, avatars, tutorials, annonces] = await Promise.all([
+  const [groups, resources, sequences, pendings, shared, sharedLinks, avatars, tutorials, annonces] = await Promise.all([
     prisma.group.findMany({ select: { id: true, name: true, coverUrl: true } }),
     prisma.resource.findMany({ select: { name: true, type: true, fileSize: true, filePath: true, createdAt: true, song: { select: { groupId: true, title: true } } } }),
     prisma.songSequence.findMany({ select: { title: true, kind: true, fileSize: true, filePath: true, createdAt: true, song: { select: { groupId: true, title: true } } } }),
     prisma.pendingResource.findMany({ select: { name: true, type: true, fileSize: true, filePath: true, createdAt: true, song: { select: { groupId: true, title: true } } } }),
     prisma.groupSharedResource.findMany({ where: { type: 'FILE' }, select: { title: true, fileSize: true, filePath: true, createdAt: true, groupId: true } }),
+    prisma.groupSharedResource.findMany({ where: { type: { in: ['LINK', 'SHOP'] }, url: { not: null } }, select: { title: true, type: true, url: true, createdAt: true, groupId: true } }),
     prisma.user.findMany({ where: { avatarUrl: { startsWith: '/uploads/' } }, select: { name: true, avatarUrl: true } }),
     prisma.tutorial.findMany({ select: { title: true, fileName: true, fileSizeBytes: true, videoPath: true, createdAt: true } }),
     prisma.annonce.findMany({ where: { photoPath: { startsWith: '/uploads/' } }, select: { title: true, photoPath: true, createdAt: true, user: { select: { name: true } } } }),
   ])
 
-  const map = new Map<number, { groupName: string; files: FileRow[] }>()
-  groups.forEach((g) => map.set(g.id, { groupName: g.name, files: [] }))
+  const map = new Map<number, { groupName: string; files: FileRow[]; urls: UrlRow[] }>()
+  groups.forEach((g) => map.set(g.id, { groupName: g.name, files: [], urls: [] }))
   const push = (gid: number | null | undefined, row: FileRow) => {
     if (gid == null || !map.has(gid)) return
     map.get(gid)!.files.push(row)
   }
+  const pushUrl = (gid: number | null | undefined, row: UrlRow) => {
+    if (gid == null || !map.has(gid)) return
+    map.get(gid)!.urls.push(row)
+  }
 
   resources.forEach((r) => {
-    if (!r.filePath?.startsWith('/uploads/')) return // exclut les liens (LIEN)
+    if (!r.filePath) return
+    if (!r.filePath.startsWith('/uploads/')) {
+      // Ressource de type LIEN → c'est une URL
+      pushUrl(r.song.groupId, { label: `🎼 ${r.song.title}`, name: r.name, url: r.filePath, type: 'LIEN', createdAt: r.createdAt?.toISOString() ?? null })
+      return
+    }
     push(r.song.groupId, { label: `🎼 ${r.song.title}`, name: r.name, type: String(r.type), sizeBytes: r.fileSize || 0, path: r.filePath, createdAt: r.createdAt?.toISOString() ?? null })
+  })
+  sharedLinks.forEach((l) => {
+    if (!l.url) return
+    pushUrl(l.groupId, { label: l.type === 'SHOP' ? '📒 Carnet — boutique' : '📒 Carnet — lien', name: l.title, url: l.url, type: l.type, createdAt: l.createdAt?.toISOString() ?? null })
   })
   sequences.forEach((s) => {
     push(s.song.groupId, { label: `🎚 ${s.song.title}`, name: s.title, type: String(s.kind), sizeBytes: s.fileSize || 0, path: s.filePath, createdAt: s.createdAt?.toISOString() ?? null })
@@ -77,12 +92,13 @@ export async function GET() {
   } catch {}
 
   const groupsResult = Array.from(map.entries())
-    .map(([groupId, v]: [number, { groupName: string; files: FileRow[] }]) => ({
+    .map(([groupId, v]: [number, { groupName: string; files: FileRow[]; urls: UrlRow[] }]) => ({
       groupId, groupName: v.groupName,
       files: v.files.sort((a: FileRow, b: FileRow) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+      urls: v.urls.sort((a: UrlRow, b: UrlRow) => (b.createdAt || '').localeCompare(a.createdAt || '')),
       totalBytes: v.files.reduce((a: number, f: FileRow) => a + f.sizeBytes, 0),
     }))
-    .filter((g) => g.files.length > 0)
+    .filter((g) => g.files.length > 0 || g.urls.length > 0)
     .sort((a, b) => b.totalBytes - a.totalBytes)
 
   // ── Hors groupe ──

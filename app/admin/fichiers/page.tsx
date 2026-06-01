@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { FichiersTabs } from './FichiersTabs'
 
 interface FileRow { label: string; name: string; type: string; sizeBytes: number; path: string; createdAt: string | null }
-interface GroupBlock { groupId: number; groupName: string; files: FileRow[]; totalBytes: number }
+interface UrlRow { label: string; name: string; url: string; type: string; createdAt: string | null }
+interface GroupBlock { groupId: number; groupName: string; files: FileRow[]; urls: UrlRow[]; totalBytes: number }
 interface OtherBlock { category: string; files: FileRow[]; totalBytes: number }
 interface Data { groups: GroupBlock[]; others: OtherBlock[]; totals: { groupBytes: number; otherBytes: number; allBytes: number } }
 
@@ -24,6 +25,24 @@ const TYPE_BADGE: Record<string, string> = {
   MIDI: 'bg-purple-50 text-purple-700 border-purple-200',
   VIDEO: 'bg-blue-50 text-blue-700 border-blue-200',
   IMAGE: 'bg-amber-50 text-amber-700 border-amber-200',
+}
+
+function UrlList({ urls }: { urls: UrlRow[] }) {
+  return (
+    <div className="px-3 pt-2">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">🔗 Liens ({urls.length})</p>
+      <ul className="space-y-1">
+        {urls.map((u, i) => (
+          <li key={i} className="flex items-center gap-2 text-sm min-w-0">
+            <span className="text-gray-700 whitespace-nowrap">{u.label}</span>
+            <span className="text-gray-300">·</span>
+            <span className="text-gray-500 truncate">{u.name}</span>
+            <a href={u.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline text-xs truncate flex-1 min-w-0" title={u.url}>{u.url}</a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 function FileTable({ files }: { files: FileRow[] }) {
@@ -126,11 +145,17 @@ export default function AdminAllFilesPage() {
                     <span className="font-semibold text-gray-900">🎵 {g.groupName}</span>
                     <span className="flex items-center gap-3 text-sm text-gray-500">
                       <span>{g.files.length} fichier{g.files.length > 1 ? 's' : ''}</span>
+                      {g.urls.length > 0 && <span>{g.urls.length} lien{g.urls.length > 1 ? 's' : ''}</span>}
                       <span className="font-medium text-gray-700">{fmtBytes(g.totalBytes)}</span>
                       <span className="text-gray-400">{isOpen ? '▲' : '▼'}</span>
                     </span>
                   </button>
-                  {isOpen && <div className="border-t border-gray-100 pb-2"><FileTable files={g.files} /></div>}
+                  {isOpen && (
+                    <div className="border-t border-gray-100 pb-2">
+                      {g.files.length > 0 && <FileTable files={g.files} />}
+                      {g.urls.length > 0 && <UrlList urls={g.urls} />}
+                    </div>
+                  )}
                 </div>
               )
             })}
