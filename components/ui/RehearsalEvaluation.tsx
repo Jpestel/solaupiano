@@ -97,13 +97,17 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
         ) : (
           <div className="p-5 space-y-5">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-semibold text-gray-700">Ma performance</span>
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-gray-700">Ma performance</span>
+                <p className="text-xs text-gray-400 mt-0.5">Comment jugez-vous votre propre jeu durant cette répétition ?</p>
+              </div>
               <StarRating value={self} onChange={setSelf} />
             </div>
 
             {others.length > 0 && (
               <div className="border-t border-gray-100 pt-4">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Les autres musiciens</p>
+                <p className="text-sm font-semibold text-gray-700">Les autres musiciens</p>
+                <p className="text-xs text-gray-400 mb-2">Notez la prestation de chaque musicien présent (bienveillance &amp; constructif).</p>
                 <div className="space-y-2">
                   {others.map((m) => (
                     <div key={m.userId} className="flex items-center justify-between gap-3">
@@ -117,7 +121,8 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
 
             {(data?.plannedSongs || []).length > 0 && (
               <div className="border-t border-gray-100 pt-4">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Les morceaux travaillés</p>
+                <p className="text-sm font-semibold text-gray-700">Les morceaux travaillés</p>
+                <p className="text-xs text-gray-400 mb-2">Pour chaque morceau : son niveau de maîtrise / son rendu pendant la répétition.</p>
                 <div className="space-y-2">
                   {data!.plannedSongs.map((s) => (
                     <div key={s.songId} className="flex items-center justify-between gap-3">
@@ -132,7 +137,10 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
             )}
 
             <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
-              <span className="text-sm font-semibold text-gray-700">Performance du groupe</span>
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-gray-700">Performance du groupe</span>
+                <p className="text-xs text-gray-400 mt-0.5">L'ensemble : cohésion, énergie, rendu global du groupe.</p>
+              </div>
               <StarRating value={group} onChange={setGroup} />
             </div>
 
