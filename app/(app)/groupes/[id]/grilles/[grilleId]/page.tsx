@@ -532,9 +532,9 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{chart.title}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{chart.title}</h1>
           <div className="flex flex-wrap items-center gap-2 mt-1.5">
             {chart.tempo && (
               <span className="inline-flex items-center rounded-full bg-orange-50 border border-orange-100 px-2.5 py-1 text-xs font-medium text-orange-700">♩ {chart.tempo}</span>

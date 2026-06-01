@@ -10,6 +10,10 @@ export function BottomNav() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.siteRole === 'ADMIN'
 
+  // Vue grille (éditeur) : espace de travail focalisé avec sa propre palette en bas
+  // → on masque la barre de navigation pour éviter le conflit / le manque de place.
+  if (/\/groupes\/\d+\/grilles\/\d+/.test(pathname)) return null
+
   const isActive = (href: string) =>
     href === '/tableau-de-bord' || href === '/admin' ? pathname === href : pathname.startsWith(href)
 
