@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 
-interface Song { id: number; title: string; artist?: string }
+interface Song { id: number; title: string; artist?: string; tempo?: number | null }
 interface Chart {
   id: number; title: string; tempo?: string; keySignature?: string
   timeSignature: string; barsPerRow: number; totalBars: number
@@ -61,6 +61,17 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   useEffect(() => { if (session) fetchData() }, [session, groupId])
 
   const resetForm = () => setForm({ title: '', tempo: '', keySignature: '', timeSignature: '4/4', barsPerRow: 4, totalBars: 32, songId: '' })
+
+  // Lier un morceau → pré-remplit les éléments déjà connus du titre (BPM, titre)
+  const selectSong = (val: string) => {
+    const s = songs.find((x) => String(x.id) === val)
+    setForm((f) => ({
+      ...f,
+      songId: val,
+      tempo: s?.tempo && !f.tempo.trim() ? String(s.tempo) : f.tempo,
+      title: s?.title && !f.title.trim() ? s.title : f.title,
+    }))
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -257,10 +268,11 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
           {songs.length > 0 && (
             <div>
               <label className="form-label">Lier à un morceau <span className="text-gray-400 font-normal">(optionnel)</span></label>
-              <select value={form.songId} onChange={(e) => setForm({ ...form, songId: e.target.value })} className="form-input">
+              <select value={form.songId} onChange={(e) => selectSong(e.target.value)} className="form-input">
                 <option value="">— Aucun —</option>
                 {songs.map((s) => <option key={s.id} value={s.id}>{s.title}{s.artist ? ` — ${s.artist}` : ''}</option>)}
               </select>
+              <p className="text-xs text-gray-400 mt-1">Le tempo (BPM) et le titre du morceau sont pré-remplis automatiquement.</p>
             </div>
           )}
           <div className="flex justify-end gap-3 pt-2">

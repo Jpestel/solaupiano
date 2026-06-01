@@ -32,6 +32,7 @@ interface Song {
   resources: Resource[]
   lyrics?: { id: number } | null
   tab?: { id: number } | null
+  chordCharts?: { id: number; title: string }[]
 }
 
 function formatDuration(seconds: number): string {
@@ -62,6 +63,7 @@ interface GroupInfo {
   hasMetronome: boolean
   hasParoles: boolean
   hasSequences: boolean
+  hasGrilles: boolean
 }
 
 interface PendingResource {
@@ -108,7 +110,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, uploadEnabled: g.uploadEnabled ?? false, hasMetronome: g.planFeatures?.hasMetronome ?? true, hasParoles: g.planFeatures?.hasParoles ?? true, hasSequences: g.planFeatures?.hasSequences ?? true })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, uploadEnabled: g.uploadEnabled ?? false, hasMetronome: g.planFeatures?.hasMetronome ?? true, hasParoles: g.planFeatures?.hasParoles ?? true, hasSequences: g.planFeatures?.hasSequences ?? true, hasGrilles: g.planFeatures?.hasGrilles ?? true })
       if (role === 'CHEF') {
         const pendingRes = await fetch(`/api/groupes/${groupId}/soumissions`)
         if (pendingRes.ok) setPendingResources(await pendingRes.json())
@@ -382,6 +384,16 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                         >
                           🎚 Séquences 🔒
                         </span>
+                      )}
+                      {(groupInfo?.hasGrilles ?? true) && song.chordCharts && song.chordCharts.length > 0 && (
+                        <Link
+                          href={`/groupes/${groupId}/grilles/${song.chordCharts[0].id}`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-orange-300 hover:text-orange-600 transition-colors"
+                          title={song.chordCharts.length > 1 ? `${song.chordCharts.length} grilles associées` : 'Grille d\'accords'}
+                        >
+                          🎸 Grille
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 ml-0.5" />
+                        </Link>
                       )}
                       {isChef && (chefCan('repertoire', 'update') || chefCan('repertoire', 'delete')) && (
                         <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>

@@ -63,11 +63,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const bars = Math.max(8, Math.min(80, Number(totalBars) || 32))
   const cells = Array(bars).fill('')
 
+  // Filet de sécurité : si la grille est liée à un morceau et qu'aucun tempo n'est saisi,
+  // on reprend le BPM du morceau.
+  let resolvedTempo: string | null = tempo?.trim() || null
+  if (songId && !resolvedTempo) {
+    const song = await prisma.song.findFirst({ where: { id: Number(songId), groupId }, select: { tempo: true } })
+    if (song?.tempo) resolvedTempo = String(song.tempo)
+  }
+
   const chart = await prisma.chordChart.create({
     data: {
       groupId,
       title: title.trim(),
-      tempo: tempo?.trim() || null,
+      tempo: resolvedTempo,
       keySignature: keySignature?.trim() || null,
       timeSignature: timeSignature || '4/4',
       barsPerRow: Number(barsPerRow) || 4,
