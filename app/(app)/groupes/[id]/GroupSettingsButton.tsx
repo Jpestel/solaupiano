@@ -19,16 +19,18 @@ interface Props {
   initialIsPublic: boolean
   initialIsHidden: boolean
   initialLookingFor: string[]
+  initialPeerRatingVisibility?: 'HIDDEN' | 'PRIVATE' | 'PUBLIC'
   isFounder?: boolean
   memberCount?: number
 }
 
-export function GroupSettingsButton({ groupId, initialName, initialDescription, initialIsPublic, initialIsHidden, initialLookingFor, isFounder = false, memberCount = 1 }: Props) {
+export function GroupSettingsButton({ groupId, initialName, initialDescription, initialIsPublic, initialIsHidden, initialLookingFor, initialPeerRatingVisibility = 'PRIVATE', isFounder = false, memberCount = 1 }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(initialName)
   const [description, setDescription] = useState(initialDescription || '')
   const [visibility, setVisibility] = useState<Visibility>(toVisibility(initialIsPublic, initialIsHidden))
+  const [peerVis, setPeerVis] = useState<'HIDDEN' | 'PRIVATE' | 'PUBLIC'>(initialPeerRatingVisibility)
   const [lookingFor, setLookingFor] = useState<string[]>(initialLookingFor)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -68,6 +70,7 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
         description: description.trim() || null,
         isPublic: visibility === 'public',
         isHidden: visibility === 'hidden',
+        peerRatingVisibility: peerVis,
         lookingFor: lookingFor.length > 0 ? JSON.stringify(lookingFor) : null,
       }),
     })
@@ -167,6 +170,33 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
                 <p className="text-xs text-gray-400 mb-2">Visible par les autres musiciens si le groupe est public.</p>
                 <LookingForSelector value={lookingFor} onChange={setLookingFor} />
               </div>
+
+              {/* Visibilité des notes entre musiciens (auto-évaluation) */}
+              <div>
+                <label className="form-label">⭐ Notes entre musiciens (auto-évaluation)</label>
+                <p className="text-xs text-gray-400 mb-2">Comment afficher les notes que les musiciens se donnent entre eux après une répétition.</p>
+                <div className="space-y-1.5">
+                  {[
+                    { value: 'PRIVATE', icon: '🔒', label: 'Moyenne perçue seulement', desc: 'Chacun voit uniquement sa propre moyenne reçue (anonyme). Recommandé.' },
+                    { value: 'HIDDEN',  icon: '🙈', label: 'Masquées', desc: 'Personne ne voit les notes entre musiciens.' },
+                    { value: 'PUBLIC',  icon: '🌐', label: 'Visibles', desc: 'Le détail nominatif est visible par tous les membres.' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setPeerVis(opt.value as 'HIDDEN' | 'PRIVATE' | 'PUBLIC')}
+                      className={`w-full flex items-start gap-2 rounded-lg border px-3 py-2 text-left transition-colors ${peerVis === opt.value ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'}`}
+                    >
+                      <span>{opt.icon}</span>
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold text-gray-800">{opt.label}</span>
+                        <span className="block text-[10px] text-gray-500 leading-tight">{opt.desc}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex gap-3 pt-1">
                 <button
                   type="submit"

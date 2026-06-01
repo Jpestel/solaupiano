@@ -103,6 +103,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       description: body.description,
       ...(typeof body.isPublic === 'boolean' && { isPublic: body.isPublic }),
       ...(typeof body.isHidden === 'boolean' && { isHidden: body.isHidden }),
+      ...(['HIDDEN', 'PRIVATE', 'PUBLIC'].includes(body.peerRatingVisibility) && { peerRatingVisibility: body.peerRatingVisibility }),
       lookingFor: body.lookingFor ?? null,
       ...('lookingFor' in body && {
         lookingForSince: (() => {

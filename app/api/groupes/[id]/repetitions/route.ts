@@ -18,6 +18,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
   if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
+  const group = await prisma.group.findUnique({ where: { id: groupId }, select: { peerRatingVisibility: true } })
+  const visibility = group?.peerRatingVisibility ?? 'PRIVATE'
+  const isChef = isAdmin || membership?.groupRole === 'CHEF'
+
   const rehearsals = await prisma.rehearsal.findMany({
     where: { groupId },
     orderBy: { date: 'asc' },
@@ -33,7 +37,48 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     },
   })
 
-  return NextResponse.json(rehearsals)
+  // Modèle prudent : on n'expose JAMAIS le détail nominatif des notes entre
+  // musiciens, sauf en mode PUBLIC. On calcule des agrégats côté serveur.
+  const result = rehearsals.map((r) => {
+    // Agrégat des notes reçues par chaque musicien sur cette répétition
+    const received = new Map<number, { name: string; sum: number; count: number }>()
+    for (const ev of r.evaluations) {
+      for (const mr of ev.memberRatings) {
+        const cur = received.get(mr.ratedUserId) || { name: mr.ratedUser.name, sum: 0, count: 0 }
+        cur.sum += mr.rating; cur.count += 1
+        received.set(mr.ratedUserId, cur)
+      }
+    }
+    const myReceived = received.get(userId)
+    const myAvgReceived = myReceived && myReceived.count > 0 ? myReceived.sum / myReceived.count : null
+
+    // Pour le chef (hors mode HIDDEN) : moyennes reçues par musicien (sans « qui a noté qui »)
+    const avgReceivedByUser = (isChef && visibility !== 'HIDDEN')
+      ? Array.from(received.entries()).map(([uid, v]) => ({ userId: uid, name: v.name, avg: v.sum / v.count, count: v.count }))
+      : []
+
+    const evaluations = r.evaluations.map((ev) => ({
+      id: ev.id,
+      evaluator: ev.evaluator,
+      groupRating: ev.groupRating,
+      selfRating: ev.selfRating,
+      suggestion: ev.suggestion,
+      songRatings: ev.songRatings,
+      // détail nominatif uniquement en mode PUBLIC
+      memberRatings: visibility === 'PUBLIC' ? ev.memberRatings : [],
+    }))
+
+    return {
+      id: r.id, date: r.date, location: r.location, startTime: r.startTime, endTime: r.endTime, notes: r.notes,
+      attendances: r.attendances,
+      evaluations,
+      peerVisibility: visibility,
+      myAvgReceived: visibility === 'HIDDEN' ? null : myAvgReceived,
+      avgReceivedByUser,
+    }
+  })
+
+  return NextResponse.json(result)
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {

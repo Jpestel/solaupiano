@@ -23,6 +23,9 @@ interface Rehearsal {
   notes?: string
   attendances?: { userId: number; user: { id: number; name: string } }[]
   evaluations?: Evaluation[]
+  peerVisibility?: 'HIDDEN' | 'PRIVATE' | 'PUBLIC'
+  myAvgReceived?: number | null
+  avgReceivedByUser?: { userId: number; name: string; avg: number; count: number }[]
 }
 
 interface GroupInfo {
@@ -212,6 +215,11 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
                           ⭐ {note.toFixed(1)} <span className="text-amber-400 font-normal">({evs.length})</span>
                         </span>
                       )}
+                      {typeof r.myAvgReceived === 'number' && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-700" title="Ta note moyenne reçue (anonyme)">
+                          👤 {r.myAvgReceived.toFixed(1)}
+                        </span>
+                      )}
                       {canEvaluate && (
                         <button onClick={() => setEvalRehearsal(r)}
                           className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5">
@@ -229,6 +237,16 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
 
                   {expanded && evs.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+                      {(r.avgReceivedByUser?.length ?? 0) > 0 && (
+                        <div className="rounded-lg bg-gray-50 border border-gray-200 p-2.5">
+                          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Moyennes perçues par musicien <span className="font-normal normal-case">(chef · anonyme)</span></p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                            {r.avgReceivedByUser!.map((u) => (
+                              <span key={u.userId} className="inline-flex items-center gap-1">{u.name} <StarRating value={Math.round(u.avg)} readOnly size={12} /> <span className="text-gray-400">{u.avg.toFixed(1)}</span></span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {evs.map((e) => (
                         <div key={e.id} className="text-sm">
                           <div className="flex items-center justify-between gap-2 flex-wrap">

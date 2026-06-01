@@ -193,6 +193,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
                 initialIsPublic={group.isPublic}
                 initialIsHidden={group.isHidden}
                 initialLookingFor={parseLookingFor(group.lookingFor)}
+                initialPeerRatingVisibility={(group as any).peerRatingVisibility ?? 'PRIVATE'}
                 isFounder={isFounder}
                 memberCount={group.members.length}
               />

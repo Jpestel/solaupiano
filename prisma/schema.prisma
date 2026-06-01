@@ -280,6 +280,7 @@ model Group {
   chefPermissions  Json?
   maxMembersOverride     Int?
   storageQuotaOverrideGb Int?   // Admin per-group storage override (independent quota)
+  peerRatingVisibility   PeerRatingVisibility @default(PRIVATE) // visibilité des notes entre musiciens
   founder          User?     @relation("GroupFounder", fields: [createdBy], references: [id], onDelete: SetNull)
 
   members          GroupMember[]
@@ -471,6 +472,12 @@ model RehearsalEvaluation {
 
   @@unique([rehearsalId, evaluatorId])
   @@index([rehearsalId])
+}
+
+enum PeerRatingVisibility {
+  HIDDEN  // notes entre musiciens masquées (personne ne les voit)
+  PRIVATE // chacun voit seulement sa propre moyenne reçue (anonyme)
+  PUBLIC  // détail nominatif visible par tous
 }
 
 model RehearsalSongRating {
