@@ -34,6 +34,19 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ],
   },
   {
+    key: 'evaluation_reminder',
+    name: 'Rappel d\'auto-évaluation',
+    description: 'Envoyé le lendemain d\'une répétition aux musiciens présents qui n\'ont pas encore laissé d\'évaluation.',
+    defaultSubject: 'Votre avis sur la répétition de {{groupName}} ?',
+    defaultIntro: 'Bonjour {{memberName}},\n\nVous étiez présent(e) à la répétition de {{groupName}} du {{date}}. Prenez un instant pour laisser votre auto-évaluation : votre ressenti, les morceaux travaillés et vos suggestions aident le groupe à progresser.',
+    defaultOutro: 'Merci pour votre retour !',
+    variables: [
+      { key: 'memberName', description: 'Prénom du membre' },
+      { key: 'groupName', description: 'Nom du groupe' },
+      { key: 'date', description: 'Date de la répétition' },
+    ],
+  },
+  {
     key: 'rehearsal_notification',
     name: 'Nouvelle répétition',
     description: 'Envoyé aux membres quand une répétition est planifiée par le chef.',

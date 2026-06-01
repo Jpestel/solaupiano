@@ -142,6 +142,37 @@ export async function sendPollCreatedEmail(
   )
 }
 
+// ─── Rappel d'auto-évaluation (lendemain de répétition) ──────────────────────
+
+export async function sendEvaluationReminder(
+  to: string,
+  memberName: string,
+  groupName: string,
+  groupId: number,
+  rehearsal: { date: Date; startTime: string; endTime?: string | null; location: string },
+  baseUrl: string
+) {
+  const dateStr = new Date(rehearsal.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const url = `${baseUrl}/groupes/${groupId}/repetitions`
+  const tpl = await getEmailTemplate('evaluation_reminder')
+  const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName, date: dateStr })
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${dataBox(`
+        <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #b45309; text-transform: capitalize;">⭐ ${dateStr}</p>
+        <p style="margin: 0; font-size: 13px; color: #b45309;">📍 ${rehearsal.location}</p>
+      `)}
+      ${outroHtml}
+      ${ctaButton(url, 'Laisser mon évaluation →')}
+    `),
+  })
+}
+
 // ─── 2. Rappel automatique répétition ────────────────────────────────────────
 
 export async function sendRehearsalAutoReminderEmail(

@@ -474,6 +474,15 @@ model RehearsalEvaluation {
   @@index([rehearsalId])
 }
 
+model EvaluationReminderLog {
+  id          Int      @id @default(autoincrement())
+  rehearsalId Int
+  userId      Int
+  sentAt      DateTime @default(now())
+
+  @@unique([rehearsalId, userId])
+}
+
 enum PeerRatingVisibility {
   HIDDEN  // notes entre musiciens masquées (personne ne les voit)
   PRIVATE // chacun voit seulement sa propre moyenne reçue (anonyme)
