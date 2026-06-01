@@ -7,7 +7,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 
 /* ─── Types ─── */
-interface Song { id: number; title: string; artist?: string }
+interface Song { id: number; title: string; artist?: string; tempo?: number | null }
 interface ChartData {
   id: number; groupId: number; title: string; tempo?: string | null
   keySignature?: string | null; timeSignature: string
@@ -416,14 +416,17 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
   const openSettings = () => {
     if (!chart) return
+    const linkedSongId = (chart as any).songId ? Number((chart as any).songId) : null
+    const linkedSong = linkedSongId ? groupSongs.find((s) => s.id === linkedSongId) : null
     setSettingsForm({
       title: chart.title,
-      tempo: (chart.tempo as string) ?? '',
+      // Si pas de tempo saisi mais un morceau lié avec un BPM → on le reprend
+      tempo: ((chart.tempo as string) ?? '') || (linkedSong?.tempo ? String(linkedSong.tempo) : ''),
       keySignature: (chart.keySignature as string) ?? '',
       timeSignature: chart.timeSignature,
       barsPerRow: chart.barsPerRow,
       totalBars: chart.totalBars,
-      songId: (chart as any).songId ? String((chart as any).songId) : '',
+      songId: linkedSongId ? String(linkedSongId) : '',
     })
     setSettingsOpen(true)
   }
@@ -930,11 +933,17 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             <div>
               <label className="form-label">Lier à un morceau <span className="text-gray-400 font-normal">(optionnel)</span></label>
               <select value={settingsForm.songId}
-                onChange={(e) => setSettingsForm({ ...settingsForm, songId: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const s = groupSongs.find((x) => String(x.id) === val)
+                  // Pré-remplit le BPM depuis le morceau si le champ tempo est vide
+                  setSettingsForm((f) => ({ ...f, songId: val, tempo: s?.tempo && !f.tempo.trim() ? String(s.tempo) : f.tempo }))
+                }}
                 className="form-input">
                 <option value="">— Aucun —</option>
                 {groupSongs.map((s) => <option key={s.id} value={s.id}>{s.title}{s.artist ? ` — ${s.artist}` : ''}</option>)}
               </select>
+              <p className="text-xs text-gray-400 mt-1">Le tempo (BPM) du morceau est repris automatiquement si le champ Tempo est vide.</p>
             </div>
           )}
           <div className="flex justify-end gap-3 pt-2">
