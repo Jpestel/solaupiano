@@ -28,6 +28,7 @@ interface ProfileData {
   gusoNumber?: string | null
   weeklyDigestOptOut: boolean
   rehearsalReminderOptOut: boolean
+  evaluationReminderOptOut: boolean
   instruments: { instrument: Instrument }[]
   stats: {
     groupCount: number
@@ -92,6 +93,8 @@ export default function ProfilPage() {
   const [digestSaving, setDigestSaving] = useState(false)
   const [rehearsalReminderOptOut, setRehearsalReminderOptOut] = useState(false)
   const [reminderSaving, setReminderSaving] = useState(false)
+  const [evaluationReminderOptOut, setEvaluationReminderOptOut] = useState(false)
+  const [evalReminderSaving, setEvalReminderSaving] = useState(false)
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('')
@@ -116,6 +119,7 @@ export default function ProfilPage() {
       setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
       setWeeklyDigestOptOut(p.weeklyDigestOptOut ?? false)
       setRehearsalReminderOptOut(p.rehearsalReminderOptOut ?? false)
+      setEvaluationReminderOptOut(p.evaluationReminderOptOut ?? false)
     }
     if (instrRes.ok) setInstruments(await instrRes.json())
     if (groupsRes.ok) setAvailableGroups(await groupsRes.json())
@@ -172,6 +176,17 @@ export default function ProfilPage() {
       body: JSON.stringify({ name, instrumentIds: selectedIds, rehearsalReminderOptOut: newValue }),
     })
     setReminderSaving(false)
+  }
+
+  const handleEvalReminderToggle = async (newValue: boolean) => {
+    setEvaluationReminderOptOut(newValue)
+    setEvalReminderSaving(true)
+    await fetch('/api/profil', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, instrumentIds: selectedIds, evaluationReminderOptOut: newValue }),
+    })
+    setEvalReminderSaving(false)
   }
 
   const handlePlanChange = async (newPlan: 'MUSICIEN' | 'CREATEUR') => {
@@ -661,6 +676,30 @@ export default function ProfilPage() {
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       !rehearsalReminderOptOut ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="border-t border-gray-100 pt-4 flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">Rappels d&apos;auto-évaluation</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Reçu le lendemain d&apos;une répétition à laquelle vous étiez présent(e), si vous n&apos;avez pas encore laissé d&apos;évaluation.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!evaluationReminderOptOut}
+                  onClick={() => handleEvalReminderToggle(!evaluationReminderOptOut)}
+                  disabled={evalReminderSaving}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
+                    !evaluationReminderOptOut ? 'bg-indigo-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      !evaluationReminderOptOut ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
                 </button>

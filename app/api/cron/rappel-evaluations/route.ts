@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     where: { date: { gte: windowStart, lt: new Date(now.getTime() + 24 * 60 * 60 * 1000) } },
     include: {
       group: { select: { id: true, name: true, plan: true } },
-      attendances: { where: { status: 'PRESENT' }, include: { user: { select: { id: true, email: true, name: true, rehearsalReminderOptOut: true, emailVerified: true } } } },
+      attendances: { where: { status: 'PRESENT' }, include: { user: { select: { id: true, email: true, name: true, evaluationReminderOptOut: true, emailVerified: true } } } },
       evaluations: { select: { evaluatorId: true } },
     },
   })
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     for (const att of r.attendances) {
       const user = att.user
       if (evaluatedBy.has(user.id)) { skipped++; continue }        // a déjà évalué
-      if (user.rehearsalReminderOptOut) { skipped++; continue }
+      if (user.evaluationReminderOptOut) { skipped++; continue }   // désabonné de ces rappels
       if (!user.emailVerified) { skipped++; continue }
 
       if (!force) {

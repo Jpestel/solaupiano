@@ -150,6 +150,7 @@ model User {
   gusoNumber                  String?
   weeklyDigestOptOut          Boolean   @default(false)
   rehearsalReminderOptOut     Boolean   @default(false)
+  evaluationReminderOptOut    Boolean   @default(false)
 
   instruments              UserInstrument[]
   groups                   GroupMember[]
