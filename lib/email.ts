@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import { getEmailTemplate } from './get-email-template'
-import { signPresence } from './presence-token'
+import { signPresence, signConcertPresence } from './presence-token'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -170,6 +170,46 @@ export async function sendEvaluationReminder(
       ${dataBox(`
         <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #b45309; text-transform: capitalize;">⭐ ${dateStr}</p>
         <p style="margin: 0; font-size: 13px; color: #b45309;">📍 ${rehearsal.location}</p>
+      `)}
+      ${outroHtml}
+      ${ctaButton(url, 'Laisser mon évaluation →')}
+      <p style="text-align:center; margin: 14px 0 0; font-size: 13px; color: #6b7280;">
+        Vous n'étiez finalement pas là ?
+        <a href="${absentUrl}" style="color:#b91c1c; text-decoration:underline;">Me marquer absent(e)</a>
+        — vous n'aurez alors rien à évaluer.
+      </p>
+    `),
+  })
+}
+
+// ─── Rappel d'évaluation de concert (lendemain) ──────────────────────────────
+
+export async function sendConcertEvaluationReminder(
+  to: string,
+  memberName: string,
+  groupName: string,
+  groupId: number,
+  concertId: number,
+  userId: number,
+  concert: { name: string; date: Date; location: string },
+  baseUrl: string
+) {
+  const dateStr = new Date(concert.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const url = `${baseUrl}/groupes/${groupId}/concerts`
+  const absentUrl = `${baseUrl}/presence?c=${concertId}&u=${userId}&t=${signConcertPresence(concertId, userId)}&a=absent`
+  const tpl = await getEmailTemplate('concert_evaluation_reminder')
+  const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName, concertName: concert.name, date: dateStr })
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${dataBox(`
+        <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #6d28d9;">🎭 ${concert.name}</p>
+        <p style="margin: 0 0 4px; font-size: 13px; color: #6d28d9; text-transform: capitalize;">${dateStr}</p>
+        <p style="margin: 0; font-size: 13px; color: #6d28d9;">📍 ${concert.location}</p>
       `)}
       ${outroHtml}
       ${ctaButton(url, 'Laisser mon évaluation →')}

@@ -18,3 +18,16 @@ export function verifyPresence(rehearsalId: number, userId: number, token: strin
     return false
   }
 }
+
+export function signConcertPresence(concertId: number, userId: number): string {
+  return crypto.createHmac('sha256', secret()).update(`presence:concert:${concertId}:${userId}`).digest('hex').slice(0, 40)
+}
+
+export function verifyConcertPresence(concertId: number, userId: number, token: string): boolean {
+  const expected = signConcertPresence(concertId, userId)
+  try {
+    return token.length === expected.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(token))
+  } catch {
+    return false
+  }
+}

@@ -179,6 +179,9 @@ model User {
   pollVotes                PollVote[]
   evaluationsAuthored      RehearsalEvaluation[]   @relation("EvaluationAuthor")
   ratingsReceived          RehearsalMemberRating[] @relation("MemberRated")
+  concertAttendances       ConcertAttendance[]     @relation("ConcertAttendee")
+  concertEvaluations       ConcertEvaluation[]     @relation("ConcertEvaluationAuthor")
+  concertRatingsReceived   ConcertMemberRating[]   @relation("ConcertMemberRated")
 }
 
 enum FlashInfoType {
@@ -565,6 +568,75 @@ model Concert {
   setlist     Setlist?            @relation(fields: [setlistId], references: [id], onDelete: SetNull)
   stageLayout StageLayout?
   simulations CachetSimulation[]
+  attendances ConcertAttendance[]
+  evaluations ConcertEvaluation[]
+}
+
+model ConcertAttendance {
+  userId    Int
+  concertId Int
+  status    AttendanceStatus @default(INCERTAIN)
+  updatedAt DateTime         @updatedAt
+
+  user    User    @relation("ConcertAttendee", fields: [userId], references: [id], onDelete: Cascade)
+  concert Concert @relation(fields: [concertId], references: [id], onDelete: Cascade)
+
+  @@id([userId, concertId])
+  @@index([concertId])
+}
+
+model ConcertEvaluation {
+  id          Int      @id @default(autoincrement())
+  concertId   Int
+  evaluatorId Int
+  selfRating  Int
+  groupRating Int
+  suggestion  String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  concert       Concert                @relation(fields: [concertId], references: [id], onDelete: Cascade)
+  evaluator     User                   @relation("ConcertEvaluationAuthor", fields: [evaluatorId], references: [id], onDelete: Cascade)
+  memberRatings ConcertMemberRating[]
+  songRatings   ConcertSongRating[]
+
+  @@unique([concertId, evaluatorId])
+  @@index([concertId])
+}
+
+model ConcertMemberRating {
+  id           Int @id @default(autoincrement())
+  evaluationId Int
+  ratedUserId  Int
+  rating       Int
+
+  evaluation ConcertEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  ratedUser  User              @relation("ConcertMemberRated", fields: [ratedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, ratedUserId])
+  @@index([ratedUserId])
+}
+
+model ConcertSongRating {
+  id           Int @id @default(autoincrement())
+  evaluationId Int
+  songId       Int
+  rating       Int
+
+  evaluation ConcertEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  song       Song              @relation("ConcertSongRated", fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, songId])
+  @@index([songId])
+}
+
+model ConcertEvaluationReminderLog {
+  id        Int      @id @default(autoincrement())
+  concertId Int
+  userId    Int
+  sentAt    DateTime @default(now())
+
+  @@unique([concertId, userId])
 }
 
 model StageLayout {
@@ -624,6 +696,7 @@ model Song {
   tab              SongTab?
   sequences        SongSequence[]
   evaluationRatings RehearsalSongRating[]
+  concertEvaluationRatings ConcertSongRating[] @relation("ConcertSongRated")
 }
 
 model SongSequence {

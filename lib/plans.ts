@@ -178,7 +178,7 @@ export function generateFeatureList(p: DbPlan): string[] {
   if (p.hasParoles) f.push('Paroles & prompteur')
   if (p.hasMetronome) f.push('Métronome par morceau')
   if (p.hasSequences) f.push('Lecteur de séquences (audio & MIDI)')
-  if (p.hasEvaluations) f.push('Auto-évaluation des répétitions')
+  if (p.hasEvaluations) f.push('Auto-évaluation (répétitions & concerts)')
   if (p.hasGrilles) f.push("Grilles d'accords")
   if (p.hasSetlists) f.push('Setlists')
   if (p.hasConcerts) f.push('Concerts')

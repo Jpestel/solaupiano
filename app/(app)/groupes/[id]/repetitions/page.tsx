@@ -8,7 +8,7 @@ import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { StarRating, EvaluationModal } from '@/components/ui/RehearsalEvaluation'
+import { StarRating, EvaluationModal, PresencePicker } from '@/components/ui/RehearsalEvaluation'
 
 interface MemberRating { ratedUserId: number; rating: number; ratedUser: { id: number; name: string } }
 interface SongRating { songId: number; rating: number; song: { id: number; title: string } }
@@ -27,28 +27,6 @@ interface Rehearsal {
   myAvgReceived?: number | null
   avgReceivedByUser?: { userId: number; name: string; avg: number; count: number }[]
   myAttendanceStatus?: 'PRESENT' | 'ABSENT' | 'INCERTAIN' | null
-}
-
-function PresencePicker({ value, onSet }: { value: string | null | undefined; onSet: (s: string) => void }) {
-  const opts = [
-    { v: 'PRESENT', icon: '✅', label: 'Présent', on: 'bg-green-100 text-green-700 border-green-300' },
-    { v: 'INCERTAIN', icon: '❓', label: 'Incertain', on: 'bg-amber-100 text-amber-700 border-amber-300' },
-    { v: 'ABSENT', icon: '⛔', label: 'Absent', on: 'bg-red-100 text-red-700 border-red-300' },
-  ]
-  return (
-    <span className="inline-flex gap-1">
-      {opts.map((o) => (
-        <button
-          key={o.v}
-          type="button"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSet(o.v) }}
-          className={`rounded-md border px-2 py-1 text-xs font-medium transition-colors ${value === o.v ? o.on : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'}`}
-        >
-          {o.icon}<span className="hidden sm:inline ml-1">{o.label}</span>
-        </button>
-      ))}
-    </span>
-  )
 }
 
 interface GroupInfo {
@@ -350,7 +328,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
       {/* Évaluation modal */}
       {evalRehearsal && (
         <EvaluationModal
-          rehearsalId={evalRehearsal.id}
+          endpoint={`/api/repetitions/${evalRehearsal.id}/evaluation`}
           title={formatDateWithDay(evalRehearsal.date)}
           onClose={() => setEvalRehearsal(null)}
           onSaved={fetchData}

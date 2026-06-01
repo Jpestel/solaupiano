@@ -47,6 +47,20 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ],
   },
   {
+    key: 'concert_evaluation_reminder',
+    name: 'Rappel d\'évaluation de concert',
+    description: 'Envoyé le lendemain d\'un concert aux musiciens présents qui n\'ont pas encore laissé d\'évaluation.',
+    defaultSubject: 'Votre avis sur le concert {{concertName}} ?',
+    defaultIntro: 'Bonjour {{memberName}},\n\nVous étiez présent(e) au concert « {{concertName}} » de {{groupName}} du {{date}}. Prenez un instant pour laisser votre évaluation : votre ressenti, les morceaux joués et vos suggestions aident le groupe à progresser.',
+    defaultOutro: 'Merci pour votre retour !',
+    variables: [
+      { key: 'memberName', description: 'Prénom du membre' },
+      { key: 'groupName', description: 'Nom du groupe' },
+      { key: 'concertName', description: 'Nom du concert' },
+      { key: 'date', description: 'Date du concert' },
+    ],
+  },
+  {
     key: 'rehearsal_notification',
     name: 'Nouvelle répétition',
     description: 'Envoyé aux membres quand une répétition est planifiée par le chef.',

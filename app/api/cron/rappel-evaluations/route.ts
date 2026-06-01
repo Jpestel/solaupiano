@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendEvaluationReminder } from '@/lib/email'
+import { sendEvaluationReminder, sendConcertEvaluationReminder } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,5 +85,53 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, sent, skipped, rehearsalsConsidered, fetched: rehearsals.length })
+  // ── Concerts (mêmes règles : la veille, présents non évalués) ──────────────
+  const concerts = await prisma.concert.findMany({
+    where: { date: { gte: windowStart, lt: new Date(now.getTime() + 24 * 60 * 60 * 1000) } },
+    include: {
+      group: { select: { id: true, name: true, plan: true } },
+      attendances: { where: { status: 'PRESENT' }, include: { user: { select: { id: true, email: true, name: true, evaluationReminderOptOut: true, emailVerified: true } } } },
+      evaluations: { select: { evaluatorId: true } },
+    },
+  })
+
+  let concertsConsidered = 0
+  for (const c of concerts) {
+    const end = new Date(c.date); end.setHours(23, 59, 59, 999)
+    if (!force) {
+      if (now <= end) { continue }      // pas encore passé
+      if (end >= startToday) { continue } // terminé aujourd'hui → on attend demain
+    }
+    if ((evalOn.get(c.group.plan) ?? true) === false) { continue }
+
+    concertsConsidered++
+    const evaluatedBy = new Set(c.evaluations.map((e) => e.evaluatorId))
+
+    for (const att of c.attendances) {
+      const user = att.user
+      if (evaluatedBy.has(user.id)) { skipped++; continue }
+      if (user.evaluationReminderOptOut) { skipped++; continue }
+      if (!user.emailVerified) { skipped++; continue }
+      if (!force) {
+        const already = await prisma.concertEvaluationReminderLog.findUnique({
+          where: { concertId_userId: { concertId: c.id, userId: user.id } },
+        })
+        if (already) { skipped++; continue }
+      }
+      try {
+        await sendConcertEvaluationReminder(user.email, user.name, c.group.name, c.group.id, c.id, user.id,
+          { name: c.name, date: c.date, location: c.location }, baseUrl)
+        if (!force) {
+          await prisma.concertEvaluationReminderLog.upsert({
+            where: { concertId_userId: { concertId: c.id, userId: user.id } },
+            update: { sentAt: new Date() },
+            create: { concertId: c.id, userId: user.id },
+          })
+        }
+        sent++
+      } catch { skipped++ }
+    }
+  }
+
+  return NextResponse.json({ ok: true, sent, skipped, rehearsalsConsidered, concertsConsidered, fetched: rehearsals.length + concerts.length })
 }

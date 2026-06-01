@@ -3,6 +3,28 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 
+export function PresencePicker({ value, onSet }: { value: string | null | undefined; onSet: (s: string) => void }) {
+  const opts = [
+    { v: 'PRESENT', icon: '✅', label: 'Présent', on: 'bg-green-100 text-green-700 border-green-300' },
+    { v: 'INCERTAIN', icon: '❓', label: 'Incertain', on: 'bg-amber-100 text-amber-700 border-amber-300' },
+    { v: 'ABSENT', icon: '⛔', label: 'Absent', on: 'bg-red-100 text-red-700 border-red-300' },
+  ]
+  return (
+    <span className="inline-flex gap-1">
+      {opts.map((o) => (
+        <button
+          key={o.v}
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSet(o.v) }}
+          className={`rounded-md border px-2 py-1 text-xs font-medium transition-colors ${value === o.v ? o.on : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'}`}
+        >
+          {o.icon}<span className="hidden sm:inline ml-1">{o.label}</span>
+        </button>
+      ))}
+    </span>
+  )
+}
+
 export function StarRating({ value, onChange, readOnly, size = 26 }: {
   value: number; onChange?: (n: number) => void; readOnly?: boolean; size?: number
 }) {
@@ -31,8 +53,8 @@ interface EvalData {
   myEvaluation: { selfRating: number; groupRating: number; suggestion: string | null; memberRatings: Record<string, number>; songRatings: Record<string, number> } | null
 }
 
-export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
-  rehearsalId: number; title: string; onClose: () => void; onSaved: () => void
+export function EvaluationModal({ endpoint, title, onClose, onSaved }: {
+  endpoint: string; title: string; onClose: () => void; onSaved: () => void
 }) {
   const { data: session } = useSession()
   const myId = Number(session?.user?.id)
@@ -47,7 +69,7 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch(`/api/repetitions/${rehearsalId}/evaluation`).then(async (r) => {
+    fetch(endpoint).then(async (r) => {
       if (r.ok) {
         const d: EvalData = await r.json()
         setData(d)
@@ -61,7 +83,7 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
       }
       setLoading(false)
     })
-  }, [rehearsalId])
+  }, [endpoint])
 
   const others = (data?.presentMembers || []).filter((m) => m.userId !== myId)
   const ready = self > 0 && group > 0
@@ -69,7 +91,7 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
   const save = async () => {
     if (!ready) { setError('Notez au moins votre performance et celle du groupe.'); return }
     setSaving(true); setError('')
-    const res = await fetch(`/api/repetitions/${rehearsalId}/evaluation`, {
+    const res = await fetch(endpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         selfRating: self, groupRating: group, suggestion,

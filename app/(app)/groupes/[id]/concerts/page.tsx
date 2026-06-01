@@ -8,16 +8,25 @@ import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { StarRating, EvaluationModal, PresencePicker } from '@/components/ui/RehearsalEvaluation'
 
 interface SetlistRef { id: number; name: string; _count: { songs: number } }
 interface SimulationRef { id: number; label: string; data: any }
+interface CMemberRating { ratedUserId: number; rating: number; ratedUser: { id: number; name: string } }
+interface CSongRating { songId: number; rating: number; song: { id: number; title: string } }
+interface CEvaluation { id: number; selfRating: number; groupRating: number; suggestion: string | null; evaluator: { id: number; name: string }; memberRatings: CMemberRating[]; songRatings: CSongRating[] }
 interface Concert {
   id: number; name: string; date: string; location: string; notes?: string
   setlist?: SetlistRef | null
   isPublic: boolean
   simulation?: SimulationRef | null
+  attendances?: { userId: number; user: { id: number; name: string } }[]
+  evaluations?: CEvaluation[]
+  myAttendanceStatus?: 'PRESENT' | 'ABSENT' | 'INCERTAIN' | null
+  myAvgReceived?: number | null
+  avgReceivedByUser?: { userId: number; name: string; avg: number; count: number }[]
 }
-interface GroupInfo { name: string; groupRole: string; createdBy: number | null; chefPermissions: unknown }
+interface GroupInfo { name: string; groupRole: string; createdBy: number | null; chefPermissions: unknown; hasEvaluations: boolean }
 
 const EMPTY_FORM = { name: '', date: '', location: '', notes: '', setlistId: '', isPublic: true as boolean }
 
@@ -48,6 +57,8 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
 
   // Print
   const [printingId, setPrintingId] = useState<number | null>(null)
+  const [evalConcert, setEvalConcert] = useState<Concert | null>(null)
+  const [expandedEvals, setExpandedEvals] = useState<Set<number>>(new Set())
 
   const handlePrintSetlist = async (concert: Concert) => {
     if (!concert.setlist) return
@@ -152,7 +163,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       const g = await grpRes.json()
       const me = g.members?.find((m: any) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, hasEvaluations: g.planFeatures?.hasEvaluations ?? true })
     }
     setLoading(false)
   }
@@ -215,8 +226,21 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
   }
 
   const now = new Date()
-  const upcoming = concerts.filter((c) => new Date(c.date) >= now)
-  const past = concerts.filter((c) => new Date(c.date) < now)
+  const myId = Number(session?.user?.id)
+  // Concert « passé » = la journée est terminée (pas d'heure sur les concerts)
+  const concertEnded = (c: Concert) => { const e = new Date(c.date); e.setHours(23, 59, 59, 999); return now > e }
+  const upcoming = concerts.filter((c) => !concertEnded(c))
+  const past = concerts.filter((c) => concertEnded(c))
+  const globalNote = (c: Concert) => {
+    const evs = c.evaluations || []
+    return evs.length === 0 ? null : evs.reduce((a, e) => a + e.groupRating, 0) / evs.length
+  }
+  const setPresence = async (concertId: number, status: string) => {
+    await fetch(`/api/concerts/${concertId}/presences`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+    })
+    fetchData()
+  }
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
@@ -341,6 +365,76 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
           )}
         </div>
       )}
+
+      {/* Présence + auto-évaluation */}
+      <div className="mt-3 pt-3 border-t border-gray-100">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-400">Ma présence :</span>
+          <PresencePicker value={concert.myAttendanceStatus} onSet={(s) => setPresence(concert.id, s)} />
+        </div>
+        {concertEnded(concert) && (() => {
+          const evs = concert.evaluations || []
+          const note = globalNote(concert)
+          const iAmPresent = (concert.attendances || []).some((a) => a.userId === myId)
+          const canEvaluate = (groupInfo?.hasEvaluations ?? true) && iAmPresent
+          const iEvaluated = evs.some((e) => e.evaluator.id === myId)
+          const expanded = expandedEvals.has(concert.id)
+          return (
+            <div className="mt-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {note !== null && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700" title="Note globale du concert">⭐ {note.toFixed(1)} <span className="text-amber-400 font-normal">({evs.length})</span></span>
+                )}
+                {typeof concert.myAvgReceived === 'number' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-700" title="Ta note moyenne reçue (anonyme)">👤 {concert.myAvgReceived.toFixed(1)}</span>
+                )}
+                {canEvaluate && (
+                  <button onClick={() => setEvalConcert(concert)} className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5">{iEvaluated ? 'Modifier' : 'Évaluer'}</button>
+                )}
+                {evs.length > 0 && (
+                  <button onClick={() => setExpandedEvals((s) => { const n = new Set(s); n.has(concert.id) ? n.delete(concert.id) : n.add(concert.id); return n })} className="rounded-lg border border-gray-200 text-gray-500 text-xs font-medium px-2.5 py-1.5 hover:bg-gray-50">{expanded ? 'Masquer' : 'Détail'}</button>
+                )}
+              </div>
+              {expanded && evs.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+                  {(concert.avgReceivedByUser?.length ?? 0) > 0 && (
+                    <div className="rounded-lg bg-gray-50 border border-gray-200 p-2.5">
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Moyennes perçues par musicien <span className="font-normal normal-case">(chef · anonyme)</span></p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                        {concert.avgReceivedByUser!.map((u) => (
+                          <span key={u.userId} className="inline-flex items-center gap-1">{u.name} <StarRating value={Math.round(u.avg)} readOnly size={12} /> <span className="text-gray-400">{u.avg.toFixed(1)}</span></span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {evs.map((e) => (
+                    <div key={e.id} className="text-sm">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-medium text-gray-700">{e.evaluator.name}{e.evaluator.id === myId ? ' (moi)' : ''}</span>
+                        <span className="flex items-center gap-3 text-xs text-gray-500">
+                          <span className="inline-flex items-center gap-1">Groupe <StarRating value={e.groupRating} readOnly size={14} /></span>
+                          <span className="inline-flex items-center gap-1">Soi <StarRating value={e.selfRating} readOnly size={14} /></span>
+                        </span>
+                      </div>
+                      {e.memberRatings.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                          {e.memberRatings.map((mr) => <span key={mr.ratedUserId} className="inline-flex items-center gap-1">{mr.ratedUser.name} <StarRating value={mr.rating} readOnly size={12} /></span>)}
+                        </div>
+                      )}
+                      {e.songRatings.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                          {e.songRatings.map((sr) => <span key={sr.songId} className="inline-flex items-center gap-1">🎵 {sr.song.title} <StarRating value={sr.rating} readOnly size={12} /></span>)}
+                        </div>
+                      )}
+                      {e.suggestion && <p className="mt-1 text-xs text-gray-500 italic">💬 {e.suggestion}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
+      </div>
     </Card>
   )
 
@@ -377,6 +471,16 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
             {past.slice().reverse().map((c) => <ConcertCard key={c.id} concert={c} dim />)}
           </div>
         </div>
+      )}
+
+      {/* Évaluation modal */}
+      {evalConcert && (
+        <EvaluationModal
+          endpoint={`/api/concerts/${evalConcert.id}/evaluation`}
+          title={evalConcert.name}
+          onClose={() => setEvalConcert(null)}
+          onSaved={fetchData}
+        />
       )}
 
       {/* Create modal */}
