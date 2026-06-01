@@ -276,7 +276,7 @@ export default async function TableauDeBordPage({
                     <ConcertDateBox date={concert.date} />
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-gray-900 text-sm">{concert.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{concert.group.name}</p>
+                      <p className="text-xs font-semibold text-gray-700 mt-0.5">🎸 {concert.group.name}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{concert.location}</p>
                     </div>
                     <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
