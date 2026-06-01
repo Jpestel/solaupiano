@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     maxSetlists, maxConcerts, maxCharts, maxFilesPerSong,
     hasGrilles, hasConcerts, hasSetlists, hasFicheTechnique,
     hasMaPage, hasCoChefs, hasPrioritySupport, hasStats, hasFileSubmissions,
-    hasMetronome, hasParoles, hasSequences,
+    hasMetronome, hasParoles, hasSequences, hasEvaluations,
     color,
   } = body
 
@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
       hasMetronome: Boolean(hasMetronome ?? true),
       hasParoles: Boolean(hasParoles ?? true),
       hasSequences: Boolean(hasSequences ?? true),
+      hasEvaluations: Boolean(hasEvaluations ?? true),
       // L'upload de fichiers est possible ⟺ quota de stockage > 0 (source unique de vérité)
       hasFileSubmissions: Number(storageGb ?? 1) > 0,
       color: String(color ?? 'gray'),

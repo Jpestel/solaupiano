@@ -55,12 +55,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // Fonctionnalités débloquées par le plan du groupe (défaut permissif si pas de plan trouvé)
   const planRec = await prisma.plan.findUnique({
     where: { key: group.plan },
-    select: { hasMetronome: true, hasParoles: true, hasSequences: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasStats: true },
+    select: { hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasStats: true },
   })
   const planFeatures = {
     hasMetronome: planRec?.hasMetronome ?? true,
     hasParoles: planRec?.hasParoles ?? true,
     hasSequences: planRec?.hasSequences ?? true,
+    hasEvaluations: planRec?.hasEvaluations ?? true,
     hasGrilles: planRec?.hasGrilles ?? true,
     hasSetlists: planRec?.hasSetlists ?? true,
     hasConcerts: planRec?.hasConcerts ?? true,

@@ -8,6 +8,10 @@ import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { StarRating, EvaluationModal } from '@/components/ui/RehearsalEvaluation'
+
+interface MemberRating { ratedUserId: number; rating: number; ratedUser: { id: number; name: string } }
+interface Evaluation { id: number; selfRating: number; groupRating: number; suggestion: string | null; evaluator: { id: number; name: string }; memberRatings: MemberRating[] }
 
 interface Rehearsal {
   id: number
@@ -16,6 +20,8 @@ interface Rehearsal {
   startTime: string
   endTime?: string
   notes?: string
+  attendances?: { userId: number; user: { id: number; name: string } }[]
+  evaluations?: Evaluation[]
 }
 
 interface GroupInfo {
@@ -23,6 +29,7 @@ interface GroupInfo {
   groupRole: string
   createdBy: number | null
   chefPermissions: unknown
+  hasEvaluations: boolean
 }
 
 interface Member {
@@ -50,6 +57,8 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [evalRehearsal, setEvalRehearsal] = useState<Rehearsal | null>(null)
+  const [expandedEvals, setExpandedEvals] = useState<Set<number>>(new Set())
 
   const fetchData = async () => {
     const [repRes, grpRes, unavRes] = await Promise.all([
@@ -63,7 +72,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
+      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, hasEvaluations: g.planFeatures?.hasEvaluations ?? true })
       const otherMembers = (g.members || []).filter((m: { userId: number }) => m.userId !== Number(session?.user?.id))
       setMembers(otherMembers)
       setSelectedMemberIds(otherMembers.map((m: Member) => m.userId))
@@ -106,6 +115,20 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
   const now = new Date()
   const upcoming = rehearsals.filter((r) => new Date(r.date) >= now)
   const past = rehearsals.filter((r) => new Date(r.date) < now)
+
+  const myId = Number(session?.user?.id)
+  // Fin de la répétition (jour + heure de fin, ou de début à défaut)
+  const rehearsalEnded = (r: Rehearsal) => {
+    const end = new Date(r.date)
+    const t = (r.endTime || r.startTime || '23:59').split(':')
+    end.setHours(Number(t[0]) || 23, Number(t[1]) || 59, 0, 0)
+    return new Date() >= end
+  }
+  const globalNote = (r: Rehearsal) => {
+    const evs = r.evaluations || []
+    if (evs.length === 0) return null
+    return evs.reduce((a, e) => a + e.groupRating, 0) / evs.length
+  }
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
@@ -167,24 +190,80 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
       {past.length > 0 && (
         <div>
           <h2 className="text-base font-semibold text-gray-700 mb-3">Passées ({past.length})</h2>
-          <div className="space-y-3 opacity-70">
-            {past.slice().reverse().map((r) => (
-              <Link key={r.id} href={`/groupes/${groupId}/repetitions/${r.id}`}>
-                <Card padding={false} className="flex items-center justify-between px-5 py-4 hover:border-gray-300 transition-all cursor-pointer">
-                  <div>
-                    <p className="font-semibold text-gray-700 capitalize">{formatDateWithDay(r.date)}</p>
-                    <p className="text-sm text-gray-500">
-                      {r.startTime}{r.endTime ? ` - ${r.endTime}` : ''} · {r.location}
-                    </p>
+          <div className="space-y-3">
+            {past.slice().reverse().map((r) => {
+              const note = globalNote(r)
+              const evs = r.evaluations || []
+              const iAmPresent = (r.attendances || []).some((a) => a.userId === myId)
+              const canEvaluate = (groupInfo?.hasEvaluations ?? true) && rehearsalEnded(r) && iAmPresent
+              const iEvaluated = evs.some((e) => e.evaluator.id === myId)
+              const expanded = expandedEvals.has(r.id)
+              return (
+                <Card key={r.id} padding={false} className="px-5 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link href={`/groupes/${groupId}/repetitions/${r.id}`} className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-700 capitalize">{formatDateWithDay(r.date)}</p>
+                      <p className="text-sm text-gray-500">{r.startTime}{r.endTime ? ` - ${r.endTime}` : ''} · {r.location}</p>
+                    </Link>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {note !== null && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700" title="Note globale du groupe">
+                          ⭐ {note.toFixed(1)} <span className="text-amber-400 font-normal">({evs.length})</span>
+                        </span>
+                      )}
+                      {canEvaluate && (
+                        <button onClick={() => setEvalRehearsal(r)}
+                          className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5">
+                          {iEvaluated ? 'Modifier' : 'Évaluer'}
+                        </button>
+                      )}
+                      {evs.length > 0 && (
+                        <button onClick={() => setExpandedEvals((s) => { const n = new Set(s); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n })}
+                          className="rounded-lg border border-gray-200 text-gray-500 text-xs font-medium px-2.5 py-1.5 hover:bg-gray-50">
+                          {expanded ? 'Masquer' : 'Détail'}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+
+                  {expanded && evs.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+                      {evs.map((e) => (
+                        <div key={e.id} className="text-sm">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="font-medium text-gray-700">{e.evaluator.name}{e.evaluator.id === myId ? ' (moi)' : ''}</span>
+                            <span className="flex items-center gap-3 text-xs text-gray-500">
+                              <span className="inline-flex items-center gap-1">Groupe <StarRating value={e.groupRating} readOnly size={14} /></span>
+                              <span className="inline-flex items-center gap-1">Soi <StarRating value={e.selfRating} readOnly size={14} /></span>
+                            </span>
+                          </div>
+                          {e.memberRatings.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                              {e.memberRatings.map((mr) => (
+                                <span key={mr.ratedUserId} className="inline-flex items-center gap-1">{mr.ratedUser.name} <StarRating value={mr.rating} readOnly size={12} /></span>
+                              ))}
+                            </div>
+                          )}
+                          {e.suggestion && <p className="mt-1 text-xs text-gray-500 italic">💬 {e.suggestion}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </Card>
-              </Link>
-            ))}
+              )
+            })}
           </div>
         </div>
+      )}
+
+      {/* Évaluation modal */}
+      {evalRehearsal && (
+        <EvaluationModal
+          rehearsalId={evalRehearsal.id}
+          title={formatDateWithDay(evalRehearsal.date)}
+          onClose={() => setEvalRehearsal(null)}
+          onSaved={fetchData}
+        />
       )}
 
       {/* Create modal */}

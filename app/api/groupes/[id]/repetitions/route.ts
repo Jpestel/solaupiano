@@ -21,6 +21,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const rehearsals = await prisma.rehearsal.findMany({
     where: { groupId },
     orderBy: { date: 'asc' },
+    include: {
+      attendances: { where: { status: 'PRESENT' }, select: { userId: true, user: { select: { id: true, name: true } } } },
+      evaluations: {
+        include: {
+          evaluator: { select: { id: true, name: true } },
+          memberRatings: { include: { ratedUser: { select: { id: true, name: true } } } },
+        },
+      },
+    },
   })
 
   return NextResponse.json(rehearsals)

@@ -68,6 +68,7 @@ model Plan {
   hasMetronome       Boolean @default(true)
   hasParoles         Boolean @default(true)
   hasSequences       Boolean @default(true)
+  hasEvaluations     Boolean @default(true)
 
   color     String   @default("gray")
 
@@ -175,6 +176,8 @@ model User {
   unavailabilities         Unavailability[]
   flashInfoViews           FlashInfoView[]
   pollVotes                PollVote[]
+  evaluationsAuthored      RehearsalEvaluation[]   @relation("EvaluationAuthor")
+  ratingsReceived          RehearsalMemberRating[] @relation("MemberRated")
 }
 
 enum FlashInfoType {
@@ -448,6 +451,38 @@ model Rehearsal {
   attendances  Attendance[]
   reminderLogs  ReminderLog[]
   autoReminders RehearsalAutoReminder[]
+  evaluations  RehearsalEvaluation[]
+}
+
+model RehearsalEvaluation {
+  id          Int      @id @default(autoincrement())
+  rehearsalId Int
+  evaluatorId Int
+  selfRating  Int      // 1-5 : sa propre performance
+  groupRating Int      // 1-5 : performance du groupe
+  suggestion  String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rehearsal     Rehearsal               @relation(fields: [rehearsalId], references: [id], onDelete: Cascade)
+  evaluator     User                    @relation("EvaluationAuthor", fields: [evaluatorId], references: [id], onDelete: Cascade)
+  memberRatings RehearsalMemberRating[]
+
+  @@unique([rehearsalId, evaluatorId])
+  @@index([rehearsalId])
+}
+
+model RehearsalMemberRating {
+  id           Int @id @default(autoincrement())
+  evaluationId Int
+  ratedUserId  Int
+  rating       Int // 1-5
+
+  evaluation RehearsalEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  ratedUser  User                @relation("MemberRated", fields: [ratedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, ratedUserId])
+  @@index([ratedUserId])
 }
 
 model RehearsalSong {
