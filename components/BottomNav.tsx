@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
@@ -8,6 +10,8 @@ import { clsx } from '@/lib/utils'
 export function BottomNav() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const isAdmin = session?.user?.siteRole === 'ADMIN'
 
   // Vue grille (éditeur) : espace de travail focalisé avec sa propre palette en bas
@@ -98,8 +102,11 @@ export function BottomNav() {
 
   const items = isAdmin ? adminItems : userItems
 
-  return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 safe-bottom">
+  const nav = (
+    <nav
+      className="lg:hidden z-30 bg-white border-t border-gray-200"
+      style={{ position: 'fixed', left: 0, right: 0, bottom: 0, paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="flex items-stretch">
         {items.map((item) => {
           const active = isActive(item.href)
@@ -131,4 +138,9 @@ export function BottomNav() {
       </div>
     </nav>
   )
+
+  // Rendu via un portail sur <body> : la barre est ancrée au viewport quel que
+  // soit un éventuel ancêtre avec transform/filter (qui la ferait "flotter").
+  if (!mounted) return null
+  return createPortal(nav, document.body)
 }
