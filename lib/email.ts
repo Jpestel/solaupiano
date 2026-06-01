@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { getEmailTemplate } from './get-email-template'
+import { signPresence } from './presence-token'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -149,11 +150,14 @@ export async function sendEvaluationReminder(
   memberName: string,
   groupName: string,
   groupId: number,
+  rehearsalId: number,
+  userId: number,
   rehearsal: { date: Date; startTime: string; endTime?: string | null; location: string },
   baseUrl: string
 ) {
   const dateStr = new Date(rehearsal.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
   const url = `${baseUrl}/groupes/${groupId}/repetitions`
+  const absentUrl = `${baseUrl}/presence?r=${rehearsalId}&u=${userId}&t=${signPresence(rehearsalId, userId)}&a=absent`
   const tpl = await getEmailTemplate('evaluation_reminder')
   const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName, date: dateStr })
 
@@ -169,6 +173,11 @@ export async function sendEvaluationReminder(
       `)}
       ${outroHtml}
       ${ctaButton(url, 'Laisser mon évaluation →')}
+      <p style="text-align:center; margin: 14px 0 0; font-size: 13px; color: #6b7280;">
+        Vous n'étiez finalement pas là ?
+        <a href="${absentUrl}" style="color:#b91c1c; text-decoration:underline;">Me marquer absent(e)</a>
+        — vous n'aurez alors rien à évaluer.
+      </p>
     `),
   })
 }

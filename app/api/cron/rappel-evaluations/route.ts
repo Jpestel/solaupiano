@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        await sendEvaluationReminder(user.email, user.name, r.group.name, r.group.id,
+        await sendEvaluationReminder(user.email, user.name, r.group.name, r.group.id, r.id, user.id,
           { date: r.date, startTime: r.startTime, endTime: r.endTime, location: r.location }, baseUrl)
         if (!force) {
           await prisma.evaluationReminderLog.upsert({
