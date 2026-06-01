@@ -117,17 +117,25 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
   }
 
   const now = new Date()
-  const upcoming = rehearsals.filter((r) => new Date(r.date) >= now)
-  const past = rehearsals.filter((r) => new Date(r.date) < now)
-
   const myId = Number(session?.user?.id)
-  // Fin de la répétition (jour + heure de fin, ou de début à défaut)
-  const rehearsalEnded = (r: Rehearsal) => {
+  // Heures de début / fin de la répétition (jour + heure)
+  const rehearsalEnd = (r: Rehearsal) => {
     const end = new Date(r.date)
     const t = (r.endTime || r.startTime || '23:59').split(':')
     end.setHours(Number(t[0]) || 23, Number(t[1]) || 59, 0, 0)
-    return new Date() >= end
+    return end
   }
+  const rehearsalStart = (r: Rehearsal) => {
+    const s = new Date(r.date)
+    const t = (r.startTime || '00:00').split(':')
+    s.setHours(Number(t[0]) || 0, Number(t[1]) || 0, 0, 0)
+    return s
+  }
+  const isEnded = (r: Rehearsal) => now >= rehearsalEnd(r)
+  const isOngoing = (r: Rehearsal) => now >= rehearsalStart(r) && now < rehearsalEnd(r)
+  // Tri basé sur l'heure de FIN : une répét' du jour reste « à venir/en cours » tant qu'elle n'est pas finie
+  const upcoming = rehearsals.filter((r) => !isEnded(r))
+  const past = rehearsals.filter((r) => isEnded(r))
   const globalNote = (r: Rehearsal) => {
     const evs = r.evaluations || []
     if (evs.length === 0) return null
@@ -171,21 +179,36 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
           <Card><p className="text-sm text-gray-500 text-center py-6">Aucune répétition à venir.</p></Card>
         ) : (
           <div className="space-y-3">
-            {upcoming.map((r) => (
-              <Link key={r.id} href={`/groupes/${groupId}/repetitions/${r.id}`}>
-                <Card padding={false} className="flex items-center justify-between px-5 py-4 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all cursor-pointer">
-                  <div>
-                    <p className="font-semibold text-gray-900 capitalize">{formatDateWithDay(r.date)}</p>
-                    <p className="text-sm text-gray-500">
-                      {r.startTime}{r.endTime ? ` - ${r.endTime}` : ''} · {r.location}
-                    </p>
-                  </div>
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Card>
-              </Link>
-            ))}
+            {upcoming.map((r) => {
+              const ongoing = isOngoing(r)
+              const iAmPresent = (r.attendances || []).some((a) => a.userId === myId)
+              const showEvalSoon = ongoing && iAmPresent && (groupInfo?.hasEvaluations ?? true)
+              return (
+                <Link key={r.id} href={`/groupes/${groupId}/repetitions/${r.id}`}>
+                  <Card padding={false} className={`px-5 py-4 transition-all cursor-pointer ${ongoing ? 'border-green-300 bg-green-50/40 hover:bg-green-50/60' : 'hover:border-indigo-200 hover:bg-indigo-50/30'}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900 capitalize flex items-center gap-2">
+                          {formatDateWithDay(r.date)}
+                          {ongoing && <span className="inline-flex items-center rounded-full bg-green-100 border border-green-300 px-2 py-0.5 text-[10px] font-bold text-green-700">EN COURS</span>}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {r.startTime}{r.endTime ? ` - ${r.endTime}` : ''} · {r.location}
+                        </p>
+                      </div>
+                      <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                    {showEvalSoon && (
+                      <p className="mt-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 inline-flex items-center gap-1.5">
+                        ⭐ Évaluation disponible dès la fin de la répétition{r.endTime ? ` (${r.endTime})` : ''}
+                      </p>
+                    )}
+                  </Card>
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>
@@ -199,7 +222,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
               const note = globalNote(r)
               const evs = r.evaluations || []
               const iAmPresent = (r.attendances || []).some((a) => a.userId === myId)
-              const canEvaluate = (groupInfo?.hasEvaluations ?? true) && rehearsalEnded(r) && iAmPresent
+              const canEvaluate = (groupInfo?.hasEvaluations ?? true) && isEnded(r) && iAmPresent
               const iEvaluated = evs.some((e) => e.evaluator.id === myId)
               const expanded = expandedEvals.has(r.id)
               return (
