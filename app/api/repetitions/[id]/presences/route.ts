@@ -51,5 +51,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     create: { userId, rehearsalId, status },
   })
 
+  // Si le musicien n'est plus présent, son auto-évaluation ne doit pas fausser
+  // les résultats → on la supprime (cascade sur notes membres/morceaux).
+  if (status !== 'PRESENT') {
+    await prisma.rehearsalEvaluation.deleteMany({ where: { rehearsalId, evaluatorId: userId } })
+  }
+
   return NextResponse.json(attendance)
 }

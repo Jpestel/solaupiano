@@ -29,6 +29,10 @@ export default async function PresencePage({ searchParams }: { searchParams: { r
         create: { userId, rehearsalId, status: action },
         update: { status: action },
       })
+      // Absent → on retire l'éventuelle évaluation pour ne pas fausser les résultats
+      if (action === 'ABSENT') {
+        await prisma.rehearsalEvaluation.deleteMany({ where: { rehearsalId, evaluatorId: userId } })
+      }
       done = true
     }
   }

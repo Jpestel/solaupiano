@@ -37,6 +37,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     },
   })
 
+  // Statut de présence de l'utilisateur courant pour chaque répétition
+  const myAttendances = await prisma.attendance.findMany({
+    where: { userId, rehearsalId: { in: rehearsals.map((r) => r.id) } },
+    select: { rehearsalId: true, status: true },
+  })
+  const myStatusByRehearsal = new Map(myAttendances.map((a) => [a.rehearsalId, a.status]))
+
   // Modèle prudent : on n'expose JAMAIS le détail nominatif des notes entre
   // musiciens, sauf en mode PUBLIC. On calcule des agrégats côté serveur.
   const result = rehearsals.map((r) => {
@@ -75,6 +82,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       peerVisibility: visibility,
       myAvgReceived: visibility === 'HIDDEN' ? null : myAvgReceived,
       avgReceivedByUser,
+      myAttendanceStatus: myStatusByRehearsal.get(r.id) ?? null,
     }
   })
 
