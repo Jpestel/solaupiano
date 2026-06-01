@@ -283,6 +283,9 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
         </div>
         <span className="text-2xl flex-shrink-0 ml-2">🎭</span>
       </div>
+      {groupInfo?.name && (
+        <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">🎸 {groupInfo.name}</p>
+      )}
       <p className={`text-sm font-medium capitalize ${dim ? 'text-gray-400' : 'text-indigo-600'}`}>{formatDateWithDay(concert.date)}</p>
       <p className="text-sm text-gray-500 mt-1">{concert.location}</p>
 
