@@ -27,7 +27,8 @@ export function StarRating({ value, onChange, readOnly, size = 26 }: {
 interface EvalData {
   canEvaluate: boolean
   presentMembers: { userId: number; name: string }[]
-  myEvaluation: { selfRating: number; groupRating: number; suggestion: string | null; memberRatings: Record<string, number> } | null
+  plannedSongs: { songId: number; title: string; artist: string | null }[]
+  myEvaluation: { selfRating: number; groupRating: number; suggestion: string | null; memberRatings: Record<string, number>; songRatings: Record<string, number> } | null
 }
 
 export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
@@ -40,6 +41,7 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
   const [self, setSelf] = useState(0)
   const [group, setGroup] = useState(0)
   const [ratings, setRatings] = useState<Record<number, number>>({})
+  const [songRatings, setSongRatings] = useState<Record<number, number>>({})
   const [suggestion, setSuggestion] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -54,6 +56,7 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
           setGroup(d.myEvaluation.groupRating)
           setSuggestion(d.myEvaluation.suggestion || '')
           setRatings(Object.fromEntries(Object.entries(d.myEvaluation.memberRatings).map(([k, v]) => [Number(k), v])))
+          setSongRatings(Object.fromEntries(Object.entries(d.myEvaluation.songRatings || {}).map(([k, v]) => [Number(k), v])))
         }
       }
       setLoading(false)
@@ -71,6 +74,7 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
       body: JSON.stringify({
         selfRating: self, groupRating: group, suggestion,
         ratings: others.map((m) => ({ ratedUserId: m.userId, rating: ratings[m.userId] || 0 })).filter((r) => r.rating > 0),
+        songRatings: (data?.plannedSongs || []).map((s) => ({ songId: s.songId, rating: songRatings[s.songId] || 0 })).filter((r) => r.rating > 0),
       }),
     })
     setSaving(false)
@@ -105,6 +109,22 @@ export function EvaluationModal({ rehearsalId, title, onClose, onSaved }: {
                     <div key={m.userId} className="flex items-center justify-between gap-3">
                       <span className="text-sm text-gray-600 truncate">{m.name}</span>
                       <StarRating value={ratings[m.userId] || 0} onChange={(n) => setRatings((r) => ({ ...r, [m.userId]: n }))} size={22} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(data?.plannedSongs || []).length > 0 && (
+              <div className="border-t border-gray-100 pt-4">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Les morceaux travaillés</p>
+                <div className="space-y-2">
+                  {data!.plannedSongs.map((s) => (
+                    <div key={s.songId} className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-gray-600 truncate">
+                        {s.title}{s.artist ? <span className="text-gray-400"> — {s.artist}</span> : null}
+                      </span>
+                      <StarRating value={songRatings[s.songId] || 0} onChange={(n) => setSongRatings((r) => ({ ...r, [s.songId]: n }))} size={22} />
                     </div>
                   ))}
                 </div>

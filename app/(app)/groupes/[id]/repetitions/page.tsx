@@ -11,7 +11,8 @@ import { Modal } from '@/components/ui/Modal'
 import { StarRating, EvaluationModal } from '@/components/ui/RehearsalEvaluation'
 
 interface MemberRating { ratedUserId: number; rating: number; ratedUser: { id: number; name: string } }
-interface Evaluation { id: number; selfRating: number; groupRating: number; suggestion: string | null; evaluator: { id: number; name: string }; memberRatings: MemberRating[] }
+interface SongRating { songId: number; rating: number; song: { id: number; title: string } }
+interface Evaluation { id: number; selfRating: number; groupRating: number; suggestion: string | null; evaluator: { id: number; name: string }; memberRatings: MemberRating[]; songRatings: SongRating[] }
 
 interface Rehearsal {
   id: number
@@ -241,6 +242,13 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
                             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                               {e.memberRatings.map((mr) => (
                                 <span key={mr.ratedUserId} className="inline-flex items-center gap-1">{mr.ratedUser.name} <StarRating value={mr.rating} readOnly size={12} /></span>
+                              ))}
+                            </div>
+                          )}
+                          {e.songRatings.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                              {e.songRatings.map((sr) => (
+                                <span key={sr.songId} className="inline-flex items-center gap-1">🎵 {sr.song.title} <StarRating value={sr.rating} readOnly size={12} /></span>
                               ))}
                             </div>
                           )}

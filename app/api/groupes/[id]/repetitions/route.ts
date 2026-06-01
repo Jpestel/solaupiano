@@ -27,6 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         include: {
           evaluator: { select: { id: true, name: true } },
           memberRatings: { include: { ratedUser: { select: { id: true, name: true } } } },
+          songRatings: { include: { song: { select: { id: true, title: true } } } },
         },
       },
     },

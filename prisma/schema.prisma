@@ -467,9 +467,23 @@ model RehearsalEvaluation {
   rehearsal     Rehearsal               @relation(fields: [rehearsalId], references: [id], onDelete: Cascade)
   evaluator     User                    @relation("EvaluationAuthor", fields: [evaluatorId], references: [id], onDelete: Cascade)
   memberRatings RehearsalMemberRating[]
+  songRatings   RehearsalSongRating[]
 
   @@unique([rehearsalId, evaluatorId])
   @@index([rehearsalId])
+}
+
+model RehearsalSongRating {
+  id           Int @id @default(autoincrement())
+  evaluationId Int
+  songId       Int
+  rating       Int // 1-5
+
+  evaluation RehearsalEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  song       Song                @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, songId])
+  @@index([songId])
 }
 
 model RehearsalMemberRating {
@@ -592,6 +606,7 @@ model Song {
   lyrics           SongLyrics?
   tab              SongTab?
   sequences        SongSequence[]
+  evaluationRatings RehearsalSongRating[]
 }
 
 model SongSequence {

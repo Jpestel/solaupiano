@@ -18,7 +18,10 @@ const clampRating = (n: any) => Math.max(1, Math.min(5, Math.round(Number(n) || 
 async function loadContext(rehearsalId: number, userId: number, isAdmin: boolean) {
   const rehearsal = await prisma.rehearsal.findUnique({
     where: { id: rehearsalId },
-    include: { attendances: { include: { user: { select: { id: true, name: true } } } } },
+    include: {
+      attendances: { include: { user: { select: { id: true, name: true } } } },
+      songs: { include: { song: { select: { id: true, title: true, artist: true } } }, orderBy: { position: 'asc' } },
+    },
   })
   if (!rehearsal) return { error: 'Introuvable.' as string, status: 404 as number }
 
@@ -32,8 +35,9 @@ async function loadContext(rehearsalId: number, userId: number, isAdmin: boolean
   const myAtt = rehearsal.attendances.find((a) => a.userId === userId)
   const isPresent = myAtt?.status === 'PRESENT'
   const presentMembers = rehearsal.attendances.filter((a) => a.status === 'PRESENT').map((a) => ({ userId: a.userId, name: a.user.name }))
+  const plannedSongs = rehearsal.songs.map((rs) => ({ songId: rs.songId, title: rs.song.title, artist: rs.song.artist }))
 
-  return { rehearsal, moduleOn, ended, isPresent, presentMembers }
+  return { rehearsal, moduleOn, ended, isPresent, presentMembers, plannedSongs }
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -48,7 +52,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const myEval = await prisma.rehearsalEvaluation.findUnique({
     where: { rehearsalId_evaluatorId: { rehearsalId, evaluatorId: userId } },
-    include: { memberRatings: true },
+    include: { memberRatings: true, songRatings: true },
   })
 
   return NextResponse.json({
@@ -57,11 +61,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     isPresent: ctx.isPresent,
     canEvaluate: ctx.moduleOn && ctx.ended && ctx.isPresent,
     presentMembers: ctx.presentMembers,
+    plannedSongs: ctx.plannedSongs,
     myEvaluation: myEval ? {
       selfRating: myEval.selfRating,
       groupRating: myEval.groupRating,
       suggestion: myEval.suggestion,
       memberRatings: Object.fromEntries(myEval.memberRatings.map((r) => [r.ratedUserId, r.rating])),
+      songRatings: Object.fromEntries(myEval.songRatings.map((r) => [r.songId, r.rating])),
     } : null,
   })
 }
@@ -79,12 +85,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!ctx.ended) return NextResponse.json({ error: 'La répétition n\'est pas encore terminée.' }, { status: 403 })
   if (!ctx.isPresent) return NextResponse.json({ error: 'Seuls les musiciens présents peuvent évaluer.' }, { status: 403 })
 
-  const { selfRating, groupRating, suggestion, ratings } = await req.json()
+  const { selfRating, groupRating, suggestion, ratings, songRatings } = await req.json()
   const presentIds = new Set(ctx.presentMembers.map((m) => m.userId))
   const cleanRatings: { ratedUserId: number; rating: number }[] = Array.isArray(ratings)
     ? ratings
         .map((r: any) => ({ ratedUserId: Number(r.ratedUserId), rating: clampRating(r.rating) }))
         .filter((r) => presentIds.has(r.ratedUserId) && r.ratedUserId !== userId)
+    : []
+  const plannedIds = new Set(ctx.plannedSongs.map((s) => s.songId))
+  const cleanSongRatings: { songId: number; rating: number }[] = Array.isArray(songRatings)
+    ? songRatings
+        .map((r: any) => ({ songId: Number(r.songId), rating: clampRating(r.rating) }))
+        .filter((r) => plannedIds.has(r.songId))
     : []
 
   const evaluation = await prisma.rehearsalEvaluation.upsert({
@@ -105,6 +117,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (cleanRatings.length > 0) {
     await prisma.rehearsalMemberRating.createMany({
       data: cleanRatings.map((r) => ({ evaluationId: evaluation.id, ratedUserId: r.ratedUserId, rating: r.rating })),
+    })
+  }
+
+  // Remplace les notes par morceau
+  await prisma.rehearsalSongRating.deleteMany({ where: { evaluationId: evaluation.id } })
+  if (cleanSongRatings.length > 0) {
+    await prisma.rehearsalSongRating.createMany({
+      data: cleanSongRatings.map((r) => ({ evaluationId: evaluation.id, songId: r.songId, rating: r.rating })),
     })
   }
 
