@@ -69,6 +69,7 @@ export default async function AidePage() {
             { href: '#disponibilites', label: '🗓 Disponibilités' },
             { href: '#sondages', label: '📊 Sondages' },
             { href: '#concerts', label: '🎭 Concerts' },
+            { href: '#evaluation', label: '⭐ Auto-évaluation' },
             { href: '#plan-scene', label: '🗺️ Plan de scène' },
             { href: '#fiche-technique', label: '📋 Fiche technique' },
             { href: '#ma-page', label: '🌐 Page publique' },
@@ -283,8 +284,12 @@ export default async function AidePage() {
                 <StatusPill status="ABSENT" />
                 <StatusPill status="INCERTAIN" />
               </div>
-              <p className="mt-3 text-sm text-gray-600">Cliquez sur la répétition pour voir les détails et modifier votre réponse.</p>
+              <p className="mt-3 text-sm text-gray-600">Modifiez votre réponse directement dans la liste (boutons de présence) ou depuis la fiche de la répétition.</p>
               <Tip>Votre statut de présence est visible par le chef du groupe. Prévenez rapidement si vous ne pouvez pas venir !</Tip>
+            </HelpCard>
+
+            <HelpCard title="Évaluer la répétition">
+              <p>Une fois la répétition terminée, si vous étiez <strong>présent</strong>, vous pouvez laisser une <strong>auto-évaluation</strong> (étoiles) — voir la section <a href="#evaluation" className="text-indigo-600 hover:underline">Auto-évaluation</a>.</p>
             </HelpCard>
 
             {isCreateur && (
@@ -352,9 +357,48 @@ export default async function AidePage() {
             )}
 
             <HelpCard title="Voir les concerts à venir">
-              <p>La page <strong>Concerts</strong> affiche tous les concerts à venir, triés par date. Si une setlist est associée, vous pouvez la consulter et l&apos;imprimer directement.</p>
+              <p>La page <strong>Concerts</strong> affiche tous les concerts (le <strong>nom du groupe en concert</strong> y figure), triés par date. Si une setlist est associée, vous pouvez la consulter et l&apos;imprimer directement.</p>
               <Tip>Le tableau de bord affiche aussi le prochain concert de chacun de vos groupes, avec un accès rapide.</Tip>
             </HelpCard>
+
+            <HelpCard title="Présence & auto-évaluation">
+              <p>Comme pour les répétitions, chaque membre indique sa <strong>présence</strong> (✅ Présent / ❓ Incertain / ⛔ Absent) directement sur la carte du concert.</p>
+              <p className="mt-2">Une fois le concert passé, les musiciens présents peuvent laisser une <strong>auto-évaluation</strong> (voir la section <a href="#evaluation" className="text-indigo-600 hover:underline">Auto-évaluation</a>).</p>
+            </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── AUTO-ÉVALUATION ─── */}
+        <section id="evaluation">
+          <SectionTitle icon="⭐" title="Auto-évaluation (répétitions & concerts)" color="violet" tutorials={tf('feature_evaluation')} />
+          <div className="space-y-4">
+            <HelpCard title="Évaluer après coup">
+              <p>Une fois une <strong>répétition</strong> ou un <strong>concert</strong> terminé, chaque <strong>musicien présent</strong> peut laisser une évaluation (étoiles ⭐ de 1 à 5) :</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>Ma performance</strong> — votre propre jeu</li>
+                <li><strong>Les autres musiciens</strong> — un par un</li>
+                <li><strong>Les morceaux travaillés / joués</strong> — un par un</li>
+                <li><strong>La performance du groupe</strong></li>
+                <li>+ une <strong>suggestion</strong> libre pour la prochaine fois (facultatif)</li>
+              </ul>
+              <Note>Réservé aux <strong>présents</strong>, et seulement une fois l&apos;événement <strong>terminé</strong>. Pendant une répétition en cours, un message indique « Évaluation disponible dès la fin ».</Note>
+            </HelpCard>
+
+            <HelpCard title="Résultats & note globale">
+              <p>Dans la liste des répétitions / concerts passés, chaque ligne affiche la <strong>note globale ⭐</strong> (moyenne du groupe) et un bouton <strong>Détail</strong> qui montre les notes par morceau, la suggestion, etc.</p>
+              <p className="mt-2">Vous voyez aussi votre <strong>moyenne reçue</strong> (👤) — anonyme.</p>
+            </HelpCard>
+
+            <HelpCard title="Confidentialité des notes entre musiciens">
+              <p>Par défaut (mode <strong>prudent</strong>), les notes que les musiciens se donnent entre eux <strong>ne sont pas nominatives</strong> : chacun voit seulement sa propre moyenne reçue. Le chef peut changer ce réglage dans <strong>Paramètres du groupe</strong> (masquées / moyenne perçue / visibles).</p>
+            </HelpCard>
+
+            <HelpCard title="Rappels par e-mail">
+              <p>Le lendemain d&apos;un événement non évalué, un e-mail invite les présents à laisser leur avis. S&apos;ils n&apos;étaient finalement pas là, un lien <strong>« Me marquer absent »</strong> met à jour leur présence en un clic (leur évaluation éventuelle est alors retirée).</p>
+              <Tip>Vous pouvez désactiver ces rappels dans <strong>Mon profil</strong> → préférences e-mail.</Tip>
+            </HelpCard>
+
+            <Note>Module activable par l&apos;administrateur selon l&apos;offre du groupe. S&apos;il n&apos;est pas inclus, l&apos;évaluation n&apos;apparaît pas.</Note>
           </div>
         </section>
 
