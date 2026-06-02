@@ -782,31 +782,17 @@ export default function AdminPlansPage() {
                       </div>
                     </div>
 
-                    {/* Tool modules — saved immediately via ModuleAccess API */}
+                    {/* Les outils autonomes (Accordeur, Métronome, etc.) se gèrent désormais
+                        uniquement sur Admin → Modules, qui gère aussi les exceptions par
+                        utilisateur et par groupe. On évite ainsi le doublon de réglages. */}
                     <div className="border-t border-gray-100 pt-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Outils & modules</p>
-                        <span className="text-[10px] text-gray-400">
-                          {moduleAccessLoading
-                            ? 'Chargement…'
-                            : form.key
-                              ? 'Sauvegardé en temps réel'
-                              : 'Renseignez d\'abord la clé du plan'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400 mb-3">
-                        Contrôle l'accès aux outils et services de la plateforme. Désactiver un outil le masque sur la page tarifs pour ce plan.
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {MODULES.map(m => (
-                          <ToggleFeature
-                            key={m.key}
-                            label={m.label}
-                            icon={m.icon}
-                            checked={planModuleAccess[m.key] ?? true}
-                            onChange={v => handleModuleToggle(m.key, v)}
-                          />
-                        ))}
+                      <div className="flex items-start gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-3">
+                        <span className="text-base leading-none mt-0.5">🛠</span>
+                        <p className="text-xs text-indigo-700">
+                          Les <strong>outils autonomes</strong> (Accordeur, Métronome, Créateur d'accords…)
+                          se règlent sur <a href="/admin/modules" className="font-semibold underline hover:text-indigo-900">Admin → Modules</a>,
+                          qui gère aussi les exceptions par utilisateur et par groupe.
+                        </p>
                       </div>
                     </div>
                   </div>

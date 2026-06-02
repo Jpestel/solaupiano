@@ -18,8 +18,8 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: 'tool_metronome',
-    label: 'Métronome',
-    description: 'Métronome réglable avec différentes signatures rythmiques.',
+    label: 'Métronome (outil)',
+    description: 'Outil autonome : métronome réglable avec différentes signatures rythmiques. Distinct du métronome intégré au répertoire (réglé par plan).',
     href: '/outils/metronome',
     icon: '🎵',
     category: 'outil',
