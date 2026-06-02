@@ -9,6 +9,7 @@ interface Perf {
   app: any
   database: any
   disk: any
+  history?: any[]
 }
 
 function fmtBytes(b: number | undefined | null) {
@@ -30,6 +31,24 @@ function Gauge({ percent, warn = 75, danger = 90 }: { percent: number; warn?: nu
   return (
     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
       <div className={`h-full ${color} transition-all`} style={{ width: `${Math.min(100, percent)}%` }} />
+    </div>
+  )
+}
+
+function Sparkline({ points, max = 100, color = '#6366f1', height = 40, unit = '%' }: { points: number[]; max?: number; color?: string; height?: number; unit?: string }) {
+  if (points.length < 2) return <p className="text-xs text-gray-400 py-3">Pas encore assez de données (le suivi se remplit toutes les 15 min).</p>
+  const w = 300
+  const m = Math.max(max, ...points)
+  const step = w / (points.length - 1)
+  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(height - (p / m) * height).toFixed(1)}`).join(' ')
+  const last = points[points.length - 1]
+  return (
+    <div>
+      <svg viewBox={`0 0 ${w} ${height}`} className="w-full" style={{ height }} preserveAspectRatio="none">
+        <path d={`${d} L${w},${height} L0,${height} Z`} fill={color} opacity={0.08} />
+        <path d={d} fill="none" stroke={color} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+      </svg>
+      <p className="text-[11px] text-gray-400 mt-0.5">Actuel : <span className="font-semibold text-gray-600">{last}{unit}</span> · max {Math.round(m)}{unit}</p>
     </div>
   )
 }
@@ -62,6 +81,20 @@ export default function AdminPerformancePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [roundtrip, setRoundtrip] = useState<number | null>(null)
+  const [bench, setBench] = useState<{ avg: number; min: number; max: number; n: number } | null>(null)
+  const [benching, setBenching] = useState(false)
+
+  const runBench = async () => {
+    setBenching(true); setBench(null)
+    const N = 12; const times: number[] = []
+    for (let i = 0; i < N; i++) {
+      const t = performance.now()
+      try { await fetch('/api/settings', { cache: 'no-store' }) } catch {}
+      times.push(performance.now() - t)
+    }
+    setBench({ avg: Math.round(times.reduce((a, b) => a + b, 0) / N), min: Math.round(Math.min(...times)), max: Math.round(Math.max(...times)), n: N })
+    setBenching(false)
+  }
 
   const load = useCallback(async () => {
     setLoading(true); setError('')
@@ -180,8 +213,38 @@ export default function AdminPerformancePage() {
             </Card>
           </div>
 
+          {/* Test de débit */}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 mt-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">⚡ Test de débit réseau</h2>
+              <button onClick={runBench} disabled={benching} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                {benching ? 'Test…' : 'Lancer 12 requêtes'}
+              </button>
+            </div>
+            {bench ? (
+              <div className="grid grid-cols-3 gap-3 mt-3 text-center">
+                <div className="rounded-lg bg-gray-50 border border-gray-100 py-2"><p className="text-lg font-bold text-gray-800">{bench.avg} ms</p><p className="text-[10px] text-gray-400">moyenne</p></div>
+                <div className="rounded-lg bg-gray-50 border border-gray-100 py-2"><p className="text-lg font-bold text-green-700">{bench.min} ms</p><p className="text-[10px] text-gray-400">min</p></div>
+                <div className="rounded-lg bg-gray-50 border border-gray-100 py-2"><p className="text-lg font-bold text-amber-600">{bench.max} ms</p><p className="text-[10px] text-gray-400">max</p></div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 mt-2">Mesure le temps aller-retour réseau depuis votre navigateur (12 requêtes vers le serveur).</p>
+            )}
+          </div>
+
+          {/* Historique 48 h */}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 mt-4">
+            <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">📈 Historique (48 h)</h2>
+            <div className="grid md:grid-cols-2 gap-x-6 gap-y-4">
+              <div><p className="text-xs font-semibold text-gray-500 mb-1">Charge CPU</p><Sparkline points={(data.history || []).map((h: any) => h.loadPercent)} color="#6366f1" /></div>
+              <div><p className="text-xs font-semibold text-gray-500 mb-1">Mémoire</p><Sparkline points={(data.history || []).map((h: any) => h.memPercent)} color="#0ea5e9" /></div>
+              <div><p className="text-xs font-semibold text-gray-500 mb-1">Disque</p><Sparkline points={(data.history || []).map((h: any) => h.diskPercent)} color="#f59e0b" /></div>
+              <div><p className="text-xs font-semibold text-gray-500 mb-1">Latence BDD</p><Sparkline points={(data.history || []).map((h: any) => h.dbPingMs)} color="#10b981" max={50} unit=" ms" /></div>
+            </div>
+          </div>
+
           <p className="text-xs text-gray-400 mt-4">
-            Seuils indicatifs : 🟢 OK · 🟠 à surveiller · 🔴 critique. La latence de la boucle d'événements mesure la réactivité de l'app Node (idéalement &lt; 30 ms).
+            Seuils indicatifs : 🟢 OK · 🟠 à surveiller · 🔴 critique. Une alerte e-mail est envoyée à l'admin si CPU/mémoire/disque dépasse 90 %. Le suivi historique s'enregistre toutes les 15 min.
           </p>
         </>
       )}

@@ -17,7 +17,8 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { AttendanceBadge } from '@/components/ui/Badge'
 import { AttendanceButton } from '@/components/AttendanceButton'
 import { VideoModal } from '@/components/ui/VideoModal'
-import { PdfModal } from '@/components/ui/PdfModal'
+import dynamic from 'next/dynamic'
+const PdfModal = dynamic(() => import('@/components/ui/PdfModal').then((m) => m.PdfModal), { ssr: false })
 
 interface Resource { id: number; name: string; type: string; filePath: string }
 interface Song { id: number; title: string; artist?: string; resources: Resource[] }

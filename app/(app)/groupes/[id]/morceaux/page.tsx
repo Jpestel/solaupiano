@@ -12,7 +12,8 @@ import { ResourceUploader } from '@/components/ResourceUploader'
 import { PendingResourceUploader } from '@/components/PendingResourceUploader'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { SongMetronome } from '@/components/ui/SongMetronome'
-import { PdfModal } from '@/components/ui/PdfModal'
+import dynamic from 'next/dynamic'
+const PdfModal = dynamic(() => import('@/components/ui/PdfModal').then((m) => m.PdfModal), { ssr: false })
 
 interface Resource {
   id: number

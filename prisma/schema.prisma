@@ -786,6 +786,18 @@ model SiteSetting {
   value String
 }
 
+model PerfSnapshot {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  loadPercent    Int      @default(0)
+  memPercent     Int      @default(0)
+  diskPercent    Int      @default(0)
+  dbPingMs       Int      @default(0)
+  eventLoopLagMs Int      @default(0)
+
+  @@index([createdAt])
+}
+
 model EmailVerificationToken {
   id        Int      @id @default(autoincrement())
   userId    Int

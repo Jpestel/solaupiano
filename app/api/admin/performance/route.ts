@@ -107,9 +107,19 @@ export async function GET() {
     disk.uploadsBytes = dirSize(path.join(process.cwd(), 'public', 'uploads'))
   } catch {}
 
+  // ── Historique (48 h) ──
+  let history: any[] = []
+  try {
+    history = await prisma.perfSnapshot.findMany({
+      where: { createdAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) } },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true, loadPercent: true, memPercent: true, diskPercent: true, dbPingMs: true, eventLoopLagMs: true },
+    })
+  } catch {}
+
   return NextResponse.json({
     generatedAt: new Date().toISOString(),
     serverComputeMs: Date.now() - startedAt,
-    system, app, database, disk,
+    system, app, database, disk, history,
   })
 }

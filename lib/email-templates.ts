@@ -47,6 +47,18 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ],
   },
   {
+    key: 'perf_alert',
+    name: 'Alerte performance serveur',
+    description: 'Envoyé à l\'admin quand un seuil critique du serveur est franchi (CPU, mémoire, disque).',
+    defaultSubject: '⚠️ Alerte performance — {{metric}}',
+    defaultIntro: 'Un seuil critique a été franchi sur le serveur Sol au piano.',
+    defaultOutro: 'Consultez Admin → Performance pour le détail.',
+    variables: [
+      { key: 'metric', description: 'Indicateur concerné' },
+      { key: 'detail', description: 'Détail des valeurs' },
+    ],
+  },
+  {
     key: 'concert_evaluation_reminder',
     name: 'Rappel d\'évaluation de concert',
     description: 'Envoyé le lendemain d\'un concert aux musiciens présents qui n\'ont pas encore laissé d\'évaluation.',

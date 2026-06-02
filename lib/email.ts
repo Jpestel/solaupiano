@@ -182,6 +182,24 @@ export async function sendEvaluationReminder(
   })
 }
 
+// ─── Alerte performance serveur (admin) ──────────────────────────────────────
+
+export async function sendPerfAlert(to: string, metric: string, detail: string, baseUrl: string) {
+  const tpl = await getEmailTemplate('perf_alert')
+  const { subject, introHtml, outroHtml } = tpl.render({ metric, detail })
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${dataBox(`<p style="margin:0 0 4px;font-size:15px;font-weight:700;color:#991b1b;">⚠️ ${metric}</p><p style="margin:0;font-size:13px;color:#b91c1c;">${detail}</p>`, 'red')}
+      ${outroHtml}
+      ${ctaButton(`${baseUrl}/admin/performance`, 'Voir la performance →')}
+    `),
+  })
+}
+
 // ─── Rappel d'évaluation de concert (lendemain) ──────────────────────────────
 
 export async function sendConcertEvaluationReminder(
