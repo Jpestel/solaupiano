@@ -70,6 +70,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const membership = await prisma.groupMember.findUnique({ where: { userId_groupId: { userId, groupId } } })
   if (!isAdmin && membership?.groupRole !== 'CHEF') return NextResponse.json({ error: 'Réservé au chef du groupe.' }, { status: 403 })
 
+  // Module gaté par le plan
+  if (!isAdmin) {
+    const grp = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true } })
+    const plan = grp ? await prisma.plan.findUnique({ where: { key: grp.plan }, select: { hasAccounting: true } }) : null
+    if (plan && plan.hasAccounting === false) return NextResponse.json({ error: "La comptabilité n'est pas incluse dans l'offre de ce groupe.", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
+  }
+
   const { title, description, amount, date, period, category, paidById, splitMode, memberIds, customShares } = await req.json()
   if (!title?.trim()) return NextResponse.json({ error: 'Le titre est requis.' }, { status: 400 })
   const total = round2(Number(amount))

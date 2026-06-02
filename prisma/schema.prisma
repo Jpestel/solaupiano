@@ -69,6 +69,7 @@ model Plan {
   hasParoles         Boolean @default(true)
   hasSequences       Boolean @default(true)
   hasEvaluations     Boolean @default(true)
+  hasAccounting      Boolean @default(true)
 
   color     String   @default("gray")
 

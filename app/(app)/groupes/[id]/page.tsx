@@ -56,7 +56,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   // Check plan features (stats + member limit + storage)
   const groupMeta = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true, maxMembersOverride: true, storageQuotaOverrideGb: true } })
-  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, maxMembersPerGroup: true } }) : null
+  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasAccounting: true, maxMembersPerGroup: true } }) : null
   const planHasStats = isAdminUser || (planData?.hasStats ?? false)
   // Fonctionnalités débloquées par le plan (admin = tout)
   const planFeatures = {
@@ -65,6 +65,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
     concerts:       isAdminUser || (planData?.hasConcerts ?? true),
     ficheTechnique: isAdminUser || (planData?.hasFicheTechnique ?? true),
     maPage:         isAdminUser || (planData?.hasMaPage ?? true),
+    accounting:     isAdminUser || (planData?.hasAccounting ?? true),
   }
   // Effective member limit: override (if set by admin) > plan limit > null (unlimited)
   const effectiveMemberLimit = groupMeta?.maxMembersOverride ?? planData?.maxMembersPerGroup ?? null
@@ -280,6 +281,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
             if (link.href === 'grilles')         return planFeatures.grilles
             if (link.href === 'fiche-technique') return planFeatures.ficheTechnique
             if (link.href === 'ma-page')         return planFeatures.maPage
+            if (link.href === 'comptabilite')    return planFeatures.accounting
             return true
           })
           .map((link) => (
