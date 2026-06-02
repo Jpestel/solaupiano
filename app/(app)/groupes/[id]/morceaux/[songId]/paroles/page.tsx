@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { LyricsPrompter } from '@/components/ui/LyricsPrompter'
 import { ChordLine } from '@/components/ui/ChordLine'
-import { parseLyrics, contentHasChords, stripChords, lineChords, segmentLine, COMMON_CHORDS, DisplayMode } from '@/lib/lyrics'
+import { parseLyrics, contentHasChords, stripChords, lineChords, segmentLine, lineToUnits, unitsToLine, isChord, COMMON_CHORDS, DisplayMode } from '@/lib/lyrics'
 
 // ─── Marker config ──────────────────────────────────────────────────────────
 const MARKERS = [
@@ -95,6 +95,88 @@ function ModeSelector({ mode, onChange, dark = false }: { mode: DisplayMode; onC
   )
 }
 
+// ─── Éditeur visuel : clic sur un caractère = pose l'accord armé au-dessus ─────
+function ChordPlacer({
+  content,
+  pendingChord,
+  onPlace,
+  onRemove,
+}: {
+  content: string
+  pendingChord: string | null
+  onPlace: (lineIndex: number, unitIndex: number) => void
+  onRemove: (lineIndex: number, unitIndex: number) => void
+}) {
+  const lines = content.split('\n')
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 min-h-[440px] overflow-x-auto">
+      {lines.map((line, li) => {
+        const markerMatch = line.match(/^\[(.+?)\]$/)
+        if (markerMatch && !isChord(markerMatch[1])) {
+          const c = getMarkerColor(markerMatch[1])
+          return (
+            <div key={li} className="pt-4 pb-1">
+              <span className={`inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-bold uppercase tracking-wider ${c.bg} ${c.text} ${c.border}`}>
+                {markerMatch[1]}
+              </span>
+            </div>
+          )
+        }
+        if (line.trim() === '') return <div key={li} className="h-4" />
+        const units = lineToUnits(line)
+        return (
+          <div key={li} className="whitespace-nowrap py-0.5" style={{ lineHeight: 1.1 }}>
+            {units.map((u, ui) => (
+              <span
+                key={ui}
+                onClick={() => onPlace(li, ui)}
+                className="group inline-block text-center align-bottom cursor-pointer"
+              >
+                {/* Rangée accord */}
+                <span className="block leading-none" style={{ height: '1.25em' }}>
+                  {u.chord ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onRemove(li, ui) }}
+                      className="text-[12px] font-bold text-violet-700 hover:text-red-500 hover:line-through px-0.5"
+                      title="Cliquer pour retirer cet accord"
+                    >
+                      {u.chord}
+                    </button>
+                  ) : pendingChord ? (
+                    <span className="text-[12px] font-bold text-transparent group-hover:text-violet-300 px-0.5">{pendingChord}</span>
+                  ) : (
+                    <span className="text-[12px]">&nbsp;</span>
+                  )}
+                </span>
+                {/* Caractère */}
+                <span
+                  className={`block text-base text-gray-800 rounded ${pendingChord ? 'group-hover:bg-violet-100' : ''}`}
+                  style={{ minWidth: u.ch === ' ' ? '0.45em' : undefined, whiteSpace: 'pre' }}
+                >
+                  {u.ch === ' ' ? ' ' : (u.ch || ' ')}
+                </span>
+              </span>
+            ))}
+            {/* Emplacement en fin de ligne */}
+            <span
+              onClick={() => onPlace(li, units.length)}
+              className="group inline-block text-center align-bottom cursor-pointer"
+              title="Poser un accord en fin de ligne"
+            >
+              <span className="block leading-none" style={{ height: '1.25em' }}>
+                {pendingChord ? (
+                  <span className="text-[12px] font-bold text-transparent group-hover:text-violet-300 px-0.5">{pendingChord}</span>
+                ) : <span className="text-[12px]">&nbsp;</span>}
+              </span>
+              <span className={`block text-base rounded px-1 ${pendingChord ? 'text-violet-300 group-hover:bg-violet-100' : 'text-transparent'}`}>↵</span>
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function ParolesPage({
   params,
@@ -117,7 +199,8 @@ export default function ParolesPage({
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit')
   const [stageMode, setStageMode] = useState(false)
   const [prompterMode, setPrompterMode] = useState(false)
-  const [showChordBar, setShowChordBar] = useState(false)
+  const [editMode, setEditMode] = useState<'text' | 'chords'>('text')
+  const [pendingChord, setPendingChord] = useState<string | null>(null)
   // Préférence d'affichage propre à chaque musicien (persistée sur l'appareil)
   const [displayMode, setDisplayMode] = useState<DisplayMode>('both')
 
@@ -204,20 +287,34 @@ export default function ParolesPage({
     }, 0)
   }
 
-  // ── Insert chord (inline, type ChordPro) ──
-  const insertChord = (chord: string) => {
-    const ta = textareaRef.current
-    if (!ta) return
-    const start = ta.selectionStart
-    const end = ta.selectionEnd
-    const insertion = `[${chord}]`
-    const newContent = content.slice(0, start) + insertion + content.slice(end)
-    handleChange(newContent)
-    setTimeout(() => {
-      const newPos = start + insertion.length
-      ta.selectionStart = ta.selectionEnd = newPos
-      ta.focus()
-    }, 0)
+  // ── Placement visuel des accords (clic sur un caractère) ──
+  const updateLine = (lineIndex: number, newLine: string) => {
+    const lines = content.split('\n')
+    lines[lineIndex] = newLine
+    handleChange(lines.join('\n'))
+  }
+
+  const placeChordAt = (lineIndex: number, unitIndex: number) => {
+    if (!pendingChord) return
+    const lines = content.split('\n')
+    const units = lineToUnits(lines[lineIndex])
+    if (unitIndex >= units.length) {
+      units.push({ chord: pendingChord, ch: '' })
+    } else {
+      units[unitIndex] = { ...units[unitIndex], chord: pendingChord }
+    }
+    updateLine(lineIndex, unitsToLine(units))
+  }
+
+  const removeChordAt = (lineIndex: number, unitIndex: number) => {
+    const lines = content.split('\n')
+    const units = lineToUnits(lines[lineIndex])
+    if (units[unitIndex]) {
+      units[unitIndex] = { ...units[unitIndex], chord: null }
+      // Si c'était un accord en fin de ligne (caractère vide), on retire l'unité
+      const cleaned = units.filter((u) => !(u.ch === '' && u.chord === null))
+      updateLine(lineIndex, unitsToLine(cleaned))
+    }
   }
 
   // ── Print ──
@@ -463,89 +560,136 @@ export default function ParolesPage({
       {/* ── EDITOR tab ── */}
       {(isChef && activeTab === 'edit') && (
         <div className="space-y-3">
-          {/* Marker toolbar */}
-          <div className="flex flex-wrap gap-1.5">
-            {MARKERS.map((mk) => {
-              const c = MARKER_COLORS[mk.color]
-              return (
-                <button
-                  key={mk.label}
-                  onClick={() => insertMarker(mk.label)}
-                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-opacity hover:opacity-80 ${c.bg} ${c.text} ${c.border}`}
-                >
-                  + {mk.label}
-                </button>
-              )
-            })}
+          {/* Sous-mode : Texte / Accords */}
+          <div className="inline-flex rounded-lg bg-gray-100 border border-gray-200 p-0.5">
+            {([
+              { key: 'text' as const, label: '✏️ Texte' },
+              { key: 'chords' as const, label: '🎸 Accords' },
+            ]).map((o) => (
+              <button
+                key={o.key}
+                onClick={() => setEditMode(o.key)}
+                className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                  editMode === o.key ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
           </div>
 
-          {/* Chord palette */}
-          <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-3">
-            <button
-              onClick={() => setShowChordBar((v) => !v)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-violet-700"
-            >
-              <span>{showChordBar ? '▾' : '▸'}</span>
-              🎸 Accords — cliquez pour insérer un accord à l'endroit du curseur
-            </button>
-            {showChordBar && (
-              <div className="mt-2.5 space-y-2">
-                {COMMON_CHORDS.map((grp) => (
-                  <div key={grp.group} className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-semibold text-violet-400 uppercase w-14 shrink-0">{grp.group}</span>
-                    {grp.chords.map((ch) => (
-                      <button
-                        key={ch}
-                        onClick={() => insertChord(ch)}
-                        className="inline-flex items-center rounded-md border border-violet-200 bg-white px-2 py-0.5 text-xs font-bold text-violet-700 hover:bg-violet-100 transition-colors"
-                      >
-                        {ch}
-                      </button>
-                    ))}
-                  </div>
-                ))}
-                {/* Custom chord */}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    const inp = (e.currentTarget.elements.namedItem('chord') as HTMLInputElement)
-                    const val = inp.value.trim()
-                    if (val) { insertChord(val); inp.value = '' }
-                  }}
-                  className="flex items-center gap-1.5 pt-1"
-                >
-                  <span className="text-[10px] font-semibold text-violet-400 uppercase w-14 shrink-0">Autre</span>
-                  <input
-                    name="chord"
-                    placeholder="ex : Gm7, D/F#…"
-                    className="rounded-md border border-violet-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300 w-32"
-                  />
-                  <button type="submit" className="rounded-md bg-violet-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-violet-500">
-                    + Insérer
-                  </button>
-                </form>
+          {/* ===== Mode TEXTE ===== */}
+          {editMode === 'text' && (
+            <>
+              {/* Marker toolbar */}
+              <div className="flex flex-wrap gap-1.5">
+                {MARKERS.map((mk) => {
+                  const c = MARKER_COLORS[mk.color]
+                  return (
+                    <button
+                      key={mk.label}
+                      onClick={() => insertMarker(mk.label)}
+                      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-opacity hover:opacity-80 ${c.bg} ${c.text} ${c.border}`}
+                    >
+                      + {mk.label}
+                    </button>
+                  )
+                })}
               </div>
-            )}
-          </div>
 
-          {/* Textarea */}
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => handleChange(e.target.value)}
-            placeholder={`Saisissez les paroles ici...\n\nAstuce : cliquez sur les boutons ci-dessus pour insérer des marqueurs de structure comme [Refrain], [Couplet 1], etc.`}
-            className="w-full min-h-[480px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 resize-y placeholder:text-gray-300 placeholder:font-sans"
-            spellCheck
-          />
+              {/* Textarea */}
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={(e) => handleChange(e.target.value)}
+                placeholder={`Saisissez les paroles ici...\n\nAstuce : cliquez sur les boutons ci-dessus pour insérer des marqueurs comme [Refrain], [Couplet 1]. Pour les accords, passez en mode 🎸 Accords.`}
+                className="w-full min-h-[440px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 resize-y placeholder:text-gray-300 placeholder:font-sans"
+                spellCheck
+              />
+              <p className="text-xs text-gray-400">
+                <strong className="text-gray-500">Sections :</strong> entourez un nom de section de crochets, ex : <code className="bg-gray-100 rounded px-1">[Refrain]</code> <code className="bg-gray-100 rounded px-1">[Couplet 1]</code>. Les accords se posent dans l'onglet 🎸 Accords.
+              </p>
+            </>
+          )}
 
-          <div className="text-xs text-gray-400 space-y-1">
-            <p>
-              <strong className="text-gray-500">Sections :</strong> entourez un nom de section de crochets, ex : <code className="bg-gray-100 rounded px-1">[Refrain]</code> <code className="bg-gray-100 rounded px-1">[Couplet 1]</code>
-            </p>
-            <p>
-              <strong className="text-violet-500">Accords :</strong> placez l'accord juste avant la syllabe, ex : <code className="bg-violet-50 text-violet-700 rounded px-1">[C]Au [G]clair de la [Am]lune</code> — il s'affichera au-dessus du mot.
-            </p>
-          </div>
+          {/* ===== Mode ACCORDS (placement visuel) ===== */}
+          {editMode === 'chords' && (
+            <>
+              {!content.trim() ? (
+                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center text-gray-400">
+                  <p className="text-3xl mb-2">🎸</p>
+                  <p className="font-medium text-gray-500">Saisissez d'abord les paroles dans l'onglet ✏️ Texte,</p>
+                  <p className="text-sm">puis revenez ici pour poser les accords d'un clic.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Palette : on arme un accord */}
+                  <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-xs font-semibold text-violet-700">
+                        {pendingChord
+                          ? <>Accord actif : <span className="rounded bg-violet-600 px-1.5 py-0.5 text-white">{pendingChord}</span> — cliquez sur une lettre pour le poser.</>
+                          : '🎸 Choisissez un accord ci-dessous, puis cliquez sur la lettre voulue.'}
+                      </p>
+                      {pendingChord && (
+                        <button onClick={() => setPendingChord(null)} className="text-xs font-medium text-gray-400 hover:text-gray-600">
+                          ✕ Désarmer
+                        </button>
+                      )}
+                    </div>
+                    {COMMON_CHORDS.map((grp) => (
+                      <div key={grp.group} className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-semibold text-violet-400 uppercase w-14 shrink-0">{grp.group}</span>
+                        {grp.chords.map((ch) => (
+                          <button
+                            key={ch}
+                            onClick={() => setPendingChord(ch === pendingChord ? null : ch)}
+                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-bold transition-colors ${
+                              ch === pendingChord
+                                ? 'border-violet-600 bg-violet-600 text-white'
+                                : 'border-violet-200 bg-white text-violet-700 hover:bg-violet-100'
+                            }`}
+                          >
+                            {ch}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        const inp = (e.currentTarget.elements.namedItem('chord') as HTMLInputElement)
+                        const val = inp.value.trim()
+                        if (val) { setPendingChord(val); inp.value = '' }
+                      }}
+                      className="flex items-center gap-1.5 pt-1"
+                    >
+                      <span className="text-[10px] font-semibold text-violet-400 uppercase w-14 shrink-0">Autre</span>
+                      <input
+                        name="chord"
+                        placeholder="ex : Gm7, D/F#…"
+                        className="rounded-md border border-violet-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300 w-32"
+                      />
+                      <button type="submit" className="rounded-md bg-violet-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-violet-500">
+                        Choisir
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Zone de placement */}
+                  <ChordPlacer
+                    content={content}
+                    pendingChord={pendingChord}
+                    onPlace={placeChordAt}
+                    onRemove={removeChordAt}
+                  />
+                  <p className="text-xs text-gray-400">
+                    Cliquez sur une lettre pour poser l'accord actif au-dessus. Cliquez sur un accord déjà posé pour le retirer. ↵ en fin de ligne pour un accord final.
+                  </p>
+                </>
+              )}
+            </>
+          )}
         </div>
       )}
 

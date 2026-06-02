@@ -66,6 +66,35 @@ export function contentHasChords(content: string): boolean {
   return parseLyrics(content).some((t) => t.type === 'text' && /\[[^\]]+\]/.test(t.value))
 }
 
+// ── Modèle « par caractère » pour le placement visuel des accords ─────────────
+// Chaque unité = un caractère affiché, avec l'accord éventuel qui le précède
+// (et donc qui s'affiche au-dessus de lui). Un accord en fin de ligne donne une
+// unité au caractère vide.
+export type CharUnit = { chord: string | null; ch: string }
+
+export function lineToUnits(line: string): CharUnit[] {
+  const units: CharUnit[] = []
+  let pending: string | null = null
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '[') {
+      const close = line.indexOf(']', i)
+      if (close !== -1) {
+        pending = line.slice(i + 1, close)
+        i = close
+        continue
+      }
+    }
+    units.push({ chord: pending, ch: line[i] })
+    pending = null
+  }
+  if (pending !== null) units.push({ chord: pending, ch: '' })
+  return units
+}
+
+export function unitsToLine(units: CharUnit[]): string {
+  return units.map((u) => (u.chord !== null ? `[${u.chord}]` : '') + u.ch).join('')
+}
+
 // Accords usuels proposés dans la palette de l'éditeur.
 export const COMMON_CHORDS: { group: string; chords: string[] }[] = [
   { group: 'Majeurs', chords: ['C', 'D', 'E', 'F', 'G', 'A', 'B'] },
