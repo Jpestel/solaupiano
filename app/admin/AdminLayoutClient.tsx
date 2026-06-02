@@ -19,6 +19,7 @@ const adminNav = [
   { href: '/admin/tutoriels',       label: 'Tutoriels vidéo' },
   { href: '/admin/flash-infos',      label: 'Flash infos' },
   { href: '/admin/fichiers',         label: 'Fichiers' },
+  { href: '/admin/performance',      label: 'Performance' },
 ]
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
