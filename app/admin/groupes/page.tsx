@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -54,6 +55,7 @@ export default function AdminGroupesPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [removeGroup, setRemoveGroup] = useState<Group | null>(null)
+  const router = useRouter()
 
   const fetchData = async () => {
     const [grpRes, usrRes] = await Promise.all([
@@ -224,6 +226,7 @@ export default function AdminGroupesPage() {
     await fetch(`/api/admin/groupes/${id}`, { method: 'DELETE' })
     setRemoveGroup(null)
     fetchData()
+    router.refresh() // vide le cache des pages serveur (tableau de bord, etc.)
   }
   const handleArchive = async (id: number, archive: boolean) => {
     await fetch(`/api/admin/groupes/${id}`, {
@@ -231,6 +234,7 @@ export default function AdminGroupesPage() {
     })
     setRemoveGroup(null)
     fetchData()
+    router.refresh()
   }
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
