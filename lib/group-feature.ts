@@ -7,6 +7,7 @@ export type GroupFeature =
   | 'hasGrilles' | 'hasSetlists' | 'hasConcerts'
   | 'hasFicheTechnique' | 'hasMaPage' | 'hasStats'
   | 'hasParoles' | 'hasMetronome' | 'hasSequences' | 'hasEvaluations' | 'hasAccounting'
+  | 'hasChat' | 'hasSharedResources' | 'hasUnavailabilities' | 'hasPolls'
 
 /**
  * Garde serveur pour une fonctionnalité de groupe.
@@ -22,7 +23,7 @@ export async function guardGroupFeature(groupId: number, feature: GroupFeature) 
 
   const plan = await prisma.plan.findUnique({
     where: { key: group.plan },
-    select: { hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasStats: true, hasParoles: true, hasMetronome: true, hasSequences: true, hasEvaluations: true, hasAccounting: true },
+    select: { hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasStats: true, hasParoles: true, hasMetronome: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true },
   })
   // Pas de plan trouvé → on laisse passer (défaut permissif)
   if (!plan) return

@@ -56,7 +56,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   // Check plan features (stats + member limit + storage)
   const groupMeta = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true, maxMembersOverride: true, storageQuotaOverrideGb: true } })
-  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasAccounting: true, maxMembersPerGroup: true } }) : null
+  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, maxMembersPerGroup: true } }) : null
   const planHasStats = isAdminUser || (planData?.hasStats ?? false)
   // Fonctionnalités débloquées par le plan (admin = tout)
   const planFeatures = {
@@ -66,6 +66,10 @@ export default async function GroupePage({ params }: { params: { id: string } })
     ficheTechnique: isAdminUser || (planData?.hasFicheTechnique ?? true),
     maPage:         isAdminUser || (planData?.hasMaPage ?? true),
     accounting:     isAdminUser || (planData?.hasAccounting ?? true),
+    chat:           isAdminUser || (planData?.hasChat ?? true),
+    sharedResources: isAdminUser || (planData?.hasSharedResources ?? true),
+    unavailabilities: isAdminUser || (planData?.hasUnavailabilities ?? true),
+    polls:          isAdminUser || (planData?.hasPolls ?? true),
   }
   // Effective member limit: override (if set by admin) > plan limit > null (unlimited)
   const effectiveMemberLimit = groupMeta?.maxMembersOverride ?? planData?.maxMembersPerGroup ?? null
@@ -282,6 +286,10 @@ export default async function GroupePage({ params }: { params: { id: string } })
             if (link.href === 'fiche-technique') return planFeatures.ficheTechnique
             if (link.href === 'ma-page')         return planFeatures.maPage
             if (link.href === 'comptabilite')    return planFeatures.accounting
+            if (link.href === 'tchat')           return planFeatures.chat
+            if (link.href === 'ressources-partagees') return planFeatures.sharedResources
+            if (link.href === 'disponibilites')  return planFeatures.unavailabilities
+            if (link.href === 'sondages')        return planFeatures.polls
             return true
           })
           .map((link) => (

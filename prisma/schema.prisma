@@ -70,6 +70,10 @@ model Plan {
   hasSequences       Boolean @default(true)
   hasEvaluations     Boolean @default(true)
   hasAccounting      Boolean @default(true)
+  hasChat            Boolean @default(true)
+  hasSharedResources Boolean @default(true)
+  hasUnavailabilities Boolean @default(true)
+  hasPolls           Boolean @default(true)
 
   color     String   @default("gray")
 

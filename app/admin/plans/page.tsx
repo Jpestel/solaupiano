@@ -19,6 +19,7 @@ const EMPTY_FORM = {
   hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
   hasMaPage: true, hasCoChefs: true, hasPrioritySupport: false, hasStats: false, hasFileSubmissions: true,
   hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true,
+  hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true,
   color: 'gray',
 }
 
@@ -54,6 +55,10 @@ function planToForm(p: PlanWithCount): FormState {
     hasSequences: p.hasSequences,
     hasEvaluations: p.hasEvaluations,
     hasAccounting: p.hasAccounting,
+    hasChat: p.hasChat,
+    hasSharedResources: p.hasSharedResources,
+    hasUnavailabilities: p.hasUnavailabilities,
+    hasPolls: p.hasPolls,
     color: p.color,
     stripePriceId: p.stripePriceId ?? '',
   }
@@ -392,6 +397,10 @@ export default function AdminPlansPage() {
                       { on: p.hasSequences, label: "Séquences" },
                       { on: p.hasEvaluations, label: "Auto-éval." },
                       { on: p.hasAccounting, label: "Compta" },
+                      { on: p.hasChat, label: "Tchat" },
+                      { on: p.hasSharedResources, label: "Ressources" },
+                      { on: p.hasUnavailabilities, label: "Dispos" },
+                      { on: p.hasPolls, label: "Sondages" },
                       { on: p.hasGrilles, label: "Grilles" },
                       { on: p.hasConcerts, label: "Concerts" },
                       { on: p.hasSetlists, label: "Setlists" },
@@ -751,6 +760,10 @@ export default function AdminPlansPage() {
                         <ToggleFeature label="Lecteur de séquences" icon="🎚" checked={form.hasSequences} onChange={(v) => set('hasSequences', v)} />
                         <ToggleFeature label="Auto-évaluation des répét." icon="⭐" checked={form.hasEvaluations} onChange={(v) => set('hasEvaluations', v)} />
                         <ToggleFeature label="Comptabilité / caisse" icon="💶" checked={form.hasAccounting} onChange={(v) => set('hasAccounting', v)} />
+                        <ToggleFeature label="Tchat du groupe" icon="💬" checked={form.hasChat} onChange={(v) => set('hasChat', v)} />
+                        <ToggleFeature label="Ressources partagées" icon="📒" checked={form.hasSharedResources} onChange={(v) => set('hasSharedResources', v)} />
+                        <ToggleFeature label="Disponibilités" icon="🗓" checked={form.hasUnavailabilities} onChange={(v) => set('hasUnavailabilities', v)} />
+                        <ToggleFeature label="Sondages" icon="📊" checked={form.hasPolls} onChange={(v) => set('hasPolls', v)} />
                         <ToggleFeature label="Grilles d'accords" icon="🎸" checked={form.hasGrilles} onChange={(v) => set('hasGrilles', v)} />
                         <ToggleFeature label="Concerts" icon="🎭" checked={form.hasConcerts} onChange={(v) => set('hasConcerts', v)} />
                         <ToggleFeature label="Setlists" icon="🎶" checked={form.hasSetlists} onChange={(v) => set('hasSetlists', v)} />
