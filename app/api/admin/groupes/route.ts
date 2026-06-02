@@ -18,18 +18,20 @@ export async function GET() {
       },
       orderBy: { createdAt: 'desc' },
     }),
-    prisma.plan.findMany({ select: { key: true, maxMembersPerGroup: true } }),
+    prisma.plan.findMany({ select: { key: true, maxMembersPerGroup: true, storageGb: true } }),
   ])
 
-  // Build a map of plan key → maxMembersPerGroup
+  // Build maps of plan key → maxMembersPerGroup / storageGb (valeurs réelles configurées par l'admin)
   const planMaxMap: Record<string, number | null> = {}
-  for (const p of plans) planMaxMap[p.key] = p.maxMembersPerGroup ?? null
+  const planStorageMap: Record<string, number> = {}
+  for (const p of plans) { planMaxMap[p.key] = p.maxMembersPerGroup ?? null; planStorageMap[p.key] = Number(p.storageGb) }
 
   // BigInt cannot be JSON-serialised — convert to string
   const serializable = groups.map((g) => ({
     ...g,
     storageUsedBytes: String(g.storageUsedBytes),
     planMaxMembersPerGroup: planMaxMap[g.plan] ?? null,
+    planStorageGb: planStorageMap[g.plan] ?? 0,
   }))
 
   return NextResponse.json(serializable)

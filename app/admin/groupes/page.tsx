@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { PLANS, GroupPlan, formatBytes, storagePercent } from '@/lib/plans'
+import { PLANS, GroupPlan, formatBytes, storagePercent, storageLabel } from '@/lib/plans'
 
 interface User {
   id: number
@@ -26,6 +26,7 @@ interface Group {
   maxMembersOverride: number | null
   planMaxMembersPerGroup: number | null
   storageQuotaOverrideGb: number | null
+  planStorageGb: number
   archivedAt: string | null
   _count: { members: number; rehearsals: number; concerts: number; songs: number; setlists: number; chordCharts: number }
   members: { user: User; groupRole: string }[]
@@ -275,7 +276,7 @@ export default function AdminGroupesPage() {
                   const usedBytes = Number(group.storageUsedBytes || 0)
                   const effectiveStorageGb = group.storageQuotaOverrideGb !== null
                     ? group.storageQuotaOverrideGb
-                    : (PLANS[plan]?.storageBytes ?? PLANS.FREE.storageBytes) / (1024 * 1024 * 1024)
+                    : (group.planStorageGb ?? 0)
                   const pct = storagePercent(usedBytes, effectiveStorageGb)
                   return (
                     <tr key={group.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
@@ -335,7 +336,7 @@ export default function AdminGroupesPage() {
                               style={{ width: `${pct}%` }}
                             />
                           </div>
-                          <div className="text-[10px] text-gray-400 mt-0.5">{effectiveStorageGb} Go</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{effectiveStorageGb > 0 ? storageLabel(effectiveStorageGb) : 'Aucun stockage'}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -514,7 +515,7 @@ export default function AdminGroupesPage() {
 
           {storageQuotaOpen && (() => {
             const usedBytes = Number(storageQuotaOpen.storageUsedBytes || 0)
-            const planGb = (PLANS[storageQuotaOpen.plan]?.storageBytes ?? PLANS.FREE.storageBytes) / (1024 * 1024 * 1024)
+            const planGb = (storageQuotaOpen as any).planStorageGb ?? 0
             return (
               <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
@@ -523,7 +524,7 @@ export default function AdminGroupesPage() {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">Quota du plan ({storageQuotaOpen.plan})</span>
-                  <span className="font-medium text-gray-700">{planGb} Go</span>
+                  <span className="font-medium text-gray-700">{planGb > 0 ? storageLabel(planGb) : 'Aucun'}</span>
                 </div>
                 {storageQuotaOpen.storageQuotaOverrideGb !== null && (
                   <div className="flex items-center justify-between text-sm">
