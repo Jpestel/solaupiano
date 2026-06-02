@@ -267,6 +267,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             iconBg: 'bg-violet-100', textColor: 'text-violet-700', border: 'border-violet-200 hover:border-violet-400 hover:bg-violet-50/60',
             chefDesc: 'Créer des sondages de dates', memberDesc: 'Répondre aux sondages',
           },
+          {
+            href: 'comptabilite', label: 'Comptabilité', icon: '💶',
+            iconBg: 'bg-emerald-100', textColor: 'text-emerald-700', border: 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/60',
+            chefDesc: 'Dépenses & remboursements', memberDesc: 'Mes parts à payer',
+          },
         ] as const)
           // Masque les fonctionnalités non incluses dans le plan du groupe
           .filter((link) => {

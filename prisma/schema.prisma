@@ -182,6 +182,8 @@ model User {
   concertAttendances       ConcertAttendance[]     @relation("ConcertAttendee")
   concertEvaluations       ConcertEvaluation[]     @relation("ConcertEvaluationAuthor")
   concertRatingsReceived   ConcertMemberRating[]   @relation("ConcertMemberRated")
+  expensesPaid             GroupExpense[]          @relation("ExpensePaidBy")
+  expenseShares            ExpenseShare[]          @relation("ExpenseShareUser")
 }
 
 enum FlashInfoType {
@@ -303,6 +305,43 @@ model Group {
   sharedResources  GroupSharedResource[]
   unavailabilities Unavailability[]
   polls            Poll[]
+  expenses         GroupExpense[]
+}
+
+model GroupExpense {
+  id          Int      @id @default(autoincrement())
+  groupId     Int
+  title       String
+  description String?  @db.Text
+  amount      Float    // montant total de la dépense
+  date        DateTime @db.Date
+  period      String?  // libellé de période (ex : "Juin 2026", "Trimestre 1")
+  category    String?  // Salle, Matériel, Transport, Autre…
+  paidById    Int?     // membre ayant avancé l'argent (null = caisse commune)
+  createdById Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  group  Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy User?          @relation("ExpensePaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+  shares ExpenseShare[]
+
+  @@index([groupId])
+}
+
+model ExpenseShare {
+  id        Int       @id @default(autoincrement())
+  expenseId Int
+  userId    Int
+  amount    Float     // part due par ce membre
+  paid      Boolean   @default(false)
+  paidAt    DateTime?
+
+  expense GroupExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User         @relation("ExpenseShareUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+  @@index([userId])
 }
 
 model Poll {
