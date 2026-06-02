@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { parseLyrics, contentHasChords, DisplayMode } from '@/lib/lyrics'
+import { ChordLine } from '@/components/ui/ChordLine'
 
 /**
  * Prompteur (téléprompteur) pour les paroles d'un morceau.
@@ -19,25 +21,22 @@ const MARKER_HEX: Record<string, string> = {
   'Outro': '#9ca3af', 'Spoken': '#2dd4bf', '×2': '#4ade80', '×3': '#4ade80',
 }
 
-function parseLyrics(content: string) {
-  return content.split('\n').map((line) => {
-    const m = line.match(/^\[(.+?)\]$/)
-    if (m) return { type: 'marker' as const, value: m[1] }
-    if (line.trim() === '') return { type: 'empty' as const, value: '' }
-    return { type: 'text' as const, value: line }
-  })
-}
-
 interface Props {
   content: string
   title: string
   artist?: string
   bpm: number | null
+  initialMode?: DisplayMode
+  onModeChange?: (m: DisplayMode) => void
   onClose: () => void
 }
 
-export function LyricsPrompter({ content, title, artist, bpm, onClose }: Props) {
+export function LyricsPrompter({ content, title, artist, bpm, initialMode = 'both', onModeChange, onClose }: Props) {
   const effectiveBpm = bpm && bpm > 0 ? bpm : 100
+  const hasChords = contentHasChords(content)
+
+  const [mode, setMode] = useState<DisplayMode>(initialMode)
+  const changeMode = (m: DisplayMode) => { setMode(m); onModeChange?.(m) }
 
   const [phase, setPhase] = useState<'config' | 'countdown' | 'play'>('config')
   const [paused, setPaused] = useState(false)
@@ -185,9 +184,7 @@ export function LyricsPrompter({ content, title, artist, bpm, onClose }: Props) 
               }
               if (item.type === 'empty') return <div key={i} style={{ height: fontPx * 0.6 }} />
               return (
-                <p key={i} className="font-semibold leading-snug" style={{ fontSize: fontPx }}>
-                  {item.value}
-                </p>
+                <ChordLine key={i} line={item.value} mode={mode} className="font-semibold leading-snug" chordColor="#c4b5fd" style={{ fontSize: fontPx }} />
               )
             })}
           </div>
@@ -235,6 +232,27 @@ export function LyricsPrompter({ content, title, artist, bpm, onClose }: Props) 
                   onChange={(e) => setSpeedMult(Number(e.target.value))}
                   className="w-full accent-indigo-500" />
               </div>
+
+              {/* Affichage : paroles / accords / les deux */}
+              {hasChords && (
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Affichage</label>
+                  <div className="inline-flex rounded-lg bg-white/10 p-0.5 w-full">
+                    {([
+                      { key: 'lyrics' as const, label: '🎤 Paroles' },
+                      { key: 'chords' as const, label: '🎸 Accords' },
+                      { key: 'both' as const, label: '🎼 Les deux' },
+                    ]).map((o) => (
+                      <button key={o.key} onClick={() => changeMode(o.key)}
+                        className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${
+                          mode === o.key ? 'bg-white text-gray-900' : 'text-gray-300 hover:text-white'
+                        }`}>
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <button onClick={begin}
                 className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-base font-bold transition-colors">

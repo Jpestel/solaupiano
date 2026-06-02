@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { LyricsPrompter } from '@/components/ui/LyricsPrompter'
+import { ChordLine } from '@/components/ui/ChordLine'
+import { parseLyrics, contentHasChords, stripChords, lineChords, segmentLine, COMMON_CHORDS, DisplayMode } from '@/lib/lyrics'
 
 // ─── Marker config ──────────────────────────────────────────────────────────
 const MARKERS = [
@@ -37,24 +39,8 @@ function getMarkerColor(label: string) {
   return m ? MARKER_COLORS[m.color] : MARKER_COLORS.gray
 }
 
-function parseLyrics(content: string) {
-  const lines = content.split('\n')
-  const result: { type: 'marker' | 'text' | 'empty'; value: string }[] = []
-  for (const line of lines) {
-    const markerMatch = line.match(/^\[(.+?)\]$/)
-    if (markerMatch) {
-      result.push({ type: 'marker', value: markerMatch[1] })
-    } else if (line.trim() === '') {
-      result.push({ type: 'empty', value: '' })
-    } else {
-      result.push({ type: 'text', value: line })
-    }
-  }
-  return result
-}
-
 // ─── Formatted lyrics renderer ───────────────────────────────────────────────
-function LyricsDisplay({ content, large = false }: { content: string; large?: boolean }) {
+function LyricsDisplay({ content, large = false, mode = 'both' }: { content: string; large?: boolean; mode?: DisplayMode }) {
   const parsed = parseLyrics(content)
   return (
     <div className={`space-y-0.5 ${large ? 'text-2xl leading-relaxed' : 'text-sm leading-relaxed'}`}>
@@ -73,9 +59,36 @@ function LyricsDisplay({ content, large = false }: { content: string; large?: bo
           return <div key={i} className="h-3" />
         }
         return (
-          <p key={i} className={`text-gray-800 ${large ? 'font-medium' : ''}`}>
-            {item.value}
-          </p>
+          <ChordLine key={i} line={item.value} mode={mode} className={`text-gray-800 ${large ? 'font-medium' : ''}`} />
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Sélecteur Paroles / Accords / Les deux ──────────────────────────────────
+function ModeSelector({ mode, onChange, dark = false }: { mode: DisplayMode; onChange: (m: DisplayMode) => void; dark?: boolean }) {
+  const opts: { key: DisplayMode; label: string }[] = [
+    { key: 'lyrics', label: '🎤 Paroles' },
+    { key: 'chords', label: '🎸 Accords' },
+    { key: 'both', label: '🎼 Les deux' },
+  ]
+  return (
+    <div className={`inline-flex rounded-lg p-0.5 ${dark ? 'bg-white/10' : 'bg-gray-100 border border-gray-200'}`}>
+      {opts.map((o) => {
+        const active = mode === o.key
+        return (
+          <button
+            key={o.key}
+            onClick={() => onChange(o.key)}
+            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+              active
+                ? (dark ? 'bg-white text-gray-900' : 'bg-white text-indigo-600 shadow-sm')
+                : (dark ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-700')
+            }`}
+          >
+            {o.label}
+          </button>
         )
       })}
     </div>
@@ -104,6 +117,19 @@ export default function ParolesPage({
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit')
   const [stageMode, setStageMode] = useState(false)
   const [prompterMode, setPrompterMode] = useState(false)
+  const [showChordBar, setShowChordBar] = useState(false)
+  // Préférence d'affichage propre à chaque musicien (persistée sur l'appareil)
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('both')
+
+  useEffect(() => {
+    const saved = localStorage.getItem('paroles:displayMode')
+    if (saved === 'lyrics' || saved === 'chords' || saved === 'both') setDisplayMode(saved)
+  }, [])
+
+  const changeMode = (m: DisplayMode) => {
+    setDisplayMode(m)
+    localStorage.setItem('paroles:displayMode', m)
+  }
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -178,16 +204,52 @@ export default function ParolesPage({
     }, 0)
   }
 
+  // ── Insert chord (inline, type ChordPro) ──
+  const insertChord = (chord: string) => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    const insertion = `[${chord}]`
+    const newContent = content.slice(0, start) + insertion + content.slice(end)
+    handleChange(newContent)
+    setTimeout(() => {
+      const newPos = start + insertion.length
+      ta.selectionStart = ta.selectionEnd = newPos
+      ta.focus()
+    }, 0)
+  }
+
   // ── Print ──
   const handlePrint = () => {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const renderLine = (line: string) => {
+      if (displayMode === 'lyrics') {
+        return `<p style="margin:0;line-height:1.7;font-size:13px;color:#111;">${esc(stripChords(line)) || '&nbsp;'}</p>`
+      }
+      if (displayMode === 'chords') {
+        const chords = lineChords(line)
+        if (!chords.length) return '<div style="height:6px"></div>'
+        return `<p style="margin:0;line-height:1.7;font-size:13px;font-weight:700;color:#6d28d9;">${chords.map(esc).join('&nbsp;&nbsp;&nbsp;')}</p>`
+      }
+      // both
+      const segs = segmentLine(line)
+      if (!segs.some((s) => s.chord)) {
+        return `<p style="margin:0;line-height:1.7;font-size:13px;color:#111;">${esc(stripChords(line)) || '&nbsp;'}</p>`
+      }
+      const inner = segs.map((s) =>
+        `<span style="display:inline-block;vertical-align:bottom;"><span style="display:block;font-size:9px;font-weight:700;line-height:1.2;color:#6d28d9;white-space:pre;">${esc(s.chord || ' ')}</span><span style="white-space:pre-wrap;">${esc(s.text || ' ')}</span></span>`
+      ).join('')
+      return `<p style="margin:0;line-height:1.15;font-size:13px;color:#111;">${inner}</p>`
+    }
     const parsed = parseLyrics(content)
     const html = parsed.map((item) => {
       if (item.type === 'marker') {
         const c = getMarkerColor(item.value)
-        return `<div class="marker" style="color:${c.print};margin-top:18px;margin-bottom:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">${item.value}</div>`
+        return `<div class="marker" style="color:${c.print};margin-top:18px;margin-bottom:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">${esc(item.value)}</div>`
       }
       if (item.type === 'empty') return '<div style="height:8px"></div>'
-      return `<p style="margin:0;line-height:1.7;font-size:13px;color:#111;">${item.value}</p>`
+      return renderLine(item.value)
     }).join('')
 
     const win = window.open('', '_blank')
@@ -239,6 +301,8 @@ export default function ParolesPage({
         title={songTitle}
         artist={songArtist}
         bpm={songTempo}
+        initialMode={displayMode}
+        onModeChange={changeMode}
         onClose={() => setPrompterMode(false)}
       />
     )
@@ -256,6 +320,9 @@ export default function ParolesPage({
               {songArtist && <p className="text-gray-400 text-lg mt-1">{songArtist}</p>}
             </div>
             <div className="flex-shrink-0 ml-4 flex items-center gap-2">
+              {contentHasChords(content) && (
+                <ModeSelector mode={displayMode} onChange={changeMode} dark />
+              )}
               <button
                 onClick={() => setPrompterMode(true)}
                 className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition-colors"
@@ -287,9 +354,7 @@ export default function ParolesPage({
               }
               if (item.type === 'empty') return <div key={i} className="h-4" />
               return (
-                <p key={i} className="text-2xl leading-relaxed text-white font-medium">
-                  {item.value}
-                </p>
+                <ChordLine key={i} line={item.value} mode={displayMode} className="text-2xl leading-relaxed text-white font-medium" chordColor="#c4b5fd" />
               )
             })}
           </div>
@@ -414,6 +479,55 @@ export default function ParolesPage({
             })}
           </div>
 
+          {/* Chord palette */}
+          <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-3">
+            <button
+              onClick={() => setShowChordBar((v) => !v)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-violet-700"
+            >
+              <span>{showChordBar ? '▾' : '▸'}</span>
+              🎸 Accords — cliquez pour insérer un accord à l'endroit du curseur
+            </button>
+            {showChordBar && (
+              <div className="mt-2.5 space-y-2">
+                {COMMON_CHORDS.map((grp) => (
+                  <div key={grp.group} className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-semibold text-violet-400 uppercase w-14 shrink-0">{grp.group}</span>
+                    {grp.chords.map((ch) => (
+                      <button
+                        key={ch}
+                        onClick={() => insertChord(ch)}
+                        className="inline-flex items-center rounded-md border border-violet-200 bg-white px-2 py-0.5 text-xs font-bold text-violet-700 hover:bg-violet-100 transition-colors"
+                      >
+                        {ch}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+                {/* Custom chord */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const inp = (e.currentTarget.elements.namedItem('chord') as HTMLInputElement)
+                    const val = inp.value.trim()
+                    if (val) { insertChord(val); inp.value = '' }
+                  }}
+                  className="flex items-center gap-1.5 pt-1"
+                >
+                  <span className="text-[10px] font-semibold text-violet-400 uppercase w-14 shrink-0">Autre</span>
+                  <input
+                    name="chord"
+                    placeholder="ex : Gm7, D/F#…"
+                    className="rounded-md border border-violet-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300 w-32"
+                  />
+                  <button type="submit" className="rounded-md bg-violet-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-violet-500">
+                    + Insérer
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+
           {/* Textarea */}
           <textarea
             ref={textareaRef}
@@ -424,17 +538,28 @@ export default function ParolesPage({
             spellCheck
           />
 
-          <p className="text-xs text-gray-400">
-            Entourez un nom de section de crochets pour créer un marqueur, ex : <code className="bg-gray-100 rounded px-1">[Refrain]</code> <code className="bg-gray-100 rounded px-1">[Couplet 1]</code>
-          </p>
+          <div className="text-xs text-gray-400 space-y-1">
+            <p>
+              <strong className="text-gray-500">Sections :</strong> entourez un nom de section de crochets, ex : <code className="bg-gray-100 rounded px-1">[Refrain]</code> <code className="bg-gray-100 rounded px-1">[Couplet 1]</code>
+            </p>
+            <p>
+              <strong className="text-violet-500">Accords :</strong> placez l'accord juste avant la syllabe, ex : <code className="bg-violet-50 text-violet-700 rounded px-1">[C]Au [G]clair de la [Am]lune</code> — il s'affichera au-dessus du mot.
+            </p>
+          </div>
         </div>
       )}
 
       {/* ── PREVIEW / read-only ── */}
       {(!isChef || activeTab === 'preview') && (
         <div className="rounded-xl border border-gray-200 bg-white px-6 py-5">
+          {content.trim() && contentHasChords(content) && (
+            <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
+              <span className="text-xs text-gray-400">Chaque musicien choisit son affichage :</span>
+              <ModeSelector mode={displayMode} onChange={changeMode} />
+            </div>
+          )}
           {content.trim() ? (
-            <LyricsDisplay content={content} />
+            <LyricsDisplay content={content} mode={displayMode} />
           ) : (
             <div className="text-center py-16 text-gray-400">
               <p className="text-4xl mb-3">🎤</p>
