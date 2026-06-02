@@ -37,6 +37,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
 
+  // Groupe archivé : invisible pour les membres (réservé à l'admin)
+  if (group.archivedAt && session.user.siteRole !== 'ADMIN') {
+    return NextResponse.json({ error: 'Ce groupe a été archivé.', code: 'GROUP_ARCHIVED' }, { status: 410 })
+  }
+
   // Auto-assign founder for existing groups that predate this feature
   if (group.createdBy === null) {
     const oldestChef = await prisma.groupMember.findFirst({

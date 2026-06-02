@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
   // In force mode, fetch all future rehearsals (for testing)
   const rehearsals = await prisma.rehearsal.findMany({
     where: {
+      group: { archivedAt: null },
       date: force
         ? { gte: now }
         : { gte: targetStart, lt: targetEnd },

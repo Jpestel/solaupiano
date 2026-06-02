@@ -46,6 +46,7 @@ export default async function GroupPublicPage({ params }: { params: { slug: stri
         select: {
           id: true,
           name: true,
+          archivedAt: true,
           members: {
             where: { groupRole: 'CHEF' },
             select: { userId: true },
@@ -62,6 +63,7 @@ export default async function GroupPublicPage({ params }: { params: { slug: stri
   })
 
   if (!page) notFound()
+  if (page.group.archivedAt) notFound() // groupe archivé : page publique désactivée
 
   // If draft, only accessible to chefs
   if (!page.published) {

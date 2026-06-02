@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   // Répétitions récentes (on filtre la fin en JS car endTime est une chaîne)
   const rehearsals = await prisma.rehearsal.findMany({
-    where: { date: { gte: windowStart, lt: new Date(now.getTime() + 24 * 60 * 60 * 1000) } },
+    where: { date: { gte: windowStart, lt: new Date(now.getTime() + 24 * 60 * 60 * 1000) }, group: { archivedAt: null } },
     include: {
       group: { select: { id: true, name: true, plan: true } },
       attendances: { where: { status: 'PRESENT' }, include: { user: { select: { id: true, email: true, name: true, evaluationReminderOptOut: true, emailVerified: true } } } },
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
   // ── Concerts (mêmes règles : la veille, présents non évalués) ──────────────
   const concerts = await prisma.concert.findMany({
-    where: { date: { gte: windowStart, lt: new Date(now.getTime() + 24 * 60 * 60 * 1000) } },
+    where: { date: { gte: windowStart, lt: new Date(now.getTime() + 24 * 60 * 60 * 1000) }, group: { archivedAt: null } },
     include: {
       group: { select: { id: true, name: true, plan: true } },
       attendances: { where: { status: 'PRESENT' }, include: { user: { select: { id: true, email: true, name: true, evaluationReminderOptOut: true, emailVerified: true } } } },

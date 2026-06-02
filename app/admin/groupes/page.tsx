@@ -25,7 +25,8 @@ interface Group {
   maxMembersOverride: number | null
   planMaxMembersPerGroup: number | null
   storageQuotaOverrideGb: number | null
-  _count: { members: number; rehearsals: number }
+  archivedAt: string | null
+  _count: { members: number; rehearsals: number; concerts: number; songs: number; setlists: number; chordCharts: number }
   members: { user: User; groupRole: string }[]
 }
 
@@ -52,6 +53,7 @@ export default function AdminGroupesPage() {
   const [planSaving, setPlanSaving] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [removeGroup, setRemoveGroup] = useState<Group | null>(null)
 
   const fetchData = async () => {
     const [grpRes, usrRes] = await Promise.all([
@@ -218,9 +220,16 @@ export default function AdminGroupesPage() {
     fetchData()
   }
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Supprimer le groupe "${name}" et toutes ses données ?`)) return
+  const handleDeleteForever = async (id: number) => {
     await fetch(`/api/admin/groupes/${id}`, { method: 'DELETE' })
+    setRemoveGroup(null)
+    fetchData()
+  }
+  const handleArchive = async (id: number, archive: boolean) => {
+    await fetch(`/api/admin/groupes/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archive }),
+    })
+    setRemoveGroup(null)
     fetchData()
   }
 
@@ -267,7 +276,10 @@ export default function AdminGroupesPage() {
                   return (
                     <tr key={group.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900">{group.name}</p>
+                        <p className="font-medium text-gray-900 flex items-center gap-2">
+                          {group.name}
+                          {group.archivedAt && <span className="text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5">📦 Archivé</span>}
+                        </p>
                         {group.description && (
                           <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{group.description}</p>
                         )}
@@ -393,11 +405,20 @@ export default function AdminGroupesPage() {
                           >
                             💾 Stockage
                           </button>
+                          {group.archivedAt ? (
+                            <button
+                              onClick={() => handleArchive(group.id, false)}
+                              className="text-xs font-medium text-green-600 hover:text-green-700"
+                              title="Réactiver le groupe"
+                            >
+                              ♻️ Restaurer
+                            </button>
+                          ) : null}
                           <button
-                            onClick={() => handleDelete(group.id, group.name)}
+                            onClick={() => setRemoveGroup(group)}
                             className="text-xs font-medium text-red-600 hover:text-red-500"
                           >
-                            Supprimer
+                            {group.archivedAt ? 'Supprimer déf.' : 'Retirer'}
                           </button>
                         </div>
                       </td>
@@ -713,6 +734,48 @@ export default function AdminGroupesPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Dialogue retrait de groupe : Archiver ou Supprimer définitivement */}
+      {removeGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setRemoveGroup(null)}>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900">Retirer « {removeGroup.name} »</h3>
+            <p className="text-sm text-gray-500 mt-1">Ce groupe contient :</p>
+            <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+              {[
+                [removeGroup._count.members, 'membre(s)'],
+                [removeGroup._count.rehearsals, 'répétition(s)'],
+                [removeGroup._count.concerts, 'concert(s)'],
+                [removeGroup._count.songs, 'morceau(x)'],
+                [removeGroup._count.setlists, 'setlist(s)'],
+                [removeGroup._count.chordCharts, 'grille(s)'],
+              ].map(([n, l]) => (
+                <span key={l as string} className="rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-gray-600">{n as number} {l as string}</span>
+              ))}
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {!removeGroup.archivedAt && (
+                <button
+                  onClick={() => handleArchive(removeGroup.id, true)}
+                  className="w-full text-left rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 px-4 py-3 transition-colors"
+                >
+                  <p className="text-sm font-semibold text-amber-800">📦 Archiver (conserver l&apos;historique)</p>
+                  <p className="text-xs text-amber-700 mt-0.5">Le groupe et toutes ses données (répétitions, concerts, répertoire…) sont <strong>conservés</strong> mais le groupe devient <strong>invisible pour les membres</strong>. Réversible à tout moment.</p>
+                </button>
+              )}
+              <button
+                onClick={() => { if (confirm(`Supprimer DÉFINITIVEMENT « ${removeGroup.name} » et TOUTES ses données (répétitions, concerts, répertoire, fichiers) ? Action irréversible.`)) handleDeleteForever(removeGroup.id) }}
+                className="w-full text-left rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 px-4 py-3 transition-colors"
+              >
+                <p className="text-sm font-semibold text-red-700">🗑 Supprimer définitivement</p>
+                <p className="text-xs text-red-600 mt-0.5">Efface le groupe et <strong>tout</strong> son contenu (y compris les fichiers). <strong>Irréversible.</strong></p>
+              </button>
+              <button onClick={() => setRemoveGroup(null)} className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

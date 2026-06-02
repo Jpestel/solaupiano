@@ -14,7 +14,7 @@ export async function GET() {
         members: {
           include: { user: { select: { id: true, name: true, email: true } } },
         },
-        _count: { select: { members: true, rehearsals: true } },
+        _count: { select: { members: true, rehearsals: true, concerts: true, songs: true, setlists: true, chordCharts: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),

@@ -10,7 +10,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (session.user.siteRole !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   const body = await req.json()
-  const { plan, planExpiresAt, maxMembersOverride, storageQuotaOverrideGb } = body
+  const { plan, planExpiresAt, maxMembersOverride, storageQuotaOverrideGb, archive } = body
 
   // Vérifier que le plan existe en base
   if (plan) {
@@ -47,6 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(storageQuotaOverrideGb !== undefined && {
         storageQuotaOverrideGb: storageQuotaOverrideGb !== null ? Number(storageQuotaOverrideGb) : null,
       }),
+      ...(typeof archive === 'boolean' && { archivedAt: archive ? new Date() : null }),
     },
   })
   return NextResponse.json({ ...group, storageUsedBytes: String(group.storageUsedBytes) })

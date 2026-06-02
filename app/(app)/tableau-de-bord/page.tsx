@@ -73,7 +73,7 @@ export default async function TableauDeBordPage({
 
   // Regular user
   const data = await prisma.groupMember.findMany({
-    where: { userId },
+    where: { userId, group: { archivedAt: null } },
     include: {
       group: {
         include: {
@@ -112,6 +112,7 @@ export default async function TableauDeBordPage({
     where: {
       isPublic: true,
       lookingFor: { not: null },
+      archivedAt: null,
     },
     select: {
       id: true,

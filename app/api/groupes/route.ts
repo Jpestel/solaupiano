@@ -10,7 +10,7 @@ export async function GET() {
   const userId = Number(session.user.id)
 
   const memberships = await prisma.groupMember.findMany({
-    where: { userId },
+    where: { userId, group: { archivedAt: null } },
     include: {
       group: {
         include: {
