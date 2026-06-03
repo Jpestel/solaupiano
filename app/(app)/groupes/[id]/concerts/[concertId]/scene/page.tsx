@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/Button'
 import { getShape, shapeForInstrument, shapeForEquip, resolveLook } from '@/components/ui/StageGraphics'
 
 const SCALE = 1.0 // facteur d'échelle global des objets
@@ -197,8 +196,9 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
   const [groupName, setGroupName] = useState('')
   const [isChef, setIsChef] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [status, setStatus] = useState<'saved' | 'saving'>('saved')
+  const loadedRef = useRef(false)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showLabels, setShowLabels] = useState(true)
 
   useEffect(() => {
@@ -232,19 +232,25 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
         })))
       }
       setLoading(false)
+      // Autorise l'auto-save après le chargement initial (au prochain changement)
+      setTimeout(() => { loadedRef.current = true }, 0)
     })
   }, [session, groupId, concertId])
 
-  const handleSave = async () => {
-    setSaving(true)
-    await fetch(`/api/groupes/${groupId}/concerts/${concertId}/scene`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: { items } }),
-    })
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
+  // ── Auto-save (chef) : sauvegarde différée à chaque changement ──
+  useEffect(() => {
+    if (!isChef || !loadedRef.current) return
+    setStatus('saving')
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      await fetch(`/api/groupes/${groupId}/concerts/${concertId}/scene`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: { items } }),
+      })
+      setStatus('saved')
+    }, 800)
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
+  }, [items, isChef, groupId, concertId])
 
   const getStagePercent = useCallback((cx: number, cy: number) => {
     const stage = stageRef.current
@@ -346,9 +352,11 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
           </label>
           {isChef && (
             <>
+              <span className={`text-xs font-medium ${status === 'saving' ? 'text-amber-500' : 'text-green-600'}`}>
+                {status === 'saving' ? '⏳ Sauvegarde…' : '✓ Sauvegardé'}
+              </span>
               <button onClick={clearAll} className="text-sm text-red-400 hover:text-red-600 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Tout effacer</button>
               <button onClick={handlePrint} className="text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 flex items-center gap-1.5">🖨️ Imprimer</button>
-              <Button onClick={handleSave} disabled={saving}>{saving ? 'Sauvegarde...' : saved ? '✓ Sauvegardé !' : 'Sauvegarder'}</Button>
             </>
           )}
         </div>
