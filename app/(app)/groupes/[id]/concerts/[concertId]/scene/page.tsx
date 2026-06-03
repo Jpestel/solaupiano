@@ -405,21 +405,21 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
         <span>Votre <strong>personnage</strong> (allure & couleur) et votre <strong>nom de scène</strong> se définissent dans votre <Link href="/profil" className="font-semibold underline hover:text-indigo-900">profil</Link>.</span>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* ─── Palette ─── */}
-        <div className="lg:w-64 flex-shrink-0 print:hidden space-y-5">
+      <div className="flex flex-col gap-6">
+        {/* ─── Palette (sous la scène) ─── */}
+        <div className="order-2 print:hidden space-y-5">
           {/* Musiciens + instruments */}
           <div>
             <h2 className="text-sm font-semibold text-gray-700 mb-2">Musiciens & instruments</h2>
             {members.length === 0 ? (
               <p className="text-xs text-gray-400 italic">Aucun membre dans ce groupe.</p>
             ) : (
-              <div className="space-y-2.5">
+              <div className="flex flex-wrap gap-2.5">
                 {members.map((m, idx) => {
                   const color = m.color || getColor(idx)
                   const placed = placedMemberIds.has(m.userId)
                   return (
-                    <div key={m.userId} className="rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">
+                    <div key={m.userId} className="w-60 rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">
                       <div className="flex items-center gap-2">
                         <PaletteChip
                           isChef={isChef}
@@ -493,7 +493,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
         </div>
 
         {/* ─── Scène ─── */}
-        <div className="flex-1">
+        <div className="order-1">
           <div className="relative">
             <div className="text-center mb-1"><span className="text-xs font-semibold text-gray-400 uppercase tracking-[0.15em]">Fond de scène</span></div>
             <div
