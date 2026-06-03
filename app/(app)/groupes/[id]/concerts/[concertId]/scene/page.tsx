@@ -87,11 +87,15 @@ const LIGHTS: { key: string; label: string; icon: string }[] = [
   { key: 'par', label: 'Projecteur PAR', icon: '💡' },
   { key: 'spot', label: 'Découpe', icon: '🔦' },
   { key: 'moving_head', label: 'Lyre', icon: '🎇' },
+  { key: 'wash', label: 'Wash', icon: '🟡' },
+  { key: 'beam', label: 'Beam', icon: '🔆' },
   { key: 'led_bar', label: 'Barre LED', icon: '🌈' },
   { key: 'blinder', label: 'Blinder', icon: '🔆' },
   { key: 'strobe', label: 'Stroboscope', icon: '⚡' },
   { key: 'laser', label: 'Laser', icon: '🟢' },
   { key: 'follow_spot', label: 'Poursuite', icon: '🎯' },
+  { key: 'uv', label: 'UV / Blacklight', icon: '🟣' },
+  { key: 'gobo', label: 'Gobo', icon: '✳️' },
 ]
 
 const STRUCTURES: { key: string; label: string; icon: string }[] = [
@@ -101,11 +105,19 @@ const STRUCTURES: { key: string; label: string; icon: string }[] = [
   { key: 'totem', label: 'Totem LED', icon: '🗼' },
   { key: 'led_wall', label: 'Mur LED / écran', icon: '📺' },
   { key: 'backdrop', label: 'Fond de scène', icon: '🎏' },
+  { key: 'banner', label: 'Banderole', icon: '🚩' },
   { key: 'drum_riser', label: 'Praticable batterie', icon: '⬛' },
   { key: 'stairs', label: 'Escalier', icon: '📶' },
   { key: 'barrier', label: 'Barrière', icon: '🚧' },
+  { key: 'sub', label: 'Caisson de basse', icon: '🔊' },
+  { key: 'pupitre', label: 'Pupitre', icon: '🎼' },
+  { key: 'chaise', label: 'Chaise', icon: '🪑' },
+  { key: 'tapis', label: 'Tapis', icon: '🟪' },
+  { key: 'plante', label: 'Plante déco', icon: '🪴' },
   { key: 'smoke', label: 'Machine à fumée', icon: '💨' },
   { key: 'fan', label: 'Ventilateur', icon: '🌀' },
+  { key: 'pyro', label: "Jet d'étincelles", icon: '🎆' },
+  { key: 'confetti', label: 'Canon à confettis', icon: '🎉' },
 ]
 
 let _seq = 0
@@ -320,6 +332,24 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
   const clearAll = () => setItems([])
   const handlePrint = () => window.print()
 
+  // Dispose tous les objets en grille pour qu'ils soient tous visibles (sans chevauchement)
+  const autoArrange = () => {
+    setItems((prev) => {
+      if (prev.length === 0) return prev
+      const cols = Math.ceil(Math.sqrt(prev.length))
+      const rows = Math.ceil(prev.length / cols)
+      return prev.map((it, i) => {
+        const col = i % cols
+        const row = Math.floor(i / cols)
+        return {
+          ...it,
+          x: 8 + ((col + 0.5) / cols) * 84,
+          y: 12 + ((row + 0.5) / rows) * 78,
+        }
+      })
+    })
+  }
+
   const concertDate = concert ? new Date(concert.date).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : ''
   const placedMemberIds = new Set(items.filter((it) => it.kind === 'member').map((it) => it.ownerUserId))
 
@@ -355,6 +385,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
               <span className={`text-xs font-medium ${status === 'saving' ? 'text-amber-500' : 'text-green-600'}`}>
                 {status === 'saving' ? '⏳ Sauvegarde…' : '✓ Sauvegardé'}
               </span>
+              <button onClick={autoArrange} className="text-sm text-indigo-600 hover:text-indigo-700 font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors border border-indigo-200 flex items-center gap-1.5">⊞ Disposer</button>
               <button onClick={clearAll} className="text-sm text-red-400 hover:text-red-600 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Tout effacer</button>
               <button onClick={handlePrint} className="text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 flex items-center gap-1.5">🖨️ Imprimer</button>
             </>

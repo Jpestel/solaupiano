@@ -510,6 +510,127 @@ export const SHAPES: Record<string, Shape> = {
       </svg>
     ),
   },
+
+  // ── Lumières (suite) ──
+  wash: {
+    w: 24, h: 26,
+    draw: () => (
+      <svg viewBox="0 0 24 26" width="100%" height="100%">
+        <path d="M2 14 L22 14 L24 25 L0 25 Z" fill="#fde68a" opacity="0.45" />
+        <rect x="3" y="2" width="18" height="13" rx="3" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        {[8, 12, 16].map((x) => <circle key={x} cx={x} cy="8.5" r="2.5" fill="#fef3c7" />)}
+      </svg>
+    ),
+  },
+  beam: {
+    w: 18, h: 30,
+    draw: () => (
+      <svg viewBox="0 0 18 30" width="100%" height="100%">
+        <path d="M7 12 L11 12 L13 29 L5 29 Z" fill="#a5f3fc" opacity="0.6" />
+        <rect x="3" y="2" width="12" height="11" rx="3" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <circle cx="9" cy="12" r="3" fill="#a5f3fc" />
+      </svg>
+    ),
+  },
+  uv: {
+    w: 20, h: 24,
+    draw: () => (
+      <svg viewBox="0 0 20 24" width="100%" height="100%">
+        <path d="M2 14 L18 14 L20 23 L0 23 Z" fill="#a78bfa" opacity="0.45" />
+        <rect x="3" y="2" width="14" height="13" rx="2" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <rect x="6" y="6" width="8" height="6" rx="1" fill="#a78bfa" />
+      </svg>
+    ),
+  },
+  gobo: {
+    w: 24, h: 24,
+    draw: () => (
+      <svg viewBox="0 0 24 24" width="100%" height="100%">
+        <rect x="3" y="4" width="18" height="14" rx="3" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <circle cx="12" cy="11" r="5" fill="none" stroke="#fde68a" strokeWidth="1.5" />
+        <path d="M12 6 V16 M7 11 H17" stroke="#fde68a" strokeWidth="1" />
+      </svg>
+    ),
+  },
+
+  // ── Sono & structures (suite) ──
+  sub: {
+    w: 46, h: 42,
+    draw: () => (
+      <svg viewBox="0 0 46 42" width="100%" height="100%">
+        <rect x="2" y="2" width="42" height="38" rx="3" fill={EQ} stroke={EQS} strokeWidth="2" />
+        <circle cx="23" cy="21" r="14" fill="none" stroke={EQS} strokeWidth="2.5" />
+        <circle cx="23" cy="21" r="4" fill={EQS} opacity="0.6" />
+      </svg>
+    ),
+  },
+  pupitre: {
+    w: 30, h: 34,
+    draw: () => (
+      <svg viewBox="0 0 30 34" width="100%" height="100%">
+        <path d="M4 12 L26 12 L24 4 L6 4 Z" fill={EQ} stroke={EQS} strokeWidth="1.5" />
+        <line x1="15" y1="12" x2="15" y2="28" stroke={EQS} strokeWidth="2" />
+        <path d="M7 33 L15 28 L23 33" stroke={EQS} strokeWidth="2" fill="none" />
+      </svg>
+    ),
+  },
+  chaise: {
+    w: 24, h: 24,
+    draw: () => (
+      <svg viewBox="0 0 24 24" width="100%" height="100%">
+        <rect x="5" y="8" width="14" height="13" rx="2" fill={EQ} stroke={EQS} strokeWidth="1.5" />
+        <rect x="5" y="3" width="14" height="4" rx="1.5" fill={EQS} opacity="0.7" />
+      </svg>
+    ),
+  },
+  tapis: {
+    w: 72, h: 46,
+    draw: () => (
+      <svg viewBox="0 0 72 46" width="100%" height="100%">
+        <rect x="2" y="2" width="68" height="42" rx="5" fill="#7c3aed" opacity="0.35" stroke="#a78bfa" strokeWidth="2" />
+        <rect x="8" y="8" width="56" height="30" rx="3" fill="none" stroke="#a78bfa" strokeWidth="1" opacity="0.6" />
+      </svg>
+    ),
+  },
+  pyro: {
+    w: 22, h: 32,
+    draw: () => (
+      <svg viewBox="0 0 22 32" width="100%" height="100%">
+        <rect x="7" y="24" width="8" height="7" rx="1.5" fill={EQS} />
+        <path d="M11 24 C5 16 14 12 9 4 C16 9 18 18 11 24 Z" fill="#fb923c" />
+        <path d="M11 22 C8 17 13 14 10 9 C14 13 14 19 11 22 Z" fill="#fde68a" />
+      </svg>
+    ),
+  },
+  confetti: {
+    w: 26, h: 30,
+    draw: () => (
+      <svg viewBox="0 0 26 30" width="100%" height="100%">
+        <rect x="3" y="16" width="14" height="11" rx="2" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" transform="rotate(-15 10 21)" />
+        {[['#f87171', 18, 6], ['#fbbf24', 22, 11], ['#34d399', 16, 2], ['#60a5fa', 23, 4], ['#a78bfa', 20, 14]].map(([c, x, y], i) => <rect key={i} x={x as number} y={y as number} width="3" height="3" rx="0.5" fill={c as string} />)}
+      </svg>
+    ),
+  },
+  banner: {
+    w: 24, h: 70,
+    draw: () => (
+      <svg viewBox="0 0 24 70" width="100%" height="100%">
+        <rect x="2" y="2" width="20" height="3" rx="1.5" fill={EQS} />
+        <path d="M4 5 H20 V62 L12 56 L4 62 Z" fill="#6366f1" opacity="0.7" stroke="#a5b4fc" strokeWidth="1" />
+      </svg>
+    ),
+  },
+  plante: {
+    w: 26, h: 32,
+    draw: () => (
+      <svg viewBox="0 0 26 32" width="100%" height="100%">
+        <path d="M8 20 L18 20 L16 31 L10 31 Z" fill="#a16207" stroke="#78350f" strokeWidth="1" />
+        <path d="M13 20 C13 10 6 8 4 4 C12 6 13 12 13 20 Z" fill="#16a34a" />
+        <path d="M13 20 C13 10 20 8 22 4 C14 6 13 12 13 20 Z" fill="#22c55e" />
+        <path d="M13 20 C13 12 13 6 13 2 C16 8 15 14 13 20 Z" fill="#15803d" />
+      </svg>
+    ),
+  },
 }
 
 // Nom d'instrument (profil) → clé de forme
