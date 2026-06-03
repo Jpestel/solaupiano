@@ -21,6 +21,7 @@ export default function InscriptionPage() {
     otherInstrument: '',
   })
   const [instruments, setInstruments] = useState<Instrument[]>([])
+  const [instrumentSearch, setInstrumentSearch] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -218,43 +219,90 @@ export default function InscriptionPage() {
               />
             </div>
 
-            {instruments.length > 0 && (
-              <div>
-                <label className="form-label">Instrument(s) joué(s)</label>
-                <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-3 grid grid-cols-2 gap-y-2 gap-x-4">
-                  {instruments.map((instrument) => (
-                    <label
-                      key={instrument.id}
-                      className="flex items-center gap-2.5 cursor-pointer group"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={form.instrumentIds.includes(instrument.id)}
-                        onChange={() => toggleInstrument(instrument.id)}
-                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-indigo-700 transition-colors">
-                        {instrument.name}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-
-                <div className="mt-3">
-                  <label htmlFor="otherInstrument" className="text-xs font-medium text-gray-500 mb-1 block">
-                    Autre instrument (non listé ci-dessus)
+            {instruments.length > 0 && (() => {
+              const selected = instruments.filter((i) => form.instrumentIds.includes(i.id))
+              const q = instrumentSearch.trim().toLowerCase()
+              const filtered = instruments.filter((i) => i.name.toLowerCase().includes(q))
+              return (
+                <div>
+                  <label className="form-label">
+                    Instrument(s) joué(s)
+                    {selected.length > 0 && <span className="ml-1.5 text-xs font-normal text-gray-400">— {selected.length} sélectionné{selected.length > 1 ? 's' : ''}</span>}
                   </label>
+
+                  {/* Puces des instruments sélectionnés */}
+                  {selected.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {selected.map((i) => (
+                        <button
+                          key={i.id}
+                          type="button"
+                          onClick={() => toggleInstrument(i.id)}
+                          className="inline-flex items-center gap-1 rounded-full bg-indigo-100 border border-indigo-200 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200 transition-colors"
+                          title="Retirer"
+                        >
+                          {i.name}
+                          <span className="text-indigo-400" aria-hidden>✕</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Recherche */}
                   <input
-                    id="otherInstrument"
                     type="text"
-                    value={form.otherInstrument}
-                    onChange={(e) => setForm({ ...form, otherInstrument: e.target.value })}
-                    className="form-input"
-                    placeholder="ex: Banjo, Cornemuse..."
+                    value={instrumentSearch}
+                    onChange={(e) => setInstrumentSearch(e.target.value)}
+                    className="form-input mt-2"
+                    placeholder="🔍 Rechercher un instrument…"
                   />
+
+                  {/* Liste filtrée (bornée + défilante) */}
+                  <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 max-h-44 overflow-y-auto p-1.5 space-y-0.5">
+                    {filtered.length > 0 ? (
+                      filtered.map((instrument) => {
+                        const checked = form.instrumentIds.includes(instrument.id)
+                        return (
+                          <button
+                            key={instrument.id}
+                            type="button"
+                            onClick={() => toggleInstrument(instrument.id)}
+                            className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
+                              checked ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            <span className={`flex h-4 w-4 items-center justify-center rounded border ${
+                              checked ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white'
+                            }`}>
+                              {checked && (
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                              )}
+                            </span>
+                            {instrument.name}
+                          </button>
+                        )
+                      })
+                    ) : (
+                      <p className="px-2.5 py-3 text-sm text-gray-400">Aucun instrument trouvé. Utilisez le champ « Autre » ci-dessous.</p>
+                    )}
+                  </div>
+
+                  <div className="mt-3">
+                    <label htmlFor="otherInstrument" className="text-xs font-medium text-gray-500 mb-1 block">
+                      Autre instrument (non listé ci-dessus)
+                    </label>
+                    <input
+                      id="otherInstrument"
+                      type="text"
+                      value={form.otherInstrument}
+                      onChange={(e) => setForm({ ...form, otherInstrument: e.target.value })}
+                      className="form-input"
+                      placeholder="ex: Banjo, Cornemuse..."
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             <button
               type="submit"
