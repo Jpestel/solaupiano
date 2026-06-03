@@ -61,6 +61,7 @@ export function ChordLine({ line, mode, className = '', chordColor = '#6d28d9', 
               lineHeight: 1.2,
               color: chordColor,
               whiteSpace: 'pre',
+              textAlign: 'left',
             }}
           >
             {seg.chord || ' '}
