@@ -146,7 +146,9 @@ model User {
   password      String
   name          String
   avatarUrl     String?
-  stageFigure   String?   // représentation sur le plan de scène : MAN | WOMAN
+  stageFigure   String?   // look du personnage sur le plan de scène (clé : p1, p2, …)
+  stageColor    String?   // couleur du personnage sur le plan de scène (hex)
+  stageName     String?   // nom de scène affiché sur le plan de scène (sinon : nom)
   siteRole      SiteRole  @default(USER)
   userPlan      UserPlan  @default(CREATEUR)
   emailVerified DateTime?

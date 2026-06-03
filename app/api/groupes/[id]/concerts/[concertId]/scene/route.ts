@@ -38,6 +38,8 @@ export async function GET(req: NextRequest, { params }: Params) {
             name: true,
             avatarUrl: true,
             stageFigure: true,
+            stageColor: true,
+            stageName: true,
             instruments: { include: { instrument: { select: { name: true } } } },
           },
         },
@@ -49,9 +51,10 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const memberList = members.map((m) => ({
     userId: m.userId,
-    name: m.user.name,
+    name: (m.user.stageName && m.user.stageName.trim()) || m.user.name,
     avatarUrl: m.user.avatarUrl,
-    figure: m.user.stageFigure || 'MAN',
+    figure: m.user.stageFigure || 'p1',
+    color: m.user.stageColor || null,
     groupRole: m.groupRole,
     instruments: m.user.instruments.map((ui) => ui.instrument.name),
   }))

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { GroupRoleBadge } from '@/components/ui/Badge'
 import { GearManager } from './GearManager'
 import { formatDateWithDay } from '@/lib/utils'
+import { getShape, LOOKS, STAGE_COLORS, DEFAULT_STAGE_COLOR, resolveLook } from '@/components/ui/StageGraphics'
 
 interface Instrument {
   id: number
@@ -90,7 +91,9 @@ export default function ProfilPage() {
   const [planError, setPlanError] = useState('')
 
   const [gusoNumber, setGusoNumber] = useState('')
-  const [stageFigure, setStageFigure] = useState<'MAN' | 'WOMAN'>('MAN')
+  const [stageFigure, setStageFigure] = useState<string>('p1')
+  const [stageColor, setStageColor] = useState<string>(DEFAULT_STAGE_COLOR)
+  const [stageName, setStageName] = useState('')
   const [weeklyDigestOptOut, setWeeklyDigestOptOut] = useState(false)
   const [digestSaving, setDigestSaving] = useState(false)
   const [rehearsalReminderOptOut, setRehearsalReminderOptOut] = useState(false)
@@ -118,7 +121,9 @@ export default function ProfilPage() {
       setProfile(p)
       setName(p.name)
       setGusoNumber(p.gusoNumber ?? '')
-      setStageFigure((p as { stageFigure?: string }).stageFigure === 'WOMAN' ? 'WOMAN' : 'MAN')
+      setStageFigure(resolveLook((p as { stageFigure?: string }).stageFigure))
+      setStageColor((p as { stageColor?: string }).stageColor || DEFAULT_STAGE_COLOR)
+      setStageName((p as { stageName?: string }).stageName || '')
       setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
       setWeeklyDigestOptOut(p.weeklyDigestOptOut ?? false)
       setRehearsalReminderOptOut(p.rehearsalReminderOptOut ?? false)
@@ -145,7 +150,7 @@ export default function ProfilPage() {
     const res = await fetch('/api/profil', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, instrumentIds: selectedIds, gusoNumber, stageFigure }),
+      body: JSON.stringify({ name, instrumentIds: selectedIds, gusoNumber, stageFigure, stageColor, stageName }),
     })
     setSaving(false)
     if (!res.ok) {
@@ -469,25 +474,50 @@ export default function ProfilPage() {
               </div>
 
               <div>
-                <label className="form-label">Représentation sur le plan de scène</label>
-                <div className="flex gap-2 mt-1">
-                  {([
-                    { value: 'MAN' as const, emoji: '🧍', label: 'Homme' },
-                    { value: 'WOMAN' as const, emoji: '🧍‍♀️', label: 'Femme' },
-                  ]).map((o) => (
+                <label className="form-label">Nom de scène <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                <input
+                  type="text"
+                  value={stageName}
+                  onChange={(e) => setStageName(e.target.value)}
+                  className="form-input"
+                  placeholder={name || 'Ex : DJ Lulu'}
+                  maxLength={40}
+                />
+                <p className="text-xs text-gray-400 mt-1">Affiché sur les plans de scène. Laissez vide pour utiliser votre nom.</p>
+              </div>
+
+              <div>
+                <label className="form-label">Mon personnage (plan de scène)</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {LOOKS.map((key) => {
+                    const sh = getShape(key)
+                    const active = stageFigure === key
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setStageFigure(key)}
+                        className={`rounded-xl border-2 p-1.5 transition-colors ${active ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}`}
+                        title="Choisir ce look"
+                      >
+                        <div style={{ width: 28, height: 38 }}>{sh.draw(stageColor)}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {STAGE_COLORS.map((c) => (
                     <button
-                      key={o.value}
+                      key={c}
                       type="button"
-                      onClick={() => setStageFigure(o.value)}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-medium transition-colors ${
-                        stageFigure === o.value ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      <span className="text-lg">{o.emoji}</span> {o.label}
-                    </button>
+                      onClick={() => setStageColor(c)}
+                      className={`w-7 h-7 rounded-full border-2 transition-transform ${stageColor === c ? 'border-gray-800 scale-110' : 'border-white shadow'}`}
+                      style={{ background: c }}
+                      title="Choisir cette couleur"
+                    />
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Silhouette utilisée pour vous représenter sur les plans de scène.</p>
+                <p className="text-xs text-gray-400 mt-2">Choisissez votre allure et votre couleur : c&apos;est ainsi que vous apparaîtrez sur les plans de scène.</p>
               </div>
 
               <div>

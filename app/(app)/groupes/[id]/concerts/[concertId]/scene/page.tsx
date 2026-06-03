@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
-import { getShape, shapeForInstrument, shapeForEquip } from '@/components/ui/StageGraphics'
+import { getShape, shapeForInstrument, shapeForEquip, resolveLook } from '@/components/ui/StageGraphics'
 
 const SCALE = 1.0 // facteur d'échelle global des objets
 
@@ -15,6 +15,7 @@ interface Member {
   name: string
   avatarUrl?: string | null
   figure?: string
+  color?: string | null
   groupRole: string
   instruments: string[]
 }
@@ -38,7 +39,7 @@ interface StageItem {
 
 // Résout la forme d'un item (rétro-compat si shape absent)
 function resolveShape(item: { kind: ItemKind; shape?: string; figure?: string; label: string }): string {
-  if (item.kind === 'member') return item.figure === 'WOMAN' ? 'person_woman' : 'person_man'
+  if (item.kind === 'member') return resolveLook(item.figure)
   if (item.shape) return item.shape
   if (item.kind === 'instrument') return shapeForInstrument(item.label)
   return 'generic'
@@ -320,6 +321,12 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
         <p className="text-gray-600">{concert?.name} · {concertDate} · {concert?.location}</p>
       </div>
 
+      {/* Info personnalisation */}
+      <div className="print:hidden mb-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-2.5 text-xs text-indigo-700 flex items-center gap-2">
+        <span>🎭</span>
+        <span>Votre <strong>personnage</strong> (allure & couleur) et votre <strong>nom de scène</strong> se définissent dans votre <Link href="/profil" className="font-semibold underline hover:text-indigo-900">profil</Link>.</span>
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-6">
         {/* ─── Palette ─── */}
         <div className="lg:w-64 flex-shrink-0 print:hidden space-y-5">
@@ -331,7 +338,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
             ) : (
               <div className="space-y-2.5">
                 {members.map((m, idx) => {
-                  const color = getColor(idx)
+                  const color = m.color || getColor(idx)
                   const placed = placedMemberIds.has(m.userId)
                   return (
                     <div key={m.userId} className="rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">

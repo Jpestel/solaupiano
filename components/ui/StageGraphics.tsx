@@ -16,24 +16,85 @@ const EQS = '#475569'     // contour équipement (slate-600)
 const WS = '#ffffff'      // contour blanc instruments
 
 export const SHAPES: Record<string, Shape> = {
-  // ── Membres (silhouettes) ──
-  person_man: {
+  // ── Membres : looks de personnages (silhouettes) ──
+  // p1 : cheveux courts
+  p1: {
     w: 34, h: 46,
     draw: (c) => (
       <svg viewBox="0 0 34 46" width="100%" height="100%">
-        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="2" />
         <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
+        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="2" />
+        <path d="M9 8 A8 8 0 0 1 25 8 L23 4 Q17 1 11 4 Z" fill="rgba(0,0,0,0.28)" />
       </svg>
     ),
   },
-  person_woman: {
+  // p2 : cheveux longs
+  p2: {
     w: 34, h: 46,
     draw: (c) => (
       <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
+        <path d="M8 22 V9 A9 9 0 0 1 26 9 V22 L23 22 V11 A6 6 0 0 0 11 11 V22 Z" fill="rgba(0,0,0,0.28)" />
         <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="2" />
-        <path d="M17 16 C23 16 26 20 26 24 L32 45 H2 L8 24 C8 20 11 16 17 16 Z" fill={c} stroke={WS} strokeWidth="2" />
       </svg>
     ),
+  },
+  // p3 : casquette
+  p3: {
+    w: 34, h: 46,
+    draw: (c) => (
+      <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
+        <circle cx="17" cy="10" r="8" fill={c} stroke={WS} strokeWidth="2" />
+        <path d="M9 7 A8 8 0 0 1 25 7 L29 8 L25 4 Q17 1 10 5 Z" fill="rgba(0,0,0,0.32)" />
+      </svg>
+    ),
+  },
+  // p4 : chapeau
+  p4: {
+    w: 34, h: 46,
+    draw: (c) => (
+      <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
+        <circle cx="17" cy="11" r="8" fill={c} stroke={WS} strokeWidth="2" />
+        <rect x="6" y="5" width="22" height="3" rx="1.5" fill="rgba(0,0,0,0.32)" />
+        <rect x="11" y="0" width="12" height="6" rx="1.5" fill="rgba(0,0,0,0.32)" />
+      </svg>
+    ),
+  },
+  // p5 : chignon
+  p5: {
+    w: 34, h: 46,
+    draw: (c) => (
+      <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
+        <circle cx="17" cy="2.5" r="3.5" fill="rgba(0,0,0,0.3)" />
+        <circle cx="17" cy="10" r="8" fill={c} stroke={WS} strokeWidth="2" />
+        <path d="M9 9 A8 8 0 0 1 25 9 L23 5 Q17 2 11 5 Z" fill="rgba(0,0,0,0.28)" />
+      </svg>
+    ),
+  },
+  // p6 : cheveux bouclés
+  p6: {
+    w: 34, h: 46,
+    draw: (c) => (
+      <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
+        <circle cx="17" cy="10" r="8" fill={c} stroke={WS} strokeWidth="2" />
+        <circle cx="10" cy="5" r="3.5" fill="rgba(0,0,0,0.28)" />
+        <circle cx="17" cy="3" r="4" fill="rgba(0,0,0,0.28)" />
+        <circle cx="24" cy="5" r="3.5" fill="rgba(0,0,0,0.28)" />
+      </svg>
+    ),
+  },
+  // Rétro-compat
+  person_man: {
+    w: 34, h: 46,
+    draw: (c) => SHAPES.p1.draw(c),
+  },
+  person_woman: {
+    w: 34, h: 46,
+    draw: (c) => SHAPES.p2.draw(c),
   },
 
   // ── Instruments ──
@@ -290,4 +351,23 @@ export function shapeForEquip(key: string): string {
 
 export function getShape(key: string | undefined): Shape {
   return (key && SHAPES[key]) || SHAPES.generic
+}
+
+// Looks de personnage proposés dans le profil
+export const LOOKS = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']
+export const DEFAULT_LOOK = 'p1'
+
+// Palette de couleurs pour le personnage
+export const STAGE_COLORS = [
+  '#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#ef4444', '#f97316',
+  '#f59e0b', '#10b981', '#14b8a6', '#0ea5e9', '#3b82f6', '#64748b',
+]
+export const DEFAULT_STAGE_COLOR = '#6366f1'
+
+// Normalise une valeur de look (rétro-compat MAN/WOMAN)
+export function resolveLook(figure: string | undefined | null): string {
+  if (!figure) return DEFAULT_LOOK
+  if (figure === 'MAN') return 'p1'
+  if (figure === 'WOMAN') return 'p2'
+  return SHAPES[figure] ? figure : DEFAULT_LOOK
 }
