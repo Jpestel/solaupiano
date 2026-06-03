@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { PLANS, GroupPlan, formatBytes, storagePercent, storageLabel } from '@/lib/plans'
+import { MUSIC_GENRES } from '@/lib/genres'
 
 interface User {
   id: number
@@ -18,7 +19,9 @@ interface Group {
   id: number
   name: string
   description?: string
+  style?: string | null
   isPublic: boolean
+  isHidden: boolean
   plan: GroupPlan
   planExpiresAt: string | null
   storageUsedBytes: string // BigInt serialised as string by JSON
@@ -45,7 +48,7 @@ export default function AdminGroupesPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', chefId: '', isPublic: true })
   const [editGroup, setEditGroup] = useState<Group | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', description: '', isPublic: true, plan: 'FREE' as string })
+  const [editForm, setEditForm] = useState({ name: '', description: '', style: '', isPublic: true, isHidden: false, plan: 'FREE' as string })
   const [planGiftOpen, setPlanGiftOpen] = useState<Group | null>(null)
   const [giftForm, setGiftForm] = useState({ plan: 'FREE', expiresAt: '' })
   const [memberLimitOpen, setMemberLimitOpen] = useState<Group | null>(null)
@@ -99,7 +102,7 @@ export default function AdminGroupesPage() {
 
   const openEdit = (group: Group) => {
     setEditGroup(group)
-    setEditForm({ name: group.name, description: group.description || '', isPublic: group.isPublic, plan: group.plan || 'FREE' })
+    setEditForm({ name: group.name, description: group.description || '', style: group.style || '', isPublic: group.isPublic, isHidden: group.isHidden ?? false, plan: group.plan || 'FREE' })
     setError('')
   }
 
@@ -656,16 +659,34 @@ export default function AdminGroupesPage() {
             <textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} className="form-input" rows={2} />
           </div>
           <div>
-            <label className="form-label">Visibilité</label>
-            <div className="flex gap-3 mt-1">
-              {[{ value: true, label: '🌐 Public' }, { value: false, label: '🔒 Privé' }].map((opt) => (
-                <button key={String(opt.value)} type="button" onClick={() => setEditForm({ ...editForm, isPublic: opt.value })}
-                  className={`flex-1 rounded-lg border-2 p-2.5 text-sm text-center transition-colors ${
-                    editForm.isPublic === opt.value ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}>
-                  {opt.label}
-                </button>
+            <label className="form-label">Style musical</label>
+            <select value={editForm.style} onChange={(e) => setEditForm({ ...editForm, style: e.target.value })} className="form-input">
+              <option value="">— Non renseigné —</option>
+              {MUSIC_GENRES.map((grp) => (
+                <optgroup key={grp.group} label={grp.group}>
+                  {grp.items.map((g) => <option key={g} value={g}>{g}</option>)}
+                </optgroup>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Visibilité</label>
+            <div className="flex gap-2 mt-1">
+              {([
+                { key: 'public',  label: '🌐 Public',  isPublic: true,  isHidden: false },
+                { key: 'private', label: '🔒 Privé',   isPublic: false, isHidden: false },
+                { key: 'hidden',  label: '🙈 Masqué',  isPublic: false, isHidden: true  },
+              ] as const).map((opt) => {
+                const active = editForm.isPublic === opt.isPublic && editForm.isHidden === opt.isHidden
+                return (
+                  <button key={opt.key} type="button" onClick={() => setEditForm({ ...editForm, isPublic: opt.isPublic, isHidden: opt.isHidden })}
+                    className={`flex-1 rounded-lg border-2 p-2.5 text-sm text-center transition-colors ${
+                      active ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}>
+                    {opt.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
