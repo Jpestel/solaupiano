@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { PublicJoinButton } from './PublicJoinButton'
+import { HomeCarousel } from '@/components/HomeCarousel'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -208,6 +209,13 @@ export default async function PublicHomePage() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Aperçu (carrousel) */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
+        <h2 className="text-center text-xl font-bold text-gray-900 mb-1">Découvrez la plateforme</h2>
+        <p className="text-center text-sm text-gray-500 mb-6">Un aperçu de ce que vous pourrez faire avec votre groupe.</p>
+        <HomeCarousel />
       </div>
 
       {/* Fonctionnalités */}
