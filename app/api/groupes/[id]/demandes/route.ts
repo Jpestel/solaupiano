@@ -45,6 +45,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const userId = Number(session.user.id)
   const groupId = Number(params.id)
 
+  // Seuls les groupes PUBLICS (visibles + ouverts aux demandes, non archivés)
+  // acceptent les demandes d'adhésion. Privé / Masqué = sur invitation du chef.
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { isPublic: true, isHidden: true, archivedAt: true },
+  })
+  if (!group || group.archivedAt) {
+    return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
+  }
+  if (!group.isPublic || group.isHidden) {
+    return NextResponse.json(
+      { error: 'Ce groupe n\'accepte pas les demandes : il est accessible uniquement sur invitation du chef.' },
+      { status: 403 }
+    )
+  }
+
   const alreadyMember = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
   })

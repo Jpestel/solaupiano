@@ -671,19 +671,21 @@ export default function AdminGroupesPage() {
           </div>
           <div>
             <label className="form-label">Visibilité</label>
-            <div className="flex gap-2 mt-1">
+            <div className="grid grid-cols-3 gap-2 mt-1">
               {([
-                { key: 'public',  label: '🌐 Public',  isPublic: true,  isHidden: false },
-                { key: 'private', label: '🔒 Privé',   isPublic: false, isHidden: false },
-                { key: 'hidden',  label: '🙈 Masqué',  isPublic: false, isHidden: true  },
+                { key: 'public',  icon: '🌐', label: 'Public',  desc: 'Accueil, ouvert aux demandes',     isPublic: true,  isHidden: false },
+                { key: 'private', icon: '🔒', label: 'Privé',   desc: 'Accueil, sur invitation du chef',  isPublic: false, isHidden: false },
+                { key: 'hidden',  icon: '🙈', label: 'Masqué',  desc: 'Invisible, réservé aux membres',   isPublic: false, isHidden: true  },
               ] as const).map((opt) => {
                 const active = editForm.isPublic === opt.isPublic && editForm.isHidden === opt.isHidden
                 return (
                   <button key={opt.key} type="button" onClick={() => setEditForm({ ...editForm, isPublic: opt.isPublic, isHidden: opt.isHidden })}
-                    className={`flex-1 rounded-lg border-2 p-2.5 text-sm text-center transition-colors ${
-                      active ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    className={`flex flex-col items-center gap-0.5 rounded-lg border-2 p-2.5 text-center transition-colors ${
+                      active ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}>
-                    {opt.label}
+                    <span className="text-lg">{opt.icon}</span>
+                    <span className="text-xs font-semibold">{opt.label}</span>
+                    <span className="text-[10px] text-gray-500 leading-tight">{opt.desc}</span>
                   </button>
                 )
               })}

@@ -164,9 +164,9 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
                 <label className="form-label">Visibilité</label>
                 <div className="grid grid-cols-3 gap-2 mt-1">
                   {([
-                    { value: 'public',  icon: '🌐', label: 'Public',  desc: 'Visible et ouvert aux demandes' },
-                    { value: 'private', icon: '🔒', label: 'Privé',   desc: 'Visible, invitation uniquement' },
-                    { value: 'hidden',  icon: '🙈', label: 'Masqué',  desc: 'Invisible, invitation uniquement' },
+                    { value: 'public',  icon: '🌐', label: 'Public',  desc: 'Affiché sur l\'accueil, ouvert aux demandes' },
+                    { value: 'private', icon: '🔒', label: 'Privé',   desc: 'Affiché sur l\'accueil, sur invitation du chef' },
+                    { value: 'hidden',  icon: '🙈', label: 'Masqué',  desc: 'Invisible, réservé aux membres' },
                   ] as const).map((opt) => (
                     <button
                       key={opt.value}
