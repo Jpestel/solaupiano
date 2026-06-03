@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { GEAR_CATEGORIES, getGearCategory } from '@/lib/gear'
+import { GEAR_CATEGORIES, getGearCategory, GEAR_SUGGESTIONS } from '@/lib/gear'
 
 interface GearItem {
   id?: number
@@ -69,6 +69,13 @@ export function GearManager() {
 
   return (
     <div className="space-y-3">
+      {/* Suggestions par catégorie (autocomplétion du champ Modèle) */}
+      {GEAR_CATEGORIES.map((c) => (
+        <datalist key={c.key} id={`gear-cat-${c.key}`}>
+          {(GEAR_SUGGESTIONS[c.key] ?? []).map((s) => <option key={s} value={s} />)}
+        </datalist>
+      ))}
+
       <p className="text-xs text-gray-400">
         Décrivez votre setup complet (instruments, ampli, micros, pédales, câbles…). Il pourra être réutilisé ailleurs sur le site (fiches techniques, etc.).
       </p>
@@ -97,7 +104,8 @@ export function GearManager() {
                     type="text"
                     value={it.name}
                     onChange={(e) => update(it._k, { name: e.target.value })}
-                    placeholder="Modèle (ex : Fender Stratocaster)"
+                    list={`gear-cat-${it.category}`}
+                    placeholder={`${cat.label} — tapez ou choisissez…`}
                     className="flex-1 min-w-0 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   />
                   <button onClick={() => remove(it._k)} className="text-gray-300 hover:text-red-500 text-lg leading-none flex-shrink-0 px-1" title="Supprimer">×</button>
