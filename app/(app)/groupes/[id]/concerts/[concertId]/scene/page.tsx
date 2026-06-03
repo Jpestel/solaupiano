@@ -4,6 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
+import { getShape, shapeForInstrument, shapeForEquip } from '@/components/ui/StageGraphics'
+
+const SCALE = 1.0 // facteur d'échelle global des objets
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -22,11 +25,19 @@ interface StageItem {
   kind: ItemKind
   label: string
   icon: string
+  shape?: string
   x: number // %
   y: number // %
   color?: string
   ownerUserId?: number
   avatarUrl?: string | null
+}
+
+// Résout la forme d'un item (rétro-compat si shape absent)
+function resolveShape(item: { kind: ItemKind; shape?: string; label: string }): string {
+  if (item.shape) return item.shape
+  if (item.kind === 'instrument') return shapeForInstrument(item.label)
+  return 'generic'
 }
 
 interface Concert { id: number; name: string; date: string; location: string }
@@ -104,28 +115,17 @@ function StageItemView({ item, isChef, onPointerDown, onRemove }: {
     )
   }
 
-  if (item.kind === 'instrument') {
-    return (
-      <div className={common} style={{ left: `${item.x}%`, top: `${item.y}%` }}
-        onPointerDown={isChef ? (e) => onPointerDown(e, item.id) : undefined}>
-        {removeBtn}
-        <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center text-xl shadow-md mx-auto" style={{ border: `2px solid ${item.color || '#6366f1'}` }}>
-          {item.icon}
-        </div>
-        <p className="mt-0.5 text-center text-white/90 text-[10px] leading-tight drop-shadow max-w-[80px] truncate mx-auto">{item.label}</p>
-      </div>
-    )
-  }
-
-  // equip
+  // instrument & équipement : forme vectorielle dimensionnée
+  const shape = getShape(resolveShape(item))
+  const color = item.kind === 'instrument' ? (item.color || '#6366f1') : '#cbd5e1'
   return (
     <div className={common} style={{ left: `${item.x}%`, top: `${item.y}%` }}
       onPointerDown={isChef ? (e) => onPointerDown(e, item.id) : undefined}>
       {removeBtn}
-      <div className="w-11 h-11 rounded-md bg-slate-700/90 flex items-center justify-center text-xl shadow-md border border-white/20 mx-auto">
-        {item.icon}
+      <div className="mx-auto" style={{ width: shape.w * SCALE, height: shape.h * SCALE, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))' }}>
+        {shape.draw(color)}
       </div>
-      <p className="mt-0.5 text-center text-white/80 text-[10px] leading-tight drop-shadow max-w-[80px] truncate mx-auto">{item.label}</p>
+      <p className="mt-0.5 text-center text-white/85 text-[10px] leading-tight drop-shadow max-w-[90px] truncate mx-auto">{item.label}</p>
     </div>
   )
 }
@@ -354,7 +354,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
                               color={color}
                               icon={getInstrumentIcon(instr)}
                               label={instr}
-                              onPointerDown={(e) => startDragFromPanel(e, { id: uid('instr'), kind: 'instrument', label: instr, icon: getInstrumentIcon(instr), x: 50, y: 50, color, ownerUserId: m.userId })}
+                              onPointerDown={(e) => startDragFromPanel(e, { id: uid('instr'), kind: 'instrument', label: instr, icon: getInstrumentIcon(instr), shape: shapeForInstrument(instr), x: 50, y: 50, color, ownerUserId: m.userId })}
                             />
                           ))}
                         </div>
@@ -381,7 +381,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
                   isChef={isChef}
                   icon={eq.icon}
                   label={eq.label}
-                  onPointerDown={(e) => startDragFromPanel(e, { id: uid('equip'), kind: 'equip', label: eq.label, icon: eq.icon, x: 50, y: 50 })}
+                  onPointerDown={(e) => startDragFromPanel(e, { id: uid('equip'), kind: 'equip', label: eq.label, icon: eq.icon, shape: shapeForEquip(eq.key), x: 50, y: 50 })}
                 />
               ))}
             </div>
@@ -435,10 +435,15 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
       {/* Ghost pendant le drag depuis la palette */}
       {dragging?.fromPanel && dragging.draft && (
         <div className="fixed z-50 pointer-events-none -translate-x-1/2 -translate-y-1/2 opacity-90" style={{ left: dragPos.x, top: dragPos.y }}>
-          <div className={`flex items-center justify-center text-2xl shadow-2xl border-2 border-white ${dragging.draft.kind === 'member' ? 'w-14 h-14 rounded-full text-white font-bold' : dragging.draft.kind === 'instrument' ? 'w-11 h-11 rounded-xl bg-white' : 'w-11 h-11 rounded-md bg-slate-700 text-white'}`}
-            style={dragging.draft.kind === 'member' ? { background: dragging.draft.color } : dragging.draft.kind === 'instrument' ? { border: `2px solid ${dragging.draft.color || '#6366f1'}` } : undefined}>
-            {dragging.draft.kind === 'member' ? dragging.draft.label.charAt(0).toUpperCase() : dragging.draft.icon}
-          </div>
+          {dragging.draft.kind === 'member' ? (
+            <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl text-white font-bold shadow-2xl border-2 border-white" style={{ background: dragging.draft.color }}>
+              {dragging.draft.label.charAt(0).toUpperCase()}
+            </div>
+          ) : (() => {
+            const sh = getShape(resolveShape(dragging.draft!))
+            const col = dragging.draft!.kind === 'instrument' ? (dragging.draft!.color || '#6366f1') : '#cbd5e1'
+            return <div style={{ width: sh.w * SCALE, height: sh.h * SCALE, filter: 'drop-shadow(0 3px 4px rgba(0,0,0,0.4))' }}>{sh.draw(col)}</div>
+          })()}
         </div>
       )}
 
