@@ -35,6 +35,11 @@ export default function AdminUtilisateursPage() {
   const [editSaving, setEditSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError] = useState('')
+  // Filtres
+  const [search, setSearch] = useState('')
+  const [groupFilter, setGroupFilter] = useState<'all' | 'none' | number>('all')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'ADMIN' | 'USER'>('all')
+  const [instrFilter, setInstrFilter] = useState<'all' | number>('all')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchUsers = async () => {
@@ -147,11 +152,60 @@ export default function AdminUtilisateursPage() {
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
+  // Groupes distincts présents chez les utilisateurs (pour le filtre)
+  const groupMap = new Map<number, string>()
+  users.forEach((u) => u.groups.forEach((g) => groupMap.set(g.group.id, g.group.name)))
+  const allGroups = Array.from(groupMap.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+
+  const q = search.trim().toLowerCase()
+  const filtered = users.filter((u) => {
+    if (q && !(u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))) return false
+    if (roleFilter !== 'all' && u.siteRole !== roleFilter) return false
+    if (groupFilter === 'none' && u.groups.length > 0) return false
+    if (typeof groupFilter === 'number' && !u.groups.some((g) => g.group.id === groupFilter)) return false
+    if (typeof instrFilter === 'number' && !u.instruments.some((ui) => ui.instrument.id === instrFilter)) return false
+    return true
+  })
+  const filtering = q !== '' || groupFilter !== 'all' || roleFilter !== 'all' || instrFilter !== 'all'
+  const resetFilters = () => { setSearch(''); setGroupFilter('all'); setRoleFilter('all'); setInstrFilter('all') }
+
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Utilisateurs</h1>
-        <p className="text-gray-500 mt-1">{users.length} compte{users.length > 1 ? 's' : ''} enregistré{users.length > 1 ? 's' : ''}.</p>
+        <p className="text-gray-500 mt-1">
+          {filtering ? `${filtered.length} / ${users.length}` : users.length} compte{users.length > 1 ? 's' : ''} {filtering ? 'affichés' : 'enregistrés'}.
+        </p>
+      </div>
+
+      {/* Filtres */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="🔍 Nom ou email…"
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 w-48"
+        />
+        <select value={String(groupFilter)} onChange={(e) => setGroupFilter(e.target.value === 'all' || e.target.value === 'none' ? e.target.value : Number(e.target.value))}
+          className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 max-w-[180px]">
+          <option value="all">Tous les groupes</option>
+          <option value="none">Sans groupe</option>
+          {allGroups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+        <select value={String(instrFilter)} onChange={(e) => setInstrFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 max-w-[180px]">
+          <option value="all">Tous les instruments</option>
+          {allInstruments.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+        </select>
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as 'all' | 'ADMIN' | 'USER')}
+          className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <option value="all">Tous les rôles</option>
+          <option value="ADMIN">Admin</option>
+          <option value="USER">Utilisateur</option>
+        </select>
+        {filtering && (
+          <button onClick={resetFilters} className="text-xs font-medium text-gray-400 hover:text-gray-600">✕ Réinitialiser</button>
+        )}
       </div>
 
       <Card padding={false}>
@@ -167,7 +221,10 @@ export default function AdminUtilisateursPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => {
+              {filtered.length === 0 && (
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-400">Aucun utilisateur ne correspond aux filtres.</td></tr>
+              )}
+              {filtered.map((user) => {
                 const hasNoGroups = user.groups.length === 0
                 const isAdmin = user.siteRole === 'ADMIN'
                 return (
