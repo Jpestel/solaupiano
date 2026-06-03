@@ -673,9 +673,9 @@ export default function AdminGroupesPage() {
             <label className="form-label">Visibilité</label>
             <div className="grid grid-cols-3 gap-2 mt-1">
               {([
-                { key: 'public',  icon: '🌐', label: 'Public',  desc: 'Accueil, ouvert aux demandes',     isPublic: true,  isHidden: false },
-                { key: 'private', icon: '🔒', label: 'Privé',   desc: 'Accueil, sur invitation du chef',  isPublic: false, isHidden: false },
-                { key: 'hidden',  icon: '🙈', label: 'Masqué',  desc: 'Invisible, réservé aux membres',   isPublic: false, isHidden: true  },
+                { key: 'public',  icon: '🌐', label: 'Public',  desc: "Visible sur l'accueil du site, ouvert aux demandes",   isPublic: true,  isHidden: false },
+                { key: 'private', icon: '🔒', label: 'Privé',   desc: "Visible sur l'accueil du site, sur invitation du chef", isPublic: false, isHidden: false },
+                { key: 'hidden',  icon: '🙈', label: 'Masqué',  desc: 'Invisible partout, réservé aux membres',               isPublic: false, isHidden: true  },
               ] as const).map((opt) => {
                 const active = editForm.isPublic === opt.isPublic && editForm.isHidden === opt.isHidden
                 return (
