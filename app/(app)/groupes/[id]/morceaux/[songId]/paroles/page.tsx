@@ -201,6 +201,7 @@ export default function ParolesPage({
   const [prompterMode, setPrompterMode] = useState(false)
   const [editMode, setEditMode] = useState<'text' | 'chords'>('text')
   const [pendingChord, setPendingChord] = useState<string | null>(null)
+  const [chordFamily, setChordFamily] = useState(0)
   // Préférence d'affichage propre à chaque musicien (persistée sur l'appareil)
   const [displayMode, setDisplayMode] = useState<DisplayMode>('both')
 
@@ -623,57 +624,71 @@ export default function ParolesPage({
                 </div>
               ) : (
                 <>
-                  {/* Palette : on arme un accord */}
-                  <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-3 space-y-2">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <p className="text-xs font-semibold text-violet-700">
+                  {/* Palette : on arme un accord — reste collée en haut au défilement */}
+                  <div className="sticky top-0 z-20 -mx-4 sm:mx-0 px-4 py-2.5 sm:rounded-xl border-b sm:border border-violet-200 bg-violet-50/95 backdrop-blur-sm shadow-sm space-y-2">
+                    {/* Statut */}
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold text-violet-700 truncate">
                         {pendingChord
-                          ? <>Accord actif : <span className="rounded bg-violet-600 px-1.5 py-0.5 text-white">{pendingChord}</span> — cliquez sur une lettre pour le poser.</>
-                          : '🎸 Choisissez un accord ci-dessous, puis cliquez sur la lettre voulue.'}
+                          ? <>Actif : <span className="rounded bg-violet-600 px-1.5 py-0.5 text-white">{pendingChord}</span> → cliquez une lettre</>
+                          : '🎸 Choisissez un accord, puis cliquez la lettre voulue'}
                       </p>
                       {pendingChord && (
-                        <button onClick={() => setPendingChord(null)} className="text-xs font-medium text-gray-400 hover:text-gray-600">
+                        <button onClick={() => setPendingChord(null)} className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-600">
                           ✕ Désarmer
                         </button>
                       )}
                     </div>
-                    {COMMON_CHORDS.map((grp) => (
-                      <div key={grp.group} className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] font-semibold text-violet-400 uppercase w-14 shrink-0">{grp.group}</span>
-                        {grp.chords.map((ch) => (
-                          <button
-                            key={ch}
-                            onClick={() => setPendingChord(ch === pendingChord ? null : ch)}
-                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-bold transition-colors ${
-                              ch === pendingChord
-                                ? 'border-violet-600 bg-violet-600 text-white'
-                                : 'border-violet-200 bg-white text-violet-700 hover:bg-violet-100'
-                            }`}
-                          >
-                            {ch}
-                          </button>
-                        ))}
-                      </div>
-                    ))}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        const inp = (e.currentTarget.elements.namedItem('chord') as HTMLInputElement)
-                        const val = inp.value.trim()
-                        if (val) { setPendingChord(val); inp.value = '' }
-                      }}
-                      className="flex items-center gap-1.5 pt-1"
-                    >
-                      <span className="text-[10px] font-semibold text-violet-400 uppercase w-14 shrink-0">Autre</span>
-                      <input
-                        name="chord"
-                        placeholder="ex : Gm7, D/F#…"
-                        className="rounded-md border border-violet-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300 w-32"
-                      />
-                      <button type="submit" className="rounded-md bg-violet-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-violet-500">
-                        Choisir
-                      </button>
-                    </form>
+
+                    {/* Familles (défilement horizontal) */}
+                    <div className="flex gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                      {COMMON_CHORDS.map((grp, gi) => (
+                        <button
+                          key={grp.group}
+                          onClick={() => setChordFamily(gi)}
+                          className={`shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors ${
+                            gi === chordFamily ? 'bg-violet-600 text-white' : 'bg-white text-violet-600 border border-violet-200 hover:bg-violet-100'
+                          }`}
+                        >
+                          {grp.group}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Accords de la famille (défilement horizontal) + accord personnalisé */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                      {COMMON_CHORDS[chordFamily].chords.map((ch) => (
+                        <button
+                          key={ch}
+                          onClick={() => setPendingChord(ch === pendingChord ? null : ch)}
+                          className={`shrink-0 rounded-md border px-2.5 py-1 text-sm font-bold transition-colors ${
+                            ch === pendingChord
+                              ? 'border-violet-600 bg-violet-600 text-white'
+                              : 'border-violet-200 bg-white text-violet-700 hover:bg-violet-100'
+                          }`}
+                        >
+                          {ch}
+                        </button>
+                      ))}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault()
+                          const inp = (e.currentTarget.elements.namedItem('chord') as HTMLInputElement)
+                          const val = inp.value.trim()
+                          if (val) { setPendingChord(val); inp.value = '' }
+                        }}
+                        className="flex items-center gap-1 shrink-0 pl-1"
+                      >
+                        <input
+                          name="chord"
+                          placeholder="Autre…"
+                          className="w-20 rounded-md border border-violet-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                        />
+                        <button type="submit" className="rounded-md bg-violet-600 px-2 py-1 text-xs font-semibold text-white hover:bg-violet-500">
+                          OK
+                        </button>
+                      </form>
+                    </div>
                   </div>
 
                   {/* Zone de placement */}
