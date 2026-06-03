@@ -18,6 +18,38 @@ function ConcertDateBox({ date }: { date: Date }) {
   )
 }
 
+function StatCard({ icon, label, value, sub, href }: { icon: string; label: string; value: number | string; sub?: string; href?: string }) {
+  const inner = (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all h-full">
+      <div className="flex items-center gap-1.5 text-gray-500 text-xs font-medium"><span className="text-base">{icon}</span>{label}</div>
+      <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+    </div>
+  )
+  return href ? <Link href={href} className="block">{inner}</Link> : inner
+}
+
+function Panel({ title, icon, count, href, linkLabel = 'Gérer →', children }: { title: string; icon: string; count?: number; href?: string; linkLabel?: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
+        <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+          <span>{icon}</span>{title}
+          {count !== undefined && <span className="text-xs font-normal text-gray-400">({count})</span>}
+        </h2>
+        {href && <Link href={href} className="text-xs font-medium text-indigo-600 hover:text-indigo-700 shrink-0">{linkLabel}</Link>}
+      </div>
+      <div className="max-h-[360px] overflow-y-auto">{children}</div>
+    </div>
+  )
+}
+
+const PLAN_BADGE: Record<string, string> = {
+  FREE: 'bg-gray-100 text-gray-600',
+  PRO: 'bg-blue-100 text-blue-700',
+  PREMIUM: 'bg-violet-100 text-violet-700',
+}
+
 export default async function TableauDeBordPage({
   searchParams,
 }: {
@@ -35,37 +67,193 @@ export default async function TableauDeBordPage({
   in30Days.setDate(in30Days.getDate() + 30)
 
   if (isAdmin) {
-    const upcomingConcerts = await prisma.concert.findMany({
-      where: { date: { gte: now } },
-      orderBy: { date: 'asc' },
-      take: 20,
-      include: { group: { select: { id: true, name: true } } },
-    })
+    const [
+      userCount, adminCount, groupCount, archivedGroupCount,
+      concertUpcomingCount, rehearsalUpcomingCount, instrumentCount, songCount,
+      upcomingConcerts, upcomingRehearsals, groups, users, instruments,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { siteRole: 'ADMIN' } }),
+      prisma.group.count({ where: { archivedAt: null } }),
+      prisma.group.count({ where: { archivedAt: { not: null } } }),
+      prisma.concert.count({ where: { date: { gte: now } } }),
+      prisma.rehearsal.count({ where: { date: { gte: now } } }),
+      prisma.instrument.count(),
+      prisma.song.count(),
+      prisma.concert.findMany({
+        where: { date: { gte: now } }, orderBy: { date: 'asc' }, take: 30,
+        include: { group: { select: { name: true } } },
+      }),
+      prisma.rehearsal.findMany({
+        where: { date: { gte: now } }, orderBy: { date: 'asc' }, take: 30,
+        include: { group: { select: { name: true } } },
+      }),
+      prisma.group.findMany({
+        orderBy: [{ archivedAt: 'asc' }, { name: 'asc' }],
+        include: {
+          _count: { select: { members: true, songs: true, concerts: true, rehearsals: true } },
+          members: { where: { groupRole: 'CHEF' }, include: { user: { select: { name: true } } } },
+        },
+      }),
+      prisma.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: { select: { groups: true } },
+          instruments: { include: { instrument: { select: { name: true } } } },
+        },
+      }),
+      prisma.instrument.findMany({ include: { _count: { select: { users: true } } } }),
+    ])
+
+    const instrumentsByUsage = [...instruments].sort((a, b) => b._count.users - a._count.users || a.name.localeCompare(b.name))
+
+    const kpis = [
+      { icon: '👥', label: 'Utilisateurs', value: userCount, sub: `${adminCount} admin${adminCount > 1 ? 's' : ''}`, href: '/admin/utilisateurs' },
+      { icon: '🎵', label: 'Groupes actifs', value: groupCount, sub: archivedGroupCount > 0 ? `${archivedGroupCount} archivé${archivedGroupCount > 1 ? 's' : ''}` : 'aucun archivé', href: '/admin/groupes' },
+      { icon: '🎭', label: 'Concerts à venir', value: concertUpcomingCount, href: undefined },
+      { icon: '🗓', label: 'Répétitions à venir', value: rehearsalUpcomingCount, href: undefined },
+      { icon: '🎻', label: 'Instruments', value: instrumentCount, href: '/admin/instruments' },
+      { icon: '🎼', label: 'Morceaux', value: songCount, href: undefined },
+    ]
 
     return (
-      <div>
-        <div className="mb-8 flex items-start justify-between gap-4">
+      <div className="space-y-6">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Bonjour, {session.user.name} 👋</h1>
-            <p className="text-gray-500 mt-1 text-sm">Vue d&apos;ensemble des concerts à venir sur la plateforme.</p>
+            <p className="text-gray-500 mt-1 text-sm">Vue d&apos;ensemble de la plateforme.</p>
           </div>
           <InviteButton />
         </div>
-        <div className="max-w-2xl space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">Concerts à venir</h2>
-          {upcomingConcerts.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-8">Aucun concert prévu.</p>
-          ) : (
-            upcomingConcerts.map((concert) => (
-              <div key={concert.id} className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
-                <ConcertDateBox date={concert.date} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-gray-900 text-sm">{concert.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{concert.group.name} · {concert.location}</p>
-                </div>
-              </div>
-            ))
-          )}
+
+        {/* KPIs */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {kpis.map((k) => <StatCard key={k.label} {...k} />)}
+        </div>
+
+        {/* Concerts + Répétitions à venir */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Panel title="Concerts à venir" icon="🎭" count={upcomingConcerts.length}>
+            {upcomingConcerts.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8">Aucun concert prévu.</p>
+            ) : (
+              <ul className="divide-y divide-gray-50">
+                {upcomingConcerts.map((c) => (
+                  <li key={c.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <ConcertDateBox date={c.date} />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 text-sm truncate">{c.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{c.group.name} · {c.location}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel title="Répétitions à venir" icon="🗓" count={upcomingRehearsals.length}>
+            {upcomingRehearsals.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8">Aucune répétition prévue.</p>
+            ) : (
+              <ul className="divide-y divide-gray-50">
+                {upcomingRehearsals.map((r) => (
+                  <li key={r.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <ConcertDateBox date={r.date} />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 text-sm truncate">{r.group.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{r.startTime} · {r.location}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
+
+        {/* Groupes */}
+        <Panel title="Groupes" icon="🎵" count={groups.length} href="/admin/groupes">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-gray-50 text-gray-500 text-xs">
+              <tr>
+                <th className="text-left font-medium px-4 py-2">Groupe</th>
+                <th className="text-left font-medium px-2 py-2">Plan</th>
+                <th className="text-right font-medium px-2 py-2">Membres</th>
+                <th className="text-right font-medium px-2 py-2 hidden sm:table-cell">Morceaux</th>
+                <th className="text-right font-medium px-2 py-2 hidden sm:table-cell">Concerts</th>
+                <th className="text-right font-medium px-2 py-2 hidden sm:table-cell">Répét.</th>
+                <th className="text-left font-medium px-2 py-2 hidden md:table-cell">Chef(s)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {groups.map((g) => (
+                <tr key={g.id} className={g.archivedAt ? 'opacity-50' : ''}>
+                  <td className="px-4 py-2 font-medium text-gray-900">
+                    {g.name}
+                    {g.archivedAt && <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">archivé</span>}
+                  </td>
+                  <td className="px-2 py-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${PLAN_BADGE[g.plan] ?? 'bg-gray-100 text-gray-600'}`}>{g.plan}</span></td>
+                  <td className="px-2 py-2 text-right text-gray-700">{g._count.members}</td>
+                  <td className="px-2 py-2 text-right text-gray-700 hidden sm:table-cell">{g._count.songs}</td>
+                  <td className="px-2 py-2 text-right text-gray-700 hidden sm:table-cell">{g._count.concerts}</td>
+                  <td className="px-2 py-2 text-right text-gray-700 hidden sm:table-cell">{g._count.rehearsals}</td>
+                  <td className="px-2 py-2 text-gray-500 text-xs hidden md:table-cell truncate max-w-[160px]">
+                    {g.members.map((m) => m.user.name).join(', ') || '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Panel>
+
+        {/* Utilisateurs + Instruments */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Panel title="Utilisateurs" icon="👥" count={users.length} href="/admin/utilisateurs">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-gray-50 text-gray-500 text-xs">
+                <tr>
+                  <th className="text-left font-medium px-4 py-2">Nom</th>
+                  <th className="text-left font-medium px-2 py-2">Rôle</th>
+                  <th className="text-right font-medium px-2 py-2">Groupes</th>
+                  <th className="text-left font-medium px-2 py-2 hidden sm:table-cell">Instruments</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {users.map((u) => {
+                  const instrNames = u.instruments.map((ui) => ui.instrument.name)
+                  return (
+                    <tr key={u.id}>
+                      <td className="px-4 py-2">
+                        <p className="font-medium text-gray-900 truncate max-w-[140px]">{u.name}</p>
+                        <p className="text-[11px] text-gray-400 truncate max-w-[140px]">{u.email}</p>
+                      </td>
+                      <td className="px-2 py-2">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${u.siteRole === 'ADMIN' ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {u.siteRole === 'ADMIN' ? 'Admin' : 'Membre'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-right text-gray-700">{u._count.groups}</td>
+                      <td className="px-2 py-2 text-gray-500 text-xs hidden sm:table-cell truncate max-w-[180px]">
+                        {instrNames.slice(0, 3).join(', ')}{instrNames.length > 3 ? ` +${instrNames.length - 3}` : ''}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </Panel>
+
+          <Panel title="Instruments (par usage)" icon="🎻" count={instruments.length} href="/admin/instruments">
+            <ul className="divide-y divide-gray-50">
+              {instrumentsByUsage.map((i) => (
+                <li key={i.id} className="flex items-center justify-between px-4 py-2">
+                  <span className="text-sm text-gray-700">{i.name}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${i._count.users > 0 ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-400'}`}>
+                    {i._count.users} musicien{i._count.users > 1 ? 's' : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
         </div>
       </div>
     )
