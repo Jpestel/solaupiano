@@ -50,12 +50,12 @@ export default async function PublicHomePage() {
       orderBy: [{ isPublic: 'desc' }, { lookingForSince: 'desc' }, { createdAt: 'desc' }],
       take: 12,
     }),
-    prisma.user.count(),
+    prisma.user.count({ where: { siteRole: { not: 'ADMIN' } } }),
     prisma.group.count({ where: { archivedAt: null } }),
     prisma.concert.count({ where: { date: { gte: now } } }),
     prisma.instrument.findMany({
-      where: { users: { some: {} } },
-      include: { _count: { select: { users: true } } },
+      where: { users: { some: { user: { siteRole: { not: 'ADMIN' } } } } },
+      include: { _count: { select: { users: { where: { user: { siteRole: { not: 'ADMIN' } } } } } } },
     }),
     prisma.group.groupBy({
       by: ['style'],
@@ -64,6 +64,7 @@ export default async function PublicHomePage() {
     }),
     prisma.userInstrument.groupBy({
       by: ['userId'],
+      where: { user: { siteRole: { not: 'ADMIN' } } },
       _count: { instrumentId: true },
     }),
   ])
