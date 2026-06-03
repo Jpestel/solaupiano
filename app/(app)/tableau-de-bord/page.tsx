@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { InviteButton } from './InviteButton'
 import { GroupsLookingSection } from './GroupsLookingSection'
 import { AdminCharts } from '@/components/admin/AdminCharts'
+import { RepertoiresPanel } from '@/components/admin/RepertoiresPanel'
 import { UNSPECIFIED_GENRE } from '@/lib/genres'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -136,7 +137,9 @@ export default async function TableauDeBordPage({
       if (!entry) { entry = { name: s.group.name, songs: [] }; songsByGroup.set(s.group.id, entry) }
       entry.songs.push({ id: s.id, title: s.title, artist: s.artist })
     }
-    const repertoires = Array.from(songsByGroup.values()).sort((a, b) => a.name.localeCompare(b.name))
+    const repertoires = Array.from(songsByGroup.entries())
+      .map(([id, v]) => ({ id, name: v.name, songs: v.songs.map((s) => ({ id: s.id, title: s.title })) }))
+      .sort((a, b) => a.name.localeCompare(b.name))
 
     const kpis = [
       { icon: '👥', label: 'Utilisateurs', value: userCount, sub: `${adminCount} admin${adminCount > 1 ? 's' : ''}`, href: '/admin/utilisateurs' },
@@ -239,30 +242,8 @@ export default async function TableauDeBordPage({
           </table>
         </Panel>
 
-        {/* Répertoires : tous les morceaux par groupe */}
-        <Panel title="Répertoires — tous les morceaux" icon="🎼" count={allSongs.length}>
-          {repertoires.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">Aucun morceau dans les répertoires.</p>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {repertoires.map((r) => (
-                <div key={r.name} className="px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-900 mb-1.5">
-                    {r.name} <span className="text-xs font-normal text-gray-400">· {r.songs.length} morceau{r.songs.length > 1 ? 'x' : ''}</span>
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {r.songs.map((s) => (
-                      <span key={s.id} className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200 px-2.5 py-0.5 text-xs text-gray-700" title={s.artist || undefined}>
-                        {s.title}
-                        {s.artist && <span className="ml-1 text-gray-400">· {s.artist}</span>}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
+        {/* Répertoires : titres des morceaux, filtrables par groupe */}
+        <RepertoiresPanel data={repertoires} />
 
         {/* Utilisateurs + Instruments */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
