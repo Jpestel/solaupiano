@@ -28,7 +28,7 @@ export default async function PublicHomePage() {
 
   const now = new Date()
 
-  const [concerts, groupsLooking] = await Promise.all([
+  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups] = await Promise.all([
     prisma.concert.findMany({
       where: { date: { gte: now }, isPublic: true },
       orderBy: { date: 'asc' },
@@ -48,12 +48,50 @@ export default async function PublicHomePage() {
       orderBy: { createdAt: 'desc' },
       take: 9,
     }),
+    prisma.user.count(),
+    prisma.group.count({ where: { archivedAt: null } }),
+    prisma.concert.count({ where: { date: { gte: now } } }),
+    prisma.instrument.findMany({
+      where: { users: { some: {} } },
+      include: { _count: { select: { users: true } } },
+    }),
+    prisma.group.groupBy({
+      by: ['style'],
+      where: { archivedAt: null, style: { not: null } },
+      _count: { _all: true },
+    }),
   ])
 
   const validGroupsLooking = groupsLooking.filter((g) => {
     const lf = parseLookingFor(g.lookingFor)
     return lf.length > 0
   })
+
+  // Communauté : instruments les plus représentés + styles des groupes
+  const topInstruments = [...instrumentsUsed]
+    .sort((a, b) => b._count.users - a._count.users || a.name.localeCompare(b.name))
+    .slice(0, 20)
+  const styles = styleGroups
+    .map((s) => ({ name: (s.style ?? '').trim(), count: s._count._all }))
+    .filter((s) => s.name && s.name !== 'Non renseigné')
+    .sort((a, b) => b.count - a.count)
+  const instrumentCount = instrumentsUsed.length
+
+  const STATS = [
+    { icon: '🎙️', value: musicianCount, label: musicianCount > 1 ? 'musiciens inscrits' : 'musicien inscrit' },
+    { icon: '🎵', value: groupCount, label: groupCount > 1 ? 'groupes actifs' : 'groupe actif' },
+    { icon: '🎭', value: concertUpcomingCount, label: concertUpcomingCount > 1 ? 'concerts à venir' : 'concert à venir' },
+    { icon: '🎻', value: instrumentCount, label: 'instruments joués' },
+  ]
+
+  const FEATURES = [
+    { icon: '🗓️', title: 'Répétitions', desc: 'Planifiez, suivez les présences, envoyez des rappels.' },
+    { icon: '🎼', title: 'Répertoire & accords', desc: 'Morceaux, paroles, accords au-dessus des mots, prompteur.' },
+    { icon: '🎶', title: 'Setlists', desc: 'Composez vos programmes et calculez leur durée.' },
+    { icon: '🎭', title: 'Concerts', desc: 'Dates, plan de scène, fiche technique, page publique.' },
+    { icon: '🎚️', title: 'Séquences', desc: 'Backing tracks audio et MIDI, click séparé.' },
+    { icon: '💶', title: 'Comptabilité', desc: 'Partagez les frais et suivez qui a payé quoi.' },
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -105,40 +143,121 @@ export default async function PublicHomePage() {
       </header>
 
       {/* Hero */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white">
+        {/* Décor : notes & instruments translucides */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 select-none">
+          <span className="absolute -top-4 right-6 text-[140px] opacity-10 rotate-12">🎵</span>
+          <span className="absolute top-20 right-1/3 text-[90px] opacity-10 -rotate-6">🎸</span>
+          <span className="absolute bottom-2 left-1/4 text-[100px] opacity-10">🎹</span>
+          <span className="absolute bottom-8 right-12 text-[80px] opacity-10 rotate-6">🥁</span>
+        </div>
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
           <div className="max-w-2xl">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">
-              La plateforme pour les{' '}
-              <span className="text-indigo-600">musiciens en groupe</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+              🎵 La plateforme des musiciens en groupe
+            </span>
+            <h1 className="mt-4 text-3xl sm:text-5xl font-bold leading-tight">
+              Répétez, jouez,{' '}
+              <span className="text-amber-300">progressez ensemble</span>
             </h1>
-            <p className="mt-4 text-gray-500 text-base sm:text-lg leading-relaxed">
-              Organisez vos répétitions, gérez votre répertoire, suivez vos concerts.
-              Rejoignez un groupe ou trouvez des musiciens pour compléter le vôtre.
+            <p className="mt-4 text-white/80 text-base sm:text-lg leading-relaxed">
+              Organisez vos répétitions, gérez votre répertoire et vos accords, suivez vos concerts.
+              Rejoignez un groupe ou trouvez les musiciens qui vous manquent.
             </p>
-            <div className="mt-6 flex items-center gap-4">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 href="/inscription"
-                className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm"
+                className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-gray-100 transition-colors shadow-lg shadow-black/10"
               >
                 Créer mon compte gratuitement
               </Link>
               <Link
                 href="/tarifs"
-                className="text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
+                className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/25 backdrop-blur transition-colors"
               >
                 Voir les tarifs →
               </Link>
               <Link
                 href="/connexion"
-                className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
+                className="text-sm font-medium text-white/80 hover:text-white transition-colors"
               >
                 Déjà inscrit ? →
               </Link>
             </div>
           </div>
+
+          {/* Compteurs */}
+          <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl">
+            {STATS.map((s) => (
+              <div key={s.label} className="rounded-2xl bg-white/10 backdrop-blur px-4 py-3 border border-white/15">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{s.icon}</span>
+                  <span className="text-2xl sm:text-3xl font-bold leading-none">{s.value}</span>
+                </div>
+                <p className="mt-1 text-xs text-white/70">{s.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Fonctionnalités */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl">{f.icon}</span>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">{f.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-snug">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Communauté : styles & instruments */}
+      {(styles.length > 0 || topInstruments.length > 0) && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+          {styles.length > 0 && (
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center text-sm">🎼</span>
+                Des groupes de tous les styles
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {styles.map((s) => (
+                  <span key={s.name} className="inline-flex items-center gap-1.5 rounded-full bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700">
+                    {s.name}
+                    <span className="text-xs font-semibold text-purple-600">{s.count}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {topInstruments.length > 0 && (
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-sm">🎻</span>
+                Tous les instruments sont représentés
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {topInstruments.map((i) => (
+                  <span key={i.id} className="inline-flex items-center gap-1.5 rounded-full bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700">
+                    {i.name}
+                    <span className="text-xs font-semibold text-indigo-600">{i._count.users}</span>
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-3">Vous jouez d&apos;un instrument qui n&apos;est pas là ? Ajoutez-le à votre inscription en quelques secondes.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
