@@ -18,6 +18,7 @@ export default function AdminInstrumentsPage() {
   const [editId, setEditId] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
 
   const fetchInstruments = async () => {
     const res = await fetch('/api/admin/instruments')
@@ -63,13 +64,20 @@ export default function AdminInstrumentsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Supprimer cet instrument ?')) return
-    const res = await fetch(`/api/admin/instruments/${id}`, { method: 'DELETE' })
+  const handleDelete = async (instr: Instrument) => {
+    const used = instr._count?.users ?? 0
+    const msg = used > 0
+      ? `Supprimer « ${instr.name} » ? ${used} musicien${used > 1 ? 's l\'ont' : ' l\'a'} sélectionné — il sera retiré de leur profil.`
+      : `Supprimer « ${instr.name} » ?`
+    if (!confirm(msg)) return
+    const res = await fetch(`/api/admin/instruments/${instr.id}`, { method: 'DELETE' })
     if (res.ok) fetchInstruments()
   }
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
+
+  const q = search.trim().toLowerCase()
+  const filtered = instruments.filter((i) => i.name.toLowerCase().includes(q))
 
   return (
     <div>
@@ -99,14 +107,28 @@ export default function AdminInstrumentsPage() {
 
         {/* List */}
         <Card padding={false}>
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Liste ({instruments.length})</h3>
+          <div className="px-6 py-4 border-b border-gray-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Liste</h3>
+              <span className="text-xs text-gray-400">
+                {q ? `${filtered.length} / ${instruments.length}` : instruments.length} instrument{instruments.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="form-input w-full"
+              placeholder="🔍 Rechercher un instrument…"
+            />
           </div>
           {instruments.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-8">Aucun instrument.</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-8">Aucun instrument ne correspond à « {search} ».</p>
           ) : (
-            <ul>
-              {instruments.map((instr) => (
+            <ul className="max-h-[60vh] overflow-y-auto">
+              {filtered.map((instr) => (
                 <li key={instr.id} className="flex items-center gap-3 px-6 py-3.5 border-b border-gray-50 last:border-0">
                   {editId === instr.id ? (
                     <>
@@ -140,7 +162,7 @@ export default function AdminInstrumentsPage() {
                       <Button
                         size="sm"
                         variant="danger"
-                        onClick={() => handleDelete(instr.id)}
+                        onClick={() => handleDelete(instr)}
                       >
                         Supprimer
                       </Button>
