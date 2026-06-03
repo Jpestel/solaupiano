@@ -84,14 +84,40 @@ const EQUIPMENT: { key: string; label: string; icon: string }[] = [
   { key: 'inear', label: 'Ears / HF', icon: '🎧' },
 ]
 
+const LIGHTS: { key: string; label: string; icon: string }[] = [
+  { key: 'par', label: 'Projecteur PAR', icon: '💡' },
+  { key: 'spot', label: 'Découpe', icon: '🔦' },
+  { key: 'moving_head', label: 'Lyre', icon: '🎇' },
+  { key: 'led_bar', label: 'Barre LED', icon: '🌈' },
+  { key: 'blinder', label: 'Blinder', icon: '🔆' },
+  { key: 'strobe', label: 'Stroboscope', icon: '⚡' },
+  { key: 'laser', label: 'Laser', icon: '🟢' },
+  { key: 'follow_spot', label: 'Poursuite', icon: '🎯' },
+]
+
+const STRUCTURES: { key: string; label: string; icon: string }[] = [
+  { key: 'truss_h', label: 'Poutre (truss)', icon: '━' },
+  { key: 'truss_v', label: 'Truss vertical', icon: '┃' },
+  { key: 'truss_corner', label: 'Angle de truss', icon: '⌐' },
+  { key: 'totem', label: 'Totem LED', icon: '🗼' },
+  { key: 'led_wall', label: 'Mur LED / écran', icon: '📺' },
+  { key: 'backdrop', label: 'Fond de scène', icon: '🎏' },
+  { key: 'drum_riser', label: 'Praticable batterie', icon: '⬛' },
+  { key: 'stairs', label: 'Escalier', icon: '📶' },
+  { key: 'barrier', label: 'Barrière', icon: '🚧' },
+  { key: 'smoke', label: 'Machine à fumée', icon: '💨' },
+  { key: 'fan', label: 'Ventilateur', icon: '🌀' },
+]
+
 let _seq = 0
 const uid = (p: string) => `${p}-${Date.now()}-${_seq++}`
 
 // ─── Vue d'un item sur la scène ────────────────────────────────────────────────
 
-function StageItemView({ item, isChef, onPointerDown, onRemove, onRotate }: {
+function StageItemView({ item, isChef, showLabels, onPointerDown, onRemove, onRotate }: {
   item: StageItem
   isChef: boolean
+  showLabels: boolean
   onPointerDown: (e: React.PointerEvent, id: string) => void
   onRemove: (id: string) => void
   onRotate: (id: string) => void
@@ -131,8 +157,8 @@ function StageItemView({ item, isChef, onPointerDown, onRemove, onRotate }: {
         {shape.draw(color)}
       </div>
 
-      {/* Label sous instruments / équipement */}
-      {!isMember && (
+      {/* Label sous instruments / équipement (masquable) */}
+      {!isMember && showLabels && (
         <p className="mt-0.5 text-center text-white/85 text-[10px] leading-tight drop-shadow max-w-[90px] truncate mx-auto">{item.label}</p>
       )}
     </div>
@@ -173,6 +199,13 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [showLabels, setShowLabels] = useState(true)
+
+  useEffect(() => {
+    const v = localStorage.getItem('scene:showLabels')
+    if (v === 'false') setShowLabels(false)
+  }, [])
+  const toggleLabels = () => setShowLabels((v) => { localStorage.setItem('scene:showLabels', String(!v)); return !v })
 
   const [dragging, setDragging] = useState<{ id: string; fromPanel: boolean; draft?: StageItem } | null>(null)
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 })
@@ -306,13 +339,19 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
           <h1 className="text-2xl font-bold text-gray-900">Plan de scène</h1>
           <p className="text-sm text-gray-500 mt-0.5 capitalize">{concert?.name} · {concertDate}</p>
         </div>
-        {isChef && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={clearAll} className="text-sm text-red-400 hover:text-red-600 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Tout effacer</button>
-            <button onClick={handlePrint} className="text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 flex items-center gap-1.5">🖨️ Imprimer</button>
-            <Button onClick={handleSave} disabled={saving}>{saving ? 'Sauvegarde...' : saved ? '✓ Sauvegardé !' : 'Sauvegarder'}</Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer select-none px-2 py-1.5 rounded-lg hover:bg-gray-100">
+            <input type="checkbox" checked={showLabels} onChange={toggleLabels} className="rounded border-gray-300 text-indigo-600" />
+            Noms des objets
+          </label>
+          {isChef && (
+            <>
+              <button onClick={clearAll} className="text-sm text-red-400 hover:text-red-600 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Tout effacer</button>
+              <button onClick={handlePrint} className="text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 flex items-center gap-1.5">🖨️ Imprimer</button>
+              <Button onClick={handleSave} disabled={saving}>{saving ? 'Sauvegarde...' : saved ? '✓ Sauvegardé !' : 'Sauvegarder'}</Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Print header */}
@@ -387,21 +426,27 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
             )}
           </div>
 
-          {/* Équipement & sono */}
-          <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">Équipement & sono</h2>
-            <div className="flex flex-wrap gap-1.5">
-              {EQUIPMENT.map((eq) => (
-                <PaletteChip
-                  key={eq.key}
-                  isChef={isChef}
-                  icon={eq.icon}
-                  label={eq.label}
-                  onPointerDown={(e) => startDragFromPanel(e, { id: uid('equip'), kind: 'equip', label: eq.label, icon: eq.icon, shape: shapeForEquip(eq.key), x: 50, y: 50 })}
-                />
-              ))}
+          {/* Catalogues d'objets */}
+          {[
+            { title: 'Équipement & sono', list: EQUIPMENT },
+            { title: 'Lumières', list: LIGHTS },
+            { title: 'Structures & déco', list: STRUCTURES },
+          ].map((cat) => (
+            <div key={cat.title}>
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">{cat.title}</h2>
+              <div className="flex flex-wrap gap-1.5">
+                {cat.list.map((eq) => (
+                  <PaletteChip
+                    key={eq.key}
+                    isChef={isChef}
+                    icon={eq.icon}
+                    label={eq.label}
+                    onPointerDown={(e) => startDragFromPanel(e, { id: uid('equip'), kind: 'equip', label: eq.label, icon: eq.icon, shape: shapeForEquip(eq.key), x: 50, y: 50 })}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
 
           {isChef && (
             <p className="text-xs text-gray-400 italic">Glissez n&apos;importe quel élément sur la scène. Les instruments proviennent du profil de chaque musicien.</p>
@@ -433,7 +478,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
               )}
 
               {items.map((it) => (
-                <StageItemView key={it.id} item={it} isChef={isChef} onPointerDown={startDragOnStage} onRemove={removeItem} onRotate={rotateItem} />
+                <StageItemView key={it.id} item={it} isChef={isChef} showLabels={showLabels} onPointerDown={startDragOnStage} onRemove={removeItem} onRotate={rotateItem} />
               ))}
 
               {items.length === 0 && !dragging && (

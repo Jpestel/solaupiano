@@ -324,6 +324,192 @@ export const SHAPES: Record<string, Shape> = {
       </svg>
     ),
   },
+
+  // ── Lumières ──
+  par: {
+    w: 20, h: 26,
+    draw: () => (
+      <svg viewBox="0 0 20 26" width="100%" height="100%">
+        <path d="M2 16 L18 16 L15 25 L5 25 Z" fill="#fde68a" opacity="0.55" />
+        <rect x="4" y="2" width="12" height="14" rx="3" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <circle cx="10" cy="15" r="4" fill="#fde68a" />
+      </svg>
+    ),
+  },
+  spot: {
+    w: 22, h: 24,
+    draw: () => (
+      <svg viewBox="0 0 22 24" width="100%" height="100%">
+        <path d="M4 14 L18 14 L21 23 L1 23 Z" fill="#fde68a" opacity="0.5" />
+        <circle cx="11" cy="9" r="7" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <circle cx="11" cy="9" r="3" fill="#fde68a" />
+      </svg>
+    ),
+  },
+  moving_head: {
+    w: 24, h: 30,
+    draw: () => (
+      <svg viewBox="0 0 24 30" width="100%" height="100%">
+        <rect x="4" y="24" width="16" height="5" rx="1.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
+        <path d="M6 24 V14 M18 24 V14" stroke="#94a3b8" strokeWidth="2.5" />
+        <rect x="5" y="6" width="14" height="11" rx="3" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <circle cx="12" cy="6" r="3.5" fill="#a5f3fc" />
+        <path d="M9 3 L12 0 L15 3 Z" fill="#a5f3fc" opacity="0.6" />
+      </svg>
+    ),
+  },
+  led_bar: {
+    w: 74, h: 12,
+    draw: () => (
+      <svg viewBox="0 0 74 12" width="100%" height="100%">
+        <rect x="1" y="1" width="72" height="10" rx="2" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
+        {[6, 14, 22, 30, 38, 46, 54, 62, 70].map((x, i) => <circle key={x} cx={x} cy="6" r="2.4" fill={['#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'][i % 5]} />)}
+      </svg>
+    ),
+  },
+  strobe: {
+    w: 26, h: 18,
+    draw: () => (
+      <svg viewBox="0 0 26 18" width="100%" height="100%">
+        <rect x="2" y="2" width="22" height="14" rx="2" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <rect x="6" y="6" width="14" height="6" rx="1" fill="#f8fafc" />
+      </svg>
+    ),
+  },
+  blinder: {
+    w: 30, h: 20,
+    draw: () => (
+      <svg viewBox="0 0 30 20" width="100%" height="100%">
+        <rect x="2" y="2" width="26" height="16" rx="2" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <circle cx="9" cy="10" r="5" fill="#fde68a" />
+        <circle cx="21" cy="10" r="5" fill="#fde68a" />
+      </svg>
+    ),
+  },
+  laser: {
+    w: 20, h: 18,
+    draw: () => (
+      <svg viewBox="0 0 20 18" width="100%" height="100%">
+        <rect x="2" y="2" width="16" height="10" rx="2" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.5" />
+        <path d="M10 12 L3 17 M10 12 L17 17 M10 12 L10 18" stroke="#4ade80" strokeWidth="1.2" />
+      </svg>
+    ),
+  },
+  follow_spot: {
+    w: 26, h: 32,
+    draw: () => (
+      <svg viewBox="0 0 26 32" width="100%" height="100%">
+        <path d="M6 18 L20 18 L25 31 L1 31 Z" fill="#fde68a" opacity="0.45" />
+        <rect x="5" y="4" width="16" height="15" rx="4" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <circle cx="13" cy="18" r="4" fill="#fef9c3" />
+      </svg>
+    ),
+  },
+
+  // ── Structures & déco ──
+  truss_h: {
+    w: 120, h: 16,
+    draw: () => (
+      <svg viewBox="0 0 120 16" width="100%" height="100%">
+        <line x1="2" y1="3" x2="118" y2="3" stroke="#94a3b8" strokeWidth="2.5" />
+        <line x1="2" y1="13" x2="118" y2="13" stroke="#94a3b8" strokeWidth="2.5" />
+        <path d="M4 13 L16 3 L28 13 L40 3 L52 13 L64 3 L76 13 L88 3 L100 13 L112 3" stroke="#64748b" strokeWidth="1.5" fill="none" />
+      </svg>
+    ),
+  },
+  truss_v: {
+    w: 16, h: 116,
+    draw: () => (
+      <svg viewBox="0 0 16 116" width="100%" height="100%">
+        <line x1="3" y1="2" x2="3" y2="114" stroke="#94a3b8" strokeWidth="2.5" />
+        <line x1="13" y1="2" x2="13" y2="114" stroke="#94a3b8" strokeWidth="2.5" />
+        <path d="M13 4 L3 16 L13 28 L3 40 L13 52 L3 64 L13 76 L3 88 L13 100 L3 112" stroke="#64748b" strokeWidth="1.5" fill="none" />
+      </svg>
+    ),
+  },
+  truss_corner: {
+    w: 34, h: 34,
+    draw: () => (
+      <svg viewBox="0 0 34 34" width="100%" height="100%">
+        <path d="M3 3 V31 H31" stroke="#94a3b8" strokeWidth="2.5" fill="none" />
+        <path d="M9 3 V25 H31 M3 9 H25 V31" stroke="#64748b" strokeWidth="1.2" fill="none" opacity="0.7" />
+      </svg>
+    ),
+  },
+  totem: {
+    w: 22, h: 92,
+    draw: () => (
+      <svg viewBox="0 0 22 92" width="100%" height="100%">
+        <rect x="3" y="2" width="16" height="88" rx="3" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.5" />
+        {[10, 22, 34, 46, 58, 70, 82].map((y, i) => <circle key={y} cx="11" cy={y} r="3" fill={['#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'][i % 5]} />)}
+      </svg>
+    ),
+  },
+  led_wall: {
+    w: 92, h: 54,
+    draw: () => (
+      <svg viewBox="0 0 92 54" width="100%" height="100%">
+        <rect x="1" y="1" width="90" height="52" rx="2" fill="#0f172a" stroke="#94a3b8" strokeWidth="1.5" />
+        {Array.from({ length: 6 }).map((_, r) => Array.from({ length: 10 }).map((__, c) => (
+          <rect key={`${r}-${c}`} x={5 + c * 8.4} y={5 + r * 7.6} width="6.5" height="5.8" rx="0.8" fill={['#6366f1', '#8b5cf6', '#ec4899', '#06b6d4'][(r + c) % 4]} opacity="0.6" />
+        )))}
+      </svg>
+    ),
+  },
+  backdrop: {
+    w: 132, h: 18,
+    draw: () => (
+      <svg viewBox="0 0 132 18" width="100%" height="100%">
+        <path d="M2 4 Q9 14 16 4 Q23 14 30 4 Q37 14 44 4 Q51 14 58 4 Q65 14 72 4 Q79 14 86 4 Q93 14 100 4 Q107 14 114 4 Q121 14 128 4 L130 16 H2 Z" fill="#475569" stroke="#94a3b8" strokeWidth="1.2" />
+      </svg>
+    ),
+  },
+  stairs: {
+    w: 44, h: 40,
+    draw: () => (
+      <svg viewBox="0 0 44 40" width="100%" height="100%">
+        <path d="M2 38 V30 H12 V22 H22 V14 H32 V6 H42 V38 Z" fill={EQ} stroke={EQS} strokeWidth="1.8" />
+      </svg>
+    ),
+  },
+  barrier: {
+    w: 64, h: 14,
+    draw: () => (
+      <svg viewBox="0 0 64 14" width="100%" height="100%">
+        <line x1="2" y1="4" x2="62" y2="4" stroke={EQS} strokeWidth="2.5" />
+        {[6, 20, 34, 48, 62].map((x) => <line key={x} x1={x} y1="2" x2={x} y2="12" stroke={EQS} strokeWidth="2" />)}
+      </svg>
+    ),
+  },
+  drum_riser: {
+    w: 84, h: 56,
+    draw: () => (
+      <svg viewBox="0 0 84 56" width="100%" height="100%">
+        <rect x="2" y="2" width="80" height="52" rx="4" fill="#334155" opacity="0.5" stroke="#94a3b8" strokeWidth="2" strokeDasharray="5 4" />
+      </svg>
+    ),
+  },
+  smoke: {
+    w: 32, h: 24,
+    draw: () => (
+      <svg viewBox="0 0 32 24" width="100%" height="100%">
+        <rect x="2" y="10" width="20" height="12" rx="2" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <circle cx="25" cy="8" r="4" fill="#e2e8f0" opacity="0.7" />
+        <circle cx="29" cy="13" r="3" fill="#e2e8f0" opacity="0.5" />
+        <circle cx="24" cy="15" r="3" fill="#e2e8f0" opacity="0.5" />
+      </svg>
+    ),
+  },
+  fan: {
+    w: 26, h: 26,
+    draw: () => (
+      <svg viewBox="0 0 26 26" width="100%" height="100%">
+        <circle cx="13" cy="13" r="11" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+        <path d="M13 13 Q7 7 4 13 Q10 13 13 13 Z M13 13 Q19 7 22 13 Q16 13 13 13 Z M13 13 Q19 19 13 22 Q13 16 13 13 Z M13 13 Q7 19 13 22 Q13 16 13 13 Z" fill="#e2e8f0" opacity="0.8" />
+        <circle cx="13" cy="13" r="2" fill="#94a3b8" />
+      </svg>
+    ),
+  },
 }
 
 // Nom d'instrument (profil) → clé de forme
