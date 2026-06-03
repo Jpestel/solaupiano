@@ -35,12 +35,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Récupérer les présences déjà enregistrées
   const existingAttendances = await prisma.attendance.findMany({
-    where: { rehearsalId, status: { in: ['PRESENT', 'ABSENT'] } },
+    where: { rehearsalId, status: { in: ['PRESENT', 'ABSENT', 'INCERTAIN'] } },
     select: { userId: true },
   })
   const respondedUserIds = new Set(existingAttendances.map((a) => a.userId))
 
-  // Garder uniquement les membres qui n'ont pas encore répondu (INCERTAIN ou sans enregistrement)
+  // Garder uniquement les membres qui n'ont pas encore répondu (EN_ATTENTE ou sans enregistrement)
   const membersToRemind = groupMembers.filter((m) => !respondedUserIds.has(m.userId))
 
   if (membersToRemind.length === 0) {

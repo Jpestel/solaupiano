@@ -71,7 +71,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       peerVisibility: visibility,
       myAvgReceived: visibility === 'HIDDEN' ? null : myAvgReceived,
       avgReceivedByUser,
-      myAttendanceStatus: myStatusByConcert.get(c.id) ?? null,
+      myAttendanceStatus: (() => { const s = myStatusByConcert.get(c.id); return s && s !== 'EN_ATTENTE' ? s : null })(),
     }
   })
 

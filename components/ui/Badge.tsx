@@ -54,6 +54,7 @@ export function AttendanceBadge({ status }: { status: string }) {
     PRESENT: { variant: 'present', label: 'Présent' },
     ABSENT: { variant: 'absent', label: 'Absent' },
     INCERTAIN: { variant: 'incertain', label: 'Incertain' },
+    EN_ATTENTE: { variant: 'default', label: 'Pas encore répondu' },
   }
   const { variant, label } = map[status] || { variant: 'default', label: status }
   return <Badge variant={variant}>{label}</Badge>

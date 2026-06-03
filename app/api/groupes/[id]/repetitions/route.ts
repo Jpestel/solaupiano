@@ -82,7 +82,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       peerVisibility: visibility,
       myAvgReceived: visibility === 'HIDDEN' ? null : myAvgReceived,
       avgReceivedByUser,
-      myAttendanceStatus: myStatusByRehearsal.get(r.id) ?? null,
+      // EN_ATTENTE (défaut) = pas encore répondu → null pour le sélecteur
+      myAttendanceStatus: (() => { const s = myStatusByRehearsal.get(r.id); return s && s !== 'EN_ATTENTE' ? s : null })(),
     }
   })
 
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     data: invitedMembers.map((m) => ({
       userId: m.userId,
       rehearsalId: rehearsal.id,
-      status: 'INCERTAIN' as const,
+      status: 'EN_ATTENTE' as const,
     })),
     skipDuplicates: true,
   })

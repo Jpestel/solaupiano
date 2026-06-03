@@ -3,10 +3,11 @@
 import { useState } from 'react'
 
 type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'INCERTAIN'
+type DisplayStatus = AttendanceStatus | 'EN_ATTENTE'
 
 interface AttendanceButtonProps {
   rehearsalId: number
-  currentStatus: AttendanceStatus
+  currentStatus: DisplayStatus
   onUpdate?: (status: AttendanceStatus) => void
 }
 
@@ -45,7 +46,7 @@ const OPTIONS: {
 ]
 
 export function AttendanceButton({ rehearsalId, currentStatus, onUpdate }: AttendanceButtonProps) {
-  const [status, setStatus] = useState<AttendanceStatus>(currentStatus)
+  const [status, setStatus] = useState<DisplayStatus>(currentStatus)
   const [loading, setLoading] = useState(false)
 
   const handleChange = async (newStatus: AttendanceStatus) => {

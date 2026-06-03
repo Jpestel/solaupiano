@@ -33,9 +33,9 @@ export async function GET() {
   })
 
   const missingPresences = upcomingRehearsals
-    // INCERTAIN = statut auto-créé à la création de la répétition → pas encore répondu
-    // On exclut le statut PRESENT et ABSENT qui sont des réponses actives
-    .filter(r => r.attendances.length === 0 || r.attendances[0]?.status === 'INCERTAIN')
+    // EN_ATTENTE = statut par défaut à la création → pas encore répondu.
+    // PRESENT / ABSENT / INCERTAIN sont des réponses actives.
+    .filter(r => r.attendances.length === 0 || r.attendances[0]?.status === 'EN_ATTENTE')
     .slice(0, 5)
     .map(r => ({
       rehearsalId: r.id,

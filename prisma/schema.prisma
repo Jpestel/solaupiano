@@ -105,6 +105,7 @@ enum AttendanceStatus {
   PRESENT
   ABSENT
   INCERTAIN
+  EN_ATTENTE  // n'a pas encore répondu (statut par défaut)
 }
 
 enum SongProgressStatus {
@@ -590,7 +591,7 @@ model UserSongProgress {
 model Attendance {
   userId      Int
   rehearsalId Int
-  status      AttendanceStatus @default(INCERTAIN)
+  status      AttendanceStatus @default(EN_ATTENTE)
   updatedAt   DateTime         @updatedAt
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -621,7 +622,7 @@ model Concert {
 model ConcertAttendance {
   userId    Int
   concertId Int
-  status    AttendanceStatus @default(INCERTAIN)
+  status    AttendanceStatus @default(EN_ATTENTE)
   updatedAt DateTime         @updatedAt
 
   user    User    @relation("ConcertAttendee", fields: [userId], references: [id], onDelete: Cascade)

@@ -25,7 +25,7 @@ interface Song { id: number; title: string; artist?: string; resources: Resource
 type SongProgressStatus = 'A_TRAVAILLER' | 'EN_COURS' | 'MAITRISE'
 interface MemberProgress { userId: number; userName: string; status: SongProgressStatus }
 interface RehearsalSongEntry { song: Song; position: number; userProgress: SongProgressStatus; membersProgress: MemberProgress[] | null }
-interface Attendance { userId: number; status: 'PRESENT' | 'ABSENT' | 'INCERTAIN'; user: { id: number; name: string } }
+interface Attendance { userId: number; status: 'PRESENT' | 'ABSENT' | 'INCERTAIN' | 'EN_ATTENTE'; user: { id: number; name: string } }
 interface Rehearsal {
   id: number; date: string; location: string; startTime: string; endTime?: string; notes?: string; groupId: number
   songs: RehearsalSongEntry[]; attendances: Attendance[]
@@ -432,7 +432,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const availableSongs = groupSongs.filter((s) => !setlistIds.has(s.id))
   const doneCount = songs.filter((s) => s.userProgress === 'MAITRISE').length
 
-  const respondedCount = rehearsal.attendances.filter((a) => a.status === 'PRESENT' || a.status === 'ABSENT').length
+  const respondedCount = rehearsal.attendances.filter((a) => a.status === 'PRESENT' || a.status === 'ABSENT' || a.status === 'INCERTAIN').length
   const notRespondedCount = (groupInfo?.memberCount ?? 0) - respondedCount
 
   return (
@@ -597,19 +597,22 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
               ? 'border-green-300'
               : myAttendance?.status === 'ABSENT'
                 ? 'border-red-300'
-                : 'border-amber-300'
+                : myAttendance?.status === 'INCERTAIN'
+                  ? 'border-amber-300'
+                  : 'border-gray-200'
           }`}>
             <CardHeader
               title="Serez-vous présent(e) ?"
               subtitle={
                 myAttendance?.status === 'PRESENT' ? '✓ Vous avez confirmé votre présence'
                 : myAttendance?.status === 'ABSENT' ? 'Vous avez déclaré votre absence'
-                : undefined
+                : myAttendance?.status === 'INCERTAIN' ? '🤔 Vous avez répondu : Peut-être'
+                : 'Vous n\'avez pas encore répondu'
               }
             />
             <AttendanceButton
               rehearsalId={rehearsal.id}
-              currentStatus={myAttendance?.status || 'INCERTAIN'}
+              currentStatus={myAttendance?.status || 'EN_ATTENTE'}
               onUpdate={fetchData}
             />
           </div>
