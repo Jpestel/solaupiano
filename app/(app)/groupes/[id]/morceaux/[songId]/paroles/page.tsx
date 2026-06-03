@@ -101,15 +101,20 @@ function ChordPlacer({
   pendingChord,
   onPlace,
   onRemove,
+  header,
 }: {
   content: string
   pendingChord: string | null
   onPlace: (lineIndex: number, unitIndex: number) => void
   onRemove: (lineIndex: number, unitIndex: number) => void
+  header?: React.ReactNode
 }) {
   const lines = content.split('\n')
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 min-h-[440px] overflow-x-auto">
+    <div className="rounded-xl border border-gray-200 bg-white max-h-[72vh] overflow-auto">
+      {/* Bandeau d'accords : collé en haut (et à gauche) de cette zone de défilement */}
+      {header && <div className="sticky top-0 left-0 z-20">{header}</div>}
+      <div className="px-4 py-4 min-h-[240px]">
       {lines.map((line, li) => {
         const markerMatch = line.match(/^\[(.+?)\]$/)
         if (markerMatch && !isChord(markerMatch[1])) {
@@ -173,6 +178,7 @@ function ChordPlacer({
           </div>
         )
       })}
+      </div>
     </div>
   )
 }
@@ -624,79 +630,80 @@ export default function ParolesPage({
                 </div>
               ) : (
                 <>
-                  {/* Palette : on arme un accord — reste collée en haut au défilement */}
-                  <div className="sticky top-0 z-20 -mx-4 sm:mx-0 px-4 py-2.5 sm:rounded-xl border-b sm:border border-violet-200 bg-violet-50/95 backdrop-blur-sm shadow-sm space-y-2">
-                    {/* Statut */}
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold text-violet-700 truncate">
-                        {pendingChord
-                          ? <>Actif : <span className="rounded bg-violet-600 px-1.5 py-0.5 text-white">{pendingChord}</span> → cliquez une lettre</>
-                          : '🎸 Choisissez un accord, puis cliquez la lettre voulue'}
-                      </p>
-                      {pendingChord && (
-                        <button onClick={() => setPendingChord(null)} className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-600">
-                          ✕ Désarmer
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Familles (défilement horizontal) */}
-                    <div className="flex gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                      {COMMON_CHORDS.map((grp, gi) => (
-                        <button
-                          key={grp.group}
-                          onClick={() => setChordFamily(gi)}
-                          className={`shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors ${
-                            gi === chordFamily ? 'bg-violet-600 text-white' : 'bg-white text-violet-600 border border-violet-200 hover:bg-violet-100'
-                          }`}
-                        >
-                          {grp.group}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Accords de la famille (défilement horizontal) + accord personnalisé */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                      {COMMON_CHORDS[chordFamily].chords.map((ch) => (
-                        <button
-                          key={ch}
-                          onClick={() => setPendingChord(ch === pendingChord ? null : ch)}
-                          className={`shrink-0 rounded-md border px-2.5 py-1 text-sm font-bold transition-colors ${
-                            ch === pendingChord
-                              ? 'border-violet-600 bg-violet-600 text-white'
-                              : 'border-violet-200 bg-white text-violet-700 hover:bg-violet-100'
-                          }`}
-                        >
-                          {ch}
-                        </button>
-                      ))}
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault()
-                          const inp = (e.currentTarget.elements.namedItem('chord') as HTMLInputElement)
-                          const val = inp.value.trim()
-                          if (val) { setPendingChord(val); inp.value = '' }
-                        }}
-                        className="flex items-center gap-1 shrink-0 pl-1"
-                      >
-                        <input
-                          name="chord"
-                          placeholder="Autre…"
-                          className="w-20 rounded-md border border-violet-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300"
-                        />
-                        <button type="submit" className="rounded-md bg-violet-600 px-2 py-1 text-xs font-semibold text-white hover:bg-violet-500">
-                          OK
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-
-                  {/* Zone de placement */}
+                  {/* Zone de placement : le bandeau d'accords (header) reste collé
+                      en haut de cette zone qui défile, paroles dessous. */}
                   <ChordPlacer
                     content={content}
                     pendingChord={pendingChord}
                     onPlace={placeChordAt}
                     onRemove={removeChordAt}
+                    header={
+                      <div className="px-3 py-2.5 border-b border-violet-200 bg-violet-50 space-y-2">
+                        {/* Statut */}
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-violet-700 truncate">
+                            {pendingChord
+                              ? <>Actif : <span className="rounded bg-violet-600 px-1.5 py-0.5 text-white">{pendingChord}</span> → cliquez une lettre</>
+                              : '🎸 Choisissez un accord, puis cliquez la lettre voulue'}
+                          </p>
+                          {pendingChord && (
+                            <button onClick={() => setPendingChord(null)} className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-600">
+                              ✕ Désarmer
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Familles (défilement horizontal) */}
+                        <div className="flex gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                          {COMMON_CHORDS.map((grp, gi) => (
+                            <button
+                              key={grp.group}
+                              onClick={() => setChordFamily(gi)}
+                              className={`shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors ${
+                                gi === chordFamily ? 'bg-violet-600 text-white' : 'bg-white text-violet-600 border border-violet-200 hover:bg-violet-100'
+                              }`}
+                            >
+                              {grp.group}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Accords de la famille (défilement horizontal) + accord personnalisé */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                          {COMMON_CHORDS[chordFamily].chords.map((ch) => (
+                            <button
+                              key={ch}
+                              onClick={() => setPendingChord(ch === pendingChord ? null : ch)}
+                              className={`shrink-0 rounded-md border px-2.5 py-1 text-sm font-bold transition-colors ${
+                                ch === pendingChord
+                                  ? 'border-violet-600 bg-violet-600 text-white'
+                                  : 'border-violet-200 bg-white text-violet-700 hover:bg-violet-100'
+                              }`}
+                            >
+                              {ch}
+                            </button>
+                          ))}
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault()
+                              const inp = (e.currentTarget.elements.namedItem('chord') as HTMLInputElement)
+                              const val = inp.value.trim()
+                              if (val) { setPendingChord(val); inp.value = '' }
+                            }}
+                            className="flex items-center gap-1 shrink-0 pl-1"
+                          >
+                            <input
+                              name="chord"
+                              placeholder="Autre…"
+                              className="w-20 rounded-md border border-violet-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                            />
+                            <button type="submit" className="rounded-md bg-violet-600 px-2 py-1 text-xs font-semibold text-white hover:bg-violet-500">
+                              OK
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    }
                   />
                   <p className="text-xs text-gray-400">
                     Cliquez sur une lettre pour poser l'accord actif au-dessus. Cliquez sur un accord déjà posé pour le retirer. ↵ en fin de ligne pour un accord final.
