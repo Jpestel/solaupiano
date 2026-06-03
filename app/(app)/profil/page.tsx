@@ -71,6 +71,7 @@ export default function ProfilPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [instruments, setInstruments] = useState<Instrument[]>([])
+  const [instrumentSearch, setInstrumentSearch] = useState('')
   const [availableGroups, setAvailableGroups] = useState<AvailableGroup[]>([])
   const [name, setName] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -504,38 +505,80 @@ export default function ProfilPage() {
                 </div>
               )}
 
-              {!isAdmin && instruments.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="form-label mb-0">Instrument(s)</label>
-                    {selectedIds.length > 0 && (
-                      <span className="text-xs text-indigo-600 font-medium bg-indigo-50 rounded-full px-2 py-0.5">
-                        {selectedIds.length} sélectionné{selectedIds.length > 1 ? 's' : ''}
-                      </span>
+              {!isAdmin && instruments.length > 0 && (() => {
+                const selectedInstr = instruments.filter((i) => selectedIds.includes(i.id))
+                const q = instrumentSearch.trim().toLowerCase()
+                const filtered = instruments.filter((i) => i.name.toLowerCase().includes(q))
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="form-label mb-0">Instrument(s)</label>
+                      {selectedInstr.length > 0 && (
+                        <span className="text-xs text-indigo-600 font-medium bg-indigo-50 rounded-full px-2 py-0.5">
+                          {selectedInstr.length} sélectionné{selectedInstr.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Puces sélectionnées */}
+                    {selectedInstr.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {selectedInstr.map((i) => (
+                          <button
+                            key={i.id}
+                            type="button"
+                            onClick={() => toggleInstrument(i.id)}
+                            className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
+                            title="Retirer"
+                          >
+                            {i.name}
+                            <span className="opacity-70" aria-hidden>✕</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
+
+                    {/* Recherche */}
+                    <input
+                      type="text"
+                      value={instrumentSearch}
+                      onChange={(e) => setInstrumentSearch(e.target.value)}
+                      className="form-input"
+                      placeholder="🔍 Rechercher un instrument…"
+                    />
+
+                    {/* Liste filtrée bornée */}
+                    <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 max-h-52 overflow-y-auto p-1.5 space-y-0.5">
+                      {filtered.length > 0 ? (
+                        filtered.map((instr) => {
+                          const selected = selectedIds.includes(instr.id)
+                          return (
+                            <button
+                              key={instr.id}
+                              type="button"
+                              onClick={() => toggleInstrument(instr.id)}
+                              className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
+                                selected ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
+                              }`}
+                            >
+                              <span className={`flex h-4 w-4 items-center justify-center rounded border ${
+                                selected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white'
+                              }`}>
+                                {selected && (
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                )}
+                              </span>
+                              {instr.name}
+                            </button>
+                          )
+                        })
+                      ) : (
+                        <p className="px-2.5 py-3 text-sm text-gray-400">Aucun instrument trouvé.</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {instruments.map((instr) => {
-                      const selected = selectedIds.includes(instr.id)
-                      return (
-                        <button
-                          key={instr.id}
-                          type="button"
-                          onClick={() => toggleInstrument(instr.id)}
-                          className={`rounded-full px-3 py-1.5 text-sm font-medium border transition-all ${
-                            selected
-                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-200'
-                              : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'
-                          }`}
-                        >
-                          {selected && <span className="mr-1 text-xs">✓</span>}
-                          {instr.name}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
+                )
+              })()}
 
               <div className="pt-1">
                 <Button type="submit" disabled={saving} fullWidth>
