@@ -28,7 +28,7 @@ export default async function PublicHomePage() {
 
   const now = new Date()
 
-  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups] = await Promise.all([
+  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups] = await Promise.all([
     prisma.concert.findMany({
       where: { date: { gte: now }, isPublic: true },
       orderBy: { date: 'asc' },
@@ -62,6 +62,10 @@ export default async function PublicHomePage() {
       where: { archivedAt: null, style: { not: null } },
       _count: { _all: true },
     }),
+    prisma.userInstrument.groupBy({
+      by: ['userId'],
+      _count: { instrumentId: true },
+    }),
   ])
 
   // Groupes visibles sur l'accueil = publics + privés (les masqués sont exclus par la requête)
@@ -76,6 +80,9 @@ export default async function PublicHomePage() {
     .filter((s) => s.name && s.name !== 'Non renseigné')
     .sort((a, b) => b.count - a.count)
   const instrumentCount = instrumentsUsed.length
+  // Musiciens distincts ayant déclaré ≥1 instrument + multi-instrumentistes
+  const distinctInstrumentists = userInstrumentGroups.length
+  const multiInstrumentists = userInstrumentGroups.filter((u) => u._count.instrumentId > 1).length
 
   const STATS = [
     { icon: '🎙️', value: musicianCount, label: musicianCount > 1 ? 'musiciens inscrits' : 'musicien inscrit' },
@@ -253,7 +260,13 @@ export default async function PublicHomePage() {
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-gray-400 mt-3">Vous jouez d&apos;un instrument qui n&apos;est pas là ? Ajoutez-le à votre inscription en quelques secondes.</p>
+              <p className="text-xs text-gray-500 mt-3">
+                🎙️ Joué{distinctInstrumentists > 1 ? 's' : ''} par <strong className="text-gray-700">{distinctInstrumentists}</strong> musicien{distinctInstrumentists > 1 ? 's' : ''}
+                {multiInstrumentists > 0 && (
+                  <> — dont <strong className="text-gray-700">{multiInstrumentists}</strong> multi-instrumentiste{multiInstrumentists > 1 ? 's' : ''}</>
+                )}.
+              </p>
+              <p className="text-xs text-gray-400 mt-1">Vous jouez d&apos;un instrument qui n&apos;est pas là ? Ajoutez-le à votre inscription en quelques secondes.</p>
             </div>
           )}
         </div>
