@@ -72,7 +72,7 @@ export default async function TableauDeBordPage({
     const [
       userCount, adminCount, groupCount, archivedGroupCount,
       concertUpcomingCount, rehearsalUpcomingCount, instrumentCount, songCount,
-      upcomingConcerts, upcomingRehearsals, groups, users, instruments,
+      upcomingConcerts, upcomingRehearsals, groups, users, instruments, allSongs,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { siteRole: 'ADMIN' } }),
@@ -105,6 +105,10 @@ export default async function TableauDeBordPage({
         },
       }),
       prisma.instrument.findMany({ include: { _count: { select: { users: true } } } }),
+      prisma.song.findMany({
+        select: { id: true, title: true, artist: true, group: { select: { id: true, name: true } } },
+        orderBy: [{ group: { name: 'asc' } }, { title: 'asc' }],
+      }),
     ])
 
     const instrumentsByUsage = [...instruments].sort((a, b) => b._count.users - a._count.users || a.name.localeCompare(b.name))
@@ -123,6 +127,16 @@ export default async function TableauDeBordPage({
       .filter((i) => i._count.users > 0)
       .slice(0, 15)
       .map((i) => ({ name: i.name, value: i._count.users }))
+
+    // Répertoires : morceaux regroupés par groupe
+    const songsByGroup = new Map<number, { name: string; songs: { id: number; title: string; artist: string | null }[] }>()
+    for (const s of allSongs) {
+      if (!s.group) continue
+      let entry = songsByGroup.get(s.group.id)
+      if (!entry) { entry = { name: s.group.name, songs: [] }; songsByGroup.set(s.group.id, entry) }
+      entry.songs.push({ id: s.id, title: s.title, artist: s.artist })
+    }
+    const repertoires = Array.from(songsByGroup.values()).sort((a, b) => a.name.localeCompare(b.name))
 
     const kpis = [
       { icon: '👥', label: 'Utilisateurs', value: userCount, sub: `${adminCount} admin${adminCount > 1 ? 's' : ''}`, href: '/admin/utilisateurs' },
@@ -223,6 +237,31 @@ export default async function TableauDeBordPage({
               ))}
             </tbody>
           </table>
+        </Panel>
+
+        {/* Répertoires : tous les morceaux par groupe */}
+        <Panel title="Répertoires — tous les morceaux" icon="🎼" count={allSongs.length}>
+          {repertoires.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-8">Aucun morceau dans les répertoires.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {repertoires.map((r) => (
+                <div key={r.name} className="px-4 py-3">
+                  <p className="text-sm font-semibold text-gray-900 mb-1.5">
+                    {r.name} <span className="text-xs font-normal text-gray-400">· {r.songs.length} morceau{r.songs.length > 1 ? 'x' : ''}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {r.songs.map((s) => (
+                      <span key={s.id} className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200 px-2.5 py-0.5 text-xs text-gray-700" title={s.artist || undefined}>
+                        {s.title}
+                        {s.artist && <span className="ml-1 text-gray-400">· {s.artist}</span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Panel>
 
         {/* Utilisateurs + Instruments */}
