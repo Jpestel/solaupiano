@@ -173,15 +173,23 @@ export function SetlistSequenceStage({ songs, onClose }: { songs: StageSong[]; o
 
   const go = (dir: number, autoplay = false) => {
     clearCount()
-    // cherche le prochain morceau ayant une séquence audio
-    let i = index + dir
-    while (i >= 0 && i < songs.length) {
-      const s = songs[i]
-      if ((seqBySong[s.id] || []).some(q => q.kind === 'AUDIO')) break
-      i += dir
+    if (autoplay) {
+      // Enchaînement auto : saute au prochain morceau ayant une séquence audio
+      let i = index + dir
+      while (i >= 0 && i < songs.length) {
+        const s = songs[i]
+        if ((seqBySong[s.id] || []).some(q => q.kind === 'AUDIO')) break
+        i += dir
+      }
+      if (i < 0 || i >= songs.length) { setPlaying(false); return }
+      autoPlayNextRef.current = true
+      setIndex(i)
+      return
     }
-    if (i < 0 || i >= songs.length) { if (dir > 0) { setPlaying(false) } return }
-    autoPlayNextRef.current = autoplay
+    // Navigation manuelle : morceau adjacent (même sans séquence audio)
+    const i = Math.max(0, Math.min(songs.length - 1, index + dir))
+    if (i === index) return
+    autoPlayNextRef.current = false
     setIndex(i)
   }
 
