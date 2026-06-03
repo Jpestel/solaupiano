@@ -143,10 +143,40 @@ const SLIDES: Slide[] = [
   },
 ]
 
-export function HomeCarousel() {
+export interface DbSlide {
+  id: number
+  title: string
+  subtitle: string | null
+  imageUrl: string | null
+  linkUrl: string | null
+}
+
+export function HomeCarousel({ dbSlides }: { dbSlides?: DbSlide[] }) {
+  // Si l'admin a créé des slides, on les utilise ; sinon, aperçus stylisés par défaut.
+  const slides: Slide[] = (dbSlides && dbSlides.length > 0)
+    ? dbSlides.map((s) => ({
+        key: `db-${s.id}`,
+        title: s.title,
+        subtitle: s.subtitle || '',
+        dark: !!s.imageUrl,
+        body: (() => {
+          const inner = s.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={s.imageUrl} alt={s.title} className="w-full h-full object-cover object-top" />
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-center px-6 bg-gradient-to-br from-indigo-600 to-purple-700 text-white">
+              <p className="text-2xl font-bold">{s.title}</p>
+              {s.subtitle && <p className="mt-2 text-white/80 text-sm max-w-sm">{s.subtitle}</p>}
+            </div>
+          )
+          return s.linkUrl ? <a href={s.linkUrl} className="block w-full h-full">{inner}</a> : inner
+        })(),
+      }))
+    : SLIDES
+
   const [i, setI] = useState(0)
   const [paused, setPaused] = useState(false)
-  const n = SLIDES.length
+  const n = slides.length
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -178,7 +208,7 @@ export function HomeCarousel() {
             className="flex h-full transition-transform duration-500 ease-out"
             style={{ transform: `translateX(-${i * 100}%)` }}
           >
-            {SLIDES.map((s) => (
+            {slides.map((s) => (
               <div key={s.key} className={`w-full flex-shrink-0 h-full ${s.dark ? '' : 'bg-gray-50'}`}>
                 {s.body}
               </div>
@@ -199,12 +229,12 @@ export function HomeCarousel() {
         {/* Légende */}
         <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{SLIDES[i].title}</p>
-            <p className="text-xs text-gray-500 truncate">{SLIDES[i].subtitle}</p>
+            <p className="text-sm font-semibold text-gray-900 truncate">{slides[i].title}</p>
+            <p className="text-xs text-gray-500 truncate">{slides[i].subtitle}</p>
           </div>
           {/* Pastilles */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {SLIDES.map((s, idx) => (
+            {slides.map((s, idx) => (
               <button key={s.key} onClick={() => go(idx)} aria-label={`Vue ${idx + 1}`}
                 className={`h-2 rounded-full transition-all ${idx === i ? 'w-5 bg-indigo-600' : 'w-2 bg-gray-300 hover:bg-gray-400'}`} />
             ))}

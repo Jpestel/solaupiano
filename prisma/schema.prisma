@@ -1046,3 +1046,16 @@ model GroupMessage {
 
   @@index([groupId, createdAt])
 }
+
+// Slides du carrousel de la page d'accueil (gérés par l'admin)
+model HomeSlide {
+  id        Int      @id @default(autoincrement())
+  title     String
+  subtitle  String?
+  imageUrl  String?
+  linkUrl   String?
+  sortOrder Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

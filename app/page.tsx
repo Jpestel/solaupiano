@@ -29,7 +29,7 @@ export default async function PublicHomePage() {
 
   const now = new Date()
 
-  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups] = await Promise.all([
+  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups, homeSlides] = await Promise.all([
     prisma.concert.findMany({
       where: { date: { gte: now }, isPublic: true },
       orderBy: { date: 'asc' },
@@ -67,6 +67,11 @@ export default async function PublicHomePage() {
       by: ['userId'],
       where: { user: { siteRole: { not: 'ADMIN' } } },
       _count: { instrumentId: true },
+    }),
+    prisma.homeSlide.findMany({
+      where: { published: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, title: true, subtitle: true, imageUrl: true, linkUrl: true },
     }),
   ])
 
@@ -215,7 +220,7 @@ export default async function PublicHomePage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <h2 className="text-center text-xl font-bold text-gray-900 mb-1">Découvrez la plateforme</h2>
         <p className="text-center text-sm text-gray-500 mb-6">Un aperçu de ce que vous pourrez faire avec votre groupe.</p>
-        <HomeCarousel />
+        <HomeCarousel dbSlides={homeSlides} />
       </div>
 
       {/* Fonctionnalités */}
