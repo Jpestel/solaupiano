@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { LookingForSelector } from '@/components/ui/LookingForSelector'
+import { MUSIC_GENRES } from '@/lib/genres'
 
 export function CreateGroupButton() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [style, setStyle] = useState('')
   const [visibility, setVisibility] = useState<'public' | 'private' | 'hidden'>('public')
   const [lookingFor, setLookingFor] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -19,6 +21,7 @@ export function CreateGroupButton() {
   const reset = () => {
     setName('')
     setDescription('')
+    setStyle('')
     setVisibility('public')
     setLookingFor([])
     setError('')
@@ -41,6 +44,7 @@ export function CreateGroupButton() {
       body: JSON.stringify({
         name: name.trim(),
         description: description.trim() || undefined,
+        style: style || undefined,
         isPublic: visibility === 'public',
         isHidden: visibility === 'hidden',
         lookingFor: lookingFor.length > 0 ? JSON.stringify(lookingFor) : null,
@@ -100,6 +104,17 @@ export function CreateGroupButton() {
               className="form-input"
               placeholder="ex: Groupe de reprises rock années 80"
             />
+          </div>
+          <div>
+            <label className="form-label">Style musical <span className="text-gray-400 font-normal">(optionnel)</span></label>
+            <select value={style} onChange={(e) => setStyle(e.target.value)} className="form-input">
+              <option value="">— Choisir un style —</option>
+              {MUSIC_GENRES.map((grp) => (
+                <optgroup key={grp.group} label={grp.group}>
+                  {grp.items.map((g) => <option key={g} value={g}>{g}</option>)}
+                </optgroup>
+              ))}
+            </select>
           </div>
           <div>
             <label className="form-label">Visibilité</label>

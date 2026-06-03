@@ -195,6 +195,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
                 groupId={groupId}
                 initialName={group.name}
                 initialDescription={group.description ?? null}
+                initialStyle={(group as any).style ?? ''}
                 initialIsPublic={group.isPublic}
                 initialIsHidden={group.isHidden}
                 initialLookingFor={parseLookingFor(group.lookingFor)}

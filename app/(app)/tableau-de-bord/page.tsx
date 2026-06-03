@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { InviteButton } from './InviteButton'
 import { GroupsLookingSection } from './GroupsLookingSection'
+import { AdminCharts } from '@/components/admin/AdminCharts'
+import { UNSPECIFIED_GENRE } from '@/lib/genres'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -107,6 +109,21 @@ export default async function TableauDeBordPage({
 
     const instrumentsByUsage = [...instruments].sort((a, b) => b._count.users - a._count.users || a.name.localeCompare(b.name))
 
+    // Données graphiques
+    const styleCounts = new Map<string, number>()
+    for (const g of groups) {
+      if (g.archivedAt) continue
+      const s = ((g as any).style as string | null)?.trim() || UNSPECIFIED_GENRE
+      styleCounts.set(s, (styleCounts.get(s) ?? 0) + 1)
+    }
+    const styleData = Array.from(styleCounts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+    const instrumentData = instrumentsByUsage
+      .filter((i) => i._count.users > 0)
+      .slice(0, 15)
+      .map((i) => ({ name: i.name, value: i._count.users }))
+
     const kpis = [
       { icon: '👥', label: 'Utilisateurs', value: userCount, sub: `${adminCount} admin${adminCount > 1 ? 's' : ''}`, href: '/admin/utilisateurs' },
       { icon: '🎵', label: 'Groupes actifs', value: groupCount, sub: archivedGroupCount > 0 ? `${archivedGroupCount} archivé${archivedGroupCount > 1 ? 's' : ''}` : 'aucun archivé', href: '/admin/groupes' },
@@ -130,6 +147,9 @@ export default async function TableauDeBordPage({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {kpis.map((k) => <StatCard key={k.label} {...k} />)}
         </div>
+
+        {/* Graphiques */}
+        <AdminCharts styleData={styleData} instrumentData={instrumentData} />
 
         {/* Concerts + Répétitions à venir */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

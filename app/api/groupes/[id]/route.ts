@@ -111,6 +111,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     data: {
       name: body.name,
       description: body.description,
+      ...('style' in body && { style: typeof body.style === 'string' && body.style.trim() ? body.style.trim() : null }),
       ...(typeof body.isPublic === 'boolean' && { isPublic: body.isPublic }),
       ...(typeof body.isHidden === 'boolean' && { isHidden: body.isHidden }),
       ...(['HIDDEN', 'PRIVATE', 'PUBLIC'].includes(body.peerRatingVisibility) && { peerRatingVisibility: body.peerRatingVisibility }),

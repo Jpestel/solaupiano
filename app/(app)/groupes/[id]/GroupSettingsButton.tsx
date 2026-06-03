@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LookingForSelector } from '@/components/ui/LookingForSelector'
+import { MUSIC_GENRES } from '@/lib/genres'
 
 type Visibility = 'public' | 'private' | 'hidden'
 
@@ -16,6 +17,7 @@ interface Props {
   groupId: number
   initialName: string
   initialDescription: string | null
+  initialStyle?: string | null
   initialIsPublic: boolean
   initialIsHidden: boolean
   initialLookingFor: string[]
@@ -24,11 +26,12 @@ interface Props {
   memberCount?: number
 }
 
-export function GroupSettingsButton({ groupId, initialName, initialDescription, initialIsPublic, initialIsHidden, initialLookingFor, initialPeerRatingVisibility = 'PRIVATE', isFounder = false, memberCount = 1 }: Props) {
+export function GroupSettingsButton({ groupId, initialName, initialDescription, initialStyle = '', initialIsPublic, initialIsHidden, initialLookingFor, initialPeerRatingVisibility = 'PRIVATE', isFounder = false, memberCount = 1 }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(initialName)
   const [description, setDescription] = useState(initialDescription || '')
+  const [style, setStyle] = useState(initialStyle || '')
   const [visibility, setVisibility] = useState<Visibility>(toVisibility(initialIsPublic, initialIsHidden))
   const [peerVis, setPeerVis] = useState<'HIDDEN' | 'PRIVATE' | 'PUBLIC'>(initialPeerRatingVisibility)
   const [lookingFor, setLookingFor] = useState<string[]>(initialLookingFor)
@@ -68,6 +71,7 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
       body: JSON.stringify({
         name: name.trim(),
         description: description.trim() || null,
+        style: style || null,
         isPublic: visibility === 'public',
         isHidden: visibility === 'hidden',
         peerRatingVisibility: peerVis,
@@ -89,6 +93,7 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
     setOpen(false)
     setName(initialName)
     setDescription(initialDescription || '')
+    setStyle(initialStyle || '')
     setVisibility(toVisibility(initialIsPublic, initialIsHidden))
     setLookingFor(initialLookingFor)
     setError('')
@@ -137,6 +142,17 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
                   className="form-input"
                   placeholder="Description du groupe..."
                 />
+              </div>
+              <div>
+                <label className="form-label">Style musical <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                <select value={style} onChange={(e) => setStyle(e.target.value)} className="form-input">
+                  <option value="">— Non renseigné —</option>
+                  {MUSIC_GENRES.map((grp) => (
+                    <optgroup key={grp.group} label={grp.group}>
+                      {grp.items.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="form-label">Visibilité</label>
