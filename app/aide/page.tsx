@@ -75,6 +75,7 @@ export default async function AidePage() {
             { href: '#ma-page', label: '🌐 Page publique' },
             { href: '#tchat', label: '💬 Tchat' },
             { href: '#ressources', label: '📒 Ressources' },
+            { href: '#comptabilite', label: '💶 Comptabilité' },
             { href: '#repertoire', label: '🎼 Répertoire' },
             { href: '#setlists', label: '🎶 Setlists' },
             { href: '#grilles', label: '🎸 Grilles' },
@@ -595,6 +596,40 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── COMPTABILITÉ / CAISSE ─── */}
+        <section id="comptabilite">
+          <SectionTitle icon="💶" title="Comptabilité / caisse" color="orange" tutorials={tf('feature_comptabilite')} />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi ça sert">
+              <p>Suivez les <strong>dépenses partagées</strong> du groupe : location de salle, achat de matériel, frais communs… et gardez la trace de <strong>qui a avancé l&apos;argent</strong> et de <strong>qui doit combien</strong>.</p>
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Enregistrer une dépense" badge={{ label: 'Chef seulement', color: 'indigo' }}>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Depuis la page du groupe, ouvrez <strong>💶 Comptabilité</strong> puis <strong>+ Nouvelle dépense</strong>.</Step>
+                  <Step n={2}>Renseignez le <strong>libellé</strong> (ex : &quot;Location studio – janvier&quot;), le <strong>montant</strong> et la <strong>date / période</strong> concernée.</Step>
+                  <Step n={3}>Indiquez <strong>qui a payé</strong> (le membre qui a avancé l&apos;argent).</Step>
+                  <Step n={4}>Choisissez la <strong>répartition</strong> : <strong>égale</strong> entre tous les membres, ou <strong>personnalisée</strong> (un montant par membre).</Step>
+                </ol>
+                <Note>La part de la personne qui a avancé l&apos;argent est automatiquement marquée <strong>réglée</strong>.</Note>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Qui a payé, qui doit">
+              <p>Pour chaque dépense, vous voyez la <strong>part de chaque membre</strong> et si elle est <strong>réglée</strong> ou <strong>en attente</strong>.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Cochez une part comme <strong>payée</strong> quand un membre a remboursé</li>
+                <li>Un <strong>récapitulatif</strong> indique le total dépensé et le <strong>solde de chacun</strong> (avance / dette)</li>
+              </ul>
+              <Tip>Idéal pour les groupes qui se partagent la location d&apos;une salle ou tout autre frais récurrent.</Tip>
+              <Note>Le module <strong>Comptabilité</strong> peut être inclus ou non selon l&apos;offre du groupe (il apparaît grisé 🔒 s&apos;il n&apos;est pas inclus).</Note>
+            </HelpCard>
+
+          </div>
+        </section>
+
         {/* ─── RÉPERTOIRE ─── */}
         <section id="repertoire">
           <SectionTitle icon="🎼" title="Répertoire" color="indigo" tutorials={tf('feature_repertoire')} />
@@ -843,6 +878,32 @@ export default async function AidePage() {
               </HelpCard>
             )}
 
+            {isCreateur && (
+              <HelpCard title="Ajouter des accords 🎸" badge={{ label: 'Nouveau', color: 'violet' }}>
+                <p>L&apos;éditeur propose deux sous-modes : <strong>✏️ Texte</strong> (pour écrire les paroles et les marqueurs) et <strong>🎸 Accords</strong> (pour poser les accords <em>au-dessus des mots</em>, sans rien décaler).</p>
+                <p className="mt-2 font-semibold text-gray-700">En mode 🎸 Accords :</p>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Choisissez un accord dans la <strong>palette</strong> en haut — il s&apos;<strong>arme</strong> (ex : « Actif : <span className="rounded bg-violet-600 px-1.5 py-0.5 text-xs text-white">C</span> »).</Step>
+                  <Step n={2}>Cliquez <strong>directement sur la lettre</strong> des paroles où vous voulez l&apos;accord → il se pose pile au-dessus du mot.</Step>
+                  <Step n={3}>L&apos;accord reste armé : enchaînez les clics pour le poser à plusieurs endroits. Cliquez un autre accord pour changer, ou <strong>✕ Désarmer</strong>.</Step>
+                  <Step n={4}>Pour <strong>retirer</strong> un accord déjà posé, cliquez simplement dessus. Le repère <kbd className="rounded bg-gray-200 px-1.5 py-0.5 font-mono text-xs">↵</kbd> en fin de ligne pose un accord final.</Step>
+                </ol>
+                <p className="mt-3">La palette regroupe <strong>11 familles</strong> (Majeurs, Mineurs, Majeurs/Mineurs altérés, 7e, Maj7, Sus/add, 6/9, Dim/Aug, Basses…) en défilement horizontal, plus un champ <strong>« Autre… »</strong> pour tout accord spécial (<code className="bg-violet-50 text-violet-700 rounded px-1">Gm7</code>, <code className="bg-violet-50 text-violet-700 rounded px-1">D/F#</code>…).</p>
+                <Tip>Le bandeau d&apos;accords <strong>reste collé en haut</strong> de la zone : vous gardez la palette sous la main même en faisant défiler un long texte.</Tip>
+                <Note>Pour les habitués : en mode Texte, vous pouvez aussi taper les accords entre crochets dans la ligne, notation ChordPro : <code className="bg-gray-100 rounded px-1">[C]Au [G]clair de la [Am]lune</code>.</Note>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Affichage : Paroles / Accords / Les deux">
+              <p>Dès qu&apos;un morceau contient des accords, un sélecteur apparaît. <strong>Chaque musicien</strong> choisit ce qu&apos;il veut voir :</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">🎤 Paroles</span>
+                <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">🎸 Accords</span>
+                <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">🎼 Les deux</span>
+              </div>
+              <p className="mt-3">Le chanteur affiche les paroles seules, le guitariste juste la grille d&apos;accords, et chacun garde sa préférence. Le choix est <strong>mémorisé sur l&apos;appareil</strong> et s&apos;applique partout : aperçu, mode scène, prompteur et impression.</p>
+            </HelpCard>
+
             <HelpCard title="Marqueurs de structure">
               <p>Les marqueurs permettent de repérer instantanément les sections d&apos;un morceau. Chaque type a sa couleur :</p>
               <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -890,6 +951,7 @@ export default async function AidePage() {
                 <li><strong>Délai de démarrage</strong> réglable : laissez passer une intro musicale, ou le temps de lire la 1ère phrase</li>
                 <li><strong>Vitesse</strong> et <strong>taille de police</strong> ajustables en direct, pause / reprise</li>
                 <li>Repère de lecture central, molette pour recaler manuellement</li>
+                <li><strong>Accords</strong> : si le morceau en contient, choisissez l&apos;affichage (Paroles / Accords / Les deux) dans l&apos;écran de réglages</li>
               </ul>
               <Tip>Pour un défilement bien calé, renseignez le <strong>tempo</strong> du morceau dans le répertoire.</Tip>
             </HelpCard>
@@ -1965,6 +2027,8 @@ function HelpCard({ title, children, badge }: {
   const badgeColors: Record<string, string> = {
     indigo: 'bg-indigo-100 text-indigo-700 border-indigo-200',
     blue: 'bg-blue-100 text-blue-700 border-blue-200',
+    violet: 'bg-violet-100 text-violet-700 border-violet-200',
+    green: 'bg-green-100 text-green-700 border-green-200',
   }
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
