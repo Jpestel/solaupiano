@@ -98,7 +98,14 @@ export function unitsToLine(units: CharUnit[]): string {
 // Accords usuels proposés dans la palette de l'éditeur.
 export const COMMON_CHORDS: { group: string; chords: string[] }[] = [
   { group: 'Majeurs', chords: ['C', 'D', 'E', 'F', 'G', 'A', 'B'] },
-  { group: 'Mineurs', chords: ['Am', 'Bm', 'Cm', 'Dm', 'Em', 'Fm', 'Gm'] },
-  { group: '7e', chords: ['C7', 'D7', 'E7', 'G7', 'A7', 'B7', 'Dm7', 'Em7', 'Am7'] },
-  { group: 'Autres', chords: ['Cmaj7', 'Fmaj7', 'Csus4', 'Dsus4', 'F#m', 'Bb', 'Eb'] },
+  { group: 'Mineurs', chords: ['Cm', 'Dm', 'Em', 'Fm', 'Gm', 'Am', 'Bm'] },
+  { group: 'Altérés', chords: ['Db', 'Eb', 'Gb', 'Ab', 'Bb', 'C#', 'F#'] },
+  { group: 'Min. alt.', chords: ['C#m', 'Ebm', 'F#m', 'G#m', 'Bbm', 'D#m', 'Abm'] },
+  { group: '7e', chords: ['C7', 'D7', 'E7', 'F7', 'G7', 'A7', 'B7'] },
+  { group: 'Min. 7', chords: ['Cm7', 'Dm7', 'Em7', 'Fm7', 'Gm7', 'Am7', 'Bm7'] },
+  { group: 'Maj7', chords: ['Cmaj7', 'Dmaj7', 'Emaj7', 'Fmaj7', 'Gmaj7', 'Amaj7'] },
+  { group: 'Sus / add', chords: ['Csus2', 'Csus4', 'Dsus4', 'Esus4', 'Asus4', 'Gadd9', 'Cadd9'] },
+  { group: '6 / 9', chords: ['C6', 'G6', 'A6', 'Am6', 'C9', 'D9', 'E9'] },
+  { group: 'Dim / Aug', chords: ['Cdim', 'Ddim', 'Edim', 'Bdim', 'Caug', 'Eaug', 'Gaug'] },
+  { group: 'Basses', chords: ['C/E', 'C/G', 'D/F#', 'G/B', 'F/A', 'Am/G', 'E/G#'] },
 ]
