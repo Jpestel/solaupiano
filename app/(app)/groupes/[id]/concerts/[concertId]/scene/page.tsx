@@ -14,6 +14,7 @@ interface Member {
   userId: number
   name: string
   avatarUrl?: string | null
+  figure?: string
   groupRole: string
   instruments: string[]
 }
@@ -26,6 +27,8 @@ interface StageItem {
   label: string
   icon: string
   shape?: string
+  figure?: string
+  rotation?: number
   x: number // %
   y: number // %
   color?: string
@@ -34,7 +37,8 @@ interface StageItem {
 }
 
 // Résout la forme d'un item (rétro-compat si shape absent)
-function resolveShape(item: { kind: ItemKind; shape?: string; label: string }): string {
+function resolveShape(item: { kind: ItemKind; shape?: string; figure?: string; label: string }): string {
+  if (item.kind === 'member') return item.figure === 'WOMAN' ? 'person_woman' : 'person_man'
   if (item.shape) return item.shape
   if (item.kind === 'instrument') return shapeForInstrument(item.label)
   return 'generic'
@@ -84,48 +88,52 @@ const uid = (p: string) => `${p}-${Date.now()}-${_seq++}`
 
 // ─── Vue d'un item sur la scène ────────────────────────────────────────────────
 
-function StageItemView({ item, isChef, onPointerDown, onRemove }: {
+function StageItemView({ item, isChef, onPointerDown, onRemove, onRotate }: {
   item: StageItem
   isChef: boolean
   onPointerDown: (e: React.PointerEvent, id: string) => void
   onRemove: (id: string) => void
+  onRotate: (id: string) => void
 }) {
   const common = `absolute -translate-x-1/2 -translate-y-1/2 select-none group ${isChef ? 'cursor-grab active:cursor-grabbing' : ''}`
-  const removeBtn = isChef && (
-    <button
-      className="absolute -top-2 -right-2 z-10 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
-      onClick={(e) => { e.stopPropagation(); onRemove(item.id) }}
-      onPointerDown={(e) => e.stopPropagation()}
-    >×</button>
-  )
-
-  if (item.kind === 'member') {
-    return (
-      <div className={common} style={{ left: `${item.x}%`, top: `${item.y}%` }}
-        onPointerDown={isChef ? (e) => onPointerDown(e, item.id) : undefined}>
-        {removeBtn}
-        <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg border-2 border-white overflow-hidden" style={{ background: item.color }}>
-          {item.avatarUrl
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={item.avatarUrl} alt="" className="w-full h-full object-cover" />
-            : item.label.charAt(0).toUpperCase()}
-        </div>
-        <p className="mt-1 text-center text-white text-xs font-semibold leading-tight drop-shadow max-w-[84px] truncate mx-auto">{item.label}</p>
-      </div>
-    )
-  }
-
-  // instrument & équipement : forme vectorielle dimensionnée
   const shape = getShape(resolveShape(item))
-  const color = item.kind === 'instrument' ? (item.color || '#6366f1') : '#cbd5e1'
+  const color = item.kind === 'equip' ? '#cbd5e1' : (item.color || '#6366f1')
+  const rot = item.rotation || 0
+  const isMember = item.kind === 'member'
+
   return (
     <div className={common} style={{ left: `${item.x}%`, top: `${item.y}%` }}
       onPointerDown={isChef ? (e) => onPointerDown(e, item.id) : undefined}>
-      {removeBtn}
-      <div className="mx-auto" style={{ width: shape.w * SCALE, height: shape.h * SCALE, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))' }}>
+      {isChef && (
+        <>
+          <button
+            className="absolute -top-2 -right-2 z-10 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+            onClick={(e) => { e.stopPropagation(); onRemove(item.id) }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >×</button>
+          <button
+            className="absolute -top-2 -left-2 z-10 w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+            onClick={(e) => { e.stopPropagation(); onRotate(item.id) }}
+            onPointerDown={(e) => e.stopPropagation()}
+            title="Pivoter de 90°"
+          >↻</button>
+        </>
+      )}
+
+      {/* Nom discret au-dessus (membres) */}
+      {isMember && (
+        <p className="text-center text-white/75 text-[9px] font-medium leading-none drop-shadow max-w-[70px] truncate mx-auto mb-0.5">{item.label}</p>
+      )}
+
+      {/* Graphique (pivote, pas le label) */}
+      <div className="mx-auto" style={{ width: shape.w * SCALE, height: shape.h * SCALE, transform: `rotate(${rot}deg)`, transition: 'transform 0.15s', filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))' }}>
         {shape.draw(color)}
       </div>
-      <p className="mt-0.5 text-center text-white/85 text-[10px] leading-tight drop-shadow max-w-[90px] truncate mx-auto">{item.label}</p>
+
+      {/* Label sous instruments / équipement */}
+      {!isMember && (
+        <p className="mt-0.5 text-center text-white/85 text-[10px] leading-tight drop-shadow max-w-[90px] truncate mx-auto">{item.label}</p>
+      )}
     </div>
   )
 }
@@ -268,6 +276,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
   }, [dragging, getStagePercent])
 
   const removeItem = (id: string) => setItems((prev) => prev.filter((it) => it.id !== id))
+  const rotateItem = (id: string) => setItems((prev) => prev.map((it) => it.id === id ? { ...it, rotation: ((it.rotation || 0) + 90) % 360 } : it))
   const clearAll = () => setItems([])
   const handlePrint = () => window.print()
 
@@ -340,7 +349,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
                             </span>
                           }
                           label={m.name}
-                          onPointerDown={(e) => startDragFromPanel(e, { id: `member-${m.userId}`, kind: 'member', label: m.name, icon: '', x: 50, y: 50, color, ownerUserId: m.userId, avatarUrl: m.avatarUrl })}
+                          onPointerDown={(e) => startDragFromPanel(e, { id: `member-${m.userId}`, kind: 'member', label: m.name, icon: '', figure: m.figure, x: 50, y: 50, color, ownerUserId: m.userId })}
                         />
                         {placed && <span className="text-[10px] text-green-600 font-medium">placé</span>}
                       </div>
@@ -417,7 +426,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
               )}
 
               {items.map((it) => (
-                <StageItemView key={it.id} item={it} isChef={isChef} onPointerDown={startDragOnStage} onRemove={removeItem} />
+                <StageItemView key={it.id} item={it} isChef={isChef} onPointerDown={startDragOnStage} onRemove={removeItem} onRotate={rotateItem} />
               ))}
 
               {items.length === 0 && !dragging && (
@@ -435,13 +444,9 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
       {/* Ghost pendant le drag depuis la palette */}
       {dragging?.fromPanel && dragging.draft && (
         <div className="fixed z-50 pointer-events-none -translate-x-1/2 -translate-y-1/2 opacity-90" style={{ left: dragPos.x, top: dragPos.y }}>
-          {dragging.draft.kind === 'member' ? (
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl text-white font-bold shadow-2xl border-2 border-white" style={{ background: dragging.draft.color }}>
-              {dragging.draft.label.charAt(0).toUpperCase()}
-            </div>
-          ) : (() => {
+          {(() => {
             const sh = getShape(resolveShape(dragging.draft!))
-            const col = dragging.draft!.kind === 'instrument' ? (dragging.draft!.color || '#6366f1') : '#cbd5e1'
+            const col = dragging.draft!.kind === 'equip' ? '#cbd5e1' : (dragging.draft!.color || '#6366f1')
             return <div style={{ width: sh.w * SCALE, height: sh.h * SCALE, filter: 'drop-shadow(0 3px 4px rgba(0,0,0,0.4))' }}>{sh.draw(col)}</div>
           })()}
         </div>

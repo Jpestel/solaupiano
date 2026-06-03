@@ -146,6 +146,7 @@ model User {
   password      String
   name          String
   avatarUrl     String?
+  stageFigure   String?   // représentation sur le plan de scène : MAN | WOMAN
   siteRole      SiteRole  @default(USER)
   userPlan      UserPlan  @default(CREATEUR)
   emailVerified DateTime?

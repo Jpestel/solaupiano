@@ -16,6 +16,26 @@ const EQS = '#475569'     // contour équipement (slate-600)
 const WS = '#ffffff'      // contour blanc instruments
 
 export const SHAPES: Record<string, Shape> = {
+  // ── Membres (silhouettes) ──
+  person_man: {
+    w: 34, h: 46,
+    draw: (c) => (
+      <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="2" />
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
+      </svg>
+    ),
+  },
+  person_woman: {
+    w: 34, h: 46,
+    draw: (c) => (
+      <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="2" />
+        <path d="M17 16 C23 16 26 20 26 24 L32 45 H2 L8 24 C8 20 11 16 17 16 Z" fill={c} stroke={WS} strokeWidth="2" />
+      </svg>
+    ),
+  },
+
   // ── Instruments ──
   grand_piano: {
     w: 104, h: 86,

@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
-  const { name, instrumentIds, userPlan, weeklyDigestOptOut, rehearsalReminderOptOut, evaluationReminderOptOut, gusoNumber } = await req.json()
+  const { name, instrumentIds, userPlan, weeklyDigestOptOut, rehearsalReminderOptOut, evaluationReminderOptOut, gusoNumber, stageFigure } = await req.json()
 
   if (!name?.trim()) {
     return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
@@ -88,12 +88,13 @@ export async function PATCH(req: NextRequest) {
   const reminderData = typeof rehearsalReminderOptOut === 'boolean' ? { rehearsalReminderOptOut } : {}
   const evalReminderData = typeof evaluationReminderOptOut === 'boolean' ? { evaluationReminderOptOut } : {}
   const gusoData = gusoNumber !== undefined ? { gusoNumber: gusoNumber?.trim() || null } : {}
+  const figureData = (stageFigure === 'MAN' || stageFigure === 'WOMAN') ? { stageFigure } : {}
 
   // Update user and instruments in a transaction
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
-      data: { name: name.trim(), ...planData, ...digestData, ...reminderData, ...evalReminderData, ...gusoData },
+      data: { name: name.trim(), ...planData, ...digestData, ...reminderData, ...evalReminderData, ...gusoData, ...figureData },
     }),
     prisma.userInstrument.deleteMany({ where: { userId } }),
     ...(Array.isArray(instrumentIds) && instrumentIds.length > 0

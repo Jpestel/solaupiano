@@ -37,6 +37,7 @@ export async function GET(req: NextRequest, { params }: Params) {
             id: true,
             name: true,
             avatarUrl: true,
+            stageFigure: true,
             instruments: { include: { instrument: { select: { name: true } } } },
           },
         },
@@ -50,6 +51,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     userId: m.userId,
     name: m.user.name,
     avatarUrl: m.user.avatarUrl,
+    figure: m.user.stageFigure || 'MAN',
     groupRole: m.groupRole,
     instruments: m.user.instruments.map((ui) => ui.instrument.name),
   }))

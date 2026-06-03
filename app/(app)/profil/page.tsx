@@ -90,6 +90,7 @@ export default function ProfilPage() {
   const [planError, setPlanError] = useState('')
 
   const [gusoNumber, setGusoNumber] = useState('')
+  const [stageFigure, setStageFigure] = useState<'MAN' | 'WOMAN'>('MAN')
   const [weeklyDigestOptOut, setWeeklyDigestOptOut] = useState(false)
   const [digestSaving, setDigestSaving] = useState(false)
   const [rehearsalReminderOptOut, setRehearsalReminderOptOut] = useState(false)
@@ -117,6 +118,7 @@ export default function ProfilPage() {
       setProfile(p)
       setName(p.name)
       setGusoNumber(p.gusoNumber ?? '')
+      setStageFigure((p as { stageFigure?: string }).stageFigure === 'WOMAN' ? 'WOMAN' : 'MAN')
       setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
       setWeeklyDigestOptOut(p.weeklyDigestOptOut ?? false)
       setRehearsalReminderOptOut(p.rehearsalReminderOptOut ?? false)
@@ -143,7 +145,7 @@ export default function ProfilPage() {
     const res = await fetch('/api/profil', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, instrumentIds: selectedIds, gusoNumber }),
+      body: JSON.stringify({ name, instrumentIds: selectedIds, gusoNumber, stageFigure }),
     })
     setSaving(false)
     if (!res.ok) {
@@ -464,6 +466,28 @@ export default function ProfilPage() {
                   onChange={(e) => setName(e.target.value)}
                   className="form-input"
                 />
+              </div>
+
+              <div>
+                <label className="form-label">Représentation sur le plan de scène</label>
+                <div className="flex gap-2 mt-1">
+                  {([
+                    { value: 'MAN' as const, emoji: '🧍', label: 'Homme' },
+                    { value: 'WOMAN' as const, emoji: '🧍‍♀️', label: 'Femme' },
+                  ]).map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setStageFigure(o.value)}
+                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-medium transition-colors ${
+                        stageFigure === o.value ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-lg">{o.emoji}</span> {o.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Silhouette utilisée pour vous représenter sur les plans de scène.</p>
               </div>
 
               <div>
