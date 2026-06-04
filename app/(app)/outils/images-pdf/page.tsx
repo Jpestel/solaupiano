@@ -89,27 +89,14 @@ export default function ImagesToPdfPage() {
 
   const buildPdf = async () => {
     if (items.length === 0) return
-    const { jsPDF } = await import('jspdf')
-    const ori = (w: number, h: number) => (w > h ? 'l' : 'p') as 'l' | 'p'
-    const doc = new jsPDF({
-      unit: 'pt',
-      format: mode === 'a4' ? 'a4' : [items[0].w, items[0].h],
-      orientation: ori(items[0].w, items[0].h),
-    })
-    items.forEach((it, i) => {
-      if (i > 0) doc.addPage(mode === 'a4' ? 'a4' : [it.w, it.h], ori(it.w, it.h))
-      const pw = doc.internal.pageSize.getWidth()
-      const ph = doc.internal.pageSize.getHeight()
-      if (mode === 'image') {
-        doc.addImage(it.dataUrl, 'JPEG', 0, 0, pw, ph)
-      } else {
-        const margin = 24
-        const ratio = Math.min((pw - 2 * margin) / it.w, (ph - 2 * margin) / it.h)
-        const w = it.w * ratio, h = it.h * ratio
-        doc.addImage(it.dataUrl, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h)
-      }
-    })
-    doc.save(`${(filename || 'document').replace(/\.pdf$/i, '')}.pdf`)
+    const { imagesToPdfBlobFromDecoded } = await import('@/lib/images-to-pdf')
+    const blob = await imagesToPdfBlobFromDecoded(items.map((it) => ({ dataUrl: it.dataUrl, w: it.w, h: it.h })), mode)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${(filename || 'document').replace(/\.pdf$/i, '')}.pdf`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   return (

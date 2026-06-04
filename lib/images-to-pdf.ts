@@ -42,23 +42,32 @@ export async function fileToPdfImage(file: File): Promise<PdfImage> {
   return img
 }
 
-// Construit un Blob PDF à partir d'une liste d'images (fichiers).
-export async function imagesToPdfBlob(files: File[], mode: 'image' | 'a4' = 'image'): Promise<Blob> {
+// Dimensions A4 en points (1 pt = 1/72 inch)
+const A4_W = 595.28
+const A4_H = 841.89
+
+// Taille de page (pt) qui conserve le ratio de l'image en la bornant à l'A4.
+function pageDims(w: number, h: number): [number, number] {
+  const landscape = w > h
+  const boundW = landscape ? A4_H : A4_W
+  const boundH = landscape ? A4_W : A4_H
+  const r = Math.min(boundW / w, boundH / h)
+  return [Math.round(w * r), Math.round(h * r)]
+}
+
+// À partir d'images déjà décodées ({ dataUrl, w, h }).
+//  - mode 'image' : chaque page épouse le ratio de l'image, dimensionnée à l'A4 (taille « document » normale)
+//  - mode 'a4'    : page A4 fixe, image centrée avec marges
+export async function imagesToPdfBlobFromDecoded(imgs: PdfImage[], mode: 'image' | 'a4' = 'image'): Promise<Blob> {
   const { jsPDF } = await import('jspdf')
-  const imgs: PdfImage[] = []
-  for (const f of files) imgs.push(await fileToPdfImage(f))
   if (imgs.length === 0) throw new Error('Aucune image.')
 
-  const ori = (w: number, h: number) => (w > h ? 'l' : 'p') as 'l' | 'p'
-  const doc = new jsPDF({
-    unit: 'pt',
-    format: mode === 'a4' ? 'a4' : [imgs[0].w, imgs[0].h],
-    orientation: ori(imgs[0].w, imgs[0].h),
-  })
+  const first = mode === 'a4' ? ([A4_W, A4_H] as [number, number]) : pageDims(imgs[0].w, imgs[0].h)
+  const doc = new jsPDF({ unit: 'pt', format: first, orientation: 'p' })
+
   imgs.forEach((it, i) => {
-    if (i > 0) doc.addPage(mode === 'a4' ? 'a4' : [it.w, it.h], ori(it.w, it.h))
-    const pw = doc.internal.pageSize.getWidth()
-    const ph = doc.internal.pageSize.getHeight()
+    const [pw, ph] = mode === 'a4' ? [A4_W, A4_H] : pageDims(it.w, it.h)
+    if (i > 0) doc.addPage([pw, ph], 'p')
     if (mode === 'image') {
       doc.addImage(it.dataUrl, 'JPEG', 0, 0, pw, ph)
     } else {
@@ -69,4 +78,11 @@ export async function imagesToPdfBlob(files: File[], mode: 'image' | 'a4' = 'ima
     }
   })
   return doc.output('blob')
+}
+
+// Construit un Blob PDF à partir de fichiers (décodage inclus).
+export async function imagesToPdfBlob(files: File[], mode: 'image' | 'a4' = 'image'): Promise<Blob> {
+  const imgs: PdfImage[] = []
+  for (const f of files) imgs.push(await fileToPdfImage(f))
+  return imagesToPdfBlobFromDecoded(imgs, mode)
 }
