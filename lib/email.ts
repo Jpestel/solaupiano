@@ -127,25 +127,33 @@ export async function sendConcertNotification(
   })
   const addr = [concert.address, [concert.postalCode, concert.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
   const concertUrl = `${baseUrl}/groupes/${groupId}/concerts`
+  const tpl = await getEmailTemplate('concert_notification')
 
   await Promise.all(
     members.map(({ email, name, userId }) => {
+      const { subject, introHtml, outroHtml } = tpl.render({
+        memberName: name,
+        groupName,
+        concertName: concert.name,
+        date: dateStr,
+        location: concert.location,
+      })
       const presentUrl = `${baseUrl}/presence?c=${concert.id}&u=${userId}&t=${signConcertPresence(concert.id, userId)}&a=present`
       const absentUrl = `${baseUrl}/presence?c=${concert.id}&u=${userId}&t=${signConcertPresence(concert.id, userId)}&a=absent`
 
       return resend.emails.send({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
-        subject: `🎭 Nouveau concert : ${concert.name}`,
+        subject,
         html: emailWrapper(`
-          <p style="margin:0 0 10px; font-size:15px; color:#111;">Bonjour ${name},</p>
-          <p style="margin:0 0 14px; font-size:14px; color:#374151;"><strong>${groupName}</strong> a programmé un concert. Serez-vous présent(e) ?</p>
+          ${introHtml}
           ${dataBox(`
             <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #6d28d9;">🎭 ${concert.name}</p>
             <p style="margin: 0 0 4px; font-size: 13px; color: #6d28d9; text-transform: capitalize;">${dateStr}${concert.startTime ? ` · ${concert.startTime}` : ''}</p>
             <p style="margin: 0; font-size: 13px; color: #6d28d9;">📍 ${concert.location}${addr ? ` — ${addr}` : ''}</p>
             ${concert.notes ? `<p style="margin: 8px 0 0; font-size: 12px; color: #6b7280; font-style: italic;">${concert.notes}</p>` : ''}
           `)}
+          ${outroHtml}
           <div style="text-align:center; margin: 16px 0 6px;">
             <a href="${presentUrl}" style="display:inline-block; background:#16a34a; color:#fff; text-decoration:none; padding:11px 18px; border-radius:8px; font-weight:700; font-size:14px; margin:4px;">✅ Je serai présent(e)</a>
             <a href="${absentUrl}" style="display:inline-block; background:#dc2626; color:#fff; text-decoration:none; padding:11px 18px; border-radius:8px; font-weight:700; font-size:14px; margin:4px;">❌ Absent(e)</a>

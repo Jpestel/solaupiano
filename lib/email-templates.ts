@@ -73,6 +73,21 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ],
   },
   {
+    key: 'concert_notification',
+    name: 'Nouveau concert (présence)',
+    description: 'Envoyé aux membres quand un concert est créé, pour recueillir leur présence (présent / peut-être / absent).',
+    defaultSubject: '🎭 Nouveau concert : {{concertName}} — {{groupName}}',
+    defaultIntro: 'Bonjour {{memberName}},\n\n{{groupName}} a programmé un concert. Merci d\'indiquer si vous serez présent(e).',
+    defaultOutro: 'Votre réponse aide à organiser le concert. Merci !',
+    variables: [
+      { key: 'memberName', description: 'Prénom du membre' },
+      { key: 'groupName', description: 'Nom du groupe' },
+      { key: 'concertName', description: 'Nom du concert' },
+      { key: 'date', description: 'Date du concert' },
+      { key: 'location', description: 'Lieu du concert' },
+    ],
+  },
+  {
     key: 'rehearsal_notification',
     name: 'Nouvelle répétition',
     description: 'Envoyé aux membres quand une répétition est planifiée par le chef.',
