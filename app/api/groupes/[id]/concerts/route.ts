@@ -66,6 +66,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     return {
       id: c.id, name: c.name, date: c.date, location: c.location, notes: c.notes, isPublic: c.isPublic, setlist: c.setlist,
+      address: c.address, postalCode: c.postalCode, city: c.city,
+      startTime: c.startTime, soundcheckTime: c.soundcheckTime, arrivalTime: c.arrivalTime, arrivalInfo: c.arrivalInfo,
+      guestsPerPerson: c.guestsPerPerson, contactName: c.contactName, contactPhone: c.contactPhone,
       attendances: c.attendances,
       evaluations,
       peerVisibility: visibility,
@@ -101,10 +104,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const body = await req.json()
-  const { name, date, location, notes, setlistId, isPublic } = body
+  const { name, date, location, address, postalCode, city, startTime, soundcheckTime, arrivalTime, arrivalInfo, guestsPerPerson, contactName, contactPhone, notes, setlistId, isPublic } = body
 
   if (!name || !date || !location) {
     return NextResponse.json({ error: 'Nom, date et lieu sont requis.' }, { status: 400 })
+  }
+  if (!address?.trim() || !postalCode?.trim() || !city?.trim()) {
+    return NextResponse.json({ error: 'Adresse, code postal et ville sont requis.' }, { status: 400 })
   }
 
   const concert = await prisma.concert.create({
@@ -113,6 +119,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       name,
       date: new Date(date),
       location,
+      address: address.trim(),
+      postalCode: postalCode.trim(),
+      city: city.trim(),
+      startTime: startTime?.trim() || null,
+      soundcheckTime: soundcheckTime?.trim() || null,
+      arrivalTime: arrivalTime?.trim() || null,
+      arrivalInfo: arrivalInfo?.trim() || null,
+      guestsPerPerson: (guestsPerPerson !== undefined && guestsPerPerson !== '' && guestsPerPerson !== null) ? Number(guestsPerPerson) : null,
+      contactName: contactName?.trim() || null,
+      contactPhone: contactPhone?.trim() || null,
       notes: notes || null,
       setlistId: setlistId ? Number(setlistId) : null,
       isPublic: isPublic !== false,

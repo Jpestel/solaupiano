@@ -17,6 +17,9 @@ interface CSongRating { songId: number; rating: number; song: { id: number; titl
 interface CEvaluation { id: number; selfRating: number; groupRating: number; suggestion: string | null; evaluator: { id: number; name: string }; memberRatings: CMemberRating[]; songRatings: CSongRating[] }
 interface Concert {
   id: number; name: string; date: string; location: string; notes?: string
+  address?: string | null; postalCode?: string | null; city?: string | null
+  startTime?: string | null; soundcheckTime?: string | null; arrivalTime?: string | null; arrivalInfo?: string | null
+  guestsPerPerson?: number | null; contactName?: string | null; contactPhone?: string | null
   setlist?: SetlistRef | null
   isPublic: boolean
   simulation?: SimulationRef | null
@@ -28,7 +31,79 @@ interface Concert {
 }
 interface GroupInfo { name: string; groupRole: string; createdBy: number | null; chefPermissions: unknown; hasEvaluations: boolean }
 
-const EMPTY_FORM = { name: '', date: '', location: '', notes: '', setlistId: '', isPublic: true as boolean }
+const EMPTY_FORM = {
+  name: '', date: '', location: '', notes: '', setlistId: '', isPublic: true as boolean,
+  address: '', postalCode: '', city: '',
+  startTime: '', soundcheckTime: '', arrivalTime: '', arrivalInfo: '',
+  guestsPerPerson: '', contactName: '', contactPhone: '',
+}
+type ConcertForm = typeof EMPTY_FORM
+
+// Champs lieu (adresse structurée) + logistique, partagés création/édition
+function ConcertVenueLogistics({ form, onChange }: { form: ConcertForm; onChange: (p: Partial<ConcertForm>) => void }) {
+  return (
+    <>
+      <div>
+        <label className="form-label">Salle / nom du lieu <span className="text-red-500">*</span></label>
+        <input type="text" required value={form.location} onChange={(e) => onChange({ location: e.target.value })} className="form-input" placeholder="ex : Le Tetris, Salle des fêtes…" />
+      </div>
+      <div>
+        <label className="form-label">Adresse <span className="text-red-500">*</span></label>
+        <input type="text" required value={form.address} onChange={(e) => onChange({ address: e.target.value })} className="form-input" placeholder="N° et rue" />
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="form-label">Code postal <span className="text-red-500">*</span></label>
+          <input type="text" required value={form.postalCode} onChange={(e) => onChange({ postalCode: e.target.value })} className="form-input" placeholder="76600" />
+        </div>
+        <div className="col-span-2">
+          <label className="form-label">Ville <span className="text-red-500">*</span></label>
+          <input type="text" required value={form.city} onChange={(e) => onChange({ city: e.target.value })} className="form-input" placeholder="Le Havre" />
+        </div>
+      </div>
+
+      <div className="pt-1 border-t border-gray-100">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-3 mb-1">🕒 Logistique <span className="font-normal normal-case text-gray-400">(optionnel)</span></p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="form-label">Heure des balances</label>
+          <input type="time" value={form.soundcheckTime} onChange={(e) => onChange({ soundcheckTime: e.target.value })} className="form-input" />
+        </div>
+        <div>
+          <label className="form-label">Heure de début / passage</label>
+          <input type="time" value={form.startTime} onChange={(e) => onChange({ startTime: e.target.value })} className="form-input" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="form-label">Arrivée souhaitée à</label>
+          <input type="time" value={form.arrivalTime} onChange={(e) => onChange({ arrivalTime: e.target.value })} className="form-input" />
+        </div>
+        <div>
+          <label className="form-label">Pour qui / précisions</label>
+          <input type="text" value={form.arrivalInfo} onChange={(e) => onChange({ arrivalInfo: e.target.value })} className="form-input" placeholder="ex : techniciens, tout le groupe…" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="form-label">Accompagnants / musicien</label>
+          <input type="number" min={0} max={20} value={form.guestsPerPerson} onChange={(e) => onChange({ guestsPerPerson: e.target.value })} className="form-input" placeholder="ex : 2" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="form-label">Contact sur place</label>
+          <input type="text" value={form.contactName} onChange={(e) => onChange({ contactName: e.target.value })} className="form-input" placeholder="Nom" />
+        </div>
+        <div>
+          <label className="form-label">Téléphone</label>
+          <input type="tel" value={form.contactPhone} onChange={(e) => onChange({ contactPhone: e.target.value })} className="form-input" placeholder="06…" />
+        </div>
+      </div>
+    </>
+  )
+}
 
 export default function ConcertsPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
@@ -195,6 +270,16 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       notes: concert.notes || '',
       setlistId: concert.setlist?.id ? String(concert.setlist.id) : '',
       isPublic: concert.isPublic !== false,
+      address: concert.address || '',
+      postalCode: concert.postalCode || '',
+      city: concert.city || '',
+      startTime: concert.startTime || '',
+      soundcheckTime: concert.soundcheckTime || '',
+      arrivalTime: concert.arrivalTime || '',
+      arrivalInfo: concert.arrivalInfo || '',
+      guestsPerPerson: concert.guestsPerPerson != null ? String(concert.guestsPerPerson) : '',
+      contactName: concert.contactName || '',
+      contactPhone: concert.contactPhone || '',
     })
     setEditError('')
   }
@@ -287,7 +372,21 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
         <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">🎸 {groupInfo.name}</p>
       )}
       <p className={`text-sm font-medium capitalize ${dim ? 'text-gray-400' : 'text-indigo-600'}`}>{formatDateWithDay(concert.date)}</p>
-      <p className="text-sm text-gray-500 mt-1">{concert.location}</p>
+      <p className="text-sm text-gray-700 mt-1">📍 {concert.location}</p>
+      {(concert.address || concert.city) && (
+        <p className="text-xs text-gray-500 mt-0.5">
+          {[concert.address, [concert.postalCode, concert.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
+        </p>
+      )}
+      {(concert.soundcheckTime || concert.startTime || concert.arrivalTime || concert.guestsPerPerson != null || concert.contactName) && (
+        <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+          {concert.soundcheckTime && <span className="rounded-full bg-amber-50 border border-amber-100 px-2 py-0.5 text-amber-700">🎚 Balances {concert.soundcheckTime}</span>}
+          {concert.startTime && <span className="rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-indigo-700">🎬 Début {concert.startTime}</span>}
+          {concert.arrivalTime && <span className="rounded-full bg-blue-50 border border-blue-100 px-2 py-0.5 text-blue-700">🚶 Arrivée {concert.arrivalTime}{concert.arrivalInfo ? ` · ${concert.arrivalInfo}` : ''}</span>}
+          {concert.guestsPerPerson != null && <span className="rounded-full bg-green-50 border border-green-100 px-2 py-0.5 text-green-700">👥 {concert.guestsPerPerson} accompagnant{concert.guestsPerPerson > 1 ? 's' : ''}/musicien</span>}
+          {concert.contactName && <span className="rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-gray-600">📞 {concert.contactName}{concert.contactPhone ? ` · ${concert.contactPhone}` : ''}</span>}
+        </div>
+      )}
 
       {concert.setlist && (
         <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -508,10 +607,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
               )
             })()}
           </div>
-          <div>
-            <label className="form-label">Lieu <span className="text-red-500">*</span></label>
-            <input type="text" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="form-input" placeholder="Salle des fêtes, adresse..." />
-          </div>
+          <ConcertVenueLogistics form={form} onChange={(p) => setForm((f) => ({ ...f, ...p }))} />
           <SetlistSelect value={form.setlistId} onChange={(v) => setForm({ ...form, setlistId: v })} />
           <div>
             <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>
@@ -550,10 +646,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
             <label className="form-label">Date <span className="text-red-500">*</span></label>
             <input type="date" required value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="form-input" />
           </div>
-          <div>
-            <label className="form-label">Lieu <span className="text-red-500">*</span></label>
-            <input type="text" required value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} className="form-input" />
-          </div>
+          <ConcertVenueLogistics form={editForm} onChange={(p) => setEditForm((f) => ({ ...f, ...p }))} />
           <SetlistSelect value={editForm.setlistId} onChange={(v) => setEditForm({ ...editForm, setlistId: v })} />
           <div>
             <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>

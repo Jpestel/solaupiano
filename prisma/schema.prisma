@@ -608,7 +608,17 @@ model Concert {
   groupId   Int
   name      String
   date      DateTime
-  location  String
+  location  String   // salle / nom du lieu
+  address    String?  // adresse (rue)
+  postalCode String?  // code postal
+  city       String?  // ville
+  startTime       String? // heure de début / passage (HH:MM)
+  soundcheckTime  String? // heure des balances (HH:MM)
+  arrivalTime     String? // arrivée souhaitée (HH:MM)
+  arrivalInfo     String? // pour qui / précisions sur l'arrivée
+  guestsPerPerson Int?    // nombre d'accompagnants autorisés par musicien
+  contactName     String? // contact sur place
+  contactPhone    String?
   notes     String?  @db.Text
   setlistId Int?
   isPublic  Boolean  @default(true)

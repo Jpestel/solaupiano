@@ -27,7 +27,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json()
-  const { name, date, location, notes, setlistId, isPublic } = body
+  const { name, date, location, address, postalCode, city, startTime, soundcheckTime, arrivalTime, arrivalInfo, guestsPerPerson, contactName, contactPhone, notes, setlistId, isPublic } = body
+  const strOrNull = (v: unknown) => (typeof v === 'string' && v.trim()) ? v.trim() : null
 
   const concert = await prisma.concert.update({
     where: { id: concertId },
@@ -35,6 +36,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(name && { name }),
       ...(date && { date: new Date(date) }),
       ...(location && { location }),
+      ...(address !== undefined && { address: strOrNull(address) }),
+      ...(postalCode !== undefined && { postalCode: strOrNull(postalCode) }),
+      ...(city !== undefined && { city: strOrNull(city) }),
+      ...(startTime !== undefined && { startTime: strOrNull(startTime) }),
+      ...(soundcheckTime !== undefined && { soundcheckTime: strOrNull(soundcheckTime) }),
+      ...(arrivalTime !== undefined && { arrivalTime: strOrNull(arrivalTime) }),
+      ...(arrivalInfo !== undefined && { arrivalInfo: strOrNull(arrivalInfo) }),
+      ...(guestsPerPerson !== undefined && { guestsPerPerson: (guestsPerPerson !== '' && guestsPerPerson !== null) ? Number(guestsPerPerson) : null }),
+      ...(contactName !== undefined && { contactName: strOrNull(contactName) }),
+      ...(contactPhone !== undefined && { contactPhone: strOrNull(contactPhone) }),
       notes: notes !== undefined ? (notes || null) : undefined,
       setlistId: setlistId !== undefined ? (setlistId ? Number(setlistId) : null) : undefined,
       ...(isPublic !== undefined && { isPublic }),
