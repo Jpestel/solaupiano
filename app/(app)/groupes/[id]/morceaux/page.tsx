@@ -100,6 +100,14 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [pendingResources, setPendingResources] = useState<PendingResource[]>([])
   const [submitSongId, setSubmitSongId] = useState<number | null>(null)
   const [pendingExpanded, setPendingExpanded] = useState(true)
+  const [canImg2Pdf, setCanImg2Pdf] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/me/module-access?key=tool_img2pdf')
+      .then((r) => r.json())
+      .then((d) => setCanImg2Pdf(!!d.allowed))
+      .catch(() => {})
+  }, [])
 
   const fetchData = useCallback(async () => {
     const [songsRes, grpRes] = await Promise.all([
@@ -429,6 +437,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                   <ResourceUploader
                     songId={song.id}
                     uploadEnabled={groupInfo?.uploadEnabled ?? false}
+                    canImg2Pdf={canImg2Pdf}
                     onUpload={() => { setUploadSongId(null); fetchData() }}
                   />
                 </div>
