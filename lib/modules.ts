@@ -66,8 +66,8 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: 'tool_img2pdf',
-    label: 'Images → PDF',
-    description: 'Convertir des photos (JPG, JPEG, PNG, BMP, TIFF, WEBP, GIF…) en un seul PDF. Conversion locale dans le navigateur.',
+    label: 'Photos → PDF (ressources)',
+    description: "Permet de convertir des photos (JPG, JPEG, PNG, BMP, TIFF…) en PDF lors de l'ajout d'une ressource à un morceau du répertoire. Conversion locale dans le navigateur.",
     href: '/outils/images-pdf',
     icon: '🖼️',
     category: 'outil',
