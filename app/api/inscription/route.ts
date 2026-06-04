@@ -56,6 +56,13 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Abonnement par défaut à la newsletter (désinscription possible depuis le profil ou le pied de page des mails)
+    await prisma.newsletterSubscriber.upsert({
+      where: { email: email.toLowerCase() },
+      update: { active: true, unsubscribedAt: null, userId: user.id },
+      create: { email: email.toLowerCase(), userId: user.id, token: crypto.randomUUID(), source: 'inscription', active: true },
+    }).catch(() => {})
+
     if (!isFirstUser) {
       const token = crypto.randomBytes(32).toString('hex')
       await prisma.emailVerificationToken.create({
