@@ -18,6 +18,7 @@ const adminNav = [
   { href: '/admin/personnalisation', label: 'Personnalisation' },
   { href: '/admin/tutoriels',       label: 'Tutoriels vidéo' },
   { href: '/admin/flash-infos',      label: 'Flash infos' },
+  { href: '/admin/newsletter',       label: 'Newsletter' },
   { href: '/admin/carrousel',        label: 'Carrousel' },
   { href: '/admin/fichiers',         label: 'Fichiers' },
   { href: '/admin/performance',      label: 'Performance' },

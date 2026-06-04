@@ -6,7 +6,10 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 // ─── Wrapper HTML commun ──────────────────────────────────────────────────────
 
-function emailWrapper(body: string) {
+const SITE_URL = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+
+function emailWrapper(body: string, unsubscribeUrl?: string) {
+  const unsub = unsubscribeUrl || `${SITE_URL}/newsletter`
   return `
     <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #f9fafb;">
       <div style="background: white; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -19,8 +22,37 @@ function emailWrapper(body: string) {
         </div>
         ${body}
       </div>
+      <p style="text-align: center; margin: 16px auto 0; font-size: 11px; color: #9ca3af; line-height: 1.6;">
+        Sol au piano — la plateforme des musiciens en groupe<br>
+        <a href="${unsub}" style="color: #9ca3af; text-decoration: underline;">Se désinscrire de la newsletter</a>
+      </p>
     </div>
   `
+}
+
+// ─── Envoi d'une newsletter aux abonnés ──────────────────────────────────────
+export async function sendNewsletterToSubscribers(
+  subject: string,
+  contentHtml: string,
+  subscribers: { email: string; token: string }[]
+) {
+  let sent = 0
+  // Envoi par lots pour ménager le quota d'envoi
+  const BATCH = 40
+  for (let i = 0; i < subscribers.length; i += BATCH) {
+    const batch = subscribers.slice(i, i + BATCH)
+    await Promise.all(
+      batch.map((s) =>
+        resend.emails.send({
+          from: 'Sol au piano <noreply@solaupiano.fr>',
+          to: s.email,
+          subject,
+          html: emailWrapper(contentHtml, `${SITE_URL}/desinscription?token=${s.token}`),
+        }).then(() => { sent++ }).catch((e) => { console.error('newsletter send', s.email, e) })
+      )
+    )
+  }
+  return sent
 }
 
 function ctaButton(href: string, label: string) {

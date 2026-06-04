@@ -1073,3 +1073,28 @@ model HomeSlide {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ─── Newsletter (ouverte à tous, pas besoin d'être membre) ───
+model NewsletterSubscriber {
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  userId         Int?      // si lié à un compte
+  token          String    @unique // pour la désinscription en 1 clic
+  active         Boolean   @default(true)
+  source         String?   // ex : 'site', 'profil', 'import'
+  createdAt      DateTime  @default(now())
+  unsubscribedAt DateTime?
+
+  @@index([active])
+}
+
+model Newsletter {
+  id             Int       @id @default(autoincrement())
+  subject        String
+  content        String    @db.LongText // HTML
+  status         String    @default("DRAFT") // DRAFT | SENT
+  sentAt         DateTime?
+  recipientCount Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}

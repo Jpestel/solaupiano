@@ -45,9 +45,12 @@ export async function GET() {
     isFounder: m.group.createdBy === userId,
   }))
 
+  const nlSub = await prisma.newsletterSubscriber.findUnique({ where: { email: user.email }, select: { active: true } })
+
   const { password, ...safeUser } = user
   return NextResponse.json({
     ...safeUser,
+    newsletterSubscribed: !!nlSub?.active,
     foundedGroupsCount,
     myGroups,
     stats: {

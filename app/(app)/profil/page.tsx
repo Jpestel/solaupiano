@@ -96,6 +96,8 @@ export default function ProfilPage() {
   const [stageName, setStageName] = useState('')
   const [weeklyDigestOptOut, setWeeklyDigestOptOut] = useState(false)
   const [digestSaving, setDigestSaving] = useState(false)
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false)
+  const [newsletterSaving, setNewsletterSaving] = useState(false)
   const [rehearsalReminderOptOut, setRehearsalReminderOptOut] = useState(false)
   const [reminderSaving, setReminderSaving] = useState(false)
   const [evaluationReminderOptOut, setEvaluationReminderOptOut] = useState(false)
@@ -126,6 +128,7 @@ export default function ProfilPage() {
       setStageName((p as { stageName?: string }).stageName || '')
       setSelectedIds(p.instruments.map((ui) => ui.instrument.id))
       setWeeklyDigestOptOut(p.weeklyDigestOptOut ?? false)
+      setNewsletterSubscribed((p as { newsletterSubscribed?: boolean }).newsletterSubscribed ?? false)
       setRehearsalReminderOptOut(p.rehearsalReminderOptOut ?? false)
       setEvaluationReminderOptOut(p.evaluationReminderOptOut ?? false)
     }
@@ -173,6 +176,17 @@ export default function ProfilPage() {
       body: JSON.stringify({ name, instrumentIds: selectedIds, weeklyDigestOptOut: newValue }),
     })
     setDigestSaving(false)
+  }
+
+  const handleNewsletterToggle = async (newValue: boolean) => {
+    setNewsletterSubscribed(newValue)
+    setNewsletterSaving(true)
+    await fetch('/api/profil/newsletter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscribe: newValue }),
+    })
+    setNewsletterSaving(false)
   }
 
   const handleReminderToggle = async (newValue: boolean) => {
@@ -751,6 +765,26 @@ export default function ProfilPage() {
                       !weeklyDigestOptOut ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
+                </button>
+              </div>
+              <div className="border-t border-gray-100 pt-4 flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">📬 Newsletter</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Nouveautés de la plateforme, astuces et conseils pour les groupes. Désinscription possible à tout moment.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={newsletterSubscribed}
+                  onClick={() => handleNewsletterToggle(!newsletterSubscribed)}
+                  disabled={newsletterSaving}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
+                    newsletterSubscribed ? 'bg-indigo-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${newsletterSubscribed ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
               <div className="border-t border-gray-100 pt-4 flex items-start justify-between gap-4">

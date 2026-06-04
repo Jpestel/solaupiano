@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { PublicJoinButton } from './PublicJoinButton'
 import { HomeCarousel } from '@/components/HomeCarousel'
+import { NewsletterSignup } from '@/components/NewsletterSignup'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -429,6 +430,17 @@ export default async function PublicHomePage() {
         </div>
       </div>
 
+      {/* Newsletter */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
+        <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white px-6 py-7 sm:flex items-center justify-between gap-6">
+          <div className="mb-4 sm:mb-0">
+            <h2 className="text-lg font-bold flex items-center gap-2">📬 Restez informé·e</h2>
+            <p className="text-sm text-white/80 mt-1">Nouveautés, astuces et conseils pour les groupes. Sans compte, désinscription en 1 clic.</p>
+          </div>
+          <NewsletterSignup variant="dark" />
+        </div>
+      </div>
+
       {/* Footer */}
       <footer className="mt-4 border-t border-gray-200 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between gap-4">
@@ -448,6 +460,7 @@ export default async function PublicHomePage() {
             <Link href="/annonces" className="hover:text-indigo-600 transition-colors">Annonces</Link>
             <Link href="/tarifs" className="hover:text-indigo-600 transition-colors">Tarifs</Link>
             <Link href="/aide" className="hover:text-indigo-600 transition-colors">Aide</Link>
+            <Link href="/newsletter" className="hover:text-indigo-600 transition-colors">Newsletter</Link>
             <Link href="/mentions-legales" className="hover:text-indigo-600 transition-colors">Mentions légales</Link>
           </div>
         </div>
