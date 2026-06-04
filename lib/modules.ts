@@ -64,6 +64,14 @@ export const MODULES: ModuleDef[] = [
     icon: '🎭',
     category: 'outil',
   },
+  {
+    key: 'tool_img2pdf',
+    label: 'Images → PDF',
+    description: 'Convertir des photos (JPG, JPEG, PNG, BMP, TIFF, WEBP, GIF…) en un seul PDF. Conversion locale dans le navigateur.',
+    href: '/outils/images-pdf',
+    icon: '🖼️',
+    category: 'outil',
+  },
 ]
 
 export function getModuleDef(key: string): ModuleDef | undefined {

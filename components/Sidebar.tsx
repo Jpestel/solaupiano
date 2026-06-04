@@ -98,6 +98,16 @@ const navItems = [
     ),
   },
   {
+    href: '/outils/images-pdf',
+    label: 'Images → PDF',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a2 2 0 012-2h8l6 6v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 13l2.5 3 2-2.5L16 17H8z" />
+      </svg>
+    ),
+  },
+  {
     href: '/annonces',
     label: 'Annonces',
     icon: (
