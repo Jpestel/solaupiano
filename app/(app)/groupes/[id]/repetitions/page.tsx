@@ -192,8 +192,8 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
               const iAmPresent = (r.attendances || []).some((a) => a.userId === myId)
               const showEvalSoon = ongoing && iAmPresent && (groupInfo?.hasEvaluations ?? true)
               return (
-                <Link key={r.id} href={`/groupes/${groupId}/repetitions/${r.id}`}>
-                  <Card padding={false} className={`px-5 py-4 transition-all cursor-pointer ${ongoing ? 'border-green-300 bg-green-50/40 hover:bg-green-50/60' : 'hover:border-indigo-200 hover:bg-indigo-50/30'}`}>
+                <Card key={r.id} padding={false} className={`px-5 py-4 transition-all ${ongoing ? 'border-green-300 bg-green-50/40' : ''}`}>
+                  <Link href={`/groupes/${groupId}/repetitions/${r.id}`} className="block cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold text-gray-900 capitalize flex items-center gap-2">
@@ -213,12 +213,13 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
                         ⭐ Évaluation disponible dès la fin de la répétition{r.endTime ? ` (${r.endTime})` : ''}
                       </p>
                     )}
-                    <div className="mt-2 flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-gray-400">Ma présence :</span>
-                      <PresencePicker value={r.myAttendanceStatus} onSet={(s) => setPresence(r.id, s)} />
-                    </div>
-                  </Card>
-                </Link>
+                  </Link>
+                  {/* Présence hors du lien (sinon le tap navigue, surtout sur mobile) */}
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-gray-400">Ma présence :</span>
+                    <PresencePicker value={r.myAttendanceStatus} onSet={(s) => setPresence(r.id, s)} />
+                  </div>
+                </Card>
               )
             })}
           </div>
