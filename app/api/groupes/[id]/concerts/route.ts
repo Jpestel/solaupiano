@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
+import { sendConcertNotification } from '@/lib/email'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -135,6 +136,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
     include: { setlist: { select: { id: true, name: true, _count: { select: { songs: true } } } } },
   })
+
+  // Email à tous les membres (sauf le créateur) pour recueillir leur présence
+  try {
+    const [group, members] = await Promise.all([
+      prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+      prisma.groupMember.findMany({ where: { groupId }, include: { user: { select: { id: true, email: true, name: true } } } }),
+    ])
+    const recipients = members
+      .filter((m) => m.userId !== userId)
+      .map((m) => ({ email: m.user.email, name: m.user.name, userId: m.userId }))
+    if (recipients.length > 0) {
+      const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+      await sendConcertNotification(recipients, group?.name ?? 'Votre groupe', groupId, concert, baseUrl)
+    }
+  } catch (e) {
+    console.error('Erreur envoi email concert:', e)
+  }
 
   return NextResponse.json(concert, { status: 201 })
 }
