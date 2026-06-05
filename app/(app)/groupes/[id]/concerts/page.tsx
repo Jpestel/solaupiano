@@ -408,7 +408,18 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
   )
 
   const ConcertCard = ({ concert, dim = false }: { concert: Concert; dim?: boolean }) => (
-    <Card className={dim ? 'opacity-70' : ''}>
+    <Card className={`relative overflow-hidden ${dim ? 'opacity-70' : ''}`}>
+      {concert.status === 'CANCELLED' && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+          <span
+            className="select-none font-extrabold tracking-[0.2em] text-red-600/80 border-[5px] border-red-600/80 rounded-lg px-6 py-2 text-3xl sm:text-4xl -rotate-[18deg]"
+            style={{ textShadow: '0 1px 3px rgba(255,255,255,0.7)', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}
+          >
+            ANNULÉ
+          </span>
+        </div>
+      )}
+      <div className={concert.status === 'CANCELLED' ? 'opacity-60' : ''}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <h3 className={`font-semibold truncate ${dim ? 'text-gray-600' : 'text-gray-900'}`}>{concert.name}</h3>
@@ -610,6 +621,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
             </div>
           )
         })()}
+      </div>
       </div>
     </Card>
   )
