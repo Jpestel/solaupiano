@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { ResourceUploader } from '@/components/ResourceUploader'
 import { PendingResourceUploader } from '@/components/PendingResourceUploader'
+import { YouTubeSuggestModal } from '@/components/YouTubeSuggestModal'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { SongMetronome } from '@/components/ui/SongMetronome'
 import dynamic from 'next/dynamic'
@@ -101,6 +102,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [submitSongId, setSubmitSongId] = useState<number | null>(null)
   const [pendingExpanded, setPendingExpanded] = useState(true)
   const [canImg2Pdf, setCanImg2Pdf] = useState(false)
+  const [ytSuggest, setYtSuggest] = useState<{ id: number; title: string; artist: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/me/module-access?key=tool_img2pdf')
@@ -148,9 +150,14 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       setError(d.error || 'Erreur.')
       return
     }
+    const created = await res.json().catch(() => null)
     setAddSongOpen(false)
     setSongForm({ title: '', artist: '', notes: '', duration: '', tempo: '' })
     fetchData()
+    // Propose une vidéo YouTube officielle à ajouter en ressource
+    if (created?.id && created.title) {
+      setYtSuggest({ id: created.id, title: created.title, artist: created.artist || '' })
+    }
   }
 
   const openEdit = (song: Song) => {
@@ -710,6 +717,16 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           url={pdfModal.url}
           title={pdfModal.title}
           onClose={() => setPdfModal(null)}
+        />
+      )}
+
+      {ytSuggest && (
+        <YouTubeSuggestModal
+          songId={ytSuggest.id}
+          title={ytSuggest.title}
+          artist={ytSuggest.artist}
+          onClose={() => setYtSuggest(null)}
+          onAdded={fetchData}
         />
       )}
     </div>
