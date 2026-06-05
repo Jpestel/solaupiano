@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
+import { recomputeConcertStatus } from '@/lib/concert-status'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string; concertId: string } }) {
   const session = await getServerSession(authOptions)
@@ -27,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json()
-  const { name, date, location, address, postalCode, city, startTime, soundcheckTime, arrivalTime, arrivalInfo, guestsPerPerson, contactName, contactPhone, notes, setlistId, isPublic } = body
+  const { name, date, location, address, postalCode, city, startTime, soundcheckTime, arrivalTime, arrivalInfo, guestsPerPerson, contactName, contactPhone, notes, setlistId, isPublic, requiredUserIds, confirmDaysBefore } = body
   const strOrNull = (v: unknown) => (typeof v === 'string' && v.trim()) ? v.trim() : null
 
   const concert = await prisma.concert.update({
@@ -36,6 +37,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(name && { name }),
       ...(date && { date: new Date(date) }),
       ...(location && { location }),
+      ...(requiredUserIds !== undefined && { requiredUserIds: (Array.isArray(requiredUserIds) && requiredUserIds.length > 0) ? JSON.stringify(requiredUserIds.map(Number).filter(Number.isFinite)) : null }),
+      ...(confirmDaysBefore !== undefined && { confirmDaysBefore: (confirmDaysBefore !== '' && confirmDaysBefore !== null) ? Number(confirmDaysBefore) : null }),
       ...(address !== undefined && { address: strOrNull(address) }),
       ...(postalCode !== undefined && { postalCode: strOrNull(postalCode) }),
       ...(city !== undefined && { city: strOrNull(city) }),
@@ -54,6 +57,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       setlist: { select: { id: true, name: true, _count: { select: { songs: true } } } },
     },
   })
+
+  // Recalcul du statut de validation si la liste des obligatoires a changé
+  if (requiredUserIds !== undefined) {
+    const ids = (Array.isArray(requiredUserIds) ? requiredUserIds.map(Number).filter(Number.isFinite) : [])
+    if (ids.length === 0) {
+      await prisma.concert.update({ where: { id: concertId }, data: { status: 'CONFIRMED', cancelledAt: null, validationReminderSentAt: null } })
+    } else {
+      await recomputeConcertStatus(concertId)
+    }
+  }
 
   return NextResponse.json(concert)
 }

@@ -20,6 +20,7 @@ interface Concert {
   address?: string | null; postalCode?: string | null; city?: string | null
   startTime?: string | null; soundcheckTime?: string | null; arrivalTime?: string | null; arrivalInfo?: string | null
   guestsPerPerson?: number | null; contactName?: string | null; contactPhone?: string | null
+  requiredUserIds?: string | null; confirmDaysBefore?: number | null; status?: string
   setlist?: SetlistRef | null
   isPublic: boolean
   simulation?: SimulationRef | null
@@ -36,8 +37,54 @@ const EMPTY_FORM = {
   address: '', postalCode: '', city: '',
   startTime: '', soundcheckTime: '', arrivalTime: '', arrivalInfo: '',
   guestsPerPerson: '', contactName: '', contactPhone: '',
+  requiredUserIds: [] as number[], confirmDaysBefore: '',
 }
 type ConcertForm = typeof EMPTY_FORM
+
+// Champs « validation » : musiciens obligatoires + délai de confirmation
+function ConcertValidationFields({ form, onChange, members }: { form: ConcertForm; onChange: (p: Partial<ConcertForm>) => void; members: { userId: number; name: string }[] }) {
+  const toggle = (id: number) => {
+    const cur = form.requiredUserIds
+    onChange({ requiredUserIds: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] })
+  }
+  let deadlineStr = ''
+  if (form.date && form.confirmDaysBefore !== '') {
+    const d = new Date(form.date)
+    d.setDate(d.getDate() - Number(form.confirmDaysBefore || 0))
+    deadlineStr = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  }
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 space-y-2">
+      <p className="text-xs font-semibold text-amber-800">🎭 Validation du concert <span className="font-normal text-amber-600">(optionnel)</span></p>
+      <p className="text-[11px] text-amber-700 leading-snug">Cochez les musiciens <strong>indispensables</strong>. Tant qu&apos;ils n&apos;ont pas tous confirmé leur présence, le concert reste « en attente ». Passé le délai sans confirmation complète, il est automatiquement annulé.</p>
+      {members.length === 0 ? (
+        <p className="text-[11px] text-gray-400">Aucun membre.</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {members.map((m) => {
+            const on = form.requiredUserIds.includes(m.userId)
+            return (
+              <button key={m.userId} type="button" onClick={() => toggle(m.userId)}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium border transition-colors ${on ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-100'}`}>
+                {on ? '✓ ' : ''}{m.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {form.requiredUserIds.length > 0 && (
+        <div className="pt-1">
+          <label className="form-label">Réponse attendue au plus tard</label>
+          <div className="flex items-center gap-2">
+            <input type="number" min={0} max={365} value={form.confirmDaysBefore} onChange={(e) => onChange({ confirmDaysBefore: e.target.value })} className="form-input w-24" placeholder="ex : 7" />
+            <span className="text-sm text-gray-500">jours avant le concert</span>
+          </div>
+          {deadlineStr && <p className="text-[11px] text-amber-700 mt-1">→ soit le <strong className="capitalize">{deadlineStr}</strong></p>}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // Champs lieu (adresse structurée) + logistique, partagés création/édition
 function ConcertVenueLogistics({ form, onChange }: { form: ConcertForm; onChange: (p: Partial<ConcertForm>) => void }) {
@@ -113,6 +160,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
   const [setlists, setSetlists] = useState<SetlistRef[]>([])
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null)
   const [unavs, setUnavs] = useState<{ userId: number; startDate: string; endDate: string; note: string | null; user: { name: string } }[]>([])
+  const [members, setMembers] = useState<{ userId: number; name: string }[]>([])
   const [loading, setLoading] = useState(true)
 
   // Create
@@ -239,6 +287,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       const me = g.members?.find((m: any) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
       setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, hasEvaluations: g.planFeatures?.hasEvaluations ?? true })
+      setMembers((g.members ?? []).map((m: any) => ({ userId: m.userId, name: m.user?.name ?? '—' })))
     }
     setLoading(false)
   }
@@ -280,6 +329,8 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
       guestsPerPerson: concert.guestsPerPerson != null ? String(concert.guestsPerPerson) : '',
       contactName: concert.contactName || '',
       contactPhone: concert.contactPhone || '',
+      requiredUserIds: (() => { try { return concert.requiredUserIds ? JSON.parse(concert.requiredUserIds) : [] } catch { return [] } })(),
+      confirmDaysBefore: concert.confirmDaysBefore != null ? String(concert.confirmDaysBefore) : '',
     })
     setEditError('')
   }
@@ -365,6 +416,9 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
             ? <span className="flex-shrink-0 text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">🔒 Privé</span>
             : <span className="flex-shrink-0 text-xs font-medium px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100">🌐 Public</span>
           }
+          {concert.status === 'PENDING' && <span className="flex-shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">⏳ En attente</span>}
+          {concert.status === 'CONFIRMED' && (concert.requiredUserIds) && <span className="flex-shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">✅ Confirmé</span>}
+          {concert.status === 'CANCELLED' && <span className="flex-shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">❌ Annulé</span>}
         </div>
         <span className="text-2xl flex-shrink-0 ml-2">🎭</span>
       </div>
@@ -387,6 +441,26 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
           {concert.contactName && <span className="rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-gray-600">📞 {concert.contactName}{concert.contactPhone ? ` · ${concert.contactPhone}` : ''}</span>}
         </div>
       )}
+
+      {/* Confirmations des musiciens obligatoires */}
+      {(() => {
+        let required: number[] = []
+        try { required = concert.requiredUserIds ? JSON.parse(concert.requiredUserIds) : [] } catch { required = [] }
+        if (required.length === 0) return null
+        const presentIds = new Set((concert.attendances || []).map((a) => a.userId))
+        const confirmed = required.filter((id) => presentIds.has(id)).length
+        const ok = confirmed >= required.length
+        return (
+          <div className={`mt-2 rounded-lg px-3 py-2 text-xs border ${concert.status === 'CANCELLED' ? 'bg-red-50 border-red-100 text-red-700' : ok ? 'bg-green-50 border-green-100 text-green-700' : 'bg-amber-50 border-amber-100 text-amber-800'}`}>
+            🎭 <strong>{confirmed}/{required.length}</strong> musicien{required.length > 1 ? 's' : ''} indispensable{required.length > 1 ? 's' : ''} {ok ? 'ont confirmé ✓' : 'ont confirmé'}
+            {!ok && concert.status !== 'CANCELLED' && concert.confirmDaysBefore != null && (() => {
+              const d = new Date(concert.date); d.setDate(d.getDate() - (concert.confirmDaysBefore || 0))
+              return <span> · réponse attendue avant le <strong className="capitalize">{d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</strong></span>
+            })()}
+            {concert.status === 'CANCELLED' && <span> · concert annulé faute de confirmation</span>}
+          </div>
+        )
+      })()}
 
       {concert.setlist && (
         <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -608,6 +682,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
             })()}
           </div>
           <ConcertVenueLogistics form={form} onChange={(p) => setForm((f) => ({ ...f, ...p }))} />
+          <ConcertValidationFields form={form} onChange={(p) => setForm((f) => ({ ...f, ...p }))} members={members} />
           <SetlistSelect value={form.setlistId} onChange={(v) => setForm({ ...form, setlistId: v })} />
           <div>
             <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>
@@ -647,6 +722,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
             <input type="date" required value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="form-input" />
           </div>
           <ConcertVenueLogistics form={editForm} onChange={(p) => setEditForm((f) => ({ ...f, ...p }))} />
+          <ConcertValidationFields form={editForm} onChange={(p) => setEditForm((f) => ({ ...f, ...p }))} members={members} />
           <SetlistSelect value={editForm.setlistId} onChange={(v) => setEditForm({ ...editForm, setlistId: v })} />
           <div>
             <label className="form-label">Notes <span className="text-gray-400 font-normal">(optionnel)</span></label>

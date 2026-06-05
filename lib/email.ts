@@ -136,6 +136,75 @@ export async function sendRehearsalNotification(
   )
 }
 
+// ─── Rappel de confirmation (membres obligatoires) ──────────────────────────
+export async function sendConcertValidationReminder(
+  members: { email: string; name: string; userId: number }[],
+  groupName: string,
+  groupId: number,
+  concert: { id: number; name: string; date: Date; location: string },
+  deadlineStr: string,
+  baseUrl: string
+) {
+  const dateStr = new Date(concert.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const tpl = await getEmailTemplate('concert_validation_reminder')
+  await Promise.all(
+    members.map(({ email, name, userId }) => {
+      const { subject, introHtml, outroHtml } = tpl.render({ memberName: name, groupName, concertName: concert.name, date: dateStr, deadline: deadlineStr })
+      const presentUrl = `${baseUrl}/presence?c=${concert.id}&u=${userId}&t=${signConcertPresence(concert.id, userId)}&a=present`
+      const absentUrl = `${baseUrl}/presence?c=${concert.id}&u=${userId}&t=${signConcertPresence(concert.id, userId)}&a=absent`
+      return resend.emails.send({
+        from: 'Sol au piano <noreply@solaupiano.fr>',
+        to: email,
+        subject,
+        html: emailWrapper(`
+          ${introHtml}
+          ${dataBox(`
+            <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #b45309;">🎭 ${concert.name}</p>
+            <p style="margin: 0 0 4px; font-size: 13px; color: #b45309; text-transform: capitalize;">${dateStr}</p>
+            <p style="margin: 0 0 4px; font-size: 13px; color: #b45309;">📍 ${concert.location}</p>
+            <p style="margin: 6px 0 0; font-size: 13px; color: #b91c1c; font-weight: 700;">⏳ Réponse attendue au plus tard le ${deadlineStr}</p>
+          `)}
+          ${outroHtml}
+          <div style="text-align:center; margin: 16px 0 6px;">
+            <a href="${presentUrl}" style="display:inline-block; background:#16a34a; color:#fff; text-decoration:none; padding:11px 18px; border-radius:8px; font-weight:700; font-size:14px; margin:4px;">✅ Je confirme ma présence</a>
+            <a href="${absentUrl}" style="display:inline-block; background:#dc2626; color:#fff; text-decoration:none; padding:11px 18px; border-radius:8px; font-weight:700; font-size:14px; margin:4px;">❌ Je ne serai pas là</a>
+          </div>
+        `),
+      })
+    })
+  )
+}
+
+// ─── Concert annulé faute de confirmation ────────────────────────────────────
+export async function sendConcertCancelled(
+  members: { email: string; name: string }[],
+  groupName: string,
+  concert: { name: string; date: Date; location: string },
+  baseUrl: string
+) {
+  const dateStr = new Date(concert.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const tpl = await getEmailTemplate('concert_cancelled')
+  await Promise.all(
+    members.map(({ email, name }) => {
+      const { subject, introHtml, outroHtml } = tpl.render({ memberName: name, groupName, concertName: concert.name, date: dateStr })
+      return resend.emails.send({
+        from: 'Sol au piano <noreply@solaupiano.fr>',
+        to: email,
+        subject,
+        html: emailWrapper(`
+          ${introHtml}
+          ${dataBox(`
+            <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #6b7280; text-decoration: line-through;">🎭 ${concert.name}</p>
+            <p style="margin: 0 0 4px; font-size: 13px; color: #6b7280; text-transform: capitalize;">${dateStr}</p>
+            <p style="margin: 0; font-size: 13px; color: #6b7280;">📍 ${concert.location}</p>
+          `)}
+          ${outroHtml}
+        `),
+      })
+    })
+  )
+}
+
 // ─── Nouveau concert : demande de présence ──────────────────────────────────
 export async function sendConcertNotification(
   members: { email: string; name: string; userId: number }[],

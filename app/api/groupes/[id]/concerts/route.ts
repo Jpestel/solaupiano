@@ -70,6 +70,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       address: c.address, postalCode: c.postalCode, city: c.city,
       startTime: c.startTime, soundcheckTime: c.soundcheckTime, arrivalTime: c.arrivalTime, arrivalInfo: c.arrivalInfo,
       guestsPerPerson: c.guestsPerPerson, contactName: c.contactName, contactPhone: c.contactPhone,
+      requiredUserIds: c.requiredUserIds, confirmDaysBefore: c.confirmDaysBefore, status: c.status,
       attendances: c.attendances,
       evaluations,
       peerVisibility: visibility,
@@ -105,7 +106,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const body = await req.json()
-  const { name, date, location, address, postalCode, city, startTime, soundcheckTime, arrivalTime, arrivalInfo, guestsPerPerson, contactName, contactPhone, notes, setlistId, isPublic } = body
+  const { name, date, location, address, postalCode, city, startTime, soundcheckTime, arrivalTime, arrivalInfo, guestsPerPerson, contactName, contactPhone, notes, setlistId, isPublic, requiredUserIds, confirmDaysBefore } = body
+  const requiredIds: number[] = Array.isArray(requiredUserIds) ? requiredUserIds.map(Number).filter(Number.isFinite) : []
 
   if (!name || !date || !location) {
     return NextResponse.json({ error: 'Nom, date et lieu sont requis.' }, { status: 400 })
@@ -130,6 +132,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       guestsPerPerson: (guestsPerPerson !== undefined && guestsPerPerson !== '' && guestsPerPerson !== null) ? Number(guestsPerPerson) : null,
       contactName: contactName?.trim() || null,
       contactPhone: contactPhone?.trim() || null,
+      requiredUserIds: requiredIds.length > 0 ? JSON.stringify(requiredIds) : null,
+      confirmDaysBefore: (confirmDaysBefore !== undefined && confirmDaysBefore !== '' && confirmDaysBefore !== null) ? Number(confirmDaysBefore) : null,
+      status: requiredIds.length > 0 ? 'PENDING' : 'CONFIRMED',
       notes: notes || null,
       setlistId: setlistId ? Number(setlistId) : null,
       isPublic: isPublic !== false,

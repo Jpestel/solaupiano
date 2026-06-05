@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
   // ── Concerts (mêmes règles : la veille, présents non évalués) ──────────────
   const concerts = await prisma.concert.findMany({
-    where: { date: { gte: windowStart, lt: new Date(now.getTime() + 24 * 60 * 60 * 1000) }, group: { archivedAt: null } },
+    where: { date: { gte: windowStart, lt: new Date(now.getTime() + 24 * 60 * 60 * 1000) }, group: { archivedAt: null }, status: { not: 'CANCELLED' } },
     include: {
       group: { select: { id: true, name: true, plan: true } },
       attendances: { where: { status: 'PRESENT' }, include: { user: { select: { id: true, email: true, name: true, evaluationReminderOptOut: true, emailVerified: true } } } },

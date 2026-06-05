@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { verifyPresence, verifyConcertPresence } from '@/lib/presence-token'
+import { recomputeConcertStatus } from '@/lib/concert-status'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +36,7 @@ export default async function PresencePage({ searchParams }: { searchParams: { r
         if (action === 'ABSENT') {
           await prisma.concertEvaluation.deleteMany({ where: { concertId: eventId, evaluatorId: userId } })
         }
+        await recomputeConcertStatus(eventId)
         done = true
       }
     } else {

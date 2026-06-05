@@ -619,6 +619,12 @@ model Concert {
   guestsPerPerson Int?    // nombre d'accompagnants autorisés par musicien
   contactName     String? // contact sur place
   contactPhone    String?
+  // Validation du concert : membres devant obligatoirement confirmer leur présence
+  requiredUserIds        String?  // JSON : userIds devant obligatoirement être présents
+  confirmDaysBefore      Int?     // délai de réponse : X jours avant la date (deadline = date - X)
+  status                 String   @default("CONFIRMED") // PENDING | CONFIRMED | CANCELLED
+  validationReminderSentAt DateTime?
+  cancelledAt            DateTime?
   notes     String?  @db.Text
   setlistId Int?
   isPublic  Boolean  @default(true)
