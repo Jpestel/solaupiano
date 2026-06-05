@@ -662,6 +662,9 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       <Modal isOpen={addSongOpen} onClose={() => setAddSongOpen(false)} title="Ajouter un morceau">
         <form onSubmit={handleAddSong} className="space-y-4">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 text-xs text-indigo-700">
+            🎬 Après l&apos;ajout, une recherche YouTube vous proposera plusieurs vidéos à associer en un clic. Renseignez le <strong>titre <em>et</em> l&apos;artiste</strong> pour de meilleures suggestions.
+          </div>
           <div>
             <label className="form-label">Titre *</label>
             <input type="text" required value={songForm.title} onChange={(e) => setSongForm({ ...songForm, title: e.target.value })} className="form-input" placeholder="ex: La Vie en Rose" />
