@@ -43,7 +43,6 @@ export function YouTubeSuggestModal({ songId, title, artist, onClose, onAdded }:
   // Sites pour travailler le morceau (accords, paroles, play-along, tabs)
   const PRACTICE = [
     { label: 'Chordify', icon: '🎸', desc: 'Accords synchronisés / play-along', url: `https://chordify.net/search/${enc}` },
-    { label: 'La Boîte à Chansons', icon: '🎶', desc: 'Accords & paroles (FR)', url: `https://www.laboiteachansons.net/recherche?q=${enc}` },
     { label: 'Ultimate Guitar', icon: '🎸', desc: 'Tablatures & accords', url: `https://www.ultimate-guitar.com/search.php?search_type=title&value=${enc}` },
     { label: 'Songsterr', icon: '🎸', desc: 'Tablatures interactives', url: `https://www.songsterr.com/?pattern=${enc}` },
     { label: 'Lyrics (Genius)', icon: '📝', desc: 'Paroles', url: `https://genius.com/search?q=${enc}` },
