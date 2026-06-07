@@ -102,7 +102,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [submitSongId, setSubmitSongId] = useState<number | null>(null)
   const [pendingExpanded, setPendingExpanded] = useState(true)
   const [canImg2Pdf, setCanImg2Pdf] = useState(false)
-  const [ytSuggest, setYtSuggest] = useState<{ id: number; title: string; artist: string } | null>(null)
+  const [ytSuggest, setYtSuggest] = useState<{ id: number; title: string; artist: string; hasDuration: boolean } | null>(null)
 
   useEffect(() => {
     fetch('/api/me/module-access?key=tool_img2pdf')
@@ -156,7 +156,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     fetchData()
     // Propose une vidéo YouTube officielle à ajouter en ressource
     if (created?.id && created.title) {
-      setYtSuggest({ id: created.id, title: created.title, artist: created.artist || '' })
+      setYtSuggest({ id: created.id, title: created.title, artist: created.artist || '', hasDuration: !!durationSeconds })
     }
   }
 
@@ -729,6 +729,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           groupId={groupId}
           title={ytSuggest.title}
           artist={ytSuggest.artist}
+          hasDuration={ytSuggest.hasDuration}
           onClose={() => setYtSuggest(null)}
           onAdded={fetchData}
         />

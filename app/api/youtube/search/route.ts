@@ -4,7 +4,17 @@ import { authOptions } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-interface YtResult { videoId: string; title: string; channel: string; thumbnail: string; url: string }
+interface YtResult { videoId: string; title: string; channel: string; thumbnail: string; url: string; duration: string }
+
+// ISO 8601 (PT3M45S) → "3:45"
+function isoToClock(iso: string): string {
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+  if (!m) return ''
+  const total = (+(m[1] || 0)) * 3600 + (+(m[2] || 0)) * 60 + (+(m[3] || 0))
+  if (!total) return ''
+  const mm = Math.floor(total / 60), ss = total % 60
+  return `${mm}:${String(ss).padStart(2, '0')}`
+}
 
 // Extrait le 1er objet JSON équilibré après un marqueur dans du HTML.
 function extractJsonAfter(html: string, marker: string): string | null {
@@ -39,12 +49,27 @@ async function searchViaApi(q: string, key: string): Promise<YtResult[]> {
   if (!r.ok) return []
   const d = await r.json()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (d.items || []).map((it: any) => ({
+  const items = (d.items || []) as any[]
+  const ids = items.map((it) => it.id.videoId).filter(Boolean)
+  // Durées via videos.list
+  const durMap = new Map<string, string>()
+  if (ids.length) {
+    try {
+      const vr = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${ids.join(',')}&key=${key}`)
+      if (vr.ok) {
+        const vd = await vr.json()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const v of (vd.items || []) as any[]) durMap.set(v.id, isoToClock(v.contentDetails?.duration || ''))
+      }
+    } catch { /* ignore */ }
+  }
+  return items.map((it) => ({
     videoId: it.id.videoId,
     title: it.snippet.title,
     channel: it.snippet.channelTitle,
     thumbnail: it.snippet.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${it.id.videoId}/mqdefault.jpg`,
     url: `https://www.youtube.com/watch?v=${it.id.videoId}`,
+    duration: durMap.get(it.id.videoId) || '',
   }))
 }
 
@@ -76,6 +101,7 @@ async function searchViaScrape(q: string): Promise<YtResult[]> {
       channel: v.ownerText?.runs?.[0]?.text || v.longBylineText?.runs?.[0]?.text || '',
       thumbnail: v.thumbnail?.thumbnails?.slice(-1)?.[0]?.url || `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`,
       url: `https://www.youtube.com/watch?v=${v.videoId}`,
+      duration: v.lengthText?.simpleText || '',
     })
     if (out.length >= 6) break
   }

@@ -3,14 +3,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { buildUrl } from '@/lib/resource-links'
 
-interface YtResult { videoId: string; title: string; channel: string; thumbnail: string; url: string }
+interface YtResult { videoId: string; title: string; channel: string; thumbnail: string; url: string; duration?: string }
 interface RLink { id: number; label: string; icon: string; category: string; urlTemplate: string; description: string | null; active: boolean }
 
-export function YouTubeSuggestModal({ songId, groupId, title, artist, onClose, onAdded }: {
+function clockToSeconds(s: string): number {
+  const parts = s.split(':').map((n) => parseInt(n, 10))
+  if (parts.some((n) => isNaN(n))) return 0
+  return parts.reduce((a, p) => a * 60 + p, 0)
+}
+
+export function YouTubeSuggestModal({ songId, groupId, title, artist, hasDuration = true, onClose, onAdded }: {
   songId: number
   groupId: number | string
   title: string
   artist?: string
+  hasDuration?: boolean
   onClose: () => void
   onAdded?: () => void
 }) {
@@ -27,6 +34,10 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, onClose, o
   const [reqMsg, setReqMsg] = useState('')
   const [sending, setSending] = useState(false)
   const [reqDone, setReqDone] = useState(false)
+
+  // Durée auto
+  const [durApplied, setDurApplied] = useState(false)
+  const [durBusy, setDurBusy] = useState(false)
 
   const q = `${title} ${artist || ''}`.trim()
 
@@ -66,6 +77,24 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, onClose, o
   const active = links.filter((l) => l.active)
   const inactive = links.filter((l) => !l.active)
 
+  // Durée détectée (1ère vidéo dont la durée ressemble à un morceau : 30s–15min)
+  const suggestedDur = (() => {
+    if (hasDuration) return null
+    for (const v of videos) {
+      if (!v.duration) continue
+      const sec = clockToSeconds(v.duration)
+      if (sec >= 30 && sec <= 900) return { label: v.duration, sec }
+    }
+    return null
+  })()
+
+  const applyDuration = async () => {
+    if (!suggestedDur) return
+    setDurBusy(true)
+    await fetch(`/api/morceaux/${songId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ durationSeconds: suggestedDur.sec }) })
+    setDurBusy(false); setDurApplied(true); onAdded?.()
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/40 overflow-y-auto" onClick={onClose}>
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl my-4 max-h-[calc(100vh-2rem)] flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -80,6 +109,20 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, onClose, o
         </div>
 
         <div className="overflow-y-auto px-6 py-4 space-y-5">
+          {/* Durée détectée */}
+          {!hasDuration && suggestedDur && !durApplied && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-center justify-between gap-3">
+              <p className="text-xs text-amber-800">⏱ Durée détectée sur YouTube : <strong>{suggestedDur.label}</strong> — l&apos;ajouter au morceau ?</p>
+              <button onClick={applyDuration} disabled={durBusy}
+                className="flex-shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-60">
+                {durBusy ? '…' : 'Ajouter'}
+              </button>
+            </div>
+          )}
+          {durApplied && (
+            <div className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">✓ Durée enregistrée pour ce morceau.</div>
+          )}
+
           {/* Vidéos */}
           <div>
             <h4 className="text-sm font-semibold text-gray-800 mb-2">🎬 Vidéos (YouTube)</h4>
