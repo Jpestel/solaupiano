@@ -663,7 +663,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
         <form onSubmit={handleAddSong} className="space-y-4">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
           <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 text-xs text-indigo-700">
-            🔎 Après l&apos;ajout, on vous proposera automatiquement des <strong>vidéos YouTube</strong> et des <strong>partitions / fichiers gratuits</strong> à associer en un clic. Renseignez le <strong>titre <em>et</em> l&apos;artiste</strong> pour de meilleures suggestions.
+            🔎 Après l&apos;ajout, on vous proposera des <strong>vidéos YouTube</strong> (à associer en un clic) ainsi que des liens vers des <strong>partitions</strong> et des <strong>sites pour travailler le morceau</strong>. Renseignez le <strong>titre <em>et</em> l&apos;artiste</strong> pour de meilleures suggestions.
           </div>
           <div>
             <label className="form-label">Titre *</label>
