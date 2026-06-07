@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 interface Res {
   id: number; type: string; title: string
@@ -225,23 +226,23 @@ export default function RessourcesPartageesPage({ params }: { params: { id: stri
               </div>
 
               <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                placeholder="Titre *" required className={inp} autoFocus />
+                placeholder={ph('groupes_id_ressources_partagees_1')} required className={inp} autoFocus />
 
               {(form.type === 'LINK' || form.type === 'SHOP' || form.type === 'CONTACT') && (
                 <input type="url" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
-                  placeholder={form.type === 'LINK' ? 'https://… *' : 'Site web (optionnel)'} className={inp} required={form.type === 'LINK'} />
+                  placeholder={form.type === 'LINK' ? ph('ressources_url_link') : ph('ressources_url_site')} className={inp} required={form.type === 'LINK'} />
               )}
               {form.type === 'SHOP' && (
                 <input type="text" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                  placeholder="Adresse physique" className={inp} />
+                  placeholder={ph('groupes_id_ressources_partagees_2')} className={inp} />
               )}
               {(form.type === 'CONTACT' || form.type === 'SHOP') && (
                 <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                  placeholder="Téléphone" className={inp} />
+                  placeholder={ph('groupes_id_ressources_partagees_3')} className={inp} />
               )}
               {form.type === 'CONTACT' && (
                 <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="E-mail" className={inp} />
+                  placeholder={ph('groupes_id_ressources_partagees_4')} className={inp} />
               )}
               {form.type === 'FILE' && (
                 <div>
@@ -254,7 +255,7 @@ export default function RessourcesPartageesPage({ params }: { params: { id: stri
               )}
 
               <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-                placeholder="Note / description (optionnel)" rows={2} className={`${inp} resize-none`} />
+                placeholder={ph('groupes_id_ressources_partagees_5')} rows={2} className={`${inp} resize-none`} />
 
               <div className="flex justify-end gap-3 pt-1">
                 <button type="button" onClick={() => setAddOpen(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Annuler</button>

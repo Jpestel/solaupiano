@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { SequencePlayer, Sequence } from '@/components/ui/SequencePlayer'
+import { ph } from '@/lib/placeholders'
 
 interface SeqItem extends Sequence {
   fileSize: number
@@ -167,7 +168,7 @@ export default function SequencesPage({ params }: { params: { id: string; songId
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Titre (optionnel)</label>
-                  <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ex : Backing + click"
+                  <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={ph('groupes_id_morceaux_songid_sequences_1')}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
                 </div>
                 <div>

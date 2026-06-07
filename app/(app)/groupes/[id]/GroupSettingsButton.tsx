@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LookingForSelector } from '@/components/ui/LookingForSelector'
 import { MUSIC_GENRES } from '@/lib/genres'
+import { ph } from '@/lib/placeholders'
 
 type Visibility = 'public' | 'private' | 'hidden'
 
@@ -146,7 +147,7 @@ export function GroupSettingsButton({ groupId, initialName, initialDescription, 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="form-input"
-                  placeholder="Description du groupe..."
+                  placeholder={ph('groupes_id_groupsettingsbutton_1')}
                 />
               </div>
               <div>

@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { ph } from '@/lib/placeholders'
 
 interface Instrument {
   id: number
@@ -183,7 +184,7 @@ export default function AdminUtilisateursPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="🔍 Nom ou email…"
+          placeholder={ph('admin_utilisateurs_1')}
           className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 w-48"
         />
         <select value={String(groupFilter)} onChange={(e) => setGroupFilter(e.target.value === 'all' || e.target.value === 'none' ? e.target.value : Number(e.target.value))}

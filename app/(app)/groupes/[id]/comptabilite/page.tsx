@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 interface Member { userId: number; name: string }
 interface Share { id: number; userId: number; amount: number; paid: boolean; paidAt: string | null; user: { id: number; name: string } }
@@ -198,15 +199,15 @@ export default function ComptabilitePage({ params }: { params: { id: string } })
             <h2 className="text-lg font-bold text-gray-900">Nouvelle dépense</h2>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2"><label className="block text-xs font-medium text-gray-600 mb-1">Intitulé *</label>
-                <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="ex : Location salle" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" /></div>
+                <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={ph('groupes_id_comptabilite_1')} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" /></div>
               <div><label className="block text-xs font-medium text-gray-600 mb-1">Montant total (€) *</label>
                 <input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" /></div>
               <div><label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
                 <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" /></div>
               <div><label className="block text-xs font-medium text-gray-600 mb-1">Période (optionnel)</label>
-                <input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} placeholder="ex : Juin 2026" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" /></div>
+                <input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} placeholder={ph('groupes_id_comptabilite_2')} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" /></div>
               <div><label className="block text-xs font-medium text-gray-600 mb-1">Catégorie (optionnel)</label>
-                <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Salle, Matériel…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" /></div>
+                <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder={ph('groupes_id_comptabilite_3')} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" /></div>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Qui a avancé l'argent ?</label>
@@ -236,7 +237,7 @@ export default function ComptabilitePage({ params }: { params: { id: string } })
                     )}
                     {splitMode === 'equal'
                       ? (selectedIds.includes(m.userId) && equalPreview && <span className="text-xs text-gray-400">{equalPreview} €</span>)
-                      : <input type="number" step="0.01" min="0" value={customShares[m.userId] || ''} onChange={(e) => setCustomShares((c) => ({ ...c, [m.userId]: e.target.value }))} placeholder="0" className="w-24 rounded border border-gray-200 px-2 py-1 text-xs text-right" />}
+                      : <input type="number" step="0.01" min="0" value={customShares[m.userId] || ''} onChange={(e) => setCustomShares((c) => ({ ...c, [m.userId]: e.target.value }))} placeholder={ph('groupes_id_comptabilite_4')} className="w-24 rounded border border-gray-200 px-2 py-1 text-xs text-right" />}
                   </div>
                 ))}
               </div>

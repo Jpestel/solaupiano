@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ph } from '@/lib/placeholders'
 
 const PRESETS = ['Bassiste', 'Batteur', 'Guitariste', 'Chanteur', 'Pianiste', 'Violoniste', 'Saxophoniste', 'Trompettiste', 'Accordéoniste', 'Contrebassiste']
 
@@ -54,7 +55,7 @@ export function LookingForSelector({ value, onChange }: Props) {
           onChange={(e) => setCustom(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom() } }}
           className="form-input flex-1 text-sm"
-          placeholder="Autre instrument..."
+          placeholder={ph('cmp_ui_lookingforselector_1')}
         />
         <button
           type="button"

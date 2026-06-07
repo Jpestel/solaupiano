@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ph } from '@/lib/placeholders'
 
 export function NewsletterSignup({ variant = 'light' }: { variant?: 'light' | 'dark' }) {
   const [email, setEmail] = useState('')
@@ -36,7 +37,7 @@ export function NewsletterSignup({ variant = 'light' }: { variant?: 'light' | 'd
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Votre adresse email"
+        placeholder={ph('cmp_newslettersignup_1')}
         className={`flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${dark ? 'bg-white/15 text-white placeholder-white/60 border border-white/20 focus:ring-white/40' : 'border border-gray-300 focus:ring-indigo-400'}`}
       />
       <button

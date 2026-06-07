@@ -11,6 +11,7 @@ import { GroupRoleBadge } from '@/components/ui/Badge'
 import { GearManager } from './GearManager'
 import { formatDateWithDay } from '@/lib/utils'
 import { getShape, LOOKS, STAGE_COLORS, DEFAULT_STAGE_COLOR, resolveLook } from '@/components/ui/StageGraphics'
+import { ph } from '@/lib/placeholders'
 
 interface Instrument {
   id: number
@@ -494,7 +495,7 @@ export default function ProfilPage() {
                   value={stageName}
                   onChange={(e) => setStageName(e.target.value)}
                   className="form-input"
-                  placeholder={name || 'Ex : DJ Lulu'}
+                  placeholder={name || ph('profil_stagename')}
                   maxLength={40}
                 />
                 <p className="text-xs text-gray-400 mt-1">Affiché sur les plans de scène. Laissez vide pour utiliser votre nom.</p>
@@ -568,7 +569,7 @@ export default function ProfilPage() {
                     value={gusoNumber}
                     onChange={(e) => setGusoNumber(e.target.value)}
                     className="form-input"
-                    placeholder="Ex : 123456789"
+                    placeholder={ph('profil_1')}
                   />
                 </div>
               )}
@@ -612,7 +613,7 @@ export default function ProfilPage() {
                       value={instrumentSearch}
                       onChange={(e) => setInstrumentSearch(e.target.value)}
                       className="form-input"
-                      placeholder="🔍 Rechercher un instrument…"
+                      placeholder={ph('profil_2')}
                     />
 
                     {/* Liste filtrée bornée */}
@@ -680,7 +681,7 @@ export default function ProfilPage() {
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     required
                     className="form-input pr-10"
-                    placeholder="••••••••"
+                    placeholder={ph('profil_3')}
                     autoComplete="current-password"
                   />
                   <button
@@ -702,7 +703,7 @@ export default function ProfilPage() {
                   required
                   minLength={8}
                   className="form-input"
-                  placeholder="8 caractères minimum"
+                  placeholder={ph('profil_4')}
                   autoComplete="new-password"
                 />
               </div>
@@ -719,7 +720,7 @@ export default function ProfilPage() {
                       ? 'border-red-300 focus:ring-red-300'
                       : ''
                   }`}
-                  placeholder="••••••••"
+                  placeholder={ph('profil_5')}
                   autoComplete="new-password"
                 />
                 {confirmPassword && confirmPassword !== newPassword && (

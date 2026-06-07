@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { buildUrl } from '@/lib/resource-links'
+import { ph } from '@/lib/placeholders'
 
 interface YtResult { videoId: string; title: string; channel: string; thumbnail: string; url: string; duration?: string }
 interface RLink { id: number; label: string; icon: string; category: string; urlTemplate: string; description: string | null; active: boolean }
@@ -210,7 +211,7 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, hasDuratio
                       </div>
                     </div>
                   )}
-                  <textarea value={reqMsg} onChange={(e) => setReqMsg(e.target.value)} rows={2} placeholder="Message (optionnel)…" className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
+                  <textarea value={reqMsg} onChange={(e) => setReqMsg(e.target.value)} rows={2} placeholder={ph('cmp_youtubesuggestmodal_1')} className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
                   <button onClick={sendRequest} disabled={sending || (activateIds.size === 0 && deactivateIds.size === 0)}
                     className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60">
                     {sending ? 'Envoi…' : 'Envoyer la demande à l\'admin'}

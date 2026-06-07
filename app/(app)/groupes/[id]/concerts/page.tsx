@@ -9,6 +9,7 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { StarRating, EvaluationModal, PresencePicker } from '@/components/ui/RehearsalEvaluation'
+import { ph } from '@/lib/placeholders'
 
 interface SetlistRef { id: number; name: string; _count: { songs: number } }
 interface SimulationRef { id: number; label: string; data: any }
@@ -76,7 +77,7 @@ function ConcertValidationFields({ form, onChange, members }: { form: ConcertFor
         <div className="pt-1">
           <label className="form-label">Réponse attendue au plus tard</label>
           <div className="flex items-center gap-2">
-            <input type="number" min={0} max={365} value={form.confirmDaysBefore} onChange={(e) => onChange({ confirmDaysBefore: e.target.value })} className="form-input w-24" placeholder="ex : 7" />
+            <input type="number" min={0} max={365} value={form.confirmDaysBefore} onChange={(e) => onChange({ confirmDaysBefore: e.target.value })} className="form-input w-24" placeholder={ph('groupes_id_concerts_1')} />
             <span className="text-sm text-gray-500">jours avant le concert</span>
           </div>
           {deadlineStr && <p className="text-[11px] text-amber-700 mt-1">→ soit le <strong className="capitalize">{deadlineStr}</strong></p>}
@@ -92,20 +93,20 @@ function ConcertVenueLogistics({ form, onChange }: { form: ConcertForm; onChange
     <>
       <div>
         <label className="form-label">Salle / nom du lieu <span className="text-red-500">*</span></label>
-        <input type="text" required value={form.location} onChange={(e) => onChange({ location: e.target.value })} className="form-input" placeholder="ex : Le Tetris, Salle des fêtes…" />
+        <input type="text" required value={form.location} onChange={(e) => onChange({ location: e.target.value })} className="form-input" placeholder={ph('groupes_id_concerts_2')} />
       </div>
       <div>
         <label className="form-label">Adresse <span className="text-red-500">*</span></label>
-        <input type="text" required value={form.address} onChange={(e) => onChange({ address: e.target.value })} className="form-input" placeholder="N° et rue" />
+        <input type="text" required value={form.address} onChange={(e) => onChange({ address: e.target.value })} className="form-input" placeholder={ph('groupes_id_concerts_3')} />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="form-label">Code postal <span className="text-red-500">*</span></label>
-          <input type="text" required value={form.postalCode} onChange={(e) => onChange({ postalCode: e.target.value })} className="form-input" placeholder="76600" />
+          <input type="text" required value={form.postalCode} onChange={(e) => onChange({ postalCode: e.target.value })} className="form-input" placeholder={ph('groupes_id_concerts_4')} />
         </div>
         <div className="col-span-2">
           <label className="form-label">Ville <span className="text-red-500">*</span></label>
-          <input type="text" required value={form.city} onChange={(e) => onChange({ city: e.target.value })} className="form-input" placeholder="Le Havre" />
+          <input type="text" required value={form.city} onChange={(e) => onChange({ city: e.target.value })} className="form-input" placeholder={ph('groupes_id_concerts_5')} />
         </div>
       </div>
 
@@ -129,23 +130,23 @@ function ConcertVenueLogistics({ form, onChange }: { form: ConcertForm; onChange
         </div>
         <div>
           <label className="form-label">Pour qui / précisions</label>
-          <input type="text" value={form.arrivalInfo} onChange={(e) => onChange({ arrivalInfo: e.target.value })} className="form-input" placeholder="ex : techniciens, tout le groupe…" />
+          <input type="text" value={form.arrivalInfo} onChange={(e) => onChange({ arrivalInfo: e.target.value })} className="form-input" placeholder={ph('groupes_id_concerts_6')} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="form-label">Accompagnants / musicien</label>
-          <input type="number" min={0} max={20} value={form.guestsPerPerson} onChange={(e) => onChange({ guestsPerPerson: e.target.value })} className="form-input" placeholder="ex : 2" />
+          <input type="number" min={0} max={20} value={form.guestsPerPerson} onChange={(e) => onChange({ guestsPerPerson: e.target.value })} className="form-input" placeholder={ph('groupes_id_concerts_7')} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="form-label">Contact sur place</label>
-          <input type="text" value={form.contactName} onChange={(e) => onChange({ contactName: e.target.value })} className="form-input" placeholder="Nom" />
+          <input type="text" value={form.contactName} onChange={(e) => onChange({ contactName: e.target.value })} className="form-input" placeholder={ph('groupes_id_concerts_8')} />
         </div>
         <div>
           <label className="form-label">Téléphone</label>
-          <input type="tel" value={form.contactPhone} onChange={(e) => onChange({ contactPhone: e.target.value })} className="form-input" placeholder="06…" />
+          <input type="tel" value={form.contactPhone} onChange={(e) => onChange({ contactPhone: e.target.value })} className="form-input" placeholder={ph('groupes_id_concerts_9')} />
         </div>
       </div>
     </>
@@ -677,7 +678,7 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
           <div>
             <label className="form-label">Nom du concert <span className="text-red-500">*</span></label>
-            <input type="text" required autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="form-input" placeholder="ex: Concert de fin d'année" />
+            <input type="text" required autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="form-input" placeholder={ph('groupes_id_concerts_10')} />
           </div>
           <div>
             <label className="form-label">Date <span className="text-red-500">*</span></label>

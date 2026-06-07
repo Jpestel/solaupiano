@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ph } from '@/lib/placeholders'
 
 type TicketStatus   = 'OPEN' | 'IN_PROGRESS' | 'CLOSED'
 type TicketCategory = 'BUG' | 'QUESTION' | 'FEATURE' | 'OTHER'
@@ -226,7 +227,7 @@ export default function AdminSupportPage() {
                   value={noteInput}
                   onChange={e => setNoteInput(e.target.value)}
                   rows={3}
-                  placeholder="Répondez à l'utilisateur ou ajoutez une note…"
+                  placeholder={ph('admin_support_1')}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                 />
                 <div className="flex justify-end mt-2">

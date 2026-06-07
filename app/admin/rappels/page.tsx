@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { formatDateWithDay } from '@/lib/utils'
+import { ph } from '@/lib/placeholders'
 
 interface ReminderLog {
   id: number
@@ -96,7 +97,7 @@ export default function AdminRappelsPage() {
         </select>
         <input
           type="text"
-          placeholder="Rechercher un membre..."
+          placeholder={ph('admin_rappels_1')}
           value={filterName}
           onChange={(e) => setFilterName(e.target.value)}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-400 focus:outline-none min-w-[200px]"

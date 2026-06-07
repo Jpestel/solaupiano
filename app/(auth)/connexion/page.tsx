@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 function ConnexionForm() {
   const router = useRouter()
@@ -112,7 +113,7 @@ function ConnexionForm() {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             className="form-input"
-            placeholder="vous@exemple.fr"
+            placeholder={ph('connexion_1')}
           />
         </div>
 
@@ -131,7 +132,7 @@ function ConnexionForm() {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             className="form-input"
-            placeholder="••••••••"
+            placeholder={ph('connexion_2')}
           />
         </div>
 

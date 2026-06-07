@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ph } from '@/lib/placeholders'
 
 interface Props {
   slug: string
@@ -69,14 +70,14 @@ export function ContactForm({ slug, primaryColor, title }: Props) {
           <label className="block text-sm font-medium text-gray-700 mb-1">Votre nom <span className="text-red-500">*</span></label>
           <input
             required value={name} onChange={e => setName(e.target.value)}
-            className={inp} placeholder="Jean Dupont"
+            className={inp} placeholder={ph('slug_contactform_1')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Votre email <span className="text-red-500">*</span></label>
           <input
             required type="email" value={email} onChange={e => setEmail(e.target.value)}
-            className={inp} placeholder="jean@email.fr"
+            className={inp} placeholder={ph('slug_contactform_2')}
           />
         </div>
       </div>
@@ -85,7 +86,7 @@ export function ContactForm({ slug, primaryColor, title }: Props) {
         <textarea
           required value={message} onChange={e => setMessage(e.target.value)}
           className={`${inp} resize-none`} rows={5}
-          placeholder="Bonjour, je souhaite vous contacter pour…"
+          placeholder={ph('slug_contactform_3')}
           maxLength={2000}
         />
         <p className="text-xs text-gray-400 mt-1 text-right">{message.length}/2000</p>

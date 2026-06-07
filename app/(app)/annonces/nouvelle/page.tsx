@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 interface Category {
   id: number
@@ -162,7 +163,7 @@ export default function NouvelleAnnoncePage() {
               onChange={e => setTitle(e.target.value)}
               required
               maxLength={100}
-              placeholder="Ex: Guitare Gibson Les Paul 2018 — excellent état"
+              placeholder={ph('annonces_nouvelle_1')}
               className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -174,7 +175,7 @@ export default function NouvelleAnnoncePage() {
               onChange={e => setDescription(e.target.value)}
               required
               rows={5}
-              placeholder="Décrivez votre annonce en détail…"
+              placeholder={ph('annonces_nouvelle_2')}
               className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </div>
@@ -188,7 +189,7 @@ export default function NouvelleAnnoncePage() {
                   value={price}
                   onChange={e => setPrice(e.target.value)}
                   min={0}
-                  placeholder="Ex: 350"
+                  placeholder={ph('annonces_nouvelle_3')}
                   className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -199,7 +200,7 @@ export default function NouvelleAnnoncePage() {
                 type="text"
                 value={location}
                 onChange={e => setLocation(e.target.value)}
-                placeholder="Ex: Lyon, Rhône-Alpes"
+                placeholder={ph('annonces_nouvelle_4')}
                 className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -240,7 +241,7 @@ export default function NouvelleAnnoncePage() {
               type="email"
               value={contactEmail}
               onChange={e => setContactEmail(e.target.value)}
-              placeholder="votre@email.fr"
+              placeholder={ph('annonces_nouvelle_5')}
               className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -251,7 +252,7 @@ export default function NouvelleAnnoncePage() {
               type="tel"
               value={contactPhone}
               onChange={e => setContactPhone(e.target.value)}
-              placeholder="06 12 34 56 78"
+              placeholder={ph('annonces_nouvelle_6')}
               className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>

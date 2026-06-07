@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ph } from '@/lib/placeholders'
 
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'CLOSED'
 type TicketCategory = 'BUG' | 'QUESTION' | 'FEATURE' | 'OTHER'
@@ -155,7 +156,7 @@ export default function AssistancePage() {
                 type="text"
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
-                placeholder="Résumez votre demande en une phrase"
+                placeholder={ph('assistance_1')}
                 maxLength={120}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-colors"
               />
@@ -168,10 +169,10 @@ export default function AssistancePage() {
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 placeholder={category === 'BUG'
-                  ? 'Décrivez le problème : que faisiez-vous, ce qui s\'est passé, sur quel appareil / navigateur…'
+                  ? ph('assistance_msg_bug')
                   : category === 'FEATURE'
-                  ? 'Décrivez la fonctionnalité souhaitée et en quoi elle vous serait utile…'
-                  : 'Décrivez votre demande en détail…'}
+                  ? ph('assistance_msg_feature')
+                  : ph('assistance_msg_other')}
                 rows={5}
                 maxLength={2000}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-colors resize-none"

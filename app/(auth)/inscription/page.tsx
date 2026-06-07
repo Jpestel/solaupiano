@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 interface Instrument {
   id: number
@@ -173,7 +174,7 @@ export default function InscriptionPage() {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="form-input"
-                placeholder="Marie Dupont"
+                placeholder={ph('inscription_1')}
               />
             </div>
 
@@ -187,7 +188,7 @@ export default function InscriptionPage() {
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="form-input"
-                placeholder="vous@exemple.fr"
+                placeholder={ph('inscription_2')}
               />
             </div>
 
@@ -201,7 +202,7 @@ export default function InscriptionPage() {
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="form-input"
-                placeholder="Minimum 8 caractères"
+                placeholder={ph('inscription_3')}
               />
             </div>
 
@@ -215,7 +216,7 @@ export default function InscriptionPage() {
                 value={form.confirmPassword}
                 onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                 className="form-input"
-                placeholder="••••••••"
+                placeholder={ph('inscription_4')}
               />
             </div>
 
@@ -254,7 +255,7 @@ export default function InscriptionPage() {
                     value={instrumentSearch}
                     onChange={(e) => setInstrumentSearch(e.target.value)}
                     className="form-input mt-2"
-                    placeholder="🔍 Rechercher un instrument…"
+                    placeholder={ph('inscription_5')}
                   />
 
                   {/* Liste filtrée (bornée + défilante) */}
@@ -297,7 +298,7 @@ export default function InscriptionPage() {
                       value={form.otherInstrument}
                       onChange={(e) => setForm({ ...form, otherInstrument: e.target.value })}
                       className="form-input"
-                      placeholder="ex: Banjo, Cornemuse..."
+                      placeholder={ph('inscription_6')}
                     />
                   </div>
                 </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -489,7 +490,7 @@ export default function TchatPage({ params }: { params: { id: string } }) {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Écrivez un message…"
+            placeholder={ph('groupes_id_tchat_1')}
             className="flex-1 resize-none text-sm text-gray-800 placeholder-gray-400 focus:outline-none bg-transparent max-h-32"
             rows={1}
             style={{ height: 'auto', minHeight: '24px' }}

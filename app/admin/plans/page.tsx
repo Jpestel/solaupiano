@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { DbPlan, COLOR_MAP, generateFeatureList, storageLabel } from '@/lib/plans'
 import { MODULES } from '@/lib/modules'
+import { ph } from '@/lib/placeholders'
 
 type PlanWithCount = DbPlan & { groupCount: number }
 
@@ -552,7 +553,7 @@ export default function AdminPlansPage() {
                             set('label', e.target.value)
                             if (!editingPlan) set('key', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, ''))
                           }}
-                          className="form-input" placeholder="ex: Pro, Premium, Entreprise..." />
+                          className="form-input" placeholder={ph('admin_plans_1')} />
                       </div>
                       <div>
                         <label className="form-label">Clé unique <span className="text-red-500">*</span></label>
@@ -560,7 +561,7 @@ export default function AdminPlansPage() {
                           type="text" required value={form.key}
                           onChange={(e) => set('key', e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
                           className={`form-input font-mono ${editingPlan ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}`}
-                          placeholder="FREE, PRO, PREMIUM..."
+                          placeholder={ph('admin_plans_2')}
                           readOnly={!!editingPlan} />
                         {!editingPlan && <p className="text-[11px] text-gray-400 mt-1">Identifiant technique — ne peut plus être modifié après création.</p>}
                       </div>
@@ -571,7 +572,7 @@ export default function AdminPlansPage() {
                       <textarea
                         rows={2} value={form.description}
                         onChange={(e) => set('description', e.target.value)}
-                        className="form-input resize-none" placeholder="Décrivez ce plan en une phrase..." />
+                        className="form-input resize-none" placeholder={ph('admin_plans_3')} />
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
@@ -581,7 +582,7 @@ export default function AdminPlansPage() {
                           <input
                             type="number" step="0.01" min="0" value={form.priceMonthly}
                             onChange={(e) => set('priceMonthly', e.target.value)}
-                            className="form-input pr-8" placeholder="0,00 = gratuit" />
+                            className="form-input pr-8" placeholder={ph('admin_plans_4')} />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
                         </div>
                         <p className="text-[11px] text-gray-400 mt-1">Laisser vide = plan gratuit.</p>
@@ -602,7 +603,7 @@ export default function AdminPlansPage() {
                           value={form.stripePriceId}
                           onChange={(e) => set('stripePriceId', e.target.value)}
                           className="form-input font-mono text-sm"
-                          placeholder="price_1ABC..." />
+                          placeholder={ph('admin_plans_5')} />
                         <p className="text-[11px] text-gray-400 mt-1">
                           Trouvable dans le dashboard Stripe → Produits → Tarifs. Requis pour activer le bouton &quot;Souscrire&quot;.
                         </p>
@@ -708,37 +709,37 @@ export default function AdminPlansPage() {
                         <label className="form-label">Membres max par groupe</label>
                         <input type="number" min="1" value={form.maxMembersPerGroup}
                           onChange={(e) => set('maxMembersPerGroup', e.target.value)}
-                          className="form-input" placeholder="∞ illimité" />
+                          className="form-input" placeholder={ph('admin_plans_6')} />
                       </div>
                       <div>
                         <label className="form-label">Titres max au répertoire</label>
                         <input type="number" min="1" value={form.maxSongsPerGroup}
                           onChange={(e) => set('maxSongsPerGroup', e.target.value)}
-                          className="form-input" placeholder="∞ illimité" />
+                          className="form-input" placeholder={ph('admin_plans_7')} />
                       </div>
                       <div>
                         <label className="form-label">Setlists max par groupe</label>
                         <input type="number" min="1" value={form.maxSetlists}
                           onChange={(e) => set('maxSetlists', e.target.value)}
-                          className="form-input" placeholder="∞ illimité" />
+                          className="form-input" placeholder={ph('admin_plans_8')} />
                       </div>
                       <div>
                         <label className="form-label">Concerts max par groupe</label>
                         <input type="number" min="1" value={form.maxConcerts}
                           onChange={(e) => set('maxConcerts', e.target.value)}
-                          className="form-input" placeholder="∞ illimité" />
+                          className="form-input" placeholder={ph('admin_plans_9')} />
                       </div>
                       <div>
                         <label className="form-label">Grilles max par groupe</label>
                         <input type="number" min="1" value={form.maxCharts}
                           onChange={(e) => set('maxCharts', e.target.value)}
-                          className="form-input" placeholder="∞ illimité" />
+                          className="form-input" placeholder={ph('admin_plans_10')} />
                       </div>
                       <div>
                         <label className="form-label">Fichiers max par morceau</label>
                         <input type="number" min="1" value={form.maxFilesPerSong}
                           onChange={(e) => set('maxFilesPerSong', e.target.value)}
-                          className="form-input" placeholder="∞ illimité" />
+                          className="form-input" placeholder={ph('admin_plans_11')} />
                       </div>
                     </div>
                   </div>

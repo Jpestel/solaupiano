@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
+import { ph } from '@/lib/placeholders'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -290,21 +291,21 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
           <div className="space-y-5 max-w-xl">
             <h2 className="text-base font-semibold text-gray-900">Contact & informations générales</h2>
             <Field label="Nom du contact">
-              <input disabled={!isChef} value={content.contactName} onChange={e => upd('contactName', e.target.value)} className={inp} placeholder="Jean Dupont" />
+              <input disabled={!isChef} value={content.contactName} onChange={e => upd('contactName', e.target.value)} className={inp} placeholder={ph('groupes_id_fiche_technique_1')} />
             </Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Téléphone">
-                <input disabled={!isChef} value={content.contactPhone} onChange={e => upd('contactPhone', e.target.value)} className={inp} placeholder="06 12 34 56 78" />
+                <input disabled={!isChef} value={content.contactPhone} onChange={e => upd('contactPhone', e.target.value)} className={inp} placeholder={ph('groupes_id_fiche_technique_2')} />
               </Field>
               <Field label="Email de contact">
-                <input disabled={!isChef} type="email" value={content.contactEmail} onChange={e => upd('contactEmail', e.target.value)} className={inp} placeholder="contact@groupe.fr" />
+                <input disabled={!isChef} type="email" value={content.contactEmail} onChange={e => upd('contactEmail', e.target.value)} className={inp} placeholder={ph('groupes_id_fiche_technique_3')} />
               </Field>
             </div>
             <Field label="Genre musical" hint="(optionnel)">
-              <input disabled={!isChef} value={content.genre} onChange={e => upd('genre', e.target.value)} className={inp} placeholder="Rock, Jazz, Chanson française…" />
+              <input disabled={!isChef} value={content.genre} onChange={e => upd('genre', e.target.value)} className={inp} placeholder={ph('groupes_id_fiche_technique_4')} />
             </Field>
             <Field label="Notes générales" hint="(visibles en bas de la fiche)">
-              <textarea disabled={!isChef} rows={4} value={content.generalNotes} onChange={e => upd('generalNotes', e.target.value)} className={ta} placeholder="Informations complémentaires pour l'organisateur…" />
+              <textarea disabled={!isChef} rows={4} value={content.generalNotes} onChange={e => upd('generalNotes', e.target.value)} className={ta} placeholder={ph('groupes_id_fiche_technique_5')} />
             </Field>
           </div>
         )}
@@ -315,20 +316,20 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
             <h2 className="text-base font-semibold text-gray-900">Scène & Backline</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <Field label="Largeur min." hint="(m)">
-                <input disabled={!isChef} value={content.stage.minWidth} onChange={e => updStage({ minWidth: e.target.value })} className={inp} placeholder="8" />
+                <input disabled={!isChef} value={content.stage.minWidth} onChange={e => updStage({ minWidth: e.target.value })} className={inp} placeholder={ph('groupes_id_fiche_technique_6')} />
               </Field>
               <Field label="Profondeur min." hint="(m)">
-                <input disabled={!isChef} value={content.stage.minDepth} onChange={e => updStage({ minDepth: e.target.value })} className={inp} placeholder="6" />
+                <input disabled={!isChef} value={content.stage.minDepth} onChange={e => updStage({ minDepth: e.target.value })} className={inp} placeholder={ph('groupes_id_fiche_technique_7')} />
               </Field>
               <Field label="Montage" hint="(min)">
-                <input disabled={!isChef} value={content.stage.setupDuration} onChange={e => updStage({ setupDuration: e.target.value })} className={inp} placeholder="60" />
+                <input disabled={!isChef} value={content.stage.setupDuration} onChange={e => updStage({ setupDuration: e.target.value })} className={inp} placeholder={ph('groupes_id_fiche_technique_8')} />
               </Field>
               <Field label="Soundcheck" hint="(min)">
-                <input disabled={!isChef} value={content.stage.soundcheckDuration} onChange={e => updStage({ soundcheckDuration: e.target.value })} className={inp} placeholder="60" />
+                <input disabled={!isChef} value={content.stage.soundcheckDuration} onChange={e => updStage({ soundcheckDuration: e.target.value })} className={inp} placeholder={ph('groupes_id_fiche_technique_9')} />
               </Field>
             </div>
             <Field label="Alimentation électrique">
-              <input disabled={!isChef} value={content.stage.powerNeeds} onChange={e => updStage({ powerNeeds: e.target.value })} className={inp} placeholder="2× 16A + 1× 32A" />
+              <input disabled={!isChef} value={content.stage.powerNeeds} onChange={e => updStage({ powerNeeds: e.target.value })} className={inp} placeholder={ph('groupes_id_fiche_technique_10')} />
             </Field>
 
             {/* Membres sur scène */}
@@ -386,12 +387,12 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                     <tbody className="divide-y divide-gray-100">
                       {content.stage.members.map(m => (
                         <tr key={m.id}>
-                          <td className="px-3 py-2"><input disabled={!isChef} value={m.name} onChange={e => updStageMember(m.id, { name: e.target.value })} className={`${inp} py-1.5`} placeholder="Nom" /></td>
-                          <td className="px-3 py-2"><input disabled={!isChef} value={m.instrument} onChange={e => updStageMember(m.id, { instrument: e.target.value })} className={`${inp} py-1.5`} placeholder="Guitare" /></td>
-                          <td className="px-3 py-2"><input disabled={!isChef} value={m.position} onChange={e => updStageMember(m.id, { position: e.target.value })} className={`${inp} py-1.5`} placeholder="Jardin" /></td>
-                          <td className="px-3 py-2"><input disabled={!isChef} value={m.backline} onChange={e => updStageMember(m.id, { backline: e.target.value })} className={`${inp} py-1.5`} placeholder="Ampli Fender Twin 65W" /></td>
+                          <td className="px-3 py-2"><input disabled={!isChef} value={m.name} onChange={e => updStageMember(m.id, { name: e.target.value })} className={`${inp} py-1.5`} placeholder={ph('groupes_id_fiche_technique_11')} /></td>
+                          <td className="px-3 py-2"><input disabled={!isChef} value={m.instrument} onChange={e => updStageMember(m.id, { instrument: e.target.value })} className={`${inp} py-1.5`} placeholder={ph('groupes_id_fiche_technique_12')} /></td>
+                          <td className="px-3 py-2"><input disabled={!isChef} value={m.position} onChange={e => updStageMember(m.id, { position: e.target.value })} className={`${inp} py-1.5`} placeholder={ph('groupes_id_fiche_technique_13')} /></td>
+                          <td className="px-3 py-2"><input disabled={!isChef} value={m.backline} onChange={e => updStageMember(m.id, { backline: e.target.value })} className={`${inp} py-1.5`} placeholder={ph('groupes_id_fiche_technique_14')} /></td>
                           {content.showGuso !== false && (
-                          <td className="px-3 py-2"><input disabled={!isChef} value={m.gusoNumber ?? ''} onChange={e => updStageMember(m.id, { gusoNumber: e.target.value })} className={`${inp} py-1.5`} placeholder="123456789" /></td>
+                          <td className="px-3 py-2"><input disabled={!isChef} value={m.gusoNumber ?? ''} onChange={e => updStageMember(m.id, { gusoNumber: e.target.value })} className={`${inp} py-1.5`} placeholder={ph('groupes_id_fiche_technique_15')} /></td>
                           )}
                           {isChef && <td className="px-2 py-2"><button onClick={() => delStageMember(m.id)} className="text-gray-300 hover:text-red-500 text-lg leading-none">×</button></td>}
                         </tr>
@@ -403,7 +404,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
             </div>
 
             <Field label="Notes scène" hint="(optionnel)">
-              <textarea disabled={!isChef} rows={3} value={content.stage.notes} onChange={e => updStage({ notes: e.target.value })} className={ta} placeholder="Informations complémentaires sur la configuration de scène…" />
+              <textarea disabled={!isChef} rows={3} value={content.stage.notes} onChange={e => updStage({ notes: e.target.value })} className={ta} placeholder={ph('groupes_id_fiche_technique_16')} />
             </Field>
           </div>
         )}
@@ -414,13 +415,13 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
             <h2 className="text-base font-semibold text-gray-900">Son & Retours</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <Field label="Canaux total">
-                <input disabled={!isChef} type="number" min="0" value={content.sound.totalChannels || ''} onChange={e => updSound({ totalChannels: Number(e.target.value) })} className={inp} placeholder="12" />
+                <input disabled={!isChef} type="number" min="0" value={content.sound.totalChannels || ''} onChange={e => updSound({ totalChannels: Number(e.target.value) })} className={inp} placeholder={ph('groupes_id_fiche_technique_17')} />
               </Field>
               <Field label="Retours scène">
-                <input disabled={!isChef} type="number" min="0" value={content.sound.monitorsCount || ''} onChange={e => updSound({ monitorsCount: Number(e.target.value) })} className={inp} placeholder="2" />
+                <input disabled={!isChef} type="number" min="0" value={content.sound.monitorsCount || ''} onChange={e => updSound({ monitorsCount: Number(e.target.value) })} className={inp} placeholder={ph('groupes_id_fiche_technique_18')} />
               </Field>
               <Field label="DI box">
-                <input disabled={!isChef} type="number" min="0" value={content.sound.diCount || ''} onChange={e => updSound({ diCount: Number(e.target.value) })} className={inp} placeholder="3" />
+                <input disabled={!isChef} type="number" min="0" value={content.sound.diCount || ''} onChange={e => updSound({ diCount: Number(e.target.value) })} className={inp} placeholder={ph('groupes_id_fiche_technique_19')} />
               </Field>
             </div>
             <div className="flex gap-6">
@@ -458,9 +459,9 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                       {content.sound.channels.map((ch, i) => (
                         <tr key={ch.id}>
                           <td className="px-2 py-2 text-center font-bold text-indigo-500 text-sm">{i + 1}</td>
-                          <td className="px-3 py-2"><input disabled={!isChef} value={ch.source} onChange={e => updChannel(ch.id, { source: e.target.value })} className={`${inp} py-1.5`} placeholder="Chant principal" /></td>
-                          <td className="px-3 py-2"><input disabled={!isChef} value={ch.type} onChange={e => updChannel(ch.id, { type: e.target.value })} className={`${inp} py-1.5`} placeholder="Micro voix" /></td>
-                          <td className="px-3 py-2"><input disabled={!isChef} value={ch.notes} onChange={e => updChannel(ch.id, { notes: e.target.value })} className={`${inp} py-1.5`} placeholder="SM58, fond de scène" /></td>
+                          <td className="px-3 py-2"><input disabled={!isChef} value={ch.source} onChange={e => updChannel(ch.id, { source: e.target.value })} className={`${inp} py-1.5`} placeholder={ph('groupes_id_fiche_technique_20')} /></td>
+                          <td className="px-3 py-2"><input disabled={!isChef} value={ch.type} onChange={e => updChannel(ch.id, { type: e.target.value })} className={`${inp} py-1.5`} placeholder={ph('groupes_id_fiche_technique_21')} /></td>
+                          <td className="px-3 py-2"><input disabled={!isChef} value={ch.notes} onChange={e => updChannel(ch.id, { notes: e.target.value })} className={`${inp} py-1.5`} placeholder={ph('groupes_id_fiche_technique_22')} /></td>
                           {isChef && <td className="px-2 py-2"><button onClick={() => delChannel(ch.id)} className="text-gray-300 hover:text-red-500 text-lg leading-none">×</button></td>}
                         </tr>
                       ))}
@@ -471,7 +472,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
             </div>
 
             <Field label="Notes son" hint="(optionnel)">
-              <textarea disabled={!isChef} rows={3} value={content.sound.notes} onChange={e => updSound({ notes: e.target.value })} className={ta} placeholder="Préférences de mix, remarques techniques…" />
+              <textarea disabled={!isChef} rows={3} value={content.sound.notes} onChange={e => updSound({ notes: e.target.value })} className={ta} placeholder={ph('groupes_id_fiche_technique_23')} />
             </Field>
           </div>
         )}
@@ -497,7 +498,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
               ))}
             </div>
             <Field label="Besoins spécifiques">
-              <textarea disabled={!isChef} rows={3} value={content.lights.customRequests} onChange={e => updLights({ customRequests: e.target.value })} className={ta} placeholder="Spot de face couleur, leds RGB pilotables en DMX…" />
+              <textarea disabled={!isChef} rows={3} value={content.lights.customRequests} onChange={e => updLights({ customRequests: e.target.value })} className={ta} placeholder={ph('groupes_id_fiche_technique_24')} />
             </Field>
             <Field label="Notes" hint="(optionnel)">
               <textarea disabled={!isChef} rows={2} value={content.lights.notes} onChange={e => updLights({ notes: e.target.value })} className={ta} />
@@ -510,7 +511,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
           <div className="space-y-5 max-w-xl">
             <h2 className="text-base font-semibold text-gray-900">Loges & Hospitalité</h2>
             <Field label="Nombre de personnes total" hint="(musiciens + crew)">
-              <input disabled={!isChef} type="number" min="0" value={content.hospitality.totalPersons || ''} onChange={e => updHosp({ totalPersons: Number(e.target.value) })} className={inp} placeholder="5" />
+              <input disabled={!isChef} type="number" min="0" value={content.hospitality.totalPersons || ''} onChange={e => updHosp({ totalPersons: Number(e.target.value) })} className={inp} placeholder={ph('groupes_id_fiche_technique_25')} />
             </Field>
             <div>
               <label className="flex items-center gap-2 cursor-pointer mb-2">
@@ -518,11 +519,11 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                 <span className="text-sm font-medium text-gray-700">Repas demandé</span>
               </label>
               {content.hospitality.meals && (
-                <input disabled={!isChef} value={content.hospitality.mealsDetails} onChange={e => updHosp({ mealsDetails: e.target.value })} className={inp} placeholder="Repas chaud pour 5 personnes avant le concert" />
+                <input disabled={!isChef} value={content.hospitality.mealsDetails} onChange={e => updHosp({ mealsDetails: e.target.value })} className={inp} placeholder={ph('groupes_id_fiche_technique_26')} />
               )}
             </div>
             <Field label="Rider boissons">
-              <textarea disabled={!isChef} rows={3} value={content.hospitality.drinks} onChange={e => updHosp({ drinks: e.target.value })} className={ta} placeholder="6 bouteilles d'eau 1,5L, 10 bières, 6 sodas, café…" />
+              <textarea disabled={!isChef} rows={3} value={content.hospitality.drinks} onChange={e => updHosp({ drinks: e.target.value })} className={ta} placeholder={ph('groupes_id_fiche_technique_27')} />
             </Field>
             <div>
               <label className="flex items-center gap-2 cursor-pointer mb-2">
@@ -530,11 +531,11 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                 <span className="text-sm font-medium text-gray-700">Hébergement nécessaire</span>
               </label>
               {content.hospitality.accommodation && (
-                <input disabled={!isChef} value={content.hospitality.accommodationRooms} onChange={e => updHosp({ accommodationRooms: e.target.value })} className={inp} placeholder="3 chambres doubles" />
+                <input disabled={!isChef} value={content.hospitality.accommodationRooms} onChange={e => updHosp({ accommodationRooms: e.target.value })} className={inp} placeholder={ph('groupes_id_fiche_technique_28')} />
               )}
             </div>
             <Field label="Parking" hint="(nb de véhicules)">
-              <input disabled={!isChef} value={content.hospitality.parkingSpots} onChange={e => updHosp({ parkingSpots: e.target.value })} className={inp} placeholder="1 van + 2 voitures" />
+              <input disabled={!isChef} value={content.hospitality.parkingSpots} onChange={e => updHosp({ parkingSpots: e.target.value })} className={inp} placeholder={ph('groupes_id_fiche_technique_29')} />
             </Field>
             <Field label="Notes" hint="(optionnel)">
               <textarea disabled={!isChef} rows={3} value={content.hospitality.notes} onChange={e => updHosp({ notes: e.target.value })} className={ta} />
@@ -564,7 +565,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
             <div className="space-y-4">
               <div>
                 <label className="form-label">Destinataire <span className="text-red-500">*</span></label>
-                <input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} className={inp} placeholder="organisateur@salle.fr" autoFocus />
+                <input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} className={inp} placeholder={ph('groupes_id_fiche_technique_30')} autoFocus />
               </div>
               <div>
                 <label className="form-label">Objet</label>

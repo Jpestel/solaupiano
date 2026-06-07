@@ -9,6 +9,7 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { StarRating, EvaluationModal, PresencePicker } from '@/components/ui/RehearsalEvaluation'
+import { ph } from '@/lib/placeholders'
 
 interface MemberRating { ratedUserId: number; rating: number; ratedUser: { id: number; name: string } }
 interface SongRating { songId: number; rating: number; song: { id: number; title: string } }
@@ -393,7 +394,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
                 className="form-input"
-                placeholder="Salle de répétition, adresse..."
+                placeholder={ph('groupes_id_repetitions_1')}
               />
             </div>
             <div className="col-span-2">
@@ -403,7 +404,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 className="form-input"
                 rows={3}
-                placeholder="Informations complémentaires..."
+                placeholder={ph('groupes_id_repetitions_2')}
               />
             </div>
           </div>

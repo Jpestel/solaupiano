@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { LyricsPrompter } from '@/components/ui/LyricsPrompter'
 import { ChordLine } from '@/components/ui/ChordLine'
 import { parseLyrics, contentHasChords, stripChords, lineChords, segmentLine, lineToUnits, unitsToLine, isChord, COMMON_CHORDS, DisplayMode } from '@/lib/lyrics'
+import { ph } from '@/lib/placeholders'
 
 // ─── Marker config ──────────────────────────────────────────────────────────
 const MARKERS = [
@@ -609,7 +610,7 @@ export default function ParolesPage({
                 ref={textareaRef}
                 value={content}
                 onChange={(e) => handleChange(e.target.value)}
-                placeholder={`Saisissez les paroles ici...\n\nAstuce : cliquez sur les boutons ci-dessus pour insérer des marqueurs comme [Refrain], [Couplet 1]. Pour les accords, passez en mode 🎸 Accords.`}
+                placeholder={ph('paroles_editor')}
                 className="w-full min-h-[440px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 resize-y placeholder:text-gray-300 placeholder:font-sans"
                 spellCheck
               />
@@ -694,7 +695,7 @@ export default function ParolesPage({
                           >
                             <input
                               name="chord"
-                              placeholder="Autre…"
+                              placeholder={ph('groupes_id_morceaux_songid_paroles_1')}
                               className="w-20 rounded-md border border-violet-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300"
                             />
                             <button type="submit" className="rounded-md bg-violet-600 px-2 py-1 text-xs font-semibold text-white hover:bg-violet-500">

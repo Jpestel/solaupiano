@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { ph } from '@/lib/placeholders'
 
 interface Instrument {
   id: number
@@ -96,7 +97,7 @@ export default function AdminInstrumentsPage() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               className="form-input flex-1"
-              placeholder="ex: Violoncelle"
+              placeholder={ph('admin_instruments_1')}
             />
             <Button type="submit" disabled={adding || !newName.trim()}>
               {adding ? '...' : 'Ajouter'}
@@ -119,7 +120,7 @@ export default function AdminInstrumentsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="form-input w-full"
-              placeholder="🔍 Rechercher un instrument…"
+              placeholder={ph('admin_instruments_2')}
             />
           </div>
           {instruments.length === 0 ? (

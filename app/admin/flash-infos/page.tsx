@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { ph } from '@/lib/placeholders'
 
 interface Flash {
   id: number
@@ -197,11 +198,11 @@ export default function AdminFlashInfosPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Bouton — libellé (optionnel)</label>
-                <input value={form.ctaLabel} onChange={(e) => set('ctaLabel', e.target.value)} placeholder="ex : Découvrir" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+                <input value={form.ctaLabel} onChange={(e) => set('ctaLabel', e.target.value)} placeholder={ph('admin_flash_infos_1')} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Bouton — lien (optionnel)</label>
-                <input value={form.ctaUrl} onChange={(e) => set('ctaUrl', e.target.value)} placeholder="/aide ou https://…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+                <input value={form.ctaUrl} onChange={(e) => set('ctaUrl', e.target.value)} placeholder={ph('admin_flash_infos_2')} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
               </div>
             </div>
             <p className="text-xs text-gray-400 -mt-1">
@@ -240,7 +241,7 @@ export default function AdminFlashInfosPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Max / pers.</label>
-                    <input type="number" min={1} value={form.maxDisplays} onChange={(e) => set('maxDisplays', e.target.value)} placeholder="∞" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+                    <input type="number" min={1} value={form.maxDisplays} onChange={(e) => set('maxDisplays', e.target.value)} placeholder={ph('admin_flash_infos_3')} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
                   </div>
                 </div>
               ) : (

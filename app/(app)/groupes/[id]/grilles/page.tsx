@@ -7,6 +7,7 @@ import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { ph } from '@/lib/placeholders'
 
 interface Song { id: number; title: string; artist?: string; tempo?: number | null }
 interface Chart {
@@ -229,20 +230,20 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
             <label className="form-label">Titre <span className="text-red-500">*</span></label>
             <input type="text" required autoFocus value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="form-input" placeholder="ex: Autumn Leaves, La Vie en Rose..." />
+              className="form-input" placeholder={ph('groupes_id_grilles_1')} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="form-label">Tempo <span className="text-gray-400 font-normal">(optionnel)</span></label>
               <input type="text" value={form.tempo}
                 onChange={(e) => setForm({ ...form, tempo: e.target.value })}
-                className="form-input" placeholder="♩=120, Swing, Bossa…" />
+                className="form-input" placeholder={ph('groupes_id_grilles_2')} />
             </div>
             <div>
               <label className="form-label">Tonalité <span className="text-gray-400 font-normal">(optionnel)</span></label>
               <input type="text" value={form.keySignature}
                 onChange={(e) => setForm({ ...form, keySignature: e.target.value })}
-                className="form-input" placeholder="La min, Fa maj…" />
+                className="form-input" placeholder={ph('groupes_id_grilles_3')} />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -308,7 +309,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                 onChange={(e) => setDuplicateTitle(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleDuplicate() }}
                 className="form-input"
-                placeholder="ex: Autumn Leaves — Pianiste"
+                placeholder={ph('groupes_id_grilles_4')}
               />
               <p className="text-xs text-gray-400 mt-1.5">Astuce : ajoutez le nom du musicien pour personnaliser chaque copie.</p>
             </div>

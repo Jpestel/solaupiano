@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ph } from '@/lib/placeholders'
 
 interface GroupRepertoire {
   id: number
@@ -42,7 +43,7 @@ export function RepertoiresPanel({ data }: { data: GroupRepertoire[] }) {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="🔍 Titre…"
+            placeholder={ph('cmp_admin_repertoirespanel_1')}
             className="rounded-lg border border-gray-300 px-2 py-1 text-xs w-28 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
         </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 export default function MotDePasseOubliePage() {
   const [email, setEmail] = useState('')
@@ -78,7 +79,7 @@ export default function MotDePasseOubliePage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="form-input"
-                    placeholder="vous@exemple.fr"
+                    placeholder={ph('mot_de_passe_oublie_1')}
                   />
                 </div>
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { ph } from '@/lib/placeholders'
 
 export function PresencePicker({ value, onSet }: { value: string | null | undefined; onSet: (s: string) => void }) {
   const opts = [
@@ -169,7 +170,7 @@ export function EvaluationModal({ endpoint, title, onClose, onSaved }: {
             <div className="border-t border-gray-100 pt-4">
               <label className="block text-sm font-semibold text-gray-700 mb-1">Suggestions pour la prochaine répétition <span className="text-gray-400 font-normal">(facultatif)</span></label>
               <textarea value={suggestion} onChange={(e) => setSuggestion(e.target.value)} rows={3} maxLength={1000}
-                placeholder="ex : retravailler le pont de tel morceau, arriver à l'heure…"
+                placeholder={ph('cmp_ui_rehearsalevaluation_1')}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
             </div>
 

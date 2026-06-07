@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ph } from '@/lib/placeholders'
 
 export function InviteButton() {
   const [open, setOpen] = useState(false)
@@ -81,7 +82,7 @@ export function InviteButton() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="form-input"
-                    placeholder="ami@exemple.fr"
+                    placeholder={ph('tableau_de_bord_invitebutton_1')}
                   />
                 </div>
                 <div>
@@ -93,7 +94,7 @@ export function InviteButton() {
                     onChange={(e) => setMessage(e.target.value)}
                     rows={3}
                     className="form-input resize-none"
-                    placeholder="Ex : Rejoins notre groupe, on a besoin d'un bassiste !"
+                    placeholder={ph('tableau_de_bord_invitebutton_2')}
                   />
                 </div>
                 <button

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ph } from '@/lib/placeholders'
 
 export function InvitePanel({ groupId }: { groupId: number }) {
   const router = useRouter()
@@ -81,7 +82,7 @@ export function InvitePanel({ groupId }: { groupId: number }) {
           value={email}
           onChange={(e) => { setEmail(e.target.value); if (notRegistered || signupSent) reset() }}
           className="form-input flex-1 text-sm"
-          placeholder="email@musicien.fr"
+          placeholder={ph('groupes_id_invitepanel_1')}
         />
         <button
           type="submit"

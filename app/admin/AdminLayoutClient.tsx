@@ -16,6 +16,7 @@ const adminNav = [
   { href: '/admin/plans',            label: 'Plans' },
   { href: '/admin/rappels',          label: 'Rappels' },
   { href: '/admin/personnalisation', label: 'Personnalisation' },
+  { href: '/admin/placeholders',     label: 'Placeholders' },
   { href: '/admin/tutoriels',       label: 'Tutoriels vidéo' },
   { href: '/admin/flash-infos',      label: 'Flash infos' },
   { href: '/admin/newsletter',       label: 'Newsletter' },

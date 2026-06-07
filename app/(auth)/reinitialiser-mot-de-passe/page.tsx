@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 function ResetForm() {
   const router = useRouter()
@@ -87,7 +88,7 @@ function ResetForm() {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             className="form-input"
-            placeholder="••••••••"
+            placeholder={ph('reinitialiser_mot_de_passe_1')}
           />
         </div>
         <div>
@@ -101,7 +102,7 @@ function ResetForm() {
             value={form.confirm}
             onChange={(e) => setForm({ ...form, confirm: e.target.value })}
             className="form-input"
-            placeholder="••••••••"
+            placeholder={ph('reinitialiser_mot_de_passe_2')}
           />
         </div>
 

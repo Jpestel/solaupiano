@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { GEAR_CATEGORIES, getGearCategory, GEAR_SUGGESTIONS } from '@/lib/gear'
+import { ph } from '@/lib/placeholders'
 
 interface GearItem {
   id?: number
@@ -105,7 +106,7 @@ export function GearManager() {
                     value={it.name}
                     onChange={(e) => update(it._k, { name: e.target.value })}
                     list={`gear-cat-${it.category}`}
-                    placeholder={`${cat.label} — tapez ou choisissez…`}
+                    placeholder={`${cat.label}${ph('gear_search_suffix')}`}
                     className="flex-1 min-w-0 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   />
                   <button onClick={() => remove(it._k)} className="text-gray-300 hover:text-red-500 text-lg leading-none flex-shrink-0 px-1" title="Supprimer">×</button>
@@ -115,14 +116,14 @@ export function GearManager() {
                     type="text"
                     value={it.brand}
                     onChange={(e) => update(it._k, { brand: e.target.value })}
-                    placeholder="Marque"
+                    placeholder={ph('profil_gearmanager_1')}
                     className="rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   />
                   <input
                     type="text"
                     value={it.details}
                     onChange={(e) => update(it._k, { details: e.target.value })}
-                    placeholder="Précisions (année, specs, état…)"
+                    placeholder={ph('profil_gearmanager_2')}
                     className="sm:col-span-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   />
                   <div className="flex items-center gap-2">

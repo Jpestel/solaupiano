@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ph } from '@/lib/placeholders'
 
 export function AdminAnnonceActions({ id, status }: { id: number; status: string }) {
   const [showRefuseModal, setShowRefuseModal] = useState(false)
@@ -90,7 +91,7 @@ export function AdminAnnonceActions({ id, status }: { id: number; status: string
               value={comment}
               onChange={e => setComment(e.target.value)}
               rows={3}
-              placeholder="Ex : Annonce trop vague, merci de préciser la marque et l'état du matériel…"
+              placeholder={ph('admin_annonces_adminannonceactions_1')}
               className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none mb-4"
               autoFocus
             />

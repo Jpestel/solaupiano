@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { CATEGORIES } from '@/lib/resource-links'
+import { ph } from '@/lib/placeholders'
 
 interface Link {
   id: number
@@ -100,7 +101,7 @@ export default function AdminResourceLinksPage() {
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div><label className="form-label">Icône</label><input className="form-input" value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} /></div>
-            <div className="sm:col-span-2"><label className="form-label">Libellé *</label><input className="form-input" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="ex : Spotify" /></div>
+            <div className="sm:col-span-2"><label className="form-label">Libellé *</label><input className="form-input" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder={ph('admin_ressources_liens_1')} /></div>
             <div><label className="form-label">Catégorie</label>
               <select className="form-input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
                 {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
@@ -108,9 +109,9 @@ export default function AdminResourceLinksPage() {
             </div>
           </div>
           <div><label className="form-label">URL (utilisez <code className="bg-gray-100 px-1 rounded">{'{q}'}</code> pour le titre+artiste)</label>
-            <input className="form-input font-mono text-xs" value={form.urlTemplate} onChange={(e) => setForm({ ...form, urlTemplate: e.target.value })} placeholder="https://open.spotify.com/search/{q}" />
+            <input className="form-input font-mono text-xs" value={form.urlTemplate} onChange={(e) => setForm({ ...form, urlTemplate: e.target.value })} placeholder={ph('admin_ressources_liens_2')} />
           </div>
-          <div><label className="form-label">Description</label><input className="form-input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="ex : Écoute en streaming" /></div>
+          <div><label className="form-label">Description</label><input className="form-input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={ph('admin_ressources_liens_3')} /></div>
           <div className="flex gap-4">
             <label className="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" checked={form.defaultActive} onChange={(e) => setForm({ ...form, defaultActive: e.target.checked })} className="rounded border-gray-300 text-indigo-600" /> Actif par défaut (tous les groupes)</label>
             <label className="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} className="rounded border-gray-300 text-indigo-600" /> Disponible</label>

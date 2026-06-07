@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { TutorialButton } from '@/components/ui/TutorialButton'
+import { ph } from '@/lib/placeholders'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -562,7 +563,7 @@ export default function KilometriqueCalculatorPage() {
                 value={departure}
                 onChange={e => setDeparture(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                placeholder="ex : Paris"
+                placeholder={ph('outils_kilometrique_1')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -574,7 +575,7 @@ export default function KilometriqueCalculatorPage() {
                 value={arrival}
                 onChange={e => setArrival(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                placeholder="ex : Lyon"
+                placeholder={ph('outils_kilometrique_2')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -624,7 +625,7 @@ export default function KilometriqueCalculatorPage() {
                   min={1}
                   value={manualKm}
                   onChange={e => setManualKm(e.target.value)}
-                  placeholder="ex : 450"
+                  placeholder={ph('outils_kilometrique_3')}
                   className="w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   autoFocus
                 />
@@ -718,7 +719,7 @@ export default function KilometriqueCalculatorPage() {
                       className="ml-1 text-indigo-400 hover:text-indigo-600" title="Consulter autoroutes.fr">ⓘ</a>
                   </label>
                   <input type="number" min={0} step={0.10} value={v.tolls} onChange={e => updateVehicle(v.id, { tolls: parseFloat(e.target.value) || 0 })}
-                    placeholder="0"
+                    placeholder={ph('outils_kilometrique_4')}
                     className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                 </div>
               </div>
@@ -764,7 +765,7 @@ export default function KilometriqueCalculatorPage() {
                     type="text"
                     value={e.label}
                     onChange={ev => setExpenses(es => es.map(x => x.id === e.id ? { ...x, label: ev.target.value } : x))}
-                    placeholder="Libellé"
+                    placeholder={ph('outils_kilometrique_5')}
                     className="flex-1 min-w-[140px] rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   />
                   {/* Montant unitaire */}
@@ -775,7 +776,7 @@ export default function KilometriqueCalculatorPage() {
                       step={0.5}
                       value={e.unitAmount}
                       onChange={ev => setExpenses(es => es.map(x => x.id === e.id ? { ...x, unitAmount: parseFloat(ev.target.value) || 0 } : x))}
-                      placeholder="0"
+                      placeholder={ph('outils_kilometrique_6')}
                       className="w-24 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     />
                     <span className="text-xs text-gray-400">€</span>
@@ -856,7 +857,7 @@ export default function KilometriqueCalculatorPage() {
               <input
                 type="text" inputMode="decimal"
                 value={cachet} onChange={e => setCachet(e.target.value)}
-                placeholder={regime === 'facture' ? 'ex : 1000' : cachetMode === 'brut' ? 'ex : 1200' : 'ex : 936'}
+                placeholder={regime === 'facture' ? ph('km_montant_facture') : cachetMode === 'brut' ? ph('km_montant_brut') : ph('km_montant_net')}
                 className="w-36 rounded-lg border border-amber-300 bg-white pl-3 pr-8 py-2 text-base font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">€</span>
@@ -1132,7 +1133,7 @@ export default function KilometriqueCalculatorPage() {
                 value={saveLabel}
                 onChange={e => setSaveLabel(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSave()}
-                placeholder="ex : Concert Caen — mars 2026"
+                placeholder={ph('outils_kilometrique_7')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 maxLength={80}
               />

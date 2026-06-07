@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
+import { ph } from '@/lib/placeholders'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -320,7 +321,7 @@ export default function MaPageEditor({ params }: { params: { id: string } }) {
                   value={slugInput}
                   onChange={e => { setSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); validateSlug(e.target.value) }}
                   className="flex-1 px-3 py-2 text-sm focus:outline-none"
-                  placeholder="nom-du-groupe"
+                  placeholder={ph('groupes_id_ma_page_1')}
                 />
               </div>
               {slugError && <p className="text-xs text-red-500 mt-1">{slugError}</p>}
@@ -381,10 +382,10 @@ export default function MaPageEditor({ params }: { params: { id: string } }) {
               <input disabled={!isChef} value={page.bannerTitle} onChange={e => setPage(p => ({ ...p, bannerTitle: e.target.value }))} className={inp} placeholder={groupName} />
             </Field>
             <Field label="Sous-titre" hint="(genre, slogan…)">
-              <input disabled={!isChef} value={page.bannerSubtitle} onChange={e => setPage(p => ({ ...p, bannerSubtitle: e.target.value }))} className={inp} placeholder="Rock alternatif depuis 2010" />
+              <input disabled={!isChef} value={page.bannerSubtitle} onChange={e => setPage(p => ({ ...p, bannerSubtitle: e.target.value }))} className={inp} placeholder={ph('groupes_id_ma_page_2')} />
             </Field>
             <Field label="Biographie du groupe">
-              <textarea disabled={!isChef} rows={8} value={page.bio} onChange={e => setPage(p => ({ ...p, bio: e.target.value }))} className={ta} placeholder="Racontez l'histoire de votre groupe, comment vous vous êtes rencontrés, votre univers musical…" />
+              <textarea disabled={!isChef} rows={8} value={page.bio} onChange={e => setPage(p => ({ ...p, bio: e.target.value }))} className={ta} placeholder={ph('groupes_id_ma_page_3')} />
             </Field>
           </div>
         )}
@@ -451,7 +452,7 @@ export default function MaPageEditor({ params }: { params: { id: string } }) {
                         </div>
                         <div>
                           <label className="text-xs text-gray-400 font-medium">Biographie courte</label>
-                          <textarea disabled={!isChef} rows={2} value={card.bio} onChange={e => updCard(card.userId, { bio: e.target.value })} className={`${ta} mt-0.5`} placeholder="Guitariste depuis 15 ans, passionné de blues…" />
+                          <textarea disabled={!isChef} rows={2} value={card.bio} onChange={e => updCard(card.userId, { bio: e.target.value })} className={`${ta} mt-0.5`} placeholder={ph('groupes_id_ma_page_4')} />
                         </div>
                       </div>
 
@@ -500,7 +501,7 @@ export default function MaPageEditor({ params }: { params: { id: string } }) {
               </label>
               {page.showContact && (
                 <Field label="Titre de la section contact" hint="(optionnel)">
-                  <input disabled={!isChef} value={page.contactTitle} onChange={e => setPage(p => ({ ...p, contactTitle: e.target.value }))} className={inp} placeholder="Nous contacter" />
+                  <input disabled={!isChef} value={page.contactTitle} onChange={e => setPage(p => ({ ...p, contactTitle: e.target.value }))} className={inp} placeholder={ph('groupes_id_ma_page_5')} />
                 </Field>
               )}
             </div>
@@ -509,11 +510,11 @@ export default function MaPageEditor({ params }: { params: { id: string } }) {
             <div className="space-y-3">
               <p className="text-sm font-medium text-gray-700">Réseaux sociaux</p>
               {([
-                { key: 'instagram', icon: '📷', label: 'Instagram', placeholder: '@mongroupe' },
-                { key: 'facebook',  icon: '📘', label: 'Facebook',  placeholder: 'mongroupe ou URL complète' },
-                { key: 'youtube',   icon: '▶️',  label: 'YouTube',   placeholder: '@mongroupe ou URL' },
-                { key: 'spotify',   icon: '🎵', label: 'Spotify',   placeholder: 'URL artiste Spotify' },
-                { key: 'website',   icon: '🌐', label: 'Site web',  placeholder: 'https://mongroupe.fr' },
+                { key: 'instagram', icon: '📷', label: 'Instagram', placeholder: ph('mapage_instagram') },
+                { key: 'facebook',  icon: '📘', label: 'Facebook',  placeholder: ph('mapage_facebook') },
+                { key: 'youtube',   icon: '▶️',  label: 'YouTube',   placeholder: ph('mapage_youtube') },
+                { key: 'spotify',   icon: '🎵', label: 'Spotify',   placeholder: ph('mapage_spotify') },
+                { key: 'website',   icon: '🌐', label: 'Site web',  placeholder: ph('mapage_website') },
               ] as const).map(s => (
                 <div key={s.key} className="flex items-center gap-3">
                   <span className="w-6 text-lg flex-shrink-0">{s.icon}</span>

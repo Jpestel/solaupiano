@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { TutorialButton } from '@/components/ui/TutorialButton'
+import { ph } from '@/lib/placeholders'
 
 // ─── Taux de cotisations 2025 (spectacle vivant, CDU) ─────────────────────────
 // Source : GUSO / Urssaf / AGIRC-ARRCO — valeurs approchées à titre indicatif.
@@ -150,7 +151,7 @@ export default function CachetSimulateurPage() {
               inputMode="decimal"
               value={amount}
               onChange={e => setAmount(e.target.value)}
-              placeholder="ex : 150"
+              placeholder={ph('outils_cachet_1')}
               className="w-full rounded-lg border border-gray-300 pl-4 pr-12 py-3 text-lg font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               autoFocus
             />

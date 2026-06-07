@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ph } from '@/lib/placeholders'
 
 interface Newsletter {
   id: number
@@ -64,11 +65,11 @@ export default function AdminNewsletterPage() {
         {msg && <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 text-sm text-indigo-700">{msg}</div>}
         <div>
           <label className="form-label">Sujet</label>
-          <input className="form-input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="ex : Les nouveautés de l'été 🎶" />
+          <input className="form-input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={ph('admin_newsletter_1')} />
         </div>
         <div>
           <label className="form-label">Contenu</label>
-          <textarea className="form-input font-mono text-sm" rows={12} value={content} onChange={(e) => setContent(e.target.value)} placeholder={"Écrivez votre message…\n\nLes retours à la ligne sont conservés. Vous pouvez aussi coller du HTML."} />
+          <textarea className="form-input font-mono text-sm" rows={12} value={content} onChange={(e) => setContent(e.target.value)} placeholder={ph('newsletter_compose')} />
           <p className="text-xs text-gray-400 mt-1">En-tête, pied de page et lien de désinscription sont ajoutés automatiquement à chaque email.</p>
         </div>
         <div className="flex gap-2">

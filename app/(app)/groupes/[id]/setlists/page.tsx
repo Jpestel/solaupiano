@@ -8,6 +8,7 @@ import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { ph } from '@/lib/placeholders'
 
 interface Concert { id: number; name: string; date: string }
 interface Setlist {
@@ -191,13 +192,13 @@ export default function SetlistsPage({ params }: { params: { id: string } }) {
             <label className="form-label">Nom de la setlist <span className="text-red-500">*</span></label>
             <input type="text" required autoFocus value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="form-input" placeholder="ex: Set acoustique, Bal du 14 juillet..." />
+              className="form-input" placeholder={ph('groupes_id_setlists_1')} />
           </div>
           <div>
             <label className="form-label">Description <span className="text-gray-400 font-normal">(optionnel)</span></label>
             <textarea rows={2} value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="form-input resize-none" placeholder="Contexte, style musical, durée prévue..." />
+              className="form-input resize-none" placeholder={ph('groupes_id_setlists_2')} />
           </div>
           <div className="flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50/60 px-4 py-3">
             <input

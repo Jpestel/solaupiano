@@ -18,6 +18,7 @@ import { AttendanceBadge } from '@/components/ui/Badge'
 import { AttendanceButton } from '@/components/AttendanceButton'
 import { VideoModal } from '@/components/ui/VideoModal'
 import dynamic from 'next/dynamic'
+import { ph } from '@/lib/placeholders'
 const PdfModal = dynamic(() => import('@/components/ui/PdfModal').then((m) => m.PdfModal), { ssr: false })
 
 interface Resource { id: number; name: string; type: string; filePath: string }
@@ -674,7 +675,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                   value={editForm.location}
                   onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
                   className="form-input"
-                  placeholder="Salle de répétition..."
+                  placeholder={ph('groupes_id_repetitions_repid_1')}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -718,7 +719,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                   value={editForm.notes}
                   onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
                   className="form-input resize-none"
-                  placeholder="Informations complémentaires..."
+                  placeholder={ph('groupes_id_repetitions_repid_2')}
                 />
               </div>
               <div className="flex gap-3 pt-1">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 interface PollRow {
   id: number
@@ -124,7 +125,7 @@ export default function SondagesPage({ params }: { params: { id: string } }) {
             <h2 className="text-lg font-bold text-gray-900">Nouveau sondage</h2>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Titre *</label>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ex : Date de la prochaine répétition" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={ph('groupes_id_sondages_1')} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Description (optionnel)</label>
@@ -136,7 +137,7 @@ export default function SondagesPage({ params }: { params: { id: string } }) {
                 {options.map((o, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <input type="date" value={o.date} onChange={(e) => setOpt(i, 'date', e.target.value)} className="rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
-                    <input value={o.note} onChange={(e) => setOpt(i, 'note', e.target.value)} placeholder="note (ex : 20h, salle…)" className="flex-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
+                    <input value={o.note} onChange={(e) => setOpt(i, 'note', e.target.value)} placeholder={ph('groupes_id_sondages_2')} className="flex-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
                     {options.length > 1 && <button type="button" onClick={() => removeOption(i)} className="text-red-400 hover:text-red-600 text-lg px-1">×</button>}
                   </div>
                 ))}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ph } from '@/lib/placeholders'
 
 interface Cat {
   id: number
@@ -100,7 +101,7 @@ export function CategoriesManager({ initial }: { initial: Cat[] }) {
                 type="text"
                 value={form.key}
                 onChange={e => setForm(f => ({ ...f, key: e.target.value.toUpperCase().replace(/\s+/g, '_') }))}
-                placeholder="MATERIEL"
+                placeholder={ph('admin_annonces_categoriesmanager_1')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -110,7 +111,7 @@ export function CategoriesManager({ initial }: { initial: Cat[] }) {
                 type="text"
                 value={form.label}
                 onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-                placeholder="Matériel à vendre"
+                placeholder={ph('admin_annonces_categoriesmanager_2')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -120,7 +121,7 @@ export function CategoriesManager({ initial }: { initial: Cat[] }) {
                 type="text"
                 value={form.emoji}
                 onChange={e => setForm(f => ({ ...f, emoji: e.target.value }))}
-                placeholder="🎸"
+                placeholder={ph('admin_annonces_categoriesmanager_3')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -139,7 +140,7 @@ export function CategoriesManager({ initial }: { initial: Cat[] }) {
                 type="text"
                 value={form.hint}
                 onChange={e => setForm(f => ({ ...f, hint: e.target.value }))}
-                placeholder="Instruments, amplis, accessoires…"
+                placeholder={ph('admin_annonces_categoriesmanager_4')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -192,7 +193,7 @@ export function CategoriesManager({ initial }: { initial: Cat[] }) {
                     <input
                       value={editForm.hint ?? cat.hint ?? ''}
                       onChange={e => setEditForm(f => ({ ...f, hint: e.target.value }))}
-                      placeholder="Description courte…"
+                      placeholder={ph('admin_annonces_categoriesmanager_5')}
                       className="mt-1.5 w-full rounded border border-gray-300 px-2 py-1 text-xs text-gray-500"
                     />
                   )}

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { getResourceIcon } from '@/lib/utils'
 import { imagesToPdfBlob } from '@/lib/images-to-pdf'
+import { ph } from '@/lib/placeholders'
 
 interface ResourceUploaderProps {
   songId: number
@@ -225,7 +226,7 @@ export function ResourceUploader({ songId, onUpload, uploadEnabled = true, canIm
               </div>
               <div>
                 <label className="form-label">Nom du PDF</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="form-input" placeholder="ex: Partition — Mistral gagnant" />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="form-input" placeholder={ph('cmp_resourceuploader_1')} />
               </div>
               {(uploading || converting) && (
                 <p className="text-sm text-amber-600">{converting ? '⏳ Conversion en PDF…' : `Téléversement… ${progress}%`}</p>
@@ -241,7 +242,7 @@ export function ResourceUploader({ songId, onUpload, uploadEnabled = true, canIm
             <div className="space-y-3">
               <div>
                 <label className="form-label">Nom de la ressource</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="form-input" placeholder="ex: Partition voix soprano" />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="form-input" placeholder={ph('cmp_resourceuploader_2')} />
               </div>
               <div>
                 <label className="form-label">Type</label>
@@ -297,7 +298,7 @@ export function ResourceUploader({ songId, onUpload, uploadEnabled = true, canIm
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="form-input"
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder={ph('cmp_resourceuploader_3')}
               autoFocus
             />
           </div>
@@ -308,7 +309,7 @@ export function ResourceUploader({ songId, onUpload, uploadEnabled = true, canIm
               value={urlName}
               onChange={(e) => setUrlName(e.target.value)}
               className="form-input"
-              placeholder="ex: Vidéo YouTube originale"
+              placeholder={ph('cmp_resourceuploader_4')}
             />
           </div>
           <button

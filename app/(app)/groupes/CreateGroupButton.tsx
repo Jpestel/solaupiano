@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { LookingForSelector } from '@/components/ui/LookingForSelector'
 import { MUSIC_GENRES } from '@/lib/genres'
+import { ph } from '@/lib/placeholders'
 
 export function CreateGroupButton() {
   const router = useRouter()
@@ -92,7 +93,7 @@ export function CreateGroupButton() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="form-input"
-              placeholder="ex: Les Rockeurs du Havre"
+              placeholder={ph('groupes_creategroupbutton_1')}
             />
           </div>
           <div>
@@ -102,7 +103,7 @@ export function CreateGroupButton() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="form-input"
-              placeholder="ex: Groupe de reprises rock années 80"
+              placeholder={ph('groupes_creategroupbutton_2')}
             />
           </div>
           <div>

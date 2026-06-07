@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { ph } from '@/lib/placeholders'
 
 interface Slide {
   id: number
@@ -109,11 +110,11 @@ export default function AdminCarrouselPage() {
           <form onSubmit={submit} className="space-y-3">
             <div>
               <label className="form-label">Titre *</label>
-              <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ex : Pilotez votre groupe" />
+              <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={ph('admin_carrousel_1')} />
             </div>
             <div>
               <label className="form-label">Sous-titre</label>
-              <input className="form-input" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="ex : Répétitions, concerts et présences en un coup d'œil." />
+              <input className="form-input" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder={ph('admin_carrousel_2')} />
             </div>
             <div>
               <label className="form-label">Image {editingId && <span className="text-gray-400 font-normal">(laisser vide pour conserver l&apos;actuelle)</span>}</label>
@@ -124,7 +125,7 @@ export default function AdminCarrouselPage() {
             </div>
             <div>
               <label className="form-label">Lien au clic <span className="text-gray-400 font-normal">(optionnel)</span></label>
-              <input className="form-input" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="/inscription" />
+              <input className="form-input" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder={ph('admin_carrousel_3')} />
             </div>
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="rounded border-gray-300 text-indigo-600" />

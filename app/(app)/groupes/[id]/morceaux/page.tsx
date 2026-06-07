@@ -14,6 +14,7 @@ import { YouTubeSuggestModal } from '@/components/YouTubeSuggestModal'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { SongMetronome } from '@/components/ui/SongMetronome'
 import dynamic from 'next/dynamic'
+import { ph } from '@/lib/placeholders'
 const PdfModal = dynamic(() => import('@/components/ui/PdfModal').then((m) => m.PdfModal), { ssr: false })
 
 interface Resource {
@@ -591,7 +592,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                 value={resourceForm.filePath}
                 onChange={(e) => setResourceForm({ ...resourceForm, filePath: e.target.value })}
                 className="form-input"
-                placeholder="https://..."
+                placeholder={ph('groupes_id_morceaux_1')}
               />
             </div>
           )}
@@ -621,7 +622,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
               value={songForm.duration}
               onChange={(e) => setSongForm({ ...songForm, duration: e.target.value })}
               className="form-input"
-              placeholder="3:45"
+              placeholder={ph('groupes_id_morceaux_2')}
               pattern="^\d{1,3}:\d{2}$"
               title="Format MM:SS (ex: 3:45)"
             />
@@ -633,7 +634,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
               value={songForm.tempo}
               onChange={(e) => setSongForm({ ...songForm, tempo: e.target.value })}
               className="form-input"
-              placeholder="ex : 120"
+              placeholder={ph('groupes_id_morceaux_3')}
             />
           </div>
           <div>
@@ -667,11 +668,11 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           </div>
           <div>
             <label className="form-label">Titre *</label>
-            <input type="text" required value={songForm.title} onChange={(e) => setSongForm({ ...songForm, title: e.target.value })} className="form-input" placeholder="ex: La Vie en Rose" />
+            <input type="text" required value={songForm.title} onChange={(e) => setSongForm({ ...songForm, title: e.target.value })} className="form-input" placeholder={ph('groupes_id_morceaux_4')} />
           </div>
           <div>
             <label className="form-label">Artiste / Compositeur</label>
-            <input type="text" value={songForm.artist} onChange={(e) => setSongForm({ ...songForm, artist: e.target.value })} className="form-input" placeholder="ex: Édith Piaf" />
+            <input type="text" value={songForm.artist} onChange={(e) => setSongForm({ ...songForm, artist: e.target.value })} className="form-input" placeholder={ph('groupes_id_morceaux_5')} />
           </div>
           <div>
             <label className="form-label">Durée <span className="text-gray-400 font-normal">(format MM:SS, ex: 3:45)</span></label>
@@ -680,7 +681,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
               value={songForm.duration}
               onChange={(e) => setSongForm({ ...songForm, duration: e.target.value })}
               className="form-input"
-              placeholder="3:45"
+              placeholder={ph('groupes_id_morceaux_6')}
               pattern="^\d{1,3}:\d{2}$"
               title="Format MM:SS (ex: 3:45)"
             />
@@ -692,12 +693,12 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
               value={songForm.tempo}
               onChange={(e) => setSongForm({ ...songForm, tempo: e.target.value })}
               className="form-input"
-              placeholder="ex : 120"
+              placeholder={ph('groupes_id_morceaux_7')}
             />
           </div>
           <div>
             <label className="form-label">Notes</label>
-            <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} placeholder="Tonalité, tempo, remarques..." />
+            <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} placeholder={ph('groupes_id_morceaux_8')} />
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setAddSongOpen(false)}>Annuler</Button>

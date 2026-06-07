@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { ph } from '@/lib/placeholders'
 
 interface Unav {
   id: number
@@ -133,7 +134,7 @@ export default function DisponibilitesPage({ params }: { params: { id: string } 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Motif (optionnel)</label>
                 <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} maxLength={200}
-                  placeholder="ex : vacances, travail, déplacement…"
+                  placeholder={ph('groupes_id_disponibilites_1')}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}

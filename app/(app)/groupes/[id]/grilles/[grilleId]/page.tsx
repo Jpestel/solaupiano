@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { ph } from '@/lib/placeholders'
 
 /* ─── Types ─── */
 interface Song { id: number; title: string; artist?: string; tempo?: number | null }
@@ -676,7 +677,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         <textarea
           value={sons}
           onChange={(e) => handleSonsChange(e.target.value)}
-          placeholder="Instruments, arrangements, notes…"
+          placeholder={ph('groupes_id_grilles_grilleid_1')}
           rows={2}
           disabled={!isChef}
           className="w-full text-sm text-gray-700 placeholder:text-gray-300 resize-none focus:outline-none bg-transparent"
@@ -705,9 +706,9 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                 onChange={(e) => applyValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={
-                  active.type === 'left' ? 'Symbole de début (||:, Segno…)' :
-                  active.type === 'right' ? 'Symbole de fin (:||, Fine, Coda…)' :
-                  'Accord ou symbole…'
+                  active.type === 'left' ? ph('grille_symbol_left') :
+                  active.type === 'right' ? ph('grille_symbol_right') :
+                  ph('grille_symbol_default')
                 }
                 className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300 font-mono"
               />
@@ -894,13 +895,13 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
               <label className="form-label">Tempo</label>
               <input type="text" value={settingsForm.tempo}
                 onChange={(e) => setSettingsForm({ ...settingsForm, tempo: e.target.value })}
-                className="form-input" placeholder="♩=120, Swing…" />
+                className="form-input" placeholder={ph('groupes_id_grilles_grilleid_2')} />
             </div>
             <div>
               <label className="form-label">Tonalité</label>
               <input type="text" value={settingsForm.keySignature}
                 onChange={(e) => setSettingsForm({ ...settingsForm, keySignature: e.target.value })}
-                className="form-input" placeholder="La mineur…" />
+                className="form-input" placeholder={ph('groupes_id_grilles_grilleid_3')} />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">

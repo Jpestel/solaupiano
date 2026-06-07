@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { PLANS, GroupPlan, formatBytes, storagePercent, storageLabel } from '@/lib/plans'
 import { MUSIC_GENRES } from '@/lib/genres'
+import { ph } from '@/lib/placeholders'
 
 interface User {
   id: number
@@ -548,7 +549,7 @@ export default function AdminGroupesPage() {
               min="1"
               value={storageQuotaValue}
               onChange={(e) => setStorageQuotaValue(e.target.value)}
-              placeholder="Ex : 20 (pour 20 Go)"
+              placeholder={ph('admin_groupes_1')}
               className="form-input"
             />
             <p className="text-[11px] text-gray-400 mt-1">
@@ -709,7 +710,7 @@ export default function AdminGroupesPage() {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="form-input"
-              placeholder="ex: Ensemble Vivaldi"
+              placeholder={ph('admin_groupes_2')}
             />
           </div>
           <div>
@@ -719,7 +720,7 @@ export default function AdminGroupesPage() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="form-input"
               rows={2}
-              placeholder="Description optionnelle..."
+              placeholder={ph('admin_groupes_3')}
             />
           </div>
           <div>

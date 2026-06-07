@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ph } from '@/lib/placeholders'
 
 interface Variable { key: string; description: string }
 interface Template {
@@ -181,7 +182,7 @@ export function EmailsManager({ templates: initial }: { templates: Template[] })
                   onChange={e => setForm(f => ({ ...f, intro: e.target.value }))}
                   rows={4}
                   className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  placeholder="Texte d'introduction affiché avant les données de l'email…"
+                  placeholder={ph('admin_emails_emailsmanager_1')}
                 />
                 <p className="text-[10px] text-gray-400 mt-1">Double saut de ligne = nouveau paragraphe.</p>
               </div>
@@ -204,7 +205,7 @@ export function EmailsManager({ templates: initial }: { templates: Template[] })
                   onChange={e => setForm(f => ({ ...f, outro: e.target.value }))}
                   rows={2}
                   className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  placeholder="Message de clôture (optionnel)…"
+                  placeholder={ph('admin_emails_emailsmanager_2')}
                 />
               </div>
             </div>

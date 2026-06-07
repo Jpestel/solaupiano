@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { TUTORIAL_CATEGORIES } from '@/lib/tutorial-categories'
+import { ph } from '@/lib/placeholders'
 
 interface Tutorial {
   id: number
@@ -242,14 +243,14 @@ export default function AdminTutorielsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Titre <span className="text-red-500">*</span></label>
                 <input type="text" required autoFocus value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="ex: Comment utiliser l'accordeur" />
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={ph('admin_tutoriels_1')} />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-gray-400 font-normal">(optionnel)</span></label>
                 <textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  placeholder="Brève description du contenu de la vidéo…" />
+                  placeholder={ph('admin_tutoriels_2')} />
               </div>
 
               <div>

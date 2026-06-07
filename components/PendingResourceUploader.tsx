@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { getResourceIcon } from '@/lib/utils'
+import { ph } from '@/lib/placeholders'
 
 interface PendingResourceUploaderProps {
   groupId: string
@@ -120,7 +121,7 @@ export function PendingResourceUploader({ groupId, songId, onSubmit }: PendingRe
         <div className="space-y-3">
           <div>
             <label className="form-label">Nom de la ressource</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="form-input" placeholder="ex: Partition voix soprano" />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="form-input" placeholder={ph('cmp_pendingresourceuploader_1')} />
           </div>
           <div>
             <label className="form-label">Type</label>
