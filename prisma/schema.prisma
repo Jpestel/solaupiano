@@ -316,6 +316,38 @@ model Group {
   unavailabilities Unavailability[]
   polls            Poll[]
   expenses         GroupExpense[]
+  resourceLinkOverrides GroupResourceLink[]
+}
+
+// Catalogue de liens de ressources (audios, vidéos, tutos, partitions…)
+// proposés à l'ajout d'un morceau. Activables/désactivables par groupe.
+model ResourceLink {
+  id            Int      @id @default(autoincrement())
+  label         String
+  icon          String   @default("🔗")
+  category      String   @default("OTHER") // VIDEO | AUDIO | TUTO | SCORE | TAB | LYRICS | OTHER
+  urlTemplate   String   @db.Text          // contient {q} (remplacé par titre+artiste encodé)
+  description   String?
+  defaultActive Boolean  @default(false)    // actif par défaut pour tous les groupes
+  enabled       Boolean  @default(true)     // disponible globalement
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  groupOverrides GroupResourceLink[]
+}
+
+// Surcharge par groupe : active = true/false explicite (sinon defaultActive)
+model GroupResourceLink {
+  groupId        Int
+  resourceLinkId Int
+  active         Boolean
+
+  group Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  link  ResourceLink @relation(fields: [resourceLinkId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, resourceLinkId])
+  @@index([groupId])
 }
 
 model GroupExpense {

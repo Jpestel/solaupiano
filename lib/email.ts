@@ -838,6 +838,36 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTHER: '📩 Autre',
 }
 
+// ─── Demande d'activation/désactivation de liens de ressources ───────────────
+export async function sendResourceLinkRequest(
+  adminEmail: string,
+  data: { groupName: string; requesterName: string; activate: string[]; deactivate: string[]; message?: string }
+) {
+  const tpl = await getEmailTemplate('resource_link_request')
+  const { subject, introHtml, outroHtml } = tpl.render({ groupName: data.groupName, requesterName: data.requesterName })
+  const list = (items: string[]) => items.length
+    ? `<ul style="margin:4px 0 0; padding-left:18px;">${items.map((i) => `<li style="font-size:13px; color:#374151;">${i}</li>`).join('')}</ul>`
+    : '<p style="margin:4px 0 0; font-size:13px; color:#9ca3af;">—</p>'
+  return resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to: adminEmail,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${dataBox(`
+        <p style="margin:0 0 6px; font-size:14px; font-weight:700; color:#1e3a8a;">Groupe : ${data.groupName}</p>
+        <p style="margin:0 0 10px; font-size:12px; color:#6b7280;">Demande de ${data.requesterName}</p>
+        <p style="margin:0; font-size:13px; font-weight:600; color:#16a34a;">✅ À activer :</p>
+        ${list(data.activate)}
+        <p style="margin:10px 0 0; font-size:13px; font-weight:600; color:#b91c1c;">🚫 À désactiver :</p>
+        ${list(data.deactivate)}
+        ${data.message ? `<p style="margin:12px 0 0; font-size:12px; color:#374151; font-style:italic;">« ${data.message} »</p>` : ''}
+      `)}
+      ${outroHtml}
+    `),
+  })
+}
+
 export async function sendSupportTicketToAdmin(
   adminEmail: string,
   ticket: {

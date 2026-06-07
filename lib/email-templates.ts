@@ -117,6 +117,18 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ],
   },
   {
+    key: 'resource_link_request',
+    name: 'Demande de liens de ressources (admin)',
+    description: 'Envoyé à l\'admin quand un groupe demande d\'activer ou désactiver des liens de ressources proposés à l\'ajout d\'un morceau.',
+    defaultSubject: 'Demande de liens — {{groupName}}',
+    defaultIntro: 'Bonjour,\n\nLe groupe « {{groupName}} » (via {{requesterName}}) souhaite modifier les liens de ressources proposés à l\'ajout d\'un morceau.',
+    defaultOutro: 'Vous pouvez gérer ces liens depuis Admin → Liens de ressources.',
+    variables: [
+      { key: 'groupName', description: 'Nom du groupe' },
+      { key: 'requesterName', description: 'Nom du demandeur' },
+    ],
+  },
+  {
     key: 'rehearsal_notification',
     name: 'Nouvelle répétition',
     description: 'Envoyé aux membres quand une répétition est planifiée par le chef.',

@@ -726,6 +726,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       {ytSuggest && (
         <YouTubeSuggestModal
           songId={ytSuggest.id}
+          groupId={groupId}
           title={ytSuggest.title}
           artist={ytSuggest.artist}
           onClose={() => setYtSuggest(null)}

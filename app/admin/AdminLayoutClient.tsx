@@ -19,6 +19,7 @@ const adminNav = [
   { href: '/admin/tutoriels',       label: 'Tutoriels vidéo' },
   { href: '/admin/flash-infos',      label: 'Flash infos' },
   { href: '/admin/newsletter',       label: 'Newsletter' },
+  { href: '/admin/ressources-liens',  label: 'Liens de ressources' },
   { href: '/admin/carrousel',        label: 'Carrousel' },
   { href: '/admin/fichiers',         label: 'Fichiers' },
   { href: '/admin/performance',      label: 'Performance' },

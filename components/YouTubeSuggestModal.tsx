@@ -1,28 +1,41 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { buildUrl } from '@/lib/resource-links'
 
 interface YtResult { videoId: string; title: string; channel: string; thumbnail: string; url: string }
+interface RLink { id: number; label: string; icon: string; category: string; urlTemplate: string; description: string | null; active: boolean }
 
-export function YouTubeSuggestModal({ songId, title, artist, onClose, onAdded }: {
+export function YouTubeSuggestModal({ songId, groupId, title, artist, onClose, onAdded }: {
   songId: number
+  groupId: number | string
   title: string
   artist?: string
   onClose: () => void
   onAdded?: () => void
 }) {
   const [videos, setVideos] = useState<YtResult[]>([])
+  const [links, setLinks] = useState<RLink[]>([])
   const [loadingV, setLoadingV] = useState(true)
   const [addingUrl, setAddingUrl] = useState<string | null>(null)
   const [addedUrls, setAddedUrls] = useState<Set<string>>(new Set())
 
+  // Demande de gestion des liens
+  const [manage, setManage] = useState(false)
+  const [activateIds, setActivateIds] = useState<Set<number>>(new Set())
+  const [deactivateIds, setDeactivateIds] = useState<Set<number>>(new Set())
+  const [reqMsg, setReqMsg] = useState('')
+  const [sending, setSending] = useState(false)
+  const [reqDone, setReqDone] = useState(false)
+
   const q = `${title} ${artist || ''}`.trim()
-  const enc = encodeURIComponent(q)
 
   useEffect(() => {
     fetch(`/api/youtube/search?q=${encodeURIComponent(q + ' clip officiel')}`)
       .then((r) => r.json()).then((d) => setVideos(d.results || [])).catch(() => {}).finally(() => setLoadingV(false))
-  }, [q])
+    fetch(`/api/groupes/${groupId}/resource-links`)
+      .then((r) => r.json()).then((d) => setLinks(Array.isArray(d) ? d : [])).catch(() => {})
+  }, [q, groupId])
 
   const addLink = useCallback(async (url: string, name: string) => {
     setAddingUrl(url)
@@ -35,18 +48,23 @@ export function YouTubeSuggestModal({ songId, title, artist, onClose, onAdded }:
     onAdded?.()
   }, [songId, onAdded])
 
-  // Partitions à télécharger
-  const SHEETS = [
-    { label: 'Free-scores', icon: '🎼', url: `https://www.free-scores.com/search.php?search=${enc}` },
-    { label: 'MuseScore', icon: '🎼', url: `https://musescore.com/sheetmusic?text=${enc}` },
-  ]
-  // Sites pour travailler le morceau (accords, paroles, play-along, tabs)
-  const PRACTICE = [
-    { label: 'Chordify', icon: '🎸', desc: 'Accords synchronisés / play-along', url: `https://chordify.net/search/${enc}` },
-    { label: 'Ultimate Guitar', icon: '🎸', desc: 'Tablatures & accords', url: `https://www.ultimate-guitar.com/search.php?search_type=title&value=${enc}` },
-    { label: 'Songsterr', icon: '🎸', desc: 'Tablatures interactives', url: `https://www.songsterr.com/?pattern=${enc}` },
-    { label: 'Lyrics (Genius)', icon: '📝', desc: 'Paroles', url: `https://genius.com/search?q=${enc}` },
-  ]
+  const toggle = (set: Set<number>, setter: (s: Set<number>) => void, id: number) => {
+    const n = new Set(set); n.has(id) ? n.delete(id) : n.add(id); setter(n)
+  }
+
+  const sendRequest = async () => {
+    if (activateIds.size === 0 && deactivateIds.size === 0) return
+    setSending(true)
+    const res = await fetch(`/api/groupes/${groupId}/resource-links/request`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activateIds: [...activateIds], deactivateIds: [...deactivateIds], message: reqMsg }),
+    })
+    setSending(false)
+    if (res.ok) { setReqDone(true); setActivateIds(new Set()); setDeactivateIds(new Set()); setReqMsg('') }
+  }
+
+  const active = links.filter((l) => l.active)
+  const inactive = links.filter((l) => !l.active)
 
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/40 overflow-y-auto" onClick={onClose}>
@@ -92,39 +110,73 @@ export function YouTubeSuggestModal({ songId, title, artist, onClose, onAdded }:
             )}
           </div>
 
-          {/* Partitions */}
+          {/* Liens actifs */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-2">🎼 Partitions à télécharger</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {SHEETS.map((s) => (
-                <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors">
-                  <span className="text-lg">{s.icon}</span>
-                  <span className="text-sm font-medium text-gray-800">{s.label}</span>
-                  <span className="ml-auto text-gray-300 text-xs">↗</span>
-                </a>
-              ))}
-            </div>
+            <h4 className="text-sm font-semibold text-gray-800 mb-2">🔗 Ressources & outils</h4>
+            {active.length === 0 ? (
+              <p className="text-sm text-gray-400 py-2">Aucun lien actif.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {active.map((l) => (
+                  <a key={l.id} href={buildUrl(l.urlTemplate, q)} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors">
+                    <span className="text-lg">{l.icon}</span>
+                    <span className="text-sm font-medium text-gray-800 truncate">{l.label}</span>
+                    <span className="ml-auto text-gray-300 text-xs">↗</span>
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Travailler le morceau */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-2">🎸 Travailler le morceau</h4>
-            <div className="space-y-1.5">
-              {PRACTICE.map((s) => (
-                <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 rounded-xl border border-gray-200 px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors">
-                  <span className="text-lg flex-shrink-0">{s.icon}</span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800 leading-tight">{s.label}</p>
-                    <p className="text-[11px] text-gray-400">{s.desc}</p>
-                  </div>
-                  <span className="ml-auto text-gray-300 text-xs">↗</span>
-                </a>
-              ))}
-            </div>
-            <p className="text-[11px] text-gray-400 mt-2">Les recherches sont pré-remplies avec le titre et l&apos;artiste. Pensez à vérifier les droits des partitions (privilégiez le domaine public ou les contenus gratuits).</p>
+          {/* Gestion des liens (demande admin) */}
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <button onClick={() => setManage((v) => !v)} className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+              <span>{manage ? '▾' : '▸'}</span>
+              ⚙️ Besoin d&apos;activer ou désactiver des liens ?
+            </button>
+            {manage && (
+              reqDone ? (
+                <p className="mt-2 text-sm text-green-700">✓ Demande envoyée à l&apos;administrateur. Vous serez notifié dès la mise à jour.</p>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  <p className="text-[11px] text-gray-500">Cochez les liens souhaités, puis envoyez la demande à l&apos;administrateur du site qui les activera/désactivera pour votre groupe.</p>
+                  {inactive.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-semibold text-green-700 mb-1">À activer</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {inactive.map((l) => (
+                          <label key={l.id} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs cursor-pointer ${activateIds.has(l.id) ? 'bg-green-100 border-green-300 text-green-800' : 'bg-white border-gray-200 text-gray-600'}`}>
+                            <input type="checkbox" className="hidden" checked={activateIds.has(l.id)} onChange={() => toggle(activateIds, setActivateIds, l.id)} />
+                            {l.icon} {l.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {active.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-semibold text-red-600 mb-1">À désactiver</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {active.map((l) => (
+                          <label key={l.id} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs cursor-pointer ${deactivateIds.has(l.id) ? 'bg-red-100 border-red-300 text-red-800' : 'bg-white border-gray-200 text-gray-600'}`}>
+                            <input type="checkbox" className="hidden" checked={deactivateIds.has(l.id)} onChange={() => toggle(deactivateIds, setDeactivateIds, l.id)} />
+                            {l.icon} {l.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <textarea value={reqMsg} onChange={(e) => setReqMsg(e.target.value)} rows={2} placeholder="Message (optionnel)…" className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
+                  <button onClick={sendRequest} disabled={sending || (activateIds.size === 0 && deactivateIds.size === 0)}
+                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60">
+                    {sending ? 'Envoi…' : 'Envoyer la demande à l\'admin'}
+                  </button>
+                </div>
+              )
+            )}
           </div>
+          <p className="text-[11px] text-gray-400">Vérifiez toujours les droits des partitions (privilégiez le domaine public ou les contenus gratuits).</p>
         </div>
 
         <div className="px-6 py-3 border-t border-gray-100 flex justify-end">
