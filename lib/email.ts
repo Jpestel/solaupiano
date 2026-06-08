@@ -1014,3 +1014,44 @@ export async function sendMemberAnnonceRefused(to: { email: string; name: string
     `),
   })
 }
+
+// ─── Galerie : invitation à partager les photos (30 min avant la répétition) ───
+export async function sendRehearsalPhotoReminder(
+  members: { email: string; name: string }[],
+  groupName: string,
+  groupId: number,
+  rehearsal: { date: Date; startTime: string; location: string | null },
+  baseUrl: string
+) {
+  const dateStr = new Date(rehearsal.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const locationSuffix = rehearsal.location ? ` au ${rehearsal.location}` : ''
+  const galerieUrl = `${baseUrl}/groupes/${groupId}/galerie`
+  const tpl = await getEmailTemplate('rehearsal_photo_reminder')
+
+  await Promise.all(
+    members.map(({ email, name }) => {
+      const { subject, introHtml, outroHtml } = tpl.render({
+        memberName: name, groupName, date: dateStr, time: rehearsal.startTime, locationSuffix,
+      })
+      return resend.emails.send({
+        from: 'Sol au piano <noreply@solaupiano.fr>',
+        to: email,
+        subject,
+        html: emailWrapper(`
+          <div style="display:inline-flex; align-items:center; gap:6px; background:#fae8ff; border:1px solid #f5d0fe; border-radius:8px; padding:6px 12px; margin-bottom:20px;">
+            <span style="font-size:14px;">📸</span>
+            <span style="font-size:12px; font-weight:600; color:#a21caf;">Galerie — pensez à vos photos</span>
+          </div>
+          ${introHtml}
+          ${dataBox(`
+            <p style="margin:0 0 6px; font-size:15px; font-weight:700; color:#86198f; text-transform:capitalize;">${dateStr}</p>
+            <p style="margin:0 0 4px; font-size:13px; color:#a21caf;">🕐 ${rehearsal.startTime}</p>
+            ${rehearsal.location ? `<p style="margin:0; font-size:13px; color:#a21caf;">📍 ${rehearsal.location}</p>` : ''}
+          `)}
+          ${outroHtml}
+          ${ctaButton(galerieUrl, '📸 Ouvrir la Galerie du groupe')}
+        `),
+      })
+    })
+  )
+}

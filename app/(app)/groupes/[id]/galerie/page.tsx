@@ -28,17 +28,21 @@ function fmtBytes(b: number): string {
   return `${(b / (1024 * 1024 * 1024)).toFixed(2)} Go`
 }
 
-const NO_EVENT = 'none'
+interface Category { id: number; name: string }
 
 export default function GaleriePage({ params }: { params: { id: string } }) {
   const groupId = params.id
   const { data: session } = useSession()
   const [photos, setPhotos] = useState<Photo[]>([])
   const [events, setEvents] = useState<EventOpt[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [isChef, setIsChef] = useState(false)
   const [storage, setStorage] = useState<Storage | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedEvent, setSelectedEvent] = useState<string>(NO_EVENT)
+  const [selectedAssoc, setSelectedAssoc] = useState<string>('') // '' = rien ; sinon TYPE:id
+  const [newCatOpen, setNewCatOpen] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [creatingCat, setCreatingCat] = useState(false)
   const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null)
   const [error, setError] = useState('')
   const [lightbox, setLightbox] = useState<number | null>(null) // index dans photos
@@ -48,25 +52,40 @@ export default function GaleriePage({ params }: { params: { id: string } }) {
     const res = await fetch(`/api/groupes/${groupId}/galerie`)
     if (res.ok) {
       const d = await res.json()
-      setPhotos(d.photos); setEvents(d.events); setIsChef(d.isChef); setStorage(d.storage)
+      setPhotos(d.photos); setEvents(d.events); setCategories(d.categories || []); setIsChef(d.isChef); setStorage(d.storage)
     }
     setLoading(false)
   }, [groupId])
 
   useEffect(() => { if (session) fetchData() }, [session, fetchData])
 
+  // Résout l'association choisie en { type, id, label }
+  const resolveAssoc = (): { type: string; id: number; label: string } | null => {
+    if (!selectedAssoc) return null
+    const [type, idStr] = selectedAssoc.split(':')
+    const id = Number(idStr)
+    if (type === 'CATEGORY') {
+      const c = categories.find((c) => c.id === id)
+      return c ? { type, id, label: `📁 ${c.name}` } : null
+    }
+    const e = events.find((e) => e.type === type && e.id === id)
+    return e ? { type: e.type, id: e.id, label: e.label } : null
+  }
+
+  const triggerPicker = () => {
+    if (!selectedAssoc) { setError('Choisissez d’abord une répétition, un concert ou une catégorie ci-dessus.'); return }
+    setError('')
+    fileInputRef.current?.click()
+  }
+
   const handleFiles = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return
+    const assoc = resolveAssoc()
+    if (!assoc) { setError('Choisissez d’abord une répétition, un concert ou une catégorie.'); return }
     const files = Array.from(fileList).filter((f) => f.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|bmp|tiff?)$/i.test(f.name))
     if (files.length === 0) { setError('Aucune image valide sélectionnée.'); return }
     setError('')
     setUploading({ done: 0, total: files.length })
-
-    let ev: EventOpt | undefined
-    if (selectedEvent !== NO_EVENT) {
-      const [type, id] = selectedEvent.split(':')
-      ev = events.find((e) => e.type === type && String(e.id) === id)
-    }
 
     let okCount = 0
     for (let i = 0; i < files.length; i++) {
@@ -74,7 +93,9 @@ export default function GaleriePage({ params }: { params: { id: string } }) {
         const { blob, name } = await compressImage(files[i])
         const fd = new FormData()
         fd.append('file', blob, name)
-        if (ev) { fd.append('eventType', ev.type); fd.append('eventId', String(ev.id)); fd.append('eventLabel', ev.label) }
+        fd.append('eventType', assoc.type)
+        fd.append('eventId', String(assoc.id))
+        fd.append('eventLabel', assoc.label)
         const res = await fetch(`/api/groupes/${groupId}/galerie`, { method: 'POST', body: fd })
         if (res.ok) okCount++
         else {
@@ -90,6 +111,32 @@ export default function GaleriePage({ params }: { params: { id: string } }) {
     if (fileInputRef.current) fileInputRef.current.value = ''
     await fetchData()
     if (okCount > 0) setError('')
+  }
+
+  const createCategory = async () => {
+    const name = newCatName.trim()
+    if (!name) return
+    setCreatingCat(true)
+    const res = await fetch(`/api/groupes/${groupId}/galerie/categories`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
+    })
+    setCreatingCat(false)
+    if (res.ok) {
+      const cat: Category = await res.json()
+      setCategories((prev) => (prev.some((c) => c.id === cat.id) ? prev : [...prev, cat].sort((a, b) => a.name.localeCompare(b.name))))
+      setSelectedAssoc(`CATEGORY:${cat.id}`)
+      setNewCatOpen(false); setNewCatName(''); setError('')
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setError(d.error || 'Création de la catégorie impossible.')
+    }
+  }
+
+  const deleteCategory = async (catId: number) => {
+    if (!confirm('Supprimer cette catégorie et toutes ses photos ?')) return
+    const res = await fetch(`/api/groupes/${groupId}/galerie/categories/${catId}`, { method: 'DELETE' })
+    if (res.ok) { if (selectedAssoc === `CATEGORY:${catId}`) setSelectedAssoc(''); await fetchData() }
+    else alert('Suppression impossible.')
   }
 
   const deletePhoto = async (id: number) => {
@@ -111,13 +158,14 @@ export default function GaleriePage({ params }: { params: { id: string } }) {
     else alert('Suppression impossible.')
   }
 
-  // Groupement en albums (par événement)
-  const albums: { key: string; label: string; photos: Photo[] }[] = []
-  const map = new Map<string, { key: string; label: string; photos: Photo[] }>()
+  // Groupement en albums (par événement / catégorie)
+  const albums: { key: string; label: string; categoryId: number | null; photos: Photo[] }[] = []
+  const map = new Map<string, { key: string; label: string; categoryId: number | null; photos: Photo[] }>()
   for (const p of photos) {
-    const key = p.eventType && p.eventId ? `${p.eventType}:${p.eventId}` : NO_EVENT
-    const label = key === NO_EVENT ? '📁 Sans événement' : (p.eventLabel || 'Événement')
-    if (!map.has(key)) { const a = { key, label, photos: [] as Photo[] }; map.set(key, a); albums.push(a) }
+    const key = p.eventType && p.eventId ? `${p.eventType}:${p.eventId}` : 'none'
+    const label = key === 'none' ? '📁 Sans événement' : (p.eventLabel || 'Album')
+    const categoryId = p.eventType === 'CATEGORY' && p.eventId ? p.eventId : null
+    if (!map.has(key)) { const a = { key, label, categoryId, photos: [] as Photo[] }; map.set(key, a); albums.push(a) }
     map.get(key)!.photos.push(p)
   }
 
@@ -145,15 +193,45 @@ export default function GaleriePage({ params }: { params: { id: string } }) {
       <div className="rounded-2xl border-2 border-dashed border-fuchsia-200 bg-fuchsia-50/40 p-4 sm:p-6 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
           <div className="flex-1">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Associer à un événement (optionnel)</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              Associer à <span className="text-fuchsia-700">(obligatoire)</span>
+            </label>
             <select
-              value={selectedEvent}
-              onChange={(e) => setSelectedEvent(e.target.value)}
+              value={selectedAssoc}
+              onChange={(e) => setSelectedAssoc(e.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
             >
-              <option value={NO_EVENT}>Aucun (général)</option>
-              {events.map((e) => <option key={`${e.type}:${e.id}`} value={`${e.type}:${e.id}`}>{e.label}</option>)}
+              <option value="">— Choisir une répétition, un concert ou une catégorie —</option>
+              {events.length > 0 && (
+                <optgroup label="Répétitions & concerts (du plus proche au plus lointain)">
+                  {events.map((e) => <option key={`${e.type}:${e.id}`} value={`${e.type}:${e.id}`}>{e.label}</option>)}
+                </optgroup>
+              )}
+              {categories.length > 0 && (
+                <optgroup label="Catégories">
+                  {categories.map((c) => <option key={`CATEGORY:${c.id}`} value={`CATEGORY:${c.id}`}>📁 {c.name}</option>)}
+                </optgroup>
+              )}
             </select>
+            <div className="mt-1.5">
+              {newCatOpen ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') createCategory() }}
+                    placeholder="Nom de la catégorie (ex : Studio, Clip…)"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                    maxLength={60}
+                  />
+                  <button onClick={createCategory} disabled={creatingCat || !newCatName.trim()} className="rounded-lg bg-fuchsia-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-fuchsia-500 disabled:opacity-50">{creatingCat ? '…' : 'Créer'}</button>
+                  <button onClick={() => { setNewCatOpen(false); setNewCatName('') }} className="text-sm text-gray-400 hover:text-gray-600">Annuler</button>
+                </div>
+              ) : (
+                <button onClick={() => setNewCatOpen(true)} className="text-xs font-medium text-fuchsia-700 hover:text-fuchsia-800">➕ Créer une catégorie (si aucune date ne convient)</button>
+              )}
+            </div>
           </div>
           <div>
             <input
@@ -165,9 +243,10 @@ export default function GaleriePage({ params }: { params: { id: string } }) {
               onChange={(e) => handleFiles(e.target.files)}
             />
             <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={!!uploading}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-600 px-6 py-3 text-base font-bold text-white shadow-sm hover:bg-fuchsia-500 disabled:opacity-60"
+              onClick={triggerPicker}
+              disabled={!!uploading || !selectedAssoc}
+              title={!selectedAssoc ? 'Choisissez d’abord une association' : undefined}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-600 px-6 py-3 text-base font-bold text-white shadow-sm hover:bg-fuchsia-500 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               📷 Ajouter des photos
             </button>
@@ -186,7 +265,17 @@ export default function GaleriePage({ params }: { params: { id: string } }) {
           </div>
         )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        <p className="mt-3 text-[11px] text-gray-400">Depuis votre téléphone : prenez ou choisissez plusieurs photos d’un coup. Elles sont compressées sur l’appareil avant l’envoi pour aller plus vite et économiser le stockage.</p>
+        <p className="mt-3 text-[11px] text-gray-400">Depuis votre téléphone : choisissez d’abord la répétition/le concert (ou une catégorie), puis prenez ou sélectionnez plusieurs photos d’un coup. Elles sont compressées sur l’appareil avant l’envoi (&lt; 500 Ko) pour aller plus vite et économiser le stockage.</p>
+      </div>
+
+      {/* Instructions de téléchargement */}
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 mb-6">
+        <p className="text-sm font-semibold text-blue-800 mb-1">⬇️ Comment récupérer / télécharger les photos ?</p>
+        <ol className="text-sm text-blue-800/90 space-y-0.5 list-decimal list-inside">
+          <li>Touchez une photo pour l’ouvrir en grand.</li>
+          <li>Appuyez sur le bouton <strong>« ⬇ Télécharger »</strong> en haut.</li>
+          <li><span className="text-blue-700">Sur mobile :</span> vous pouvez aussi faire un <strong>appui long sur la photo</strong> puis « Enregistrer l’image ».</li>
+        </ol>
       </div>
 
       {/* Actions chef */}
@@ -211,6 +300,9 @@ export default function GaleriePage({ params }: { params: { id: string } }) {
               <h2 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
                 {album.label}
                 <span className="text-xs font-normal text-gray-400">({album.photos.length})</span>
+                {isChef && album.categoryId !== null && (
+                  <button onClick={() => deleteCategory(album.categoryId!)} className="ml-1 text-[11px] font-medium text-red-500 hover:text-red-600">Supprimer l’album</button>
+                )}
               </h2>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2">
                 {album.photos.map((p) => {

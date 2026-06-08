@@ -31,7 +31,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const acc = await access(userId, groupId, isAdmin)
   if (!acc) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
-  const [photos, rehearsals, concerts, storage] = await Promise.all([
+  const [photos, rehearsals, concerts, categories, storage] = await Promise.all([
     prisma.galleryPhoto.findMany({
       where: { groupId },
       orderBy: { createdAt: 'desc' },
@@ -41,19 +41,23 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         uploaderId: true, uploader: { select: { id: true, name: true } },
       },
     }),
-    prisma.rehearsal.findMany({ where: { groupId }, orderBy: { date: 'desc' }, take: 40, select: { id: true, date: true, location: true } }),
-    prisma.concert.findMany({ where: { groupId }, orderBy: { date: 'desc' }, take: 40, select: { id: true, date: true, name: true } }),
+    prisma.rehearsal.findMany({ where: { groupId }, orderBy: { date: 'desc' }, take: 60, select: { id: true, date: true, location: true } }),
+    prisma.concert.findMany({ where: { groupId }, orderBy: { date: 'desc' }, take: 60, select: { id: true, date: true, name: true } }),
+    prisma.galleryCategory.findMany({ where: { groupId }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     getGroupStorageInfo(groupId),
   ])
 
+  // Événements triés du plus proche (de maintenant) au plus lointain
+  const nowMs = Date.now()
   const events = [
     ...concerts.map((c) => ({ type: 'CONCERT' as const, id: c.id, date: c.date, label: `🎭 ${c.name} — ${fmtDate(c.date)}` })),
     ...rehearsals.map((r) => ({ type: 'REHEARSAL' as const, id: r.id, date: r.date, label: `🎵 Répétition du ${fmtDate(r.date)}${r.location ? ` (${r.location})` : ''}` })),
-  ].sort((a, b) => b.date.getTime() - a.date.getTime())
+  ].sort((a, b) => Math.abs(a.date.getTime() - nowMs) - Math.abs(b.date.getTime() - nowMs))
 
   return NextResponse.json({
     photos: photos.map((p) => ({ ...p, mine: p.uploaderId === userId })),
     events,
+    categories,
     isChef: acc.isChef,
     storage: { usedBytes: storage.usedBytes, limitBytes: storage.limitBytes, limitGb: storage.limitGb, percent: storage.percent },
   })
@@ -109,10 +113,31 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const fv = (k: string) => { const v = fields[k]; return (Array.isArray(v) ? v[0] : v)?.trim() || null }
   const caption = fv('caption')?.slice(0, 500) || null
   const eventTypeRaw = fv('eventType')
-  const eventType = eventTypeRaw === 'REHEARSAL' || eventTypeRaw === 'CONCERT' ? eventTypeRaw : null
+  const eventType = eventTypeRaw === 'REHEARSAL' || eventTypeRaw === 'CONCERT' || eventTypeRaw === 'CATEGORY' ? eventTypeRaw : null
   const eventIdRaw = fv('eventId')
-  const eventId = eventType && eventIdRaw && /^\d+$/.test(eventIdRaw) ? Number(eventIdRaw) : null
-  const eventLabel = eventType ? fv('eventLabel')?.slice(0, 200) || null : null
+  const eventId = eventIdRaw && /^\d+$/.test(eventIdRaw) ? Number(eventIdRaw) : null
+
+  // Association OBLIGATOIRE : répétition, concert ou catégorie valide
+  if (!eventType || !eventId) {
+    fs.unlinkSync(file.filepath)
+    return NextResponse.json({ error: 'Chaque photo doit être associée à une répétition, un concert ou une catégorie.', code: 'EVENT_REQUIRED' }, { status: 400 })
+  }
+
+  let eventLabel = fv('eventLabel')?.slice(0, 200) || null
+  // Vérifie l'existence et récupère un libellé fiable côté serveur
+  if (eventType === 'REHEARSAL') {
+    const r = await prisma.rehearsal.findFirst({ where: { id: eventId, groupId }, select: { date: true, location: true } })
+    if (!r) { fs.unlinkSync(file.filepath); return NextResponse.json({ error: 'Répétition introuvable.' }, { status: 400 }) }
+    eventLabel = `🎵 Répétition du ${fmtDate(r.date)}${r.location ? ` (${r.location})` : ''}`
+  } else if (eventType === 'CONCERT') {
+    const c = await prisma.concert.findFirst({ where: { id: eventId, groupId }, select: { date: true, name: true } })
+    if (!c) { fs.unlinkSync(file.filepath); return NextResponse.json({ error: 'Concert introuvable.' }, { status: 400 }) }
+    eventLabel = `🎭 ${c.name} — ${fmtDate(c.date)}`
+  } else {
+    const cat = await prisma.galleryCategory.findFirst({ where: { id: eventId, groupId }, select: { name: true } })
+    if (!cat) { fs.unlinkSync(file.filepath); return NextResponse.json({ error: 'Catégorie introuvable.' }, { status: 400 }) }
+    eventLabel = `📁 ${cat.name}`
+  }
 
   const relativePath = `/uploads/galerie/${path.basename(file.filepath)}`
 

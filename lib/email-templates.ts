@@ -159,6 +159,21 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ],
   },
   {
+    key: 'rehearsal_photo_reminder',
+    name: 'Galerie : invitation à partager les photos',
+    description: 'Envoyé automatiquement 30 minutes avant une répétition aux membres ayant indiqué être présents, pour les inviter à partager leurs photos dans la Galerie à l\'issue de la répétition.',
+    defaultSubject: '📸 Pensez à vos photos — Répétition {{groupName}}',
+    defaultIntro: 'Bonjour {{memberName}},\n\nVotre répétition avec {{groupName}} commence bientôt ({{date}} à {{time}}{{locationSuffix}}).\n\nPensez à immortaliser le moment : à l\'issue de la répétition, vous pourrez partager vos meilleures photos dans la Galerie du groupe en quelques secondes depuis votre téléphone.',
+    defaultOutro: 'Vos photos aident à animer les réseaux sociaux du groupe. Merci et bonne répète ! 🎶',
+    variables: [
+      { key: 'memberName', description: 'Prénom du membre' },
+      { key: 'groupName', description: 'Nom du groupe' },
+      { key: 'date', description: 'Date de la répétition' },
+      { key: 'time', description: 'Heure de la répétition' },
+      { key: 'locationSuffix', description: 'Lieu (préfixé de « au/à », vide si non renseigné)' },
+    ],
+  },
+  {
     key: 'attendance_reminder',
     name: 'Rappel de présence',
     description: 'Envoyé manuellement par le chef pour demander les présences.',

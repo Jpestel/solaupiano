@@ -320,6 +320,7 @@ model Group {
   expenses         GroupExpense[]
   resourceLinkOverrides GroupResourceLink[]
   galleryPhotos    GalleryPhoto[]
+  galleryCategories GalleryCategory[]
 }
 
 // Catalogue de liens de ressources (audios, vidéos, tutos, partitions…)
@@ -475,8 +476,8 @@ model GalleryPhoto {
   filePath   String   // chemin public, ex : /uploads/galerie/...
   fileSize   Int      // octets (après compression)
   caption    String?  @db.Text
-  eventType  String?  // REHEARSAL | CONCERT
-  eventId    Int?     // id de la répétition / du concert
+  eventType  String?  // REHEARSAL | CONCERT | CATEGORY (obligatoire à l'upload)
+  eventId    Int?     // id de la répétition / du concert / de la catégorie
   eventLabel String?  // libellé dénormalisé pour l'affichage (album)
   createdAt  DateTime @default(now())
 
@@ -485,6 +486,18 @@ model GalleryPhoto {
 
   @@index([groupId])
   @@index([groupId, eventType, eventId])
+}
+
+model GalleryCategory {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  name      String
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, name])
+  @@index([groupId])
 }
 
 model GroupPage {
@@ -553,6 +566,7 @@ model Rehearsal {
   notes     String?  @db.Text
   setlistId Int?
   createdAt DateTime @default(now())
+  photoReminderSentAt DateTime? // mail "partagez vos photos" envoyé 30 min avant
 
   group        Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
   setlist      Setlist?        @relation(fields: [setlistId], references: [id], onDelete: SetNull)
