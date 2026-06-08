@@ -76,6 +76,7 @@ export default async function AidePage() {
             { href: '#tchat', label: '💬 Tchat' },
             { href: '#ressources', label: '📒 Ressources' },
             { href: '#comptabilite', label: '💶 Comptabilité' },
+            { href: '#galerie', label: '📸 Galerie' },
             { href: '#repertoire', label: '🎼 Répertoire' },
             { href: '#setlists', label: '🎶 Setlists' },
             { href: '#grilles', label: '🎸 Grilles' },
@@ -593,6 +594,56 @@ export default async function AidePage() {
               </ul>
               <Note>Visible uniquement par les membres du groupe.</Note>
             </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── GALERIE ─── */}
+        <section id="galerie">
+          <SectionTitle icon="📸" title="Galerie photos" color="violet" tutorials={tf('feature_galerie')} />
+          <div className="space-y-4">
+
+            <HelpCard title="À quoi ça sert">
+              <p>Centralisez toutes les <strong>photos des répétitions et des concerts</strong> en un seul endroit. Chaque membre partage ses clichés depuis son téléphone, tout le monde peut les récupérer, et le chef fait le ménage quand c&apos;est fait pour ne pas saturer le stockage.</p>
+              <Tip>Idéal pour alimenter facilement les <strong>réseaux sociaux</strong> du groupe : la personne qui les gère retrouve toutes les photos déjà rassemblées.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Ajouter ses photos (tous les membres)">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Ouvrez la carte <strong>📸 Galerie</strong> du groupe.</Step>
+                <Step n={2}>Choisissez <strong>obligatoirement</strong> une association : une <strong>répétition</strong>, un <strong>concert</strong> (triés du plus proche au plus lointain) ou une <strong>catégorie</strong>.</Step>
+                <Step n={3}>Touchez <strong>📷 Ajouter des photos</strong> : prenez une photo ou sélectionnez-en <strong>plusieurs d&apos;un coup</strong> dans votre pellicule.</Step>
+              </ol>
+              <Note>Chaque photo est <strong>automatiquement optimisée à moins de 500 Ko</strong> sur votre téléphone avant l&apos;envoi : c&apos;est plus rapide et ça économise le stockage, tout en gardant une belle qualité.</Note>
+            </HelpCard>
+
+            <HelpCard title="Créer une catégorie">
+              <p>Si aucune répétition ni concert ne correspond (séance studio, tournage de clip, photos diverses…), créez une <strong>catégorie</strong> via <strong>➕ Créer une catégorie</strong>. Elle devient un album à part entière.</p>
+            </HelpCard>
+
+            <HelpCard title="Récupérer / télécharger une photo">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Touchez une photo pour l&apos;ouvrir en grand.</Step>
+                <Step n={2}>Appuyez sur <strong>⬇ Télécharger</strong> en haut de l&apos;écran.</Step>
+                <Step n={3}>Sur mobile, vous pouvez aussi faire un <strong>appui long sur la photo</strong> puis « Enregistrer l&apos;image ».</Step>
+              </ol>
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Gérer & faire le ménage" badge={{ label: 'Chef seulement', color: 'indigo' }}>
+                <ul className="mt-1 space-y-1">
+                  <li>Supprimer <strong>n&apos;importe quelle photo</strong> (chaque membre peut supprimer les siennes)</li>
+                  <li><strong>Vider la galerie</strong> entièrement en un clic</li>
+                  <li><strong>Supprimer un album de catégorie</strong> et ses photos depuis son en-tête</li>
+                </ul>
+                <Note>Toute suppression <strong>libère immédiatement l&apos;espace de stockage</strong> du groupe.</Note>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Rappel automatique avant la répétition">
+              <p><strong>30 minutes avant</strong> chaque répétition, les membres qui ont indiqué être <strong>présents</strong> reçoivent un email les invitant à partager leurs meilleures photos dans la Galerie à l&apos;issue de la séance.</p>
+              <Note>Le module <strong>Galerie</strong> peut être inclus ou non selon l&apos;offre du groupe (il apparaît grisé 🔒 s&apos;il n&apos;est pas inclus).</Note>
+            </HelpCard>
+
           </div>
         </section>
 
