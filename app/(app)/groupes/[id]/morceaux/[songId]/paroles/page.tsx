@@ -35,9 +35,44 @@ const MARKER_COLORS: Record<string, { bg: string; text: string; border: string; 
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+const firstWord = (s: string) => s.trim().toLowerCase().split(/[\s/]+/)[0] || ''
 function getMarkerColor(label: string) {
-  const m = MARKERS.find((mk) => mk.label === label)
-  return m ? MARKER_COLORS[m.color] : MARKER_COLORS.gray
+  // 1) correspondance exacte, 2) sinon par premier mot (ex : "Intro Clavier…" -> Intro)
+  const exact = MARKERS.find((mk) => mk.label.toLowerCase() === label.trim().toLowerCase())
+  if (exact) return MARKER_COLORS[exact.color]
+  const fw = firstWord(label)
+  const byFirst = fw ? MARKERS.find((mk) => firstWord(mk.label) === fw) : undefined
+  return byFirst ? MARKER_COLORS[byFirst.color] : MARKER_COLORS.gray
+}
+
+// Surlignage syntaxique de l'éditeur de paroles (calque coloré sous le textarea).
+// Préserve exactement les caractères ; ne fait qu'envelopper des portions dans des <span> colorés.
+const LYRIC_TEXT_COLOR = '#1f2937' // gris-800 (paroles)
+const CHORD_COLOR = '#7c3aed'      // violet (accords [C])
+function highlightLine(line: string): React.ReactNode {
+  const re = /\[[^\]]*\]/g
+  const parts: React.ReactNode[] = []
+  let last = 0
+  let m: RegExpExecArray | null
+  let k = 0
+  while ((m = re.exec(line)) !== null) {
+    if (m.index > last) parts.push(<span key={k++} style={{ color: LYRIC_TEXT_COLOR }}>{line.slice(last, m.index)}</span>)
+    const inner = m[0].slice(1, -1).trim()
+    if (isChord(inner)) {
+      parts.push(<span key={k++} style={{ color: CHORD_COLOR }} className="font-semibold">{m[0]}</span>)
+    } else {
+      parts.push(<span key={k++} style={{ color: getMarkerColor(inner).print }} className="font-semibold">{m[0]}</span>)
+    }
+    last = re.lastIndex
+  }
+  if (last < line.length) parts.push(<span key={k++} style={{ color: LYRIC_TEXT_COLOR }}>{line.slice(last)}</span>)
+  return parts
+}
+function highlightLyrics(text: string): React.ReactNode {
+  const lines = text.split('\n')
+  return lines.map((line, i) => (
+    <span key={i}>{highlightLine(line)}{i < lines.length - 1 ? '\n' : ''}</span>
+  ))
 }
 
 // ─── Formatted lyrics renderer ───────────────────────────────────────────────
@@ -223,6 +258,7 @@ export default function ParolesPage({
   }
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const backdropRef = useRef<HTMLDivElement>(null)
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Fetch ──
@@ -605,15 +641,25 @@ export default function ParolesPage({
                 })}
               </div>
 
-              {/* Textarea */}
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => handleChange(e.target.value)}
-                placeholder={ph('paroles_editor')}
-                className="w-full min-h-[440px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 resize-y placeholder:text-gray-300 placeholder:font-sans"
-                spellCheck
-              />
+              {/* Éditeur surligné : calque coloré (aria-hidden) sous un textarea au texte transparent */}
+              <div className="relative w-full rounded-xl border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-indigo-300 focus-within:border-indigo-400">
+                <div
+                  ref={backdropRef}
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl px-4 py-3 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words"
+                >
+                  {highlightLyrics(content)}
+                </div>
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => handleChange(e.target.value)}
+                  onScroll={(e) => { if (backdropRef.current) backdropRef.current.scrollTop = e.currentTarget.scrollTop }}
+                  placeholder={ph('paroles_editor')}
+                  className="relative w-full min-h-[440px] bg-transparent text-transparent caret-gray-800 px-4 py-3 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words resize-y focus:outline-none placeholder:text-gray-300 placeholder:font-sans"
+                  spellCheck
+                />
+              </div>
               <p className="text-xs text-gray-400">
                 <strong className="text-gray-500">Sections :</strong> entourez un nom de section de crochets, ex : <code className="bg-gray-100 rounded px-1">[Refrain]</code> <code className="bg-gray-100 rounded px-1">[Couplet 1]</code>. Les accords se posent dans l'onglet 🎸 Accords.
               </p>
