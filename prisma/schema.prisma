@@ -74,6 +74,7 @@ model Plan {
   hasSharedResources Boolean @default(true)
   hasUnavailabilities Boolean @default(true)
   hasPolls           Boolean @default(true)
+  hasGalerie         Boolean @default(true)
 
   color     String   @default("gray")
 
@@ -193,6 +194,7 @@ model User {
   concertRatingsReceived   ConcertMemberRating[]   @relation("ConcertMemberRated")
   expensesPaid             GroupExpense[]          @relation("ExpensePaidBy")
   expenseShares            ExpenseShare[]          @relation("ExpenseShareUser")
+  galleryPhotos            GalleryPhoto[]          @relation("GalleryUploader")
 }
 
 enum FlashInfoType {
@@ -317,6 +319,7 @@ model Group {
   polls            Poll[]
   expenses         GroupExpense[]
   resourceLinkOverrides GroupResourceLink[]
+  galleryPhotos    GalleryPhoto[]
 }
 
 // Catalogue de liens de ressources (audios, vidéos, tutos, partitions…)
@@ -463,6 +466,25 @@ model GroupSharedResource {
   createdBy User  @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([groupId])
+}
+
+model GalleryPhoto {
+  id         Int      @id @default(autoincrement())
+  groupId    Int
+  uploaderId Int
+  filePath   String   // chemin public, ex : /uploads/galerie/...
+  fileSize   Int      // octets (après compression)
+  caption    String?  @db.Text
+  eventType  String?  // REHEARSAL | CONCERT
+  eventId    Int?     // id de la répétition / du concert
+  eventLabel String?  // libellé dénormalisé pour l'affichage (album)
+  createdAt  DateTime @default(now())
+
+  group    Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  uploader User  @relation("GalleryUploader", fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([groupId, eventType, eventId])
 }
 
 model GroupPage {

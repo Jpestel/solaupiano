@@ -21,6 +21,7 @@ const EMPTY_FORM = {
   hasMaPage: true, hasCoChefs: true, hasPrioritySupport: false, hasStats: false, hasFileSubmissions: true,
   hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true,
   hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true,
+  hasGalerie: true,
   color: 'gray',
 }
 
@@ -60,6 +61,7 @@ function planToForm(p: PlanWithCount): FormState {
     hasSharedResources: p.hasSharedResources,
     hasUnavailabilities: p.hasUnavailabilities,
     hasPolls: p.hasPolls,
+    hasGalerie: p.hasGalerie,
     color: p.color,
     stripePriceId: p.stripePriceId ?? '',
   }
@@ -402,6 +404,7 @@ export default function AdminPlansPage() {
                       { on: p.hasSharedResources, label: "Ressources" },
                       { on: p.hasUnavailabilities, label: "Dispos" },
                       { on: p.hasPolls, label: "Sondages" },
+                      { on: p.hasGalerie, label: "Galerie" },
                       { on: p.hasGrilles, label: "Grilles" },
                       { on: p.hasConcerts, label: "Concerts" },
                       { on: p.hasSetlists, label: "Setlists" },
@@ -765,6 +768,7 @@ export default function AdminPlansPage() {
                         <ToggleFeature label="Ressources partagées" icon="📒" checked={form.hasSharedResources} onChange={(v) => set('hasSharedResources', v)} />
                         <ToggleFeature label="Disponibilités" icon="🗓" checked={form.hasUnavailabilities} onChange={(v) => set('hasUnavailabilities', v)} />
                         <ToggleFeature label="Sondages" icon="📊" checked={form.hasPolls} onChange={(v) => set('hasPolls', v)} />
+                        <ToggleFeature label="Galerie photos" icon="📸" checked={form.hasGalerie} onChange={(v) => set('hasGalerie', v)} />
                         <ToggleFeature label="Grilles d'accords" icon="🎸" checked={form.hasGrilles} onChange={(v) => set('hasGrilles', v)} />
                         <ToggleFeature label="Concerts" icon="🎭" checked={form.hasConcerts} onChange={(v) => set('hasConcerts', v)} />
                         <ToggleFeature label="Setlists" icon="🎶" checked={form.hasSetlists} onChange={(v) => set('hasSetlists', v)} />

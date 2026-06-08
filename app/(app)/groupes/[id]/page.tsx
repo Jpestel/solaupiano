@@ -56,7 +56,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   // Check plan features (stats + member limit + storage)
   const groupMeta = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true, maxMembersOverride: true, storageQuotaOverrideGb: true } })
-  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, maxMembersPerGroup: true } }) : null
+  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, maxMembersPerGroup: true } }) : null
   const planHasStats = isAdminUser || (planData?.hasStats ?? false)
   // Fonctionnalités débloquées par le plan (admin = tout)
   const planFeatures = {
@@ -70,6 +70,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
     sharedResources: isAdminUser || (planData?.hasSharedResources ?? true),
     unavailabilities: isAdminUser || (planData?.hasUnavailabilities ?? true),
     polls:          isAdminUser || (planData?.hasPolls ?? true),
+    galerie:        isAdminUser || (planData?.hasGalerie ?? true),
   }
   // Effective member limit: override (if set by admin) > plan limit > null (unlimited)
   const effectiveMemberLimit = groupMeta?.maxMembersOverride ?? planData?.maxMembersPerGroup ?? null
@@ -278,6 +279,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             iconBg: 'bg-emerald-100', textColor: 'text-emerald-700', border: 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/60',
             chefDesc: 'Dépenses & remboursements', memberDesc: 'Mes parts à payer',
           },
+          {
+            href: 'galerie', label: 'Galerie', icon: '📸',
+            iconBg: 'bg-fuchsia-100', textColor: 'text-fuchsia-700', border: 'border-fuchsia-200 hover:border-fuchsia-400 hover:bg-fuchsia-50/60',
+            chefDesc: 'Photos répèts & concerts', memberDesc: 'Partager vos photos',
+          },
         ] as const)
           // Masque les fonctionnalités non incluses dans le plan du groupe
           .filter((link) => {
@@ -291,6 +297,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
             if (link.href === 'ressources-partagees') return planFeatures.sharedResources
             if (link.href === 'disponibilites')  return planFeatures.unavailabilities
             if (link.href === 'sondages')        return planFeatures.polls
+            if (link.href === 'galerie')         return planFeatures.galerie
             return true
           })
           .map((link) => (

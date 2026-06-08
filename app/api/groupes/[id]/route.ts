@@ -60,7 +60,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // Fonctionnalités débloquées par le plan du groupe (défaut permissif si pas de plan trouvé)
   const planRec = await prisma.plan.findUnique({
     where: { key: group.plan },
-    select: { hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasStats: true },
+    select: { hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasStats: true, hasGalerie: true },
   })
   const planFeatures = {
     hasMetronome: planRec?.hasMetronome ?? true,
@@ -78,6 +78,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     hasFicheTechnique: planRec?.hasFicheTechnique ?? true,
     hasMaPage: planRec?.hasMaPage ?? true,
     hasStats: planRec?.hasStats ?? true,
+    hasGalerie: planRec?.hasGalerie ?? true,
   }
 
   return NextResponse.json({
