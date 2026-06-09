@@ -161,6 +161,12 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     }
   }
 
+  // Ouvre les suggestions (YouTube, backing tracks, ressources) pour un morceau existant.
+  // N'ajoute que de nouvelles ressources — ne supprime jamais l'existant.
+  const openSuggestions = (song: Song) => {
+    setYtSuggest({ id: song.id, title: song.title, artist: song.artist || '', hasDuration: !!song.durationSeconds })
+  }
+
   const openEdit = (song: Song) => {
     setEditSong(song)
     setSongForm({
@@ -641,6 +647,17 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             <label className="form-label">Notes</label>
             <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} />
           </div>
+
+          {/* Suggestions de ressources sur un titre existant (n'efface rien) */}
+          <button
+            type="button"
+            onClick={() => { if (editSong) { const s = editSong; setEditSong(null); openSuggestions(s) } }}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+          >
+            🔎 Trouver des ressources (YouTube, backing tracks, partitions…)
+          </button>
+          <p className="text-[11px] text-gray-400 -mt-2">Les ressources déjà associées au morceau sont conservées — on ne fait qu&apos;en ajouter.</p>
+
           <div className="flex items-center justify-between pt-2">
             {chefCan('repertoire', 'delete') && (
               <button
