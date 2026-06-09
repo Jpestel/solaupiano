@@ -1157,6 +1157,14 @@ export default async function AidePage() {
               </ul>
               <p className="mt-2">Les fichiers MIDI sont lus par un synthé du navigateur (pré-écoute des notes).</p>
             </HelpCard>
+            <HelpCard title="Travailler un passage à la maison">
+              <p>Le lecteur intègre deux outils parfaits pour répéter chez soi :</p>
+              <ul className="mt-2 space-y-1">
+                <li>🐢 <strong>Vitesse / ralenti</strong> (de 0,5× à 1,25×) — la <strong>tonalité reste inchangée</strong>, idéal pour déchiffrer un solo lentement</li>
+                <li>🔁 <strong>Boucle A–B</strong> — placez un repère <strong>A</strong> (début) et <strong>B</strong> (fin), activez la boucle, et le passage se répète en continu</li>
+              </ul>
+              <Tip>Combinez les deux : ralentissez à 0,75× <em>et</em> bouclez le pont pour le travailler jusqu&apos;à le maîtriser.</Tip>
+            </HelpCard>
             <HelpCard title="Mode scène (par setlist)">
               <p>Depuis une <strong>setlist</strong>, le bouton <strong>🎚 Mode séquences</strong> enchaîne automatiquement les backing tracks des morceaux : <strong>décompte au tempo</strong>, lecture, précédent / suivant et <strong>enchaînement automatique</strong>.</p>
             </HelpCard>

@@ -38,6 +38,22 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const [clickMute, setClickMute] = useState(false)
   const [backingMute, setBackingMute] = useState(false)
 
+  // ── Travail : vitesse (tonalité conservée) + boucle A–B ──
+  const [speed, setSpeed] = useState(1)
+  const [aPt, setAPt] = useState<number | null>(null)
+  const [bPt, setBPt] = useState<number | null>(null)
+  const [loopOn, setLoopOn] = useState(false)
+
+  // Conserve la tonalité quand on change la vitesse
+  useEffect(() => {
+    const a = audioRef.current as (HTMLAudioElement & { preservesPitch?: boolean; mozPreservesPitch?: boolean; webkitPreservesPitch?: boolean }) | null
+    if (!a) return
+    a.preservesPitch = true
+    a.mozPreservesPitch = true
+    a.webkitPreservesPitch = true
+    a.playbackRate = speed
+  }, [speed])
+
   // Construit le graphe Web Audio (une seule fois)
   const ensureGraph = useCallback(() => {
     if (wiredRef.current || !audioRef.current) return
@@ -84,6 +100,16 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
 
   const seek = (v: number) => { if (audioRef.current) { audioRef.current.currentTime = v; setCur(v) } }
 
+  const onTime = (t: number) => {
+    setCur(t)
+    if (loopOn && aPt !== null && bPt !== null && t >= bPt) seek(aPt)
+  }
+  const onEnded = async () => {
+    if (loopOn && aPt !== null) { seek(aPt); try { await audioRef.current?.play() } catch { /* ignore */ } }
+    else setPlaying(false)
+  }
+  const clearLoop = () => { setLoopOn(false); setAPt(null); setBPt(null) }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-3">
       <audio
@@ -91,8 +117,8 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
         src={encodeURI(seq.filePath)}
         preload="metadata"
         onLoadedMetadata={(e) => setDur((e.target as HTMLAudioElement).duration)}
-        onTimeUpdate={(e) => setCur((e.target as HTMLAudioElement).currentTime)}
-        onEnded={() => setPlaying(false)}
+        onTimeUpdate={(e) => onTime((e.target as HTMLAudioElement).currentTime)}
+        onEnded={onEnded}
       />
       <div className="flex items-center gap-3">
         <button
@@ -118,6 +144,42 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
           </div>
         </div>
       </div>
+
+      {/* Travail : vitesse (tonalité conservée) + boucle A–B */}
+      {!compact && (
+        <div className="mt-3 pt-3 border-t border-gray-100 space-y-2.5">
+          {/* Vitesse */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-gray-500 mr-0.5">🐢 Vitesse</span>
+            {[0.5, 0.75, 0.9, 1, 1.1, 1.25].map((s) => (
+              <button
+                key={s}
+                onClick={() => setSpeed(s)}
+                className={`rounded-md px-2 py-0.5 text-xs font-semibold transition-colors ${speed === s ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {s === 1 ? '1×' : `${s}×`}
+              </button>
+            ))}
+            <span className="text-[10px] text-gray-400">tonalité conservée</span>
+          </div>
+          {/* Boucle A–B */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-gray-500 mr-0.5">🔁 Boucle</span>
+            <button onClick={() => setAPt(cur)} className="rounded-md bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-semibold hover:bg-amber-200" title="Définir le début de la boucle ici">A {aPt !== null ? `· ${fmt(aPt)}` : ''}</button>
+            <button onClick={() => { if (aPt !== null && cur > aPt) setBPt(cur) }} disabled={aPt === null || cur <= aPt} className="rounded-md bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-semibold hover:bg-amber-200 disabled:opacity-40" title="Définir la fin de la boucle ici">B {bPt !== null ? `· ${fmt(bPt)}` : ''}</button>
+            <button
+              onClick={() => setLoopOn((v) => !v)}
+              disabled={aPt === null || bPt === null}
+              className={`rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors disabled:opacity-40 ${loopOn ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              {loopOn ? 'Boucle active' : 'Activer'}
+            </button>
+            {(aPt !== null || bPt !== null) && (
+              <button onClick={clearLoop} className="text-xs text-gray-400 hover:text-red-500">Effacer</button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Faders */}
       {!compact && (

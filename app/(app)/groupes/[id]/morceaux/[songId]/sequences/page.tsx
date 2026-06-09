@@ -117,6 +117,9 @@ export default function SequencesPage({ params }: { params: { id: string; songId
           Backing tracks &amp; séquences MIDI pour ce morceau. Le mode <strong>Click G / Backing D</strong> place le clic dans le
           canal gauche et le playback dans le canal droit, avec volumes indépendants.
         </p>
+        <p className="text-sm text-indigo-600 mt-1.5 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+          🎯 <strong>Pour travailler à la maison :</strong> ralentissez un passage (🐢 vitesse, <em>tonalité conservée</em>) et répétez-le en boucle (🔁 placez les repères <strong>A</strong> et <strong>B</strong>).
+        </p>
       </div>
 
       {/* Liste */}
