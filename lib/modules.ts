@@ -72,6 +72,14 @@ export const MODULES: ModuleDef[] = [
     icon: '🖼️',
     category: 'outil',
   },
+  {
+    key: 'tool_video2audio',
+    label: 'Vidéo → MP3 / WAV',
+    description: "Extrait la piste audio d'un fichier vidéo (MP4, MOV, WEBM…) en MP3 ou WAV. Conversion locale dans le navigateur — rien n'est envoyé au serveur. Réservé aux contenus dont l'utilisateur détient les droits.",
+    href: '/outils/video-audio',
+    icon: '🎬',
+    category: 'outil',
+  },
 ]
 
 export function getModuleDef(key: string): ModuleDef | undefined {
