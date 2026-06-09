@@ -7,6 +7,16 @@ import { ph } from '@/lib/placeholders'
 interface YtResult { videoId: string; title: string; channel: string; thumbnail: string; url: string; duration?: string }
 interface RLink { id: number; label: string; icon: string; category: string; urlTemplate: string; description: string | null; active: boolean }
 
+// Types de backing tracks : chaque entrée cible les mots-clés YouTube qui retirent l'instrument voulu.
+const BACKING_TYPES: { key: string; label: string; term: string }[] = [
+  { key: 'all',     label: '🎶 Complet',         term: 'backing track' },
+  { key: 'vocals',  label: '🎤 Sans chant',      term: 'instrumental' },
+  { key: 'drums',   label: '🥁 Sans batterie',   term: 'drumless backing track' },
+  { key: 'bass',    label: '🎸 Sans basse',      term: 'bass backing track' },
+  { key: 'guitar',  label: '🎸 Sans guitare',    term: 'guitar backing track' },
+  { key: 'keys',    label: '🎹 Sans clavier',    term: 'keyboard backing track' },
+]
+
 function clockToSeconds(s: string): number {
   const parts = s.split(':').map((n) => parseInt(n, 10))
   if (parts.some((n) => isNaN(n))) return 0
@@ -42,13 +52,21 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, hasDuratio
   const [durApplied, setDurApplied] = useState(false)
   const [durBusy, setDurBusy] = useState(false)
 
+  const [backingType, setBackingType] = useState('all')
+
   const q = `${title} ${artist || ''}`.trim()
+
+  // Recherche des backing tracks selon le type choisi (instrument retiré)
+  useEffect(() => {
+    const term = BACKING_TYPES.find((t) => t.key === backingType)?.term || 'backing track'
+    setLoadingB(true)
+    fetch(`/api/youtube/search?q=${encodeURIComponent(q + ' ' + term)}`)
+      .then((r) => r.json()).then((d) => setBackings(d.results || [])).catch(() => {}).finally(() => setLoadingB(false))
+  }, [q, backingType])
 
   useEffect(() => {
     fetch(`/api/youtube/search?q=${encodeURIComponent(q + ' clip officiel')}`)
       .then((r) => r.json()).then((d) => setVideos(d.results || [])).catch(() => {}).finally(() => setLoadingV(false))
-    fetch(`/api/youtube/search?q=${encodeURIComponent(q + ' backing track')}`)
-      .then((r) => r.json()).then((d) => setBackings(d.results || [])).catch(() => {}).finally(() => setLoadingB(false))
     fetch(`/api/groupes/${groupId}/resource-links`)
       .then((r) => r.json()).then((d) => setLinks(Array.isArray(d) ? d : [])).catch(() => {})
   }, [q, groupId])
@@ -160,7 +178,19 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, hasDuratio
 
           {/* Backing tracks */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-2">🎸 Backing tracks (jouer dessus)</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-1">🎸 Backing tracks (jouer dessus)</h4>
+            <p className="text-[11px] text-gray-400 mb-2">Choisissez l&apos;instrument à retirer. Les résultats dépendent de ce qui existe sur YouTube — vérifiez en écoutant.</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {BACKING_TYPES.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setBackingType(t.key)}
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${backingType === t.key ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
             {loadingB ? (
               <p className="text-sm text-gray-400 py-3">Recherche…</p>
             ) : backings.length === 0 ? (
@@ -186,7 +216,7 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, hasDuratio
                 })}
               </ul>
             )}
-            <p className="text-[11px] text-gray-400 mt-1.5">💡 Pour le ralenti et la boucle A–B, importez le fichier audio dans l&apos;onglet 🎚 Séquences du morceau.</p>
+            <p className="text-[11px] text-gray-400 mt-1.5">💡 Pour retirer <strong>précisément</strong> un instrument de l&apos;original, utilisez un séparateur de pistes (ex. <strong>Moises</strong>, dans les liens ci-dessous). Et pour le ralenti / la boucle A–B, importez le fichier audio dans l&apos;onglet 🎚 Séquences du morceau.</p>
           </div>
 
           {/* Liens actifs */}
