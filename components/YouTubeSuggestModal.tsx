@@ -23,8 +23,10 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, hasDuratio
   onAdded?: () => void
 }) {
   const [videos, setVideos] = useState<YtResult[]>([])
+  const [backings, setBackings] = useState<YtResult[]>([])
   const [links, setLinks] = useState<RLink[]>([])
   const [loadingV, setLoadingV] = useState(true)
+  const [loadingB, setLoadingB] = useState(true)
   const [addingUrl, setAddingUrl] = useState<string | null>(null)
   const [addedUrls, setAddedUrls] = useState<Set<string>>(new Set())
 
@@ -45,6 +47,8 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, hasDuratio
   useEffect(() => {
     fetch(`/api/youtube/search?q=${encodeURIComponent(q + ' clip officiel')}`)
       .then((r) => r.json()).then((d) => setVideos(d.results || [])).catch(() => {}).finally(() => setLoadingV(false))
+    fetch(`/api/youtube/search?q=${encodeURIComponent(q + ' backing track')}`)
+      .then((r) => r.json()).then((d) => setBackings(d.results || [])).catch(() => {}).finally(() => setLoadingB(false))
     fetch(`/api/groupes/${groupId}/resource-links`)
       .then((r) => r.json()).then((d) => setLinks(Array.isArray(d) ? d : [])).catch(() => {})
   }, [q, groupId])
@@ -152,6 +156,37 @@ export function YouTubeSuggestModal({ songId, groupId, title, artist, hasDuratio
                 })}
               </ul>
             )}
+          </div>
+
+          {/* Backing tracks */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-800 mb-2">🎸 Backing tracks (jouer dessus)</h4>
+            {loadingB ? (
+              <p className="text-sm text-gray-400 py-3">Recherche…</p>
+            ) : backings.length === 0 ? (
+              <p className="text-sm text-gray-400 py-3">Aucun backing track trouvé.</p>
+            ) : (
+              <ul className="space-y-2">
+                {backings.slice(0, 4).map((r) => {
+                  const isAdded = addedUrls.has(r.url)
+                  return (
+                    <li key={r.videoId} className="flex items-center gap-3 rounded-xl border border-gray-200 p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.thumbnail} alt="" className="w-20 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">{r.title}</p>
+                        {r.channel && <p className="text-xs text-gray-400 truncate">{r.channel}</p>}
+                      </div>
+                      <button onClick={() => addLink(r.url, `Backing track — ${r.title}`)} disabled={!!addingUrl || isAdded}
+                        className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-60 ${isAdded ? 'bg-green-100 text-green-700' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}>
+                        {isAdded ? '✓ Ajouté' : addingUrl === r.url ? '…' : 'Ajouter'}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+            <p className="text-[11px] text-gray-400 mt-1.5">💡 Pour le ralenti et la boucle A–B, importez le fichier audio dans l&apos;onglet 🎚 Séquences du morceau.</p>
           </div>
 
           {/* Liens actifs */}
