@@ -22,9 +22,10 @@ export const SHAPES: Record<string, Shape> = {
     w: 34, h: 46,
     draw: (c) => (
       <svg viewBox="0 0 34 46" width="100%" height="100%">
-        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
-        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="2" />
-        <path d="M9 8 A8 8 0 0 1 25 8 L23 4 Q17 1 11 4 Z" fill="rgba(0,0,0,0.28)" />
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="1.8" />
+        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="1.8" />
+        {/* Calotte courte bien visible */}
+        <path d="M9 9 A8 8 0 0 1 25 9 Q24 1 17 1 Q10 1 9 9 Z" fill="rgba(0,0,0,0.33)" />
       </svg>
     ),
   },
@@ -33,9 +34,15 @@ export const SHAPES: Record<string, Shape> = {
     w: 34, h: 46,
     draw: (c) => (
       <svg viewBox="0 0 34 46" width="100%" height="100%">
-        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
-        <path d="M8 22 V9 A9 9 0 0 1 26 9 V22 L23 22 V11 A6 6 0 0 0 11 11 V22 Z" fill="rgba(0,0,0,0.28)" />
-        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="2" />
+        {/* Mèches qui tombent sur les épaules, dessinées avant le corps */}
+        <path d="M6 13 Q4 22 5 32 L8 32 Q7 22 9 14 Z" fill="rgba(0,0,0,0.30)" />
+        <path d="M28 13 Q30 22 29 32 L26 32 Q27 22 25 14 Z" fill="rgba(0,0,0,0.30)" />
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="1.8" />
+        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="1.8" />
+        {/* Bandeau sur le haut + mèches latérales */}
+        <path d="M9 9 A8 8 0 0 1 25 9 Q24 2 17 2 Q10 2 9 9 Z" fill="rgba(0,0,0,0.30)" />
+        <path d="M9 9 Q8 14 9 16 Q10.5 15 12 15 Q10 12 9 9 Z" fill="rgba(0,0,0,0.28)" />
+        <path d="M25 9 Q26 14 25 16 Q23.5 15 22 15 Q24 12 25 9 Z" fill="rgba(0,0,0,0.28)" />
       </svg>
     ),
   },
@@ -44,46 +51,106 @@ export const SHAPES: Record<string, Shape> = {
     w: 34, h: 46,
     draw: (c) => (
       <svg viewBox="0 0 34 46" width="100%" height="100%">
-        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
-        <circle cx="17" cy="10" r="8" fill={c} stroke={WS} strokeWidth="2" />
-        <path d="M9 7 A8 8 0 0 1 25 7 L29 8 L25 4 Q17 1 10 5 Z" fill="rgba(0,0,0,0.32)" />
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="1.8" />
+        <circle cx="17" cy="10" r="8" fill={c} stroke={WS} strokeWidth="1.8" />
+        {/* Corps de la casquette */}
+        <path d="M9 8 A8 8 0 0 1 25 8 Q25 2 17 2 Q9 2 9 8 Z" fill="rgba(0,0,0,0.38)" />
+        {/* Visière qui dépasse à droite */}
+        <path d="M24 8 L31 9.5 Q30 12 24 11 Z" fill="rgba(0,0,0,0.38)" />
       </svg>
     ),
   },
-  // p4 : chapeau
+  // p4 : chapeau (borsalino)
   p4: {
     w: 34, h: 46,
     draw: (c) => (
       <svg viewBox="0 0 34 46" width="100%" height="100%">
-        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
-        <circle cx="17" cy="11" r="8" fill={c} stroke={WS} strokeWidth="2" />
-        <rect x="6" y="5" width="22" height="3" rx="1.5" fill="rgba(0,0,0,0.32)" />
-        <rect x="11" y="0" width="12" height="6" rx="1.5" fill="rgba(0,0,0,0.32)" />
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="1.8" />
+        <circle cx="17" cy="11" r="8" fill={c} stroke={WS} strokeWidth="1.8" />
+        {/* Bord du chapeau (large) */}
+        <rect x="5" y="6" width="24" height="3" rx="1.5" fill="rgba(0,0,0,0.38)" />
+        {/* Calotte du chapeau */}
+        <path d="M10 6 Q10 0 17 0 Q24 0 24 6 Z" fill="rgba(0,0,0,0.38)" />
       </svg>
     ),
   },
-  // p5 : chignon
+  // p5 : chignon haut
   p5: {
     w: 34, h: 46,
     draw: (c) => (
       <svg viewBox="0 0 34 46" width="100%" height="100%">
-        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
-        <circle cx="17" cy="2.5" r="3.5" fill="rgba(0,0,0,0.3)" />
-        <circle cx="17" cy="10" r="8" fill={c} stroke={WS} strokeWidth="2" />
-        <path d="M9 9 A8 8 0 0 1 25 9 L23 5 Q17 2 11 5 Z" fill="rgba(0,0,0,0.28)" />
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="1.8" />
+        <circle cx="17" cy="10" r="8" fill={c} stroke={WS} strokeWidth="1.8" />
+        {/* Cheveux tirés en arrière */}
+        <path d="M9 9 A8 8 0 0 1 25 9 Q24 4 17 4 Q10 4 9 9 Z" fill="rgba(0,0,0,0.28)" />
+        {/* Chignon proéminent */}
+        <circle cx="17" cy="2" r="5" fill="rgba(0,0,0,0.36)" />
+        <circle cx="17" cy="2" r="3" fill="rgba(0,0,0,0.18)" />
       </svg>
     ),
   },
-  // p6 : cheveux bouclés
+  // p6 : cheveux bouclés / afro
   p6: {
     w: 34, h: 46,
     draw: (c) => (
       <svg viewBox="0 0 34 46" width="100%" height="100%">
-        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="2" />
-        <circle cx="17" cy="10" r="8" fill={c} stroke={WS} strokeWidth="2" />
-        <circle cx="10" cy="5" r="3.5" fill="rgba(0,0,0,0.28)" />
-        <circle cx="17" cy="3" r="4" fill="rgba(0,0,0,0.28)" />
-        <circle cx="24" cy="5" r="3.5" fill="rgba(0,0,0,0.28)" />
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="1.8" />
+        <circle cx="17" cy="11" r="7" fill={c} stroke={WS} strokeWidth="1.8" />
+        {/* Masse bouclée autour de la tête */}
+        <circle cx="8"  cy="8"  r="5.5" fill="rgba(0,0,0,0.30)" />
+        <circle cx="17" cy="4"  r="6"   fill="rgba(0,0,0,0.30)" />
+        <circle cx="26" cy="8"  r="5.5" fill="rgba(0,0,0,0.30)" />
+        <circle cx="6"  cy="14" r="4.5" fill="rgba(0,0,0,0.26)" />
+        <circle cx="28" cy="14" r="4.5" fill="rgba(0,0,0,0.26)" />
+      </svg>
+    ),
+  },
+  // p7 : barbe
+  p7: {
+    w: 34, h: 46,
+    draw: (c) => (
+      <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="1.8" />
+        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="1.8" />
+        {/* Cheveux courts */}
+        <path d="M9 9 A8 8 0 0 1 25 9 Q24 1 17 1 Q10 1 9 9 Z" fill="rgba(0,0,0,0.33)" />
+        {/* Barbe sur le bas du visage */}
+        <path d="M10 13 Q10 19 17 19 Q24 19 24 13 Q22 16 17 16.5 Q12 16 10 13 Z" fill="rgba(0,0,0,0.35)" />
+        {/* Moustache */}
+        <path d="M13 12 Q15 13.5 17 13.5 Q19 13.5 21 12 Q19 14 17 14 Q15 14 13 12 Z" fill="rgba(0,0,0,0.30)" />
+      </svg>
+    ),
+  },
+  // p8 : lunettes
+  p8: {
+    w: 34, h: 46,
+    draw: (c) => (
+      <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="1.8" />
+        <circle cx="17" cy="9" r="8" fill={c} stroke={WS} strokeWidth="1.8" />
+        {/* Cheveux courts */}
+        <path d="M9 9 A8 8 0 0 1 25 9 Q24 1 17 1 Q10 1 9 9 Z" fill="rgba(0,0,0,0.33)" />
+        {/* Lunettes : deux cercles + pont */}
+        <circle cx="13" cy="10" r="3.2" fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth="1.6" />
+        <circle cx="21" cy="10" r="3.2" fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth="1.6" />
+        <line x1="16.2" y1="10" x2="17.8" y2="10" stroke="rgba(0,0,0,0.45)" strokeWidth="1.4" />
+        <line x1="9.8"  y1="9"  x2="8.5"  y2="8"  stroke="rgba(0,0,0,0.40)" strokeWidth="1.2" />
+        <line x1="24.2" y1="9"  x2="25.5" y2="8"  stroke="rgba(0,0,0,0.40)" strokeWidth="1.2" />
+      </svg>
+    ),
+  },
+  // p9 : casque audio
+  p9: {
+    w: 34, h: 46,
+    draw: (c) => (
+      <svg viewBox="0 0 34 46" width="100%" height="100%">
+        <path d="M6 45 V27 C6 19 11 16 17 16 C23 16 28 19 28 27 V45 Z" fill={c} stroke={WS} strokeWidth="1.8" />
+        <circle cx="17" cy="10" r="8" fill={c} stroke={WS} strokeWidth="1.8" />
+        {/* Arc du casque par-dessus la tête */}
+        <path d="M8 10 A9 9 0 0 1 26 10" fill="none" stroke="rgba(0,0,0,0.42)" strokeWidth="3.5" strokeLinecap="round" />
+        {/* Coussinets gauche et droit */}
+        <rect x="5"  y="8" width="5" height="7" rx="2.5" fill="rgba(0,0,0,0.38)" />
+        <rect x="24" y="8" width="5" height="7" rx="2.5" fill="rgba(0,0,0,0.38)" />
       </svg>
     ),
   },
@@ -661,7 +728,7 @@ export function getShape(key: string | undefined): Shape {
 }
 
 // Looks de personnage proposés dans le profil
-export const LOOKS = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']
+export const LOOKS = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9']
 export const DEFAULT_LOOK = 'p1'
 
 // Palette de couleurs pour le personnage
