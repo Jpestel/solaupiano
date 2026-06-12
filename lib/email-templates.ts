@@ -159,6 +159,19 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ],
   },
   {
+    key: 'admin_login_notification',
+    name: 'Audit — connexion d\'un membre (admin)',
+    description: 'Envoyé à l\'administrateur à chaque connexion d\'un membre (hors admin), pour auditer l\'usage de l\'outil.',
+    defaultSubject: '🔔 Connexion — {{userName}}',
+    defaultIntro: 'Bonjour,\n\n{{userName}} ({{userEmail}}) vient de se connecter à Sol au piano.',
+    defaultOutro: 'Vous recevez cet email à chaque connexion d\'un membre (audit). Vous pouvez le modifier ou le désactiver côté administration.',
+    variables: [
+      { key: 'userName', description: 'Nom du membre connecté' },
+      { key: 'userEmail', description: 'Email du membre' },
+      { key: 'datetime', description: 'Date et heure de la connexion' },
+    ],
+  },
+  {
     key: 'rehearsal_photo_reminder',
     name: 'Galerie : invitation à partager les photos',
     description: 'Envoyé automatiquement 30 minutes avant une répétition aux membres ayant indiqué être présents, pour les inviter à partager leurs photos dans la Galerie à l\'issue de la répétition.',

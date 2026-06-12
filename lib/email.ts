@@ -1055,3 +1055,49 @@ export async function sendRehearsalPhotoReminder(
     })
   )
 }
+
+// ─── Audit : notification à l'admin à chaque connexion d'un membre ───
+export async function sendAdminLoginNotification(
+  adminEmails: string[],
+  user: { name: string; email: string; role: string; plan: string; groups: string[] },
+  when: Date,
+  baseUrl: string
+) {
+  if (adminEmails.length === 0) return
+  const datetime = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris',
+  }).format(when)
+  const tpl = await getEmailTemplate('admin_login_notification')
+  const { subject, introHtml, outroHtml } = tpl.render({ userName: user.name, userEmail: user.email, datetime })
+  const groupsHtml = user.groups.length
+    ? user.groups.map((g) => `<span style="display:inline-block; background:#eef2ff; color:#4338ca; border-radius:6px; padding:2px 8px; font-size:12px; margin:2px 4px 2px 0;">${g}</span>`).join('')
+    : '<span style="font-size:12px; color:#9ca3af;">Aucun groupe</span>'
+
+  await Promise.all(
+    adminEmails.map((to) =>
+      resend.emails.send({
+        from: 'Sol au piano <noreply@solaupiano.fr>',
+        to,
+        subject,
+        html: emailWrapper(`
+          <div style="display:inline-flex; align-items:center; gap:6px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:6px 12px; margin-bottom:20px;">
+            <span style="font-size:14px;">🔔</span>
+            <span style="font-size:12px; font-weight:600; color:#1e40af;">Audit — connexion</span>
+          </div>
+          ${introHtml}
+          ${dataBox(`
+            <p style="margin:0 0 6px; font-size:15px; font-weight:700; color:#1e3a8a;">${user.name}</p>
+            <p style="margin:0 0 4px; font-size:13px; color:#1d4ed8;">✉️ ${user.email}</p>
+            <p style="margin:0 0 4px; font-size:13px; color:#1d4ed8;">🕐 ${datetime}</p>
+            <p style="margin:0 0 8px; font-size:13px; color:#1d4ed8;">🎫 Plan : ${user.plan}</p>
+            <p style="margin:0 0 4px; font-size:12px; color:#6b7280;">Groupes :</p>
+            <div>${groupsHtml}</div>
+          `)}
+          ${outroHtml}
+          ${ctaButton(`${baseUrl}/admin/utilisateurs`, 'Voir les utilisateurs')}
+        `),
+      })
+    )
+  )
+}

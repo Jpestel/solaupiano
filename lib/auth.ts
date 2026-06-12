@@ -2,7 +2,10 @@ import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
+import { sendAdminLoginNotification } from './email'
 import type { JWT } from 'next-auth/jwt'
+
+const PLAN_LABELS: Record<string, string> = { MUSICIEN: 'Musicien', CREATEUR: "Chef d'orchestre" }
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -80,11 +83,41 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signIn({ user }) {
-      if (user?.id) {
-        await prisma.user.update({
-          where: { id: Number(user.id) },
-          data: { lastLoginAt: new Date() },
+      if (!user?.id) return
+      const uid = Number(user.id)
+      const when = new Date()
+      await prisma.user.update({ where: { id: uid }, data: { lastLoginAt: when } })
+
+      // Audit : prévenir l'admin (jamais bloquant pour la connexion)
+      try {
+        const u = await prisma.user.findUnique({
+          where: { id: uid },
+          select: {
+            name: true, email: true, siteRole: true, userPlan: true,
+            groups: { select: { group: { select: { name: true } } } },
+          },
         })
+        // On n'envoie pas pour les connexions d'un admin (bruit)
+        if (u && u.siteRole !== 'ADMIN' && u.email) {
+          const admins = await prisma.user.findMany({ where: { siteRole: 'ADMIN' }, select: { email: true } })
+          const adminEmails = admins.map((a) => a.email).filter((e): e is string => !!e)
+          if (adminEmails.length) {
+            await sendAdminLoginNotification(
+              adminEmails,
+              {
+                name: u.name || u.email,
+                email: u.email,
+                role: u.siteRole,
+                plan: PLAN_LABELS[u.userPlan] || u.userPlan,
+                groups: u.groups.map((g) => g.group.name),
+              },
+              when,
+              process.env.NEXTAUTH_URL || 'https://solaupiano.fr',
+            )
+          }
+        }
+      } catch (e) {
+        console.error('admin login notification', e)
       }
     },
   },
