@@ -24,6 +24,7 @@ const adminNav = [
   { href: '/admin/carrousel',        label: 'Carrousel' },
   { href: '/admin/fichiers',         label: 'Fichiers' },
   { href: '/admin/performance',      label: 'Performance' },
+  { href: '/admin/usage',            label: 'Audit d\'usage' },
 ]
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {

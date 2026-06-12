@@ -195,6 +195,7 @@ model User {
   expensesPaid             GroupExpense[]          @relation("ExpensePaidBy")
   expenseShares            ExpenseShare[]          @relation("ExpenseShareUser")
   galleryPhotos            GalleryPhoto[]          @relation("GalleryUploader")
+  moduleVisits             ModuleVisit[]
 }
 
 enum FlashInfoType {
@@ -498,6 +499,22 @@ model GalleryCategory {
 
   @@unique([groupId, name])
   @@index([groupId])
+}
+
+// Audit d'usage : une ligne par visite de module/page (résolu en libellé lisible).
+model ModuleVisit {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  path        String   @db.Text
+  moduleKey   String
+  moduleLabel String
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([moduleKey])
+  @@index([createdAt])
 }
 
 model GroupPage {
