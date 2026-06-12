@@ -50,6 +50,18 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const [wfLoading, setWfLoading] = useState(false)
   const PEAKS_N = 560
 
+  const WAVE_COLORS = [
+    { wave: '#6366f1', head: '#4338ca', label: 'Indigo' },
+    { wave: '#8b5cf6', head: '#6d28d9', label: 'Violet' },
+    { wave: '#0ea5e9', head: '#0369a1', label: 'Ciel' },
+    { wave: '#14b8a6', head: '#0f766e', label: 'Teal' },
+    { wave: '#22c55e', head: '#15803d', label: 'Vert' },
+    { wave: '#f97316', head: '#c2410c', label: 'Orange' },
+    { wave: '#f43f5e', head: '#be123c', label: 'Rose' },
+  ] as const
+  const [colorIdx, setColorIdx] = useState(0)
+  const waveColor = WAVE_COLORS[colorIdx]
+
   // Décode le fichier et calcule les pics d'amplitude (une fois)
   useEffect(() => {
     if (compact) return
@@ -160,7 +172,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   }
   const clearLoop = () => { setLoopOn(false); setAPt(null); setBPt(null) }
 
-  // Dessine la forme d'onde (joué = indigo, à venir = gris, boucle A–B = ambre)
+  // Dessine la forme d'onde (joué = couleur choisie, à venir = gris, boucle A–B = ambre)
   useEffect(() => {
     const cv = canvasRef.current
     if (!cv || !peaks) return
@@ -183,15 +195,15 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     for (let i = 0; i < n; i++) {
       const x = i * barW
       const h = Math.max(1, peaks[i] * (mid - 1))
-      ctx.fillStyle = x <= progX ? '#6366f1' : '#d1d5db'
+      ctx.fillStyle = x <= progX ? waveColor.wave : '#d1d5db'
       ctx.fillRect(x, mid - h, Math.max(1, barW - 0.5), h * 2)
     }
     // Tête de lecture
     if (dur > 0) {
-      ctx.fillStyle = '#4338ca'
+      ctx.fillStyle = waveColor.head
       ctx.fillRect(progX, 0, 1.5, H)
     }
-  }, [peaks, cur, dur, aPt, bPt, loopOn])
+  }, [peaks, cur, dur, aPt, bPt, loopOn, waveColor])
 
   const seekFromCanvas = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!dur) return
@@ -235,21 +247,34 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
         </div>
       </div>
 
-      {/* Forme d'onde — cliquer pour se positionner */}
+      {/* Forme d’onde — cliquer pour se positionner */}
       {!compact && (
         <div className="mt-2.5">
           {peaks ? (
-            <canvas
-              ref={canvasRef}
-              width={PEAKS_N}
-              height={72}
-              onClick={seekFromCanvas}
-              className="w-full h-12 cursor-pointer rounded-md bg-gray-50"
-              title="Cliquez pour vous positionner"
-            />
+            <>
+              <canvas
+                ref={canvasRef}
+                width={PEAKS_N}
+                height={72}
+                onClick={seekFromCanvas}
+                className="w-full h-12 cursor-pointer rounded-md bg-gray-50"
+                title="Cliquez pour vous positionner"
+              />
+              <div className="flex items-center gap-1 mt-1.5">
+                {WAVE_COLORS.map((c, i) => (
+                  <button
+                    key={c.label}
+                    onClick={() => setColorIdx(i)}
+                    title={c.label}
+                    className={`w-4 h-4 rounded-full transition-transform ${colorIdx === i ? ‘scale-125 ring-2 ring-offset-1 ring-gray-400’ : ‘opacity-60 hover:opacity-100’}`}
+                    style={{ backgroundColor: c.wave }}
+                  />
+                ))}
+              </div>
+            </>
           ) : (
             <div className="h-12 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center">
-              <span className="text-[11px] text-gray-400">{wfLoading ? '🌊 Analyse de la forme d’onde…' : 'Forme d’onde indisponible'}</span>
+              <span className="text-[11px] text-gray-400">{wfLoading ? ‘🌊 Analyse de la forme d’onde…’ : ‘Forme d’onde indisponible’}</span>
             </div>
           )}
         </div>
