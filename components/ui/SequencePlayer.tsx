@@ -17,6 +17,16 @@ function fmt(t: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+const WAVE_COLORS = [
+  { wave: '#6366f1', head: '#4338ca', label: 'Indigo' },
+  { wave: '#8b5cf6', head: '#6d28d9', label: 'Violet' },
+  { wave: '#0ea5e9', head: '#0369a1', label: 'Ciel' },
+  { wave: '#14b8a6', head: '#0f766e', label: 'Teal' },
+  { wave: '#22c55e', head: '#15803d', label: 'Vert' },
+  { wave: '#f97316', head: '#c2410c', label: 'Orange' },
+  { wave: '#f43f5e', head: '#be123c', label: 'Rose' },
+]
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Lecteur AUDIO (Web Audio : séparation click / backing en mode SPLIT_LR)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,15 +60,6 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const [wfLoading, setWfLoading] = useState(false)
   const PEAKS_N = 560
 
-  const WAVE_COLORS = [
-    { wave: '#6366f1', head: '#4338ca', label: 'Indigo' },
-    { wave: '#8b5cf6', head: '#6d28d9', label: 'Violet' },
-    { wave: '#0ea5e9', head: '#0369a1', label: 'Ciel' },
-    { wave: '#14b8a6', head: '#0f766e', label: 'Teal' },
-    { wave: '#22c55e', head: '#15803d', label: 'Vert' },
-    { wave: '#f97316', head: '#c2410c', label: 'Orange' },
-    { wave: '#f43f5e', head: '#be123c', label: 'Rose' },
-  ] as const
   const [colorIdx, setColorIdx] = useState(0)
   const waveColor = WAVE_COLORS[colorIdx]
 
@@ -266,7 +267,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
                     key={c.label}
                     onClick={() => setColorIdx(i)}
                     title={c.label}
-                    className={`w-4 h-4 rounded-full transition-transform ${colorIdx === i ? ‘scale-125 ring-2 ring-offset-1 ring-gray-400’ : ‘opacity-60 hover:opacity-100’}`}
+                    className={`w-4 h-4 rounded-full transition-transform ${colorIdx === i ? "scale-125 ring-2 ring-offset-1 ring-gray-400" : "opacity-60 hover:opacity-100"}`}
                     style={{ backgroundColor: c.wave }}
                   />
                 ))}
