@@ -44,6 +44,56 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const [bPt, setBPt] = useState<number | null>(null)
   const [loopOn, setLoopOn] = useState(false)
 
+  // ── Forme d'onde (waveform) ──
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [peaks, setPeaks] = useState<Float32Array | null>(null)
+  const [wfLoading, setWfLoading] = useState(false)
+  const PEAKS_N = 560
+
+  // Décode le fichier et calcule les pics d'amplitude (une fois)
+  useEffect(() => {
+    if (compact) return
+    let cancelled = false
+    setWfLoading(true)
+    setPeaks(null)
+    ;(async () => {
+      try {
+        const res = await fetch(encodeURI(seq.filePath))
+        if (!res.ok) throw new Error('fetch')
+        const buf = await res.arrayBuffer()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const Ctx = window.AudioContext || (window as any).webkitAudioContext
+        const ac = new Ctx()
+        const audioBuf = await ac.decodeAudioData(buf)
+        try { await ac.close() } catch { /* ignore */ }
+        const ch0 = audioBuf.getChannelData(0)
+        const ch1 = audioBuf.numberOfChannels > 1 ? audioBuf.getChannelData(1) : null
+        const block = Math.max(1, Math.floor(ch0.length / PEAKS_N))
+        const out = new Float32Array(PEAKS_N)
+        for (let i = 0; i < PEAKS_N; i++) {
+          let peak = 0
+          const start = i * block
+          const end = Math.min(ch0.length, start + block)
+          for (let j = start; j < end; j++) {
+            const v = ch1 ? Math.max(Math.abs(ch0[j]), Math.abs(ch1[j])) : Math.abs(ch0[j])
+            if (v > peak) peak = v
+          }
+          out[i] = peak
+        }
+        // Normalisation douce pour bien voir les nuances
+        let max = 0
+        for (let i = 0; i < PEAKS_N; i++) if (out[i] > max) max = out[i]
+        if (max > 0) for (let i = 0; i < PEAKS_N; i++) out[i] = out[i] / max
+        if (!cancelled) setPeaks(out)
+      } catch {
+        if (!cancelled) setPeaks(null)
+      } finally {
+        if (!cancelled) setWfLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [seq.filePath, compact])
+
   // Conserve la tonalité quand on change la vitesse
   useEffect(() => {
     const a = audioRef.current as (HTMLAudioElement & { preservesPitch?: boolean; mozPreservesPitch?: boolean; webkitPreservesPitch?: boolean }) | null
@@ -110,6 +160,46 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   }
   const clearLoop = () => { setLoopOn(false); setAPt(null); setBPt(null) }
 
+  // Dessine la forme d'onde (joué = indigo, à venir = gris, boucle A–B = ambre)
+  useEffect(() => {
+    const cv = canvasRef.current
+    if (!cv || !peaks) return
+    const W = cv.width, H = cv.height
+    const ctx = cv.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, W, H)
+    const mid = H / 2
+    const n = peaks.length
+    const barW = W / n
+    const progX = dur > 0 ? (cur / dur) * W : 0
+
+    // Zone de boucle A–B
+    if (aPt !== null && bPt !== null && dur > 0) {
+      const x1 = (aPt / dur) * W, x2 = (bPt / dur) * W
+      ctx.fillStyle = loopOn ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.10)'
+      ctx.fillRect(x1, 0, x2 - x1, H)
+    }
+
+    for (let i = 0; i < n; i++) {
+      const x = i * barW
+      const h = Math.max(1, peaks[i] * (mid - 1))
+      ctx.fillStyle = x <= progX ? '#6366f1' : '#d1d5db'
+      ctx.fillRect(x, mid - h, Math.max(1, barW - 0.5), h * 2)
+    }
+    // Tête de lecture
+    if (dur > 0) {
+      ctx.fillStyle = '#4338ca'
+      ctx.fillRect(progX, 0, 1.5, H)
+    }
+  }, [peaks, cur, dur, aPt, bPt, loopOn])
+
+  const seekFromCanvas = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!dur) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    seek(ratio * dur)
+  }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-3">
       <audio
@@ -144,6 +234,26 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
           </div>
         </div>
       </div>
+
+      {/* Forme d'onde — cliquer pour se positionner */}
+      {!compact && (
+        <div className="mt-2.5">
+          {peaks ? (
+            <canvas
+              ref={canvasRef}
+              width={PEAKS_N}
+              height={72}
+              onClick={seekFromCanvas}
+              className="w-full h-12 cursor-pointer rounded-md bg-gray-50"
+              title="Cliquez pour vous positionner"
+            />
+          ) : (
+            <div className="h-12 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center">
+              <span className="text-[11px] text-gray-400">{wfLoading ? '🌊 Analyse de la forme d’onde…' : 'Forme d’onde indisponible'}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Travail : vitesse (tonalité conservée) + boucle A–B */}
       {!compact && (
