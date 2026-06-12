@@ -65,6 +65,8 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
   const [error, setError] = useState('')
   const [evalRehearsal, setEvalRehearsal] = useState<Rehearsal | null>(null)
   const [expandedEvals, setExpandedEvals] = useState<Set<number>>(new Set())
+  const [relanceBusy, setRelanceBusy] = useState<number | null>(null)
+  const [relanceMsg, setRelanceMsg] = useState<Record<number, string>>({})
 
   const fetchData = async () => {
     const [repRes, grpRes, unavRes] = await Promise.all([
@@ -149,6 +151,24 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
     const evs = r.evaluations || []
     if (evs.length === 0) return null
     return evs.reduce((a, e) => a + e.groupRating, 0) / evs.length
+  }
+
+  const relancerEval = async (r: Rehearsal) => {
+    setRelanceBusy(r.id)
+    setRelanceMsg((m) => ({ ...m, [r.id]: '' }))
+    try {
+      const res = await fetch(`/api/repetitions/${r.id}/relancer-evaluations`, { method: 'POST' })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) { setRelanceMsg((m) => ({ ...m, [r.id]: d.error || 'Erreur.' })); return }
+      const msg = d.sent > 0
+        ? `✓ ${d.sent} rappel${d.sent > 1 ? 's' : ''} envoyé${d.sent > 1 ? 's' : ''}.`
+        : (d.alreadyEvaluated > 0 ? 'Tous les présents ont déjà évalué 👍' : 'Personne à relancer.')
+      setRelanceMsg((m) => ({ ...m, [r.id]: msg }))
+    } catch {
+      setRelanceMsg((m) => ({ ...m, [r.id]: 'Erreur réseau.' }))
+    } finally {
+      setRelanceBusy(null)
+    }
   }
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
@@ -269,8 +289,16 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
                           {expanded ? 'Masquer' : 'Détail'}
                         </button>
                       )}
+                      {isChef && (groupInfo?.hasEvaluations ?? true) && (
+                        <button onClick={() => relancerEval(r)} disabled={relanceBusy === r.id}
+                          title="Rappeler aux présents qui n'ont pas évalué de le faire"
+                          className="rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1.5 hover:bg-amber-100 disabled:opacity-50">
+                          {relanceBusy === r.id ? '…' : '🔔 Relancer'}
+                        </button>
+                      )}
                     </div>
                   </div>
+                  {relanceMsg[r.id] && <p className="mt-1.5 text-[11px] text-gray-500">{relanceMsg[r.id]}</p>}
 
                   <div className="mt-2 flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-gray-400">Ma présence :</span>
