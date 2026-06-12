@@ -4,6 +4,41 @@ import { useEffect, useRef, useState } from 'react'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// Exemple intégré (domaine public) pour tester l'outil sans chercher de fichier.
+const SAMPLE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <work><work-title>Au clair de la lune</work-title></work>
+  <part-list><score-part id="P1"><part-name>Mélodie</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <direction placement="above"><sound tempo="100"/></direction>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+    </measure>
+    <measure number="2">
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note>
+    </measure>
+    <measure number="3">
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+    </measure>
+    <measure number="4">
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+    </measure>
+  </part>
+</score-partwise>`
+
 export default function PartitionPage() {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const osmdRef = useRef<any>(null)
@@ -199,6 +234,12 @@ export default function PartitionPage() {
           onChange={(e) => { const f = e.target.files?.[0]; if (f) loadFile(f) }} />
         <button onClick={() => inputRef.current?.click()} className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-500">
           {loaded ? 'Changer de partition' : 'Choisir une partition'}
+        </button>
+        <button
+          onClick={() => loadFile(new File([SAMPLE_XML], 'Exemple — Au clair de la lune.musicxml', { type: 'application/xml' }))}
+          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+        >
+          ▶ Charger un exemple
         </button>
         {fileName && <span className="text-sm text-gray-500 truncate max-w-[240px]">🎼 {fileName}</span>}
       </div>
