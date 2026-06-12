@@ -274,7 +274,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
             </>
           ) : (
             <div className="h-12 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center">
-              <span className="text-[11px] text-gray-400">{wfLoading ? ‘🌊 Analyse de la forme d’onde…’ : ‘Forme d’onde indisponible’}</span>
+              <span className="text-[11px] text-gray-400">{wfLoading ? "🌊 Analyse de la forme d’onde…" : "Forme d’onde indisponible"}</span>
             </div>
           )}
         </div>
