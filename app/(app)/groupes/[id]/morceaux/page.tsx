@@ -36,6 +36,7 @@ interface Song {
   lyrics?: { id: number } | null
   tab?: { id: number } | null
   chordCharts?: { id: number; title: string }[]
+  _count?: { sequences: number }
 }
 
 function formatDuration(seconds: number): string {
@@ -399,6 +400,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-600 transition-colors"
                         >
                           🎚 Séquences
+                          {(song._count?.sequences ?? 0) > 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-0.5" />}
                         </Link>
                       ) : (
                         <span

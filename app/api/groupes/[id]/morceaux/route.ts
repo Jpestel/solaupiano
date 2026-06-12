@@ -27,6 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       lyrics: { select: { id: true } },
       tab: { select: { id: true } },
       chordCharts: { select: { id: true, title: true }, orderBy: { createdAt: 'asc' } },
+      _count: { select: { sequences: true } },
     },
     orderBy: { title: 'asc' },
   })
