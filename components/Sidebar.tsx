@@ -107,6 +107,15 @@ const navItems = [
     ),
   },
   {
+    href: '/outils/partition',
+    label: 'Lecteur partition',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l11-2v13M9 19a3 3 0 11-6 0 3 3 0 016 0zm11-3a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
+  {
     href: '/annonces',
     label: 'Annonces',
     icon: (

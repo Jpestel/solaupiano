@@ -80,6 +80,14 @@ export const MODULES: ModuleDef[] = [
     icon: '🎬',
     category: 'outil',
   },
+  {
+    key: 'tool_partition',
+    label: 'Lecteur de partition',
+    description: "Affiche une vraie partition à partir d'un fichier MusicXML (.musicxml, .mxl — export MuseScore/Free-scores) et la joue avec un curseur qui suit les notes (lecture, vitesse, transposition, zoom). 100% navigateur.",
+    href: '/outils/partition',
+    icon: '🎼',
+    category: 'outil',
+  },
 ]
 
 export function getModuleDef(key: string): ModuleDef | undefined {
