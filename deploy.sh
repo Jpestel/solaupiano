@@ -1,33 +1,39 @@
 #!/bin/bash
 # Script de déploiement solaupiano
-# Usage : bash deploy.sh
-# À exécuter depuis /var/www/solaupiano sur le serveur
+# Usage : bash deploy.sh  (exécuté en root depuis le serveur)
+# Le build et le restart PM2 tournent en tant que l'utilisateur 'toxic'
+# pour éviter tout problème de permissions sur .next et node_modules.
 
 set -e
 
 APP_NAME="solaupiano"
+APP_DIR="/var/www/solaupiano"
+APP_USER="toxic"
 
 echo "==> Mise à jour du code..."
-git pull origin main
+git -C "$APP_DIR" pull origin main
+
+echo "==> Correction des permissions..."
+chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
 
 echo "==> Installation des dépendances..."
-npm ci --omit=dev
+su - "$APP_USER" -c "cd $APP_DIR && npm ci --omit=dev"
 
 echo "==> Génération du client Prisma..."
-npx prisma generate
+su - "$APP_USER" -c "cd $APP_DIR && npx prisma generate"
 
 echo "==> Migrations base de données..."
-npx prisma db push
+su - "$APP_USER" -c "cd $APP_DIR && npx prisma db push"
 
 echo "==> Build de production..."
-npm run build
+su - "$APP_USER" -c "cd $APP_DIR && npm run build"
 
 echo "==> Redémarrage PM2..."
-pm2 restart $APP_NAME || pm2 start ecosystem.config.js
+su - "$APP_USER" -c "pm2 restart $APP_NAME || pm2 start $APP_DIR/ecosystem.config.js"
 
 echo "==> Sauvegarde de la config PM2..."
-pm2 save
+su - "$APP_USER" -c "pm2 save"
 
 echo ""
 echo "Déploiement terminé."
-pm2 status $APP_NAME
+su - "$APP_USER" -c "pm2 status $APP_NAME"
