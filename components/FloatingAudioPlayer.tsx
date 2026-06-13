@@ -30,28 +30,29 @@ export function FloatingAudioPlayer({ groupId }: { groupId: number | string }) {
 
   const selected = audios.find((a) => `${a.kind}-${a.id}` === selKey) || null
 
-  // Bouton flottant (replié)
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        title="Lecteur audio — jouer un audio du groupe par-dessus"
-        className="fixed bottom-20 right-4 lg:bottom-6 z-[60] inline-flex items-center gap-2 rounded-full bg-indigo-600 text-white shadow-lg px-4 py-3 text-sm font-semibold hover:bg-indigo-500"
-      >
-        🎧 Lecteur audio
-      </button>
-    )
-  }
-
   return (
-    <div className="fixed bottom-20 right-4 lg:bottom-6 z-[60] w-[min(420px,calc(100vw-2rem))] rounded-2xl border border-gray-200 bg-white shadow-2xl">
-      {/* En-tête */}
-      <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-gray-100 bg-indigo-50 rounded-t-2xl">
-        <span className="text-sm font-bold text-indigo-800">🎧 Lecteur audio</span>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setOpen(false)} title="Réduire" className="w-7 h-7 rounded-md text-indigo-500 hover:bg-indigo-100">▾</button>
+    <>
+      {/* Bouton flottant quand réduit (l'audio continue de jouer en arrière-plan) */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          title="Lecteur audio — jouer un audio du groupe par-dessus"
+          className="fixed bottom-20 right-4 lg:bottom-6 z-[60] inline-flex items-center gap-2 rounded-full bg-indigo-600 text-white shadow-lg px-4 py-3 text-sm font-semibold hover:bg-indigo-500"
+        >
+          🎧 Lecteur audio
+          {selKey && <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Audio chargé" />}
+        </button>
+      )}
+
+      {/* Panneau — toujours monté (caché quand réduit) pour ne pas couper l'audio */}
+      <div className={`fixed bottom-20 right-4 lg:bottom-6 z-[60] w-[min(420px,calc(100vw-2rem))] rounded-2xl border border-gray-200 bg-white shadow-2xl ${open ? '' : 'hidden'}`}>
+        {/* En-tête */}
+        <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-gray-100 bg-indigo-50 rounded-t-2xl">
+          <span className="text-sm font-bold text-indigo-800">🎧 Lecteur audio</span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setOpen(false)} title="Réduire (l’audio continue)" className="w-7 h-7 rounded-md text-indigo-500 hover:bg-indigo-100">▾</button>
+          </div>
         </div>
-      </div>
 
       <div className="p-3 space-y-3 max-h-[70vh] overflow-y-auto">
         {/* Sélecteur */}
@@ -97,6 +98,7 @@ export function FloatingAudioPlayer({ groupId }: { groupId: number | string }) {
           />
         )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }

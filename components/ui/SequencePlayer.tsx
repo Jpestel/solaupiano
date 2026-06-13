@@ -64,6 +64,12 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const [aPt, setAPt] = useState<number | null>(null)
   const [bPt, setBPt] = useState<number | null>(null)
   const [loopOn, setLoopOn] = useState(false)
+
+  // Départ différé (compte à rebours avant lecture)
+  const [delaySec, setDelaySec] = useState(0)
+  const [countdown, setCountdown] = useState<number | null>(null)
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current) }, [])
   // Champs éditables (saisie manuelle ex. "3:03")
   const [aStr, setAStr] = useState('')
   const [bStr, setBStr] = useState('')
@@ -189,13 +195,38 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     }
   }, [split, master, clickVol, backingVol, clickMute, backingMute, playing])
 
+  const beginPlay = async () => {
+    const a = audioRef.current
+    if (!a) return
+    try { await a.play(); setPlaying(true) } catch { /* autoplay bloqué */ }
+  }
+
+  const cancelCountdown = () => {
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null }
+    setCountdown(null)
+  }
+
   const toggle = async () => {
     const a = audioRef.current
     if (!a) return
+    // Un clic pendant le compte à rebours = annulation
+    if (countdown !== null) { cancelCountdown(); return }
     ensureGraph()
     if (ctxRef.current?.state === 'suspended') await ctxRef.current.resume()
-    if (a.paused) { await a.play(); setPlaying(true) }
-    else { a.pause(); setPlaying(false) }
+    if (!a.paused) { a.pause(); setPlaying(false); return }
+    // Lecture : départ différé éventuel
+    if (delaySec > 0) {
+      setCountdown(delaySec)
+      countdownRef.current = setInterval(() => {
+        setCountdown((c) => {
+          if (c === null) return null
+          if (c <= 1) { cancelCountdown(); beginPlay(); return null }
+          return c - 1
+        })
+      }, 1000)
+    } else {
+      beginPlay()
+    }
   }
 
   const seek = (v: number) => { if (audioRef.current) { audioRef.current.currentTime = v; setCur(v) } }
@@ -294,10 +325,10 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
       <div className="flex items-center gap-3">
         <button
           onClick={toggle}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-colors"
-          title={playing ? 'Pause' : 'Lecture'}
+          className={`flex-shrink-0 w-10 h-10 rounded-full text-white flex items-center justify-center transition-colors ${countdown !== null ? 'bg-amber-500 hover:bg-amber-600' : 'bg-indigo-600 hover:bg-indigo-500'}`}
+          title={countdown !== null ? 'Annuler le départ différé' : playing ? 'Pause' : 'Lecture'}
         >
-          {playing ? '⏸' : '▶'}
+          {countdown !== null ? <span className="text-sm font-bold tabular-nums">{countdown}</span> : playing ? '⏸' : '▶'}
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -365,6 +396,27 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
               </button>
             ))}
             <span className="text-[10px] text-gray-400">tonalité conservée</span>
+          </div>
+          {/* Départ différé */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-gray-500 mr-0.5">⏳ Départ différé</span>
+            {[0, 3, 5, 10].map((s) => (
+              <button
+                key={s}
+                onClick={() => setDelaySec(s)}
+                className={`rounded-md px-2 py-0.5 text-xs font-semibold transition-colors ${delaySec === s ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {s === 0 ? 'Aucun' : `${s} s`}
+              </button>
+            ))}
+            <span className="inline-flex items-center gap-1">
+              <input
+                type="number" min={0} max={60} value={delaySec}
+                onChange={(e) => setDelaySec(Math.max(0, Math.min(60, Math.round(Number(e.target.value) || 0))))}
+                className="w-12 rounded-md border border-gray-300 px-1.5 py-0.5 text-xs tabular-nums"
+              />
+              <span className="text-[10px] text-gray-400">s</span>
+            </span>
           </div>
           {/* Boucle A–B */}
           <div className="flex items-center gap-2 flex-wrap">
