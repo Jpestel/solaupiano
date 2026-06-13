@@ -32,6 +32,9 @@ export function FloatingAudioPlayer({ groupId }: { groupId: number | string }) {
 
   return (
     <>
+      {/* Espace réservé en bas du contenu pour que le lecteur flottant ne masque rien */}
+      <div aria-hidden className="h-28 lg:h-24" />
+
       {/* Bouton flottant quand réduit (l'audio continue de jouer en arrière-plan) */}
       {!open && (
         <button
