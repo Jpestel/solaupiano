@@ -200,12 +200,14 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
 
   const seek = (v: number) => { if (audioRef.current) { audioRef.current.currentTime = v; setCur(v) } }
 
+  // La boucle n'est valide que si B > A (sinon t >= bPt serait toujours vrai → blocage sur une note)
+  const loopValid = loopOn && aPt !== null && bPt !== null && bPt > aPt
   const onTime = (t: number) => {
     setCur(t)
-    if (loopOn && aPt !== null && bPt !== null && t >= bPt) seek(aPt)
+    if (loopValid && t >= (bPt as number)) seek(aPt as number)
   }
   const onEnded = async () => {
-    if (loopOn && aPt !== null) { seek(aPt); try { await audioRef.current?.play() } catch { /* ignore */ } }
+    if (loopValid) { seek(aPt as number); try { await audioRef.current?.play() } catch { /* ignore */ } }
     else setPlaying(false)
   }
   const clearLoop = () => { setLoopOn(false); setAPt(null); setBPt(null) }
@@ -395,7 +397,8 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
             </span>
             <button
               onClick={() => setLoopOn((v) => !v)}
-              disabled={aPt === null || bPt === null}
+              disabled={!loopOn && (aPt === null || bPt === null || bPt <= aPt)}
+              title={aPt !== null && bPt !== null && bPt <= aPt ? 'B doit être après A' : undefined}
               className={`rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors disabled:opacity-40 ${loopOn ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               {loopOn ? 'Boucle active' : 'Activer'}
