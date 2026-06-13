@@ -263,9 +263,15 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     }
   }
 
-  const applyLoop = (l: SavedLoop) => {
+  const applyLoop = async (l: SavedLoop) => {
     setAPt(l.startSec); setBPt(l.endSec); setSpeed(l.speed); setLoopOn(true)
-    seek(l.startSec)
+    const a = audioRef.current
+    if (!a) return
+    cancelCountdown()
+    ensureGraph()
+    if (ctxRef.current?.state === 'suspended') await ctxRef.current.resume()
+    a.currentTime = l.startSec; setCur(l.startSec)
+    try { await a.play(); setPlaying(true) } catch { /* autoplay bloqué */ }
   }
 
   const editLoop = (l: SavedLoop) => {
