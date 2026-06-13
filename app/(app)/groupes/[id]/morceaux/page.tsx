@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal'
 import { ResourceUploader } from '@/components/ResourceUploader'
 import { PendingResourceUploader } from '@/components/PendingResourceUploader'
 import { YouTubeSuggestModal } from '@/components/YouTubeSuggestModal'
+import { FloatingAudioPlayer } from '@/components/FloatingAudioPlayer'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { SongMetronome } from '@/components/ui/SongMetronome'
 import dynamic from 'next/dynamic'
@@ -754,6 +755,8 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           onAdded={fetchData}
         />
       )}
+
+      <FloatingAudioPlayer groupId={groupId} />
     </div>
   )
 }
