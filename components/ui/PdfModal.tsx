@@ -56,21 +56,9 @@ export function PdfModal({ url, title, onClose }: PdfModalProps) {
     setEditingPage(false)
   }
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen()
-      setIsFullscreen(true)
-    } else {
-      document.exitFullscreen()
-      setIsFullscreen(false)
-    }
-  }
-
-  useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement)
-    document.addEventListener('fullscreenchange', handler)
-    return () => document.removeEventListener('fullscreenchange', handler)
-  }, [])
+  // Plein écran CSS (et non l'API Fullscreen native) : la fenêtre s'étend bord à bord
+  // dans la page, ce qui laisse le lecteur audio flottant TOUJOURS au premier plan.
+  const toggleFullscreen = () => setIsFullscreen((v) => !v)
 
   return (
     <div
@@ -79,7 +67,7 @@ export function PdfModal({ url, title, onClose }: PdfModalProps) {
     >
       <div
         ref={containerRef}
-        className="flex flex-col bg-gray-900 rounded-2xl shadow-2xl overflow-hidden w-full max-w-3xl max-h-[95vh]"
+        className={`flex flex-col bg-gray-900 shadow-2xl overflow-hidden ${isFullscreen ? 'fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none' : 'w-full max-w-3xl max-h-[95vh] rounded-2xl'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top toolbar */}
