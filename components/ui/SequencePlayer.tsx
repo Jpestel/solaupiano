@@ -376,7 +376,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
                 placeholder="m:ss"
                 className="w-14 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800 tabular-nums focus:outline-none focus:ring-1 focus:ring-amber-300"
               />
-              <button onClick={() => setAPt(cur)} title="A = position actuelle" className="rounded-md bg-amber-100 text-amber-700 px-1.5 py-0.5 text-xs hover:bg-amber-200">⏺</button>
+              <button onClick={() => setAPt(cur)} title="Insérer le temps de lecture actuel dans A" className="inline-flex items-center gap-0.5 rounded-md bg-amber-100 text-amber-700 px-1.5 py-0.5 text-xs font-medium hover:bg-amber-200">⏱ ici</button>
             </span>
             {/* B : saisie manuelle + capture position */}
             <span className="inline-flex items-center gap-1">
@@ -389,7 +389,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
                 placeholder="m:ss"
                 className="w-14 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800 tabular-nums focus:outline-none focus:ring-1 focus:ring-amber-300"
               />
-              <button onClick={() => setBPt(cur)} title="B = position actuelle" className="rounded-md bg-amber-100 text-amber-700 px-1.5 py-0.5 text-xs hover:bg-amber-200">⏺</button>
+              <button onClick={() => setBPt(cur)} title="Insérer le temps de lecture actuel dans B" className="inline-flex items-center gap-0.5 rounded-md bg-amber-100 text-amber-700 px-1.5 py-0.5 text-xs font-medium hover:bg-amber-200">⏱ ici</button>
             </span>
             <button
               onClick={() => setLoopOn((v) => !v)}
