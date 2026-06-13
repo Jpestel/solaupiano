@@ -54,6 +54,19 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const [bPt, setBPt] = useState<number | null>(null)
   const [loopOn, setLoopOn] = useState(false)
 
+  // ── Boucles sauvegardées (par membre) ──
+  interface SavedLoop { id: number; label: string | null; startSec: number; endSec: number; speed: number }
+  const [savedLoops, setSavedLoops] = useState<SavedLoop[]>([])
+  const [savingLoop, setSavingLoop] = useState(false)
+
+  useEffect(() => {
+    if (compact) return
+    fetch(`/api/sequences/${seq.id}/loops`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setSavedLoops(Array.isArray(d) ? d : []))
+      .catch(() => {})
+  }, [seq.id, compact])
+
   // ── Forme d'onde (waveform) ──
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [peaks, setPeaks] = useState<Float32Array | null>(null)
@@ -172,6 +185,35 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     else setPlaying(false)
   }
   const clearLoop = () => { setLoopOn(false); setAPt(null); setBPt(null) }
+
+  const saveLoop = async () => {
+    if (aPt === null || bPt === null || bPt <= aPt) return
+    const label = window.prompt('Nom de la boucle (optionnel) :', '')
+    if (label === null) return // annulé
+    setSavingLoop(true)
+    try {
+      const res = await fetch(`/api/sequences/${seq.id}/loops`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: label.trim() || null, startSec: aPt, endSec: bPt, speed }),
+      })
+      if (res.ok) {
+        const loop = await res.json()
+        setSavedLoops((ls) => [...ls, loop].sort((a, b) => a.startSec - b.startSec))
+      }
+    } finally {
+      setSavingLoop(false)
+    }
+  }
+
+  const applyLoop = (l: SavedLoop) => {
+    setAPt(l.startSec); setBPt(l.endSec); setSpeed(l.speed); setLoopOn(true)
+    seek(l.startSec)
+  }
+
+  const deleteLoop = async (id: number) => {
+    const res = await fetch(`/api/sequences/${seq.id}/loops/${id}`, { method: 'DELETE' })
+    if (res.ok) setSavedLoops((ls) => ls.filter((l) => l.id !== id))
+  }
 
   // Dessine la forme d'onde (joué = couleur choisie, à venir = gris, boucle A–B = ambre)
   useEffect(() => {
@@ -310,10 +352,36 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
             >
               {loopOn ? 'Boucle active' : 'Activer'}
             </button>
+            <button
+              onClick={saveLoop}
+              disabled={aPt === null || bPt === null || bPt <= (aPt ?? 0) || savingLoop}
+              title="Enregistrer cet intervalle pour le retrouver plus tard"
+              className="rounded-md bg-indigo-600 text-white px-2.5 py-0.5 text-xs font-semibold hover:bg-indigo-500 disabled:opacity-40"
+            >
+              💾 Enregistrer
+            </button>
             {(aPt !== null || bPt !== null) && (
               <button onClick={clearLoop} className="text-xs text-gray-400 hover:text-red-500">Effacer</button>
             )}
           </div>
+
+          {/* Boucles sauvegardées (par membre) */}
+          {savedLoops.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-medium text-gray-500 mr-0.5">⭐ Mes boucles</span>
+              {savedLoops.map((l) => {
+                const isActive = loopOn && aPt === l.startSec && bPt === l.endSec
+                return (
+                  <span key={l.id} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${isActive ? 'border-green-300 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-600'}`}>
+                    <button onClick={() => applyLoop(l)} title={`${fmt(l.startSec)} → ${fmt(l.endSec)} · ${l.speed}×`} className="font-medium hover:text-indigo-600">
+                      {l.label || `${fmt(l.startSec)}–${fmt(l.endSec)}`}{l.speed !== 1 ? ` ${l.speed}×` : ''}
+                    </button>
+                    <button onClick={() => deleteLoop(l.id)} title="Supprimer" className="text-gray-300 hover:text-red-500 leading-none">×</button>
+                  </span>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 

@@ -196,6 +196,7 @@ model User {
   expenseShares            ExpenseShare[]          @relation("ExpenseShareUser")
   galleryPhotos            GalleryPhoto[]          @relation("GalleryUploader")
   moduleVisits             ModuleVisit[]
+  sequenceLoops            SequenceLoop[]
 }
 
 enum FlashInfoType {
@@ -864,8 +865,26 @@ model SongSequence {
 
   song      Song  @relation(fields: [songId], references: [id], onDelete: Cascade)
   createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  loops     SequenceLoop[]
 
   @@index([songId])
+}
+
+// Boucles A–B sauvegardées par un membre sur une séquence (travail régulier).
+model SequenceLoop {
+  id         Int      @id @default(autoincrement())
+  sequenceId Int
+  userId     Int
+  label      String?
+  startSec   Float
+  endSec     Float
+  speed      Float    @default(1)
+  createdAt  DateTime @default(now())
+
+  sequence SongSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sequenceId, userId])
 }
 
 model SongLyrics {
