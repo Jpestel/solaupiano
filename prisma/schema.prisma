@@ -197,6 +197,7 @@ model User {
   galleryPhotos            GalleryPhoto[]          @relation("GalleryUploader")
   moduleVisits             ModuleVisit[]
   sequenceLoops            SequenceLoop[]
+  scoreMarkers             ScoreMarker[]
 }
 
 enum FlashInfoType {
@@ -866,6 +867,7 @@ model SongSequence {
   song      Song  @relation(fields: [songId], references: [id], onDelete: Cascade)
   createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
   loops     SequenceLoop[]
+  scoreMarkers ScoreMarker[]
 
   @@index([songId])
 }
@@ -1002,6 +1004,27 @@ model Resource {
 
   song       Song @relation(fields: [songId], references: [id], onDelete: Cascade)
   uploadedBy User @relation(fields: [uploadedById], references: [id])
+  scoreMarkers ScoreMarker[]
+}
+
+// Marqueurs audio 🔊 placés par un membre sur une partition (image/PDF), lançant un audio à un timecode.
+model ScoreMarker {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  resourceId Int
+  sequenceId Int
+  page       Int      @default(1)   // page PDF (1 pour une image)
+  xPct       Float                  // position relative 0..1
+  yPct       Float
+  startSec   Float                  // timecode de départ dans l'audio
+  label      String?
+  createdAt  DateTime @default(now())
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  sequence SongSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  @@index([resourceId, userId])
 }
 
 model PendingResource {

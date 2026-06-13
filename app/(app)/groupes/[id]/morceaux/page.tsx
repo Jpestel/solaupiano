@@ -17,6 +17,7 @@ import { SongMetronome } from '@/components/ui/SongMetronome'
 import dynamic from 'next/dynamic'
 import { ph } from '@/lib/placeholders'
 const PdfModal = dynamic(() => import('@/components/ui/PdfModal').then((m) => m.PdfModal), { ssr: false })
+const ScoreAnnotator = dynamic(() => import('@/components/ui/ScoreAnnotator').then((m) => m.ScoreAnnotator), { ssr: false })
 
 interface Resource {
   id: number
@@ -101,6 +102,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [resourceSaving, setResourceSaving] = useState(false)
   const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string; local?: boolean } | null>(null)
   const [pdfModal, setPdfModal] = useState<{ url: string; title: string } | null>(null)
+  const [annotate, setAnnotate] = useState<{ id: number; name: string; type: string; filePath: string } | null>(null)
   const [pendingResources, setPendingResources] = useState<PendingResource[]>([])
   const [submitSongId, setSubmitSongId] = useState<number | null>(null)
   const [pendingExpanded, setPendingExpanded] = useState(true)
@@ -506,6 +508,15 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
+                            {(res.type === 'PDF' || res.type === 'IMAGE') && (
+                              <button
+                                onClick={() => setAnnotate({ id: res.id, name: res.name, type: res.type, filePath: res.filePath })}
+                                title="Poser des points d'écoute audio sur la partition"
+                                className="text-xs text-fuchsia-600 hover:text-fuchsia-500 font-medium flex items-center gap-1"
+                              >
+                                🔊 Annoter
+                              </button>
+                            )}
                             {res.type === 'PDF' ? (
                               <button
                                 onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name })}
@@ -757,6 +768,8 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       )}
 
       <FloatingAudioPlayer groupId={groupId} />
+
+      {annotate && <ScoreAnnotator resource={annotate} onClose={() => setAnnotate(null)} />}
     </div>
   )
 }
