@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 
 export interface Sequence {
-  id: number
+  id?: number               // absent en mode local (fichier non sauvegardé) → pas de boucles persistées
   kind: 'AUDIO' | 'MIDI'
   title: string
   filePath: string
-  channelMode: 'STEREO' | 'SPLIT_LR'
+  channelMode?: 'STEREO' | 'SPLIT_LR'
 }
 
 function fmt(t: number) {
@@ -81,8 +81,10 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const [savedLoops, setSavedLoops] = useState<SavedLoop[]>([])
   const [savingLoop, setSavingLoop] = useState(false)
 
+  const canPersist = !!seq.id // mode local (sans id) : pas de sauvegarde de boucles
+
   useEffect(() => {
-    if (compact) return
+    if (compact || !seq.id) return
     fetch(`/api/sequences/${seq.id}/loops`)
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setSavedLoops(Array.isArray(d) ? d : []))
@@ -398,21 +400,23 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
             >
               {loopOn ? 'Boucle active' : 'Activer'}
             </button>
-            <button
-              onClick={saveLoop}
-              disabled={aPt === null || bPt === null || bPt <= (aPt ?? 0) || savingLoop}
-              title="Enregistrer cet intervalle pour le retrouver plus tard"
-              className="rounded-md bg-indigo-600 text-white px-2.5 py-0.5 text-xs font-semibold hover:bg-indigo-500 disabled:opacity-40"
-            >
-              💾 Enregistrer
-            </button>
+            {canPersist && (
+              <button
+                onClick={saveLoop}
+                disabled={aPt === null || bPt === null || bPt <= (aPt ?? 0) || savingLoop}
+                title="Enregistrer cet intervalle pour le retrouver plus tard"
+                className="rounded-md bg-indigo-600 text-white px-2.5 py-0.5 text-xs font-semibold hover:bg-indigo-500 disabled:opacity-40"
+              >
+                💾 Enregistrer
+              </button>
+            )}
             {(aPt !== null || bPt !== null) && (
               <button onClick={clearLoop} className="text-xs text-gray-400 hover:text-red-500">Effacer</button>
             )}
           </div>
 
           {/* Boucles sauvegardées (par membre) */}
-          {savedLoops.length > 0 && (
+          {canPersist && savedLoops.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs font-medium text-gray-500 mr-0.5">⭐ Mes boucles</span>
               {savedLoops.map((l) => {

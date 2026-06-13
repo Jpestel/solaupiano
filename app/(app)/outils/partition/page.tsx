@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { SequencePlayer } from '@/components/ui/SequencePlayer'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -46,6 +47,24 @@ export default function PartitionPage() {
   const playingRef = useRef(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const audioInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Backing track / audio local affiché au-dessus de la partition
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [audioName, setAudioName] = useState('')
+  const audioUrlRef = useRef<string | null>(null)
+  function loadAudio(file: File) {
+    if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current)
+    const url = URL.createObjectURL(file)
+    audioUrlRef.current = url
+    setAudioUrl(url)
+    setAudioName(file.name)
+  }
+  function clearAudio() {
+    if (audioUrlRef.current) { URL.revokeObjectURL(audioUrlRef.current); audioUrlRef.current = null }
+    setAudioUrl(null); setAudioName('')
+  }
+  useEffect(() => () => { if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current) }, [])
 
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -242,7 +261,24 @@ export default function PartitionPage() {
           ▶ Charger un exemple
         </button>
         {fileName && <span className="text-sm text-gray-500 truncate max-w-[240px]">🎼 {fileName}</span>}
+        <input ref={audioInputRef} type="file" accept="audio/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) loadAudio(f) }} />
+        <button onClick={() => audioInputRef.current?.click()} className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
+          🎧 {audioUrl ? 'Changer l’audio' : 'Ajouter un backing track'}
+        </button>
       </div>
+
+      {/* Lecteur audio (backing track) au-dessus de la partition */}
+      {audioUrl && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-semibold text-gray-600">🎧 Backing track</span>
+            <button onClick={clearAudio} className="text-xs text-gray-400 hover:text-red-500">Retirer</button>
+          </div>
+          <SequencePlayer seq={{ kind: 'AUDIO', title: audioName, filePath: audioUrl }} />
+          <p className="text-[11px] text-gray-400 mt-1">Audio local (non sauvegardé) : waveform, boucle A–B et ralenti pour jouer sur la partition ci-dessous.</p>
+        </div>
+      )}
 
       {error && <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">{error}</div>}
       {loading && <p className="mt-4 text-sm text-gray-400">⏳ Lecture de la partition…</p>}

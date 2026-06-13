@@ -140,7 +140,7 @@ export default function SequencesPage({ params }: { params: { id: string; songId
                       Sortie :
                       <select
                         value={seq.channelMode}
-                        onChange={(e) => handleChannelChange(seq.id, e.target.value as 'STEREO' | 'SPLIT_LR')}
+                        onChange={(e) => handleChannelChange(seq.id!, e.target.value as 'STEREO' | 'SPLIT_LR')}
                         className="rounded border border-gray-200 text-xs px-1.5 py-0.5"
                       >
                         <option value="STEREO">Stéréo normale</option>
@@ -148,7 +148,7 @@ export default function SequencesPage({ params }: { params: { id: string; songId
                       </select>
                     </label>
                   )}
-                  <button onClick={() => handleDelete(seq.id)} className="text-xs text-red-400 hover:text-red-600 ml-auto">
+                  <button onClick={() => handleDelete(seq.id!)} className="text-xs text-red-400 hover:text-red-600 ml-auto">
                     Supprimer
                   </button>
                 </div>
