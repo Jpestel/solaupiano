@@ -83,10 +83,15 @@ export default async function AidePage() {
             { href: '#paroles', label: '🎤 Paroles' },
             { href: '#tablatures', label: '🎸 Tablatures' },
             { href: '#sequences', label: '🎚 Séquences' },
+            { href: '#lecteur-flottant', label: '🎧 Lecteur audio' },
+            { href: '#annotation', label: '🔊 Partition annotée' },
             { href: '#accords', label: '🎹 Accords' },
             { href: '#accordeur', label: '🎙️ Accordeur' },
             { href: '#metronome', label: '🥁 Métronome' },
             { href: '#portee', label: '🎼 Portée' },
+            { href: '#lecteur-partition', label: '🎼 Lecteur partition' },
+            { href: '#video-audio', label: '🎬 Vidéo→MP3' },
+            { href: '#images-pdf', label: '🖼️ Photos→PDF' },
             { href: '#cachet-guso', label: '💶 Cachet GUSO' },
             { href: '#stats', label: '📊 Statistiques' },
             { href: '#annonces', label: '📢 Annonces' },
@@ -1158,15 +1163,52 @@ export default async function AidePage() {
               <p className="mt-2">Les fichiers MIDI sont lus par un synthé du navigateur (pré-écoute des notes).</p>
             </HelpCard>
             <HelpCard title="Travailler un passage à la maison">
-              <p>Le lecteur intègre deux outils parfaits pour répéter chez soi :</p>
+              <p>Le lecteur intègre tout pour répéter efficacement chez soi :</p>
               <ul className="mt-2 space-y-1">
-                <li>🐢 <strong>Vitesse / ralenti</strong> (de 0,5× à 1,25×) — la <strong>tonalité reste inchangée</strong>, idéal pour déchiffrer un solo lentement</li>
-                <li>🔁 <strong>Boucle A–B</strong> — placez un repère <strong>A</strong> (début) et <strong>B</strong> (fin), activez la boucle, et le passage se répète en continu</li>
+                <li>🌊 <strong>Forme d&apos;onde</strong> — visualisez les nuances et cliquez dessus pour vous positionner</li>
+                <li>🐢 <strong>Vitesse / ralenti</strong> (0,5× à 1,25×) — la <strong>tonalité reste inchangée</strong></li>
+                <li>🔁 <strong>Boucle A–B</strong> — réglez <strong>A</strong> et <strong>B</strong> par <strong>⏱ capture</strong> (position de lecture) ou en <strong>tapant le temps</strong> (ex. <code className="bg-gray-100 rounded px-1">3:03</code>), puis activez la boucle</li>
+                <li>⭐ <strong>Boucles sauvegardées</strong> — enregistrez vos passages (💾), rechargez-les en 1 clic, <strong>modifiez-les</strong> (✏️) ou supprimez-les. Personnelles à chaque membre.</li>
+                <li>⏳ <strong>Départ différé</strong> — un compte à rebours (3 / 5 / 10 s ou libre) avant le démarrage, le temps de prendre l&apos;instrument</li>
               </ul>
-              <Tip>Combinez les deux : ralentissez à 0,75× <em>et</em> bouclez le pont pour le travailler jusqu&apos;à le maîtriser.</Tip>
+              <Tip>Combinez : un backing « sans votre instrument » (via Moises), ralenti à 0,75× <em>et</em> boucle A–B sauvegardée sur le passage difficile.</Tip>
             </HelpCard>
             <HelpCard title="Mode scène (par setlist)">
               <p>Depuis une <strong>setlist</strong>, le bouton <strong>🎚 Mode séquences</strong> enchaîne automatiquement les backing tracks des morceaux : <strong>décompte au tempo</strong>, lecture, précédent / suivant et <strong>enchaînement automatique</strong>.</p>
+            </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── LECTEUR AUDIO FLOTTANT ─── */}
+        <section id="lecteur-flottant">
+          <SectionTitle icon="🎧" title="Lecteur audio flottant" color="indigo" tutorials={[]} />
+          <div className="space-y-4">
+            <HelpCard title="Écouter un audio par-dessus une partition">
+              <p>Dans le <strong>Répertoire</strong> d&apos;un groupe, un bouton flottant <strong>🎧 Lecteur audio</strong> (en bas à droite) permet de jouer <strong>n&apos;importe quel audio du groupe</strong> (backing tracks &amp; ressources audio) tout en consultant autre chose.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Choisissez un audio dans la liste, il s&apos;ouvre avec tous les outils (waveform, boucle A–B, ralenti)</li>
+                <li>Le lecteur <strong>flotte par-dessus</strong> : ouvrez une <strong>partition PDF</strong> d&apos;un morceau et l&apos;audio continue</li>
+                <li><strong>Réduisez-le</strong> (▾) : la lecture <strong>continue</strong> en arrière-plan, une pastille verte indique qu&apos;un audio est chargé</li>
+              </ul>
+            </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── PARTITION ANNOTÉE (points d'écoute) ─── */}
+        <section id="annotation">
+          <SectionTitle icon="🔊" title="Partition annotée (points d'écoute)" color="rose" tutorials={[]} />
+          <div className="space-y-4">
+            <HelpCard title="À quoi ça sert">
+              <p>Posez des repères <strong>🔊</strong> directement sur une partition (<strong>image</strong> ou <strong>PDF</strong>) pour <strong>lancer l&apos;audio à l&apos;endroit voulu</strong> d&apos;un simple clic — parfait pour bosser un passage précis avec le son.</p>
+            </HelpCard>
+            <HelpCard title="Comment faire">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Dans le <strong>Répertoire</strong>, sur une ressource <strong>PDF</strong> ou <strong>image</strong>, cliquez <strong>🔊 Annoter</strong>.</Step>
+                <Step n={2}>En bas, choisissez l&apos;<strong>audio</strong> (le backing track du morceau) et lancez la lecture.</Step>
+                <Step n={3}>Passez en mode <strong>✎ Éditer</strong>, amenez l&apos;audio sur le passage voulu, puis <strong>cliquez sur la partition</strong> : un <strong>🔊</strong> s&apos;y pose, calé sur le temps actuel.</Step>
+                <Step n={4}>Repassez en <strong>▶ Écouter</strong> et <strong>cliquez un 🔊</strong> : l&apos;audio démarre pile à ce moment.</Step>
+              </ol>
+              <Note>Cliquez un 🔊 en mode Éditer pour le régler (⏱ caler sur l&apos;audio, saisir un temps, tester, supprimer). Les marqueurs sont <strong>personnels</strong>, et pour les <strong>PDF</strong> ils sont mémorisés <strong>par page</strong>.</Note>
             </HelpCard>
           </div>
         </section>
@@ -1527,6 +1569,48 @@ export default async function AidePage() {
               <Tip>Ce décalage est purement cosmétique : les deux notes sonnent ensemble et sont toutes deux prises en compte dans la reconnaissance d&apos;accord.</Tip>
             </HelpCard>
 
+          </div>
+        </section>
+
+        {/* ─── LECTEUR DE PARTITION ─── */}
+        <section id="lecteur-partition">
+          <SectionTitle icon="🎼" title="Lecteur de partition (MusicXML)" color="violet" tutorials={[]} />
+          <div className="space-y-4">
+            <HelpCard title="Lire et jouer une partition">
+              <p>Outil <strong>🎼 Lecteur partition</strong> : importez un fichier <strong>MusicXML</strong> (<code className="bg-gray-100 rounded px-1">.musicxml</code> / <code className="bg-gray-100 rounded px-1">.mxl</code>, export <strong>MuseScore</strong> / Free-scores) et la vraie partition s&apos;affiche.</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>Lecture</strong> avec un <strong>curseur qui suit les notes</strong> (▶ / ⏸ / ⏭ note suivante / ⏮ début)</li>
+                <li><strong>Vitesse</strong> (ralenti), <strong>transposition</strong> (± demi-tons) et <strong>zoom</strong></li>
+                <li>Bouton <strong>« Charger un exemple »</strong> pour tester sans fichier</li>
+              </ul>
+              <Note>Le <strong>MIDI</strong> ne contient pas de partition gravée : pour la vue partition, utilisez un MusicXML. Tout se passe dans votre navigateur.</Note>
+            </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── VIDÉO → MP3 / WAV ─── */}
+        <section id="video-audio">
+          <SectionTitle icon="🎬" title="Vidéo → MP3 / WAV" color="indigo" tutorials={[]} />
+          <div className="space-y-4">
+            <HelpCard title="Extraire l'audio d'une vidéo">
+              <p>Outil <strong>🎬 Vidéo → MP3</strong> : déposez un fichier vidéo (MP4, MOV, WEBM…) et récupérez sa <strong>piste audio</strong> en <strong>MP3</strong> (qualité réglable) ou <strong>WAV</strong>.</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>100 % dans le navigateur</strong> : aucun fichier n&apos;est envoyé sur Internet</li>
+                <li>Idéal pour transformer une vidéo en backing track à importer dans <strong>🎚 Séquences</strong></li>
+              </ul>
+              <Note>À n&apos;utiliser que pour des vidéos dont vous détenez les droits.</Note>
+            </HelpCard>
+          </div>
+        </section>
+
+        {/* ─── PHOTOS → PDF ─── */}
+        <section id="images-pdf">
+          <SectionTitle icon="🖼️" title="Photos → PDF" color="teal" tutorials={[]} />
+          <div className="space-y-4">
+            <HelpCard title="Transformer des photos en PDF">
+              <p>Lors de l&apos;ajout d&apos;une <strong>ressource</strong> à un morceau, vous pouvez convertir des <strong>photos</strong> (JPG, PNG, BMP, TIFF…) en <strong>PDF</strong> — pratique pour scanner une partition prise en photo. La conversion est <strong>locale</strong> (dans le navigateur).</p>
+              <Note>Ce module peut être inclus ou non selon l&apos;offre du groupe.</Note>
+            </HelpCard>
           </div>
         </section>
 

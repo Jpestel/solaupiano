@@ -42,6 +42,7 @@ export function ScoreAnnotator({ resource, onClose }: {
   const [speed, setSpeed] = useState(1)
   const [selMarker, setSelMarker] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showHelp, setShowHelp] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const selSeq = sequences.find((s) => s.id === selSeqId) || null
@@ -53,6 +54,7 @@ export function ScoreAnnotator({ resource, onClose }: {
         setMarkers(d.markers || [])
         setSequences(d.sequences || [])
         if (d.sequences?.[0]) setSelSeqId(d.sequences[0].id)
+        if (!(d.markers || []).length) setShowHelp(true) // aide au premier usage
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -128,6 +130,7 @@ export function ScoreAnnotator({ resource, onClose }: {
           <button onClick={() => setScale((s) => Math.max(0.5, s - 0.2))} className="w-7 h-7 rounded bg-gray-700">−</button>
           <span className="text-xs tabular-nums w-10 text-center">{Math.round(scale * 100)}%</span>
           <button onClick={() => setScale((s) => Math.min(3, s + 0.2))} className="w-7 h-7 rounded bg-gray-700">+</button>
+          <button onClick={() => setShowHelp(true)} title="Aide" className="w-7 h-7 rounded bg-gray-700 font-bold">?</button>
           <button onClick={onClose} className="w-7 h-7 rounded bg-gray-700">✕</button>
         </div>
       </div>
@@ -233,6 +236,28 @@ export function ScoreAnnotator({ resource, onClose }: {
           </div>
         )}
       </div>
+
+      {/* Aide */}
+      {showHelp && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-4" onClick={(e) => { e.stopPropagation(); setShowHelp(false) }}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl text-gray-700" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">🔊 Points d’écoute sur la partition</h3>
+            <p className="text-sm text-gray-500 mb-3">Pose des repères sur la partition pour lancer l’audio à l’endroit voulu — idéal pour travailler un passage précis.</p>
+            <ol className="space-y-2 text-sm">
+              <li><span className="font-semibold text-fuchsia-700">1.</span> En bas, choisis l’<strong>audio</strong> (le backing track du morceau) et lance la lecture ▶.</li>
+              <li><span className="font-semibold text-fuchsia-700">2.</span> Passe en mode <strong>✎ Éditer</strong> (en haut).</li>
+              <li><span className="font-semibold text-fuchsia-700">3.</span> Mets la lecture sur le passage voulu, puis <strong>clique sur la partition</strong> à l’endroit correspondant : un <strong>🔊</strong> s’y pose, calé sur le <strong>temps actuel</strong> de l’audio.</li>
+              <li><span className="font-semibold text-fuchsia-700">4.</span> Repasse en <strong>▶ Écouter</strong> et <strong>clique un 🔊</strong> : l’audio démarre pile à ce moment.</li>
+            </ol>
+            <div className="mt-3 rounded-lg bg-gray-50 border border-gray-100 p-2.5 text-xs text-gray-500 space-y-1">
+              <p>• En mode Éditer, <strong>clique un 🔊</strong> pour le régler : <strong>⏱ caler sur l’audio</strong>, saisir un temps (<code>3:03</code>), <strong>🔊 tester</strong> ou <strong>🗑 supprimer</strong>.</p>
+              <p>• <strong>Zoom</strong> (− / +), <strong>vitesse</strong> de l’audio, et pour les <strong>PDF</strong> : navigation par <strong>page</strong> (les 🔊 sont mémorisés par page).</p>
+              <p>• Tes 🔊 sont <strong>personnels</strong> (visibles par toi seul).</p>
+            </div>
+            <button onClick={() => setShowHelp(false)} className="mt-4 w-full rounded-lg bg-fuchsia-600 text-white py-2 text-sm font-semibold hover:bg-fuchsia-500">J’ai compris</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
