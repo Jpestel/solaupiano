@@ -86,6 +86,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   interface SavedLoop { id: number; label: string | null; startSec: number; endSec: number; speed: number }
   const [savedLoops, setSavedLoops] = useState<SavedLoop[]>([])
   const [savingLoop, setSavingLoop] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const canPersist = !!seq.id // mode local (sans id) : pas de sauvegarde de boucles
 
@@ -267,9 +268,39 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     seek(l.startSec)
   }
 
+  const editLoop = (l: SavedLoop) => {
+    setAPt(l.startSec); setBPt(l.endSec); setSpeed(l.speed); setLoopOn(true)
+    seek(l.startSec)
+    setEditingId(l.id)
+  }
+
+  const updateLoop = async () => {
+    if (editingId === null || aPt === null || bPt === null || bPt <= aPt) return
+    setSavingLoop(true)
+    try {
+      const res = await fetch(`/api/sequences/${seq.id}/loops/${editingId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startSec: aPt, endSec: bPt, speed }),
+      })
+      if (res.ok) {
+        const upd = await res.json()
+        setSavedLoops((ls) => ls.map((l) => (l.id === upd.id ? upd : l)).sort((a, b) => a.startSec - b.startSec))
+        setEditingId(null)
+      }
+    } finally {
+      setSavingLoop(false)
+    }
+  }
+
   const deleteLoop = async (id: number) => {
     const res = await fetch(`/api/sequences/${seq.id}/loops/${id}`, { method: 'DELETE' })
-    if (res.ok) setSavedLoops((ls) => ls.filter((l) => l.id !== id))
+    if (res.ok) {
+      const removed = savedLoops.find((l) => l.id === id)
+      setSavedLoops((ls) => ls.filter((l) => l.id !== id))
+      if (editingId === id) setEditingId(null)
+      // Si la boucle supprimée était la boucle active, on l'arrête (évite de continuer à boucler)
+      if (removed && aPt === removed.startSec && bPt === removed.endSec) clearLoop()
+    }
   }
 
   // Dessine la forme d'onde (joué = couleur choisie, à venir = gris, boucle A–B = ambre)
@@ -455,7 +486,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
             >
               {loopOn ? 'Boucle active' : 'Activer'}
             </button>
-            {canPersist && (
+            {canPersist && editingId === null && (
               <button
                 onClick={saveLoop}
                 disabled={aPt === null || bPt === null || bPt <= (aPt ?? 0) || savingLoop}
@@ -464,6 +495,18 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
               >
                 💾 Enregistrer
               </button>
+            )}
+            {canPersist && editingId !== null && (
+              <>
+                <button
+                  onClick={updateLoop}
+                  disabled={aPt === null || bPt === null || bPt <= (aPt ?? 0) || savingLoop}
+                  className="rounded-md bg-green-600 text-white px-2.5 py-0.5 text-xs font-semibold hover:bg-green-500 disabled:opacity-40"
+                >
+                  💾 Mettre à jour
+                </button>
+                <button onClick={() => setEditingId(null)} className="text-xs text-gray-400 hover:text-gray-600">Annuler l’édition</button>
+              </>
             )}
             {(aPt !== null || bPt !== null) && (
               <button onClick={clearLoop} className="text-xs text-gray-400 hover:text-red-500">Effacer</button>
@@ -477,10 +520,11 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
               {savedLoops.map((l) => {
                 const isActive = loopOn && aPt === l.startSec && bPt === l.endSec
                 return (
-                  <span key={l.id} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${isActive ? 'border-green-300 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-600'}`}>
-                    <button onClick={() => applyLoop(l)} title={`${fmt(l.startSec)} → ${fmt(l.endSec)} · ${l.speed}×`} className="font-medium hover:text-indigo-600">
+                  <span key={l.id} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${editingId === l.id ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : isActive ? 'border-green-300 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-600'}`}>
+                    <button onClick={() => applyLoop(l)} title={`Lire : ${fmt(l.startSec)} → ${fmt(l.endSec)} · ${l.speed}×`} className="font-medium hover:text-indigo-600">
                       {l.label || `${fmt(l.startSec)}–${fmt(l.endSec)}`}{l.speed !== 1 ? ` ${l.speed}×` : ''}
                     </button>
+                    <button onClick={() => editLoop(l)} title="Modifier cette boucle" className="text-gray-300 hover:text-indigo-600 leading-none">✏️</button>
                     <button onClick={() => deleteLoop(l.id)} title="Supprimer" className="text-gray-300 hover:text-red-500 leading-none">×</button>
                   </span>
                 )
