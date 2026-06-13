@@ -17,6 +17,17 @@ function fmt(t: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+// Parse "3:03" (M:SS), "1:02:30" (H:MM:SS) ou un nombre de secondes en secondes. null si invalide.
+function parseClock(s: string): number | null {
+  const t = s.trim()
+  if (!t) return null
+  if (/^\d+(\.\d+)?$/.test(t)) return parseFloat(t)
+  const parts = t.split(':').map((p) => p.trim())
+  if (parts.length < 2 || parts.length > 3) return null
+  if (parts.some((p) => p === '' || isNaN(Number(p)))) return null
+  return parts.reduce((acc, p) => acc * 60 + Number(p), 0)
+}
+
 const WAVE_COLORS = [
   { wave: '#6366f1', head: '#4338ca', label: 'Indigo' },
   { wave: '#8b5cf6', head: '#6d28d9', label: 'Violet' },
@@ -53,6 +64,17 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const [aPt, setAPt] = useState<number | null>(null)
   const [bPt, setBPt] = useState<number | null>(null)
   const [loopOn, setLoopOn] = useState(false)
+  // Champs éditables (saisie manuelle ex. "3:03")
+  const [aStr, setAStr] = useState('')
+  const [bStr, setBStr] = useState('')
+  useEffect(() => { setAStr(aPt !== null ? fmt(aPt) : '') }, [aPt])
+  useEffect(() => { setBStr(bPt !== null ? fmt(bPt) : '') }, [bPt])
+  const commitPt = (raw: string, setter: (n: number | null) => void) => {
+    const v = parseClock(raw)
+    if (v === null) return false
+    setter(dur > 0 ? Math.max(0, Math.min(dur, v)) : Math.max(0, v))
+    return true
+  }
 
   // ── Boucles sauvegardées (par membre) ──
   interface SavedLoop { id: number; label: string | null; startSec: number; endSec: number; speed: number }
@@ -343,8 +365,32 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
           {/* Boucle A–B */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-medium text-gray-500 mr-0.5">🔁 Boucle</span>
-            <button onClick={() => setAPt(cur)} className="rounded-md bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-semibold hover:bg-amber-200" title="Définir le début de la boucle ici">A {aPt !== null ? `· ${fmt(aPt)}` : ''}</button>
-            <button onClick={() => { if (aPt !== null && cur > aPt) setBPt(cur) }} disabled={aPt === null || cur <= aPt} className="rounded-md bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-semibold hover:bg-amber-200 disabled:opacity-40" title="Définir la fin de la boucle ici">B {bPt !== null ? `· ${fmt(bPt)}` : ''}</button>
+            {/* A : saisie manuelle (ex. 3:03) + capture position */}
+            <span className="inline-flex items-center gap-1">
+              <span className="text-xs font-semibold text-amber-700">A</span>
+              <input
+                value={aStr}
+                onChange={(e) => setAStr(e.target.value)}
+                onBlur={() => { if (!commitPt(aStr, setAPt)) setAStr(aPt !== null ? fmt(aPt) : '') }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                placeholder="m:ss"
+                className="w-14 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800 tabular-nums focus:outline-none focus:ring-1 focus:ring-amber-300"
+              />
+              <button onClick={() => setAPt(cur)} title="A = position actuelle" className="rounded-md bg-amber-100 text-amber-700 px-1.5 py-0.5 text-xs hover:bg-amber-200">⏺</button>
+            </span>
+            {/* B : saisie manuelle + capture position */}
+            <span className="inline-flex items-center gap-1">
+              <span className="text-xs font-semibold text-amber-700">B</span>
+              <input
+                value={bStr}
+                onChange={(e) => setBStr(e.target.value)}
+                onBlur={() => { if (!commitPt(bStr, setBPt)) setBStr(bPt !== null ? fmt(bPt) : '') }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                placeholder="m:ss"
+                className="w-14 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800 tabular-nums focus:outline-none focus:ring-1 focus:ring-amber-300"
+              />
+              <button onClick={() => setBPt(cur)} title="B = position actuelle" className="rounded-md bg-amber-100 text-amber-700 px-1.5 py-0.5 text-xs hover:bg-amber-200">⏺</button>
+            </span>
             <button
               onClick={() => setLoopOn((v) => !v)}
               disabled={aPt === null || bPt === null}
