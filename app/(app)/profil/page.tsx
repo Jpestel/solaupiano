@@ -31,6 +31,7 @@ interface ProfileData {
   weeklyDigestOptOut: boolean
   rehearsalReminderOptOut: boolean
   evaluationReminderOptOut: boolean
+  helpBubblesOptOut: boolean
   instruments: { instrument: Instrument }[]
   stats: {
     groupCount: number
@@ -102,6 +103,8 @@ export default function ProfilPage() {
   const [rehearsalReminderOptOut, setRehearsalReminderOptOut] = useState(false)
   const [reminderSaving, setReminderSaving] = useState(false)
   const [evaluationReminderOptOut, setEvaluationReminderOptOut] = useState(false)
+  const [helpBubblesOptOut, setHelpBubblesOptOut] = useState(false)
+  const [helpBubblesSaving, setHelpBubblesSaving] = useState(false)
   const [evalReminderSaving, setEvalReminderSaving] = useState(false)
 
   // Password change state
@@ -132,6 +135,7 @@ export default function ProfilPage() {
       setNewsletterSubscribed((p as { newsletterSubscribed?: boolean }).newsletterSubscribed ?? false)
       setRehearsalReminderOptOut(p.rehearsalReminderOptOut ?? false)
       setEvaluationReminderOptOut(p.evaluationReminderOptOut ?? false)
+      setHelpBubblesOptOut(p.helpBubblesOptOut ?? false)
     }
     if (instrRes.ok) setInstruments(await instrRes.json())
     if (groupsRes.ok) setAvailableGroups(await groupsRes.json())
@@ -210,6 +214,17 @@ export default function ProfilPage() {
       body: JSON.stringify({ name, instrumentIds: selectedIds, evaluationReminderOptOut: newValue }),
     })
     setEvalReminderSaving(false)
+  }
+
+  const handleHelpBubblesToggle = async (newValue: boolean) => {
+    setHelpBubblesOptOut(newValue)
+    setHelpBubblesSaving(true)
+    await fetch('/api/me/help-bubbles', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hidden: newValue }),
+    })
+    setHelpBubblesSaving(false)
   }
 
   const handlePlanChange = async (newPlan: 'MUSICIEN' | 'CREATEUR') => {
@@ -839,6 +854,35 @@ export default function ProfilPage() {
               <p className="text-xs text-gray-400 border-t border-gray-100 pt-3">
                 Les emails transactionnels (ajout à un groupe, mot de passe) sont toujours envoyés.
               </p>
+            </div>
+          </Card>
+
+          {/* Affichage */}
+          <Card>
+            <CardHeader title="Affichage" subtitle="Personnalisez votre expérience de navigation." />
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">💡 Bulles d&apos;aide</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Petites astuces contextuelles affichées sur les pages pour vous guider. Désactivez-les si vous préférez une interface épurée.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!helpBubblesOptOut}
+                onClick={() => handleHelpBubblesToggle(!helpBubblesOptOut)}
+                disabled={helpBubblesSaving}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
+                  !helpBubblesOptOut ? 'bg-indigo-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    !helpBubblesOptOut ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
           </Card>
 

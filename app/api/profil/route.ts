@@ -69,7 +69,7 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const userId = Number(session.user.id)
-  const { name, instrumentIds, userPlan, weeklyDigestOptOut, rehearsalReminderOptOut, evaluationReminderOptOut, gusoNumber, stageFigure, stageColor, stageName } = await req.json()
+  const { name, instrumentIds, userPlan, weeklyDigestOptOut, rehearsalReminderOptOut, evaluationReminderOptOut, helpBubblesOptOut, gusoNumber, stageFigure, stageColor, stageName } = await req.json()
 
   if (!name?.trim()) {
     return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
@@ -90,6 +90,7 @@ export async function PATCH(req: NextRequest) {
   const digestData = typeof weeklyDigestOptOut === 'boolean' ? { weeklyDigestOptOut } : {}
   const reminderData = typeof rehearsalReminderOptOut === 'boolean' ? { rehearsalReminderOptOut } : {}
   const evalReminderData = typeof evaluationReminderOptOut === 'boolean' ? { evaluationReminderOptOut } : {}
+  const helpBubblesData = typeof helpBubblesOptOut === 'boolean' ? { helpBubblesOptOut } : {}
   const gusoData = gusoNumber !== undefined ? { gusoNumber: gusoNumber?.trim() || null } : {}
   const figureData = typeof stageFigure === 'string' && stageFigure ? { stageFigure } : {}
   const stageColorData = stageColor !== undefined ? { stageColor: (typeof stageColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(stageColor)) ? stageColor : null } : {}
@@ -99,7 +100,7 @@ export async function PATCH(req: NextRequest) {
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
-      data: { name: name.trim(), ...planData, ...digestData, ...reminderData, ...evalReminderData, ...gusoData, ...figureData, ...stageColorData, ...stageNameData },
+      data: { name: name.trim(), ...planData, ...digestData, ...reminderData, ...evalReminderData, ...helpBubblesData, ...gusoData, ...figureData, ...stageColorData, ...stageNameData },
     }),
     prisma.userInstrument.deleteMany({ where: { userId } }),
     ...(Array.isArray(instrumentIds) && instrumentIds.length > 0

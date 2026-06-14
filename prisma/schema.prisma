@@ -162,6 +162,7 @@ model User {
   weeklyDigestOptOut          Boolean   @default(false)
   rehearsalReminderOptOut     Boolean   @default(false)
   evaluationReminderOptOut    Boolean   @default(false)
+  helpBubblesOptOut           Boolean   @default(false) // masque les bulles d'aide contextuelles
 
   instruments              UserInstrument[]
   groups                   GroupMember[]

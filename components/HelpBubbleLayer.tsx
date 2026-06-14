@@ -44,7 +44,20 @@ export default function HelpBubbleLayer() {
   const [editMode, setEditMode] = useState(false)
   const [placing, setPlacing] = useState(false)
   const [editor, setEditor] = useState<Partial<Bubble> | null>(null)
+  const [hidden, setHidden] = useState(false) // préférence perso : masquer les bulles
   const overlayRef = useRef<HTMLDivElement>(null)
+
+  // Préférence d'affichage de l'utilisateur (relue à chaque page : le layout persiste,
+  // donc on récupère un éventuel changement fait depuis le profil).
+  useEffect(() => {
+    fetch('/api/me/help-bubbles').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setHidden(!!d.hidden) }).catch(() => {})
+  }, [pathname])
+
+  const setHiddenPref = async (value: boolean) => {
+    setHidden(value)
+    setOpenId(null)
+    await fetch('/api/me/help-bubbles', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hidden: value }) })
+  }
 
   // Restaure le mode édition entre les navigations (admin uniquement)
   useEffect(() => {
@@ -156,7 +169,7 @@ export default function HelpBubbleLayer() {
         className="absolute inset-0 z-20"
         style={{ pointerEvents: placing ? 'auto' : 'none', cursor: placing ? 'crosshair' : 'default' }}
       >
-        {bubbles.map((b) => {
+        {(editMode || !hidden) && bubbles.map((b) => {
           const c = COLORS[b.color] || COLORS.indigo
           const isOpen = openId === b.id
           return (
@@ -180,6 +193,7 @@ export default function HelpBubbleLayer() {
                   {b.title && <p className={`text-sm font-bold mb-1 ${c.text}`}>{b.emoji} {b.title}</p>}
                   {b.content && <p className="text-sm text-gray-700 whitespace-pre-wrap">{b.content}</p>}
                   <button onClick={() => setOpenId(null)} className="mt-2 w-full rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-200">J&apos;ai compris</button>
+                  <button onClick={() => setHiddenPref(true)} className="mt-1.5 w-full text-[11px] text-gray-400 hover:text-gray-600">🔕 Masquer toutes les astuces</button>
                 </div>
               )}
 
