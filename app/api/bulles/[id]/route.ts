@@ -17,6 +17,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const data: Record<string, unknown> = {}
   if (typeof b.xPct === 'number') data.xPct = Math.max(0, Math.min(100, b.xPct))
   if (typeof b.yPx === 'number') data.yPx = Math.max(0, Math.round(b.yPx))
+  if (b.anchorSelector !== undefined) data.anchorSelector = (typeof b.anchorSelector === 'string' && b.anchorSelector) ? b.anchorSelector.slice(0, 1000) : null
+  if (b.anchorDx !== undefined) data.anchorDx = typeof b.anchorDx === 'number' && isFinite(b.anchorDx) ? b.anchorDx : null
+  if (b.anchorDy !== undefined) data.anchorDy = typeof b.anchorDy === 'number' && isFinite(b.anchorDy) ? b.anchorDy : null
   if (typeof b.title === 'string') data.title = b.title.slice(0, 120)
   if (typeof b.content === 'string') data.content = b.content.slice(0, 2000)
   if (typeof b.emoji === 'string') data.emoji = b.emoji.slice(0, 8)

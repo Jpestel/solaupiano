@@ -1311,8 +1311,14 @@ model Newsletter {
 model HelpBubble {
   id        Int      @id @default(autoincrement())
   path      String              // pathname où la bulle s'affiche (correspondance exacte)
-  xPct      Float               // position horizontale : % de la largeur du contenu (0–100)
-  yPx       Int                 // position verticale : px depuis le haut du contenu
+  xPct      Float               // repli : position horizontale en % de la largeur du contenu (0–100)
+  yPx       Int                 // repli : position verticale en px depuis le haut du contenu
+  // Ancrage à un élément visible (prioritaire sur xPct/yPx) : la bulle se place
+  // relativement à cet élément, donc elle reste alignée quelles que soient les
+  // différences de mise en page entre rôles/plans.
+  anchorSelector String? @db.Text // sélecteur CSS de l'élément cible
+  anchorDx       Float?           // position du marqueur dans l'élément (fraction de sa largeur, 0–1)
+  anchorDy       Float?           // position du marqueur dans l'élément (fraction de sa hauteur, 0–1)
   title     String
   content   String   @db.Text
   emoji     String   @default("💡")

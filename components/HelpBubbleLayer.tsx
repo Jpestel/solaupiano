@@ -9,6 +9,9 @@ interface Bubble {
   path: string
   xPct: number
   yPx: number
+  anchorSelector?: string | null
+  anchorDx?: number | null
+  anchorDy?: number | null
   title: string
   content: string
   emoji: string
@@ -16,6 +19,51 @@ interface Bubble {
   audience: string
   active: boolean
 }
+
+// ─── Ancrage à un élément visible ───────────────────────────────────────────
+function cssEscape(s: string): string {
+  const w = window as unknown as { CSS?: { escape?: (v: string) => string } }
+  if (w.CSS?.escape) return w.CSS.escape(s)
+  return s.replace(/["\\]/g, '\\$&')
+}
+
+// Cherche un sélecteur stable (id, lien, data-testid) sur l'élément ou ses parents proches.
+function buildSelector(el: Element | null): string | null {
+  let cur: Element | null = el
+  for (let depth = 0; cur && depth < 6; depth++, cur = cur.parentElement) {
+    const id = (cur as HTMLElement).id
+    if (id) { const s = `#${cssEscape(id)}`; try { if (document.querySelectorAll(s).length === 1) return s } catch { /* ignore */ } }
+    const tag = cur.tagName.toLowerCase()
+    const href = cur.getAttribute('href')
+    if (tag === 'a' && href) { const s = `a[href="${href.replace(/"/g, '\\"')}"]`; try { if (document.querySelectorAll(s).length === 1) return s } catch { /* ignore */ } }
+    const testid = cur.getAttribute('data-testid')
+    if (testid) { const s = `[data-testid="${testid.replace(/"/g, '\\"')}"]`; try { if (document.querySelectorAll(s).length === 1) return s } catch { /* ignore */ } }
+  }
+  return null
+}
+
+function computeAnchor(target: Element | null, clientX: number, clientY: number): { anchorSelector: string | null; anchorDx: number | null; anchorDy: number | null } {
+  const sel = buildSelector(target)
+  if (!sel) return { anchorSelector: null, anchorDx: null, anchorDy: null }
+  const el = document.querySelector(sel)
+  if (!el) return { anchorSelector: null, anchorDx: null, anchorDy: null }
+  const r = el.getBoundingClientRect()
+  const dx = r.width ? (clientX - r.left) / r.width : 0.5
+  const dy = r.height ? (clientY - r.top) / r.height : 0.5
+  return { anchorSelector: sel, anchorDx: Math.max(0, Math.min(1, dx)), anchorDy: Math.max(0, Math.min(1, dy)) }
+}
+
+// Élément réel sous un point, en neutralisant temporairement la couche/le marqueur.
+function elementUnder(overlay: HTMLElement | null, x: number, y: number, ignore?: HTMLElement | null): Element | null {
+  const restore: { el: HTMLElement; v: string }[] = []
+  if (overlay) { restore.push({ el: overlay, v: overlay.style.pointerEvents }); overlay.style.pointerEvents = 'none' }
+  if (ignore) { restore.push({ el: ignore, v: ignore.style.pointerEvents }); ignore.style.pointerEvents = 'none' }
+  const el = document.elementFromPoint(x, y)
+  restore.forEach((r) => { r.el.style.pointerEvents = r.v })
+  return el
+}
+
+const isGroupPath = (p: string | null) => !!p && /^\/groupes\/\d+/.test(p)
 
 const COLORS: Record<string, { ring: string; dot: string; accent: string; text: string }> = {
   indigo: { ring: 'bg-indigo-400', dot: 'bg-indigo-600', accent: 'border-indigo-200', text: 'text-indigo-700' },
@@ -45,7 +93,42 @@ export default function HelpBubbleLayer() {
   const [placing, setPlacing] = useState(false)
   const [editor, setEditor] = useState<Partial<Bubble> | null>(null)
   const [hidden, setHidden] = useState(false) // préférence perso : masquer TOUTES les bulles
+  const [positions, setPositions] = useState<Record<number, { left: number; top: number }>>({})
   const overlayRef = useRef<HTMLDivElement>(null)
+
+  // Réplication sur d'autres groupes
+  const [replicateFor, setReplicateFor] = useState<number | null>(null)
+  const [repGroups, setRepGroups] = useState<{ id: number; name: string }[]>([])
+  const [repSelected, setRepSelected] = useState<number[]>([])
+  const [repMsg, setRepMsg] = useState('')
+
+  // Recalcule la position px des bulles ancrées (relativement à la couche).
+  const resolveAnchors = useCallback(() => {
+    const overlay = overlayRef.current
+    if (!overlay) return
+    const orr = overlay.getBoundingClientRect()
+    const next: Record<number, { left: number; top: number }> = {}
+    for (const b of bubbles) {
+      if (!b.anchorSelector) continue
+      let el: Element | null = null
+      try { el = document.querySelector(b.anchorSelector) } catch { el = null }
+      if (!el) continue
+      const r = el.getBoundingClientRect()
+      next[b.id] = {
+        left: r.left - orr.left + (b.anchorDx ?? 0.5) * r.width,
+        top: r.top - orr.top + (b.anchorDy ?? 0.5) * r.height,
+      }
+    }
+    setPositions(next)
+  }, [bubbles])
+
+  useEffect(() => {
+    resolveAnchors()
+    const t1 = setTimeout(resolveAnchors, 300)
+    const t2 = setTimeout(resolveAnchors, 1200)
+    window.addEventListener('resize', resolveAnchors)
+    return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener('resize', resolveAnchors) }
+  }, [resolveAnchors])
 
   // Masque cette bulle uniquement, pour cet utilisateur (mémorisé en base → visible par l'admin)
   const dismissOne = async (id: number) => {
@@ -93,14 +176,21 @@ export default function HelpBubbleLayer() {
     })
   }
 
-  // Dépose une nouvelle bulle au point cliqué
+  // Dépose une nouvelle bulle au point cliqué (ancrée à l'élément sous le clic si possible)
   const onOverlayClick = (e: React.MouseEvent) => {
     if (!placing || !overlayRef.current) return
-    const rect = overlayRef.current.getBoundingClientRect()
+    const overlay = overlayRef.current
+    const rect = overlay.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = e.clientY - rect.top
+    const target = elementUnder(overlay, e.clientX, e.clientY)
+    const anchor = computeAnchor(target, e.clientX, e.clientY)
     setPlacing(false)
-    setEditor({ xPct: Math.max(0, Math.min(100, x)), yPx: Math.max(0, Math.round(y)), title: '', content: '', emoji: '💡', color: 'indigo', audience: 'ALL', active: true })
+    setEditor({
+      xPct: Math.max(0, Math.min(100, x)), yPx: Math.max(0, Math.round(y)),
+      anchorSelector: anchor.anchorSelector, anchorDx: anchor.anchorDx, anchorDy: anchor.anchorDy,
+      title: '', content: '', emoji: '💡', color: 'indigo', audience: 'ALL', active: true,
+    })
   }
 
   // Glisser-déposer d'une bulle existante (mode édition)
@@ -115,9 +205,11 @@ export default function HelpBubbleLayer() {
     if (!dragRef.current || dragRef.current.id !== b.id || !overlayRef.current) return
     dragRef.current.moved = true
     const rect = overlayRef.current.getBoundingClientRect()
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
-    const y = Math.max(0, Math.round(e.clientY - rect.top))
-    setBubbles((prev) => prev.map((p) => (p.id === b.id ? { ...p, xPct: x, yPx: y } : p)))
+    const leftPx = e.clientX - rect.left
+    const topPx = e.clientY - rect.top
+    const x = Math.max(0, Math.min(100, (leftPx / rect.width) * 100))
+    setBubbles((prev) => prev.map((p) => (p.id === b.id ? { ...p, xPct: x, yPx: Math.max(0, Math.round(topPx)) } : p)))
+    setPositions((prev) => ({ ...prev, [b.id]: { left: leftPx, top: topPx } })) // feedback live
   }
   const onDotPointerUp = async (e: React.PointerEvent, b: Bubble) => {
     if (!dragRef.current || dragRef.current.id !== b.id) return
@@ -127,10 +219,17 @@ export default function HelpBubbleLayer() {
       if (editMode) openEditor(b)
       return
     }
-    const cur = bubbles.find((p) => p.id === b.id)
-    if (cur) {
-      await fetch(`/api/bulles/${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ xPct: cur.xPct, yPx: cur.yPx }) })
-    }
+    const overlay = overlayRef.current
+    if (!overlay) return
+    const rect = overlay.getBoundingClientRect()
+    const xPct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
+    const yPx = Math.max(0, Math.round(e.clientY - rect.top))
+    // Ré-ancrage sur l'élément lâché (sinon coordonnées de repli)
+    const target = elementUnder(overlay, e.clientX, e.clientY, e.currentTarget as HTMLElement)
+    const anchor = computeAnchor(target, e.clientX, e.clientY)
+    setBubbles((prev) => prev.map((p) => (p.id === b.id ? { ...p, xPct, yPx, ...anchor } : p)))
+    await fetch(`/api/bulles/${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ xPct, yPx, ...anchor }) })
+    setTimeout(resolveAnchors, 0) // recale exactement sur l'élément
   }
 
   const openEditor = (b: Bubble) => setEditor({ ...b })
@@ -141,6 +240,9 @@ export default function HelpBubbleLayer() {
       path: pathname,
       xPct: editor.xPct ?? 50,
       yPx: editor.yPx ?? 0,
+      anchorSelector: editor.anchorSelector ?? null,
+      anchorDx: editor.anchorDx ?? null,
+      anchorDy: editor.anchorDy ?? null,
       title: editor.title ?? '',
       content: editor.content ?? '',
       emoji: editor.emoji ?? '💡',
@@ -164,6 +266,20 @@ export default function HelpBubbleLayer() {
     load()
   }
 
+  // ─── Réplication sur d'autres groupes ───
+  const openReplicate = async (id: number) => {
+    setReplicateFor(id); setRepGroups([]); setRepSelected([]); setRepMsg('')
+    const res = await fetch(`/api/bulles/${id}/replicate`)
+    if (res.ok) { const d = await res.json(); setRepGroups(d.groups || []) }
+  }
+  const toggleRepGroup = (gid: number) => setRepSelected((s) => (s.includes(gid) ? s.filter((x) => x !== gid) : [...s, gid]))
+  const doReplicate = async () => {
+    if (!replicateFor || repSelected.length === 0) return
+    const res = await fetch(`/api/bulles/${replicateFor}/replicate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groupIds: repSelected }) })
+    if (res.ok) { const d = await res.json(); setRepMsg(`✓ ${d.created} bulle(s) créée(s)${d.skipped ? `, ${d.skipped} déjà présente(s)` : ''}.`); setRepSelected([]) }
+    else setRepMsg('Erreur lors de la réplication.')
+  }
+
   if (!session) return null
 
   return (
@@ -178,8 +294,13 @@ export default function HelpBubbleLayer() {
         {(editMode || !hidden) && bubbles.map((b) => {
           const c = COLORS[b.color] || COLORS.indigo
           const isOpen = openId === b.id
+          const pos = positions[b.id]
+          const left = pos ? `${pos.left}px` : `${b.xPct}%`
+          const top = pos ? `${pos.top}px` : `${b.yPx}px`
+          const overlayW = overlayRef.current?.clientWidth || 1000
+          const leftFrac = pos ? (pos.left / overlayW) * 100 : b.xPct
           return (
-            <div key={b.id} className="absolute" style={{ left: `${b.xPct}%`, top: `${b.yPx}px`, pointerEvents: 'auto', transform: 'translate(-50%, -50%)' }}>
+            <div key={b.id} className="absolute" style={{ left, top, pointerEvents: 'auto', transform: 'translate(-50%, -50%)' }}>
               {/* Marqueur pulsant */}
               <button
                 onClick={() => { if (!editMode) setOpenId((id) => (id === b.id ? null : b.id)) }}
@@ -198,7 +319,7 @@ export default function HelpBubbleLayer() {
               {isOpen && !editMode && (
                 <div
                   className={`absolute top-10 w-64 rounded-xl border bg-white shadow-xl p-3 ${c.accent} ${
-                    b.xPct > 66 ? 'right-0' : b.xPct < 34 ? 'left-0' : 'left-1/2 -translate-x-1/2'
+                    leftFrac > 66 ? 'right-0' : leftFrac < 34 ? 'left-0' : 'left-1/2 -translate-x-1/2'
                   }`}
                   style={{ zIndex: 30 }}
                 >
@@ -294,7 +415,55 @@ export default function HelpBubbleLayer() {
               <button onClick={saveEditor} className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500">{editor.id ? 'Enregistrer' : 'Créer la bulle'}</button>
               {editor.id && <button onClick={() => deleteBubble(editor.id!)} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Supprimer</button>}
             </div>
-            <p className="mt-2 text-[11px] text-gray-400">Page : <code>{pathname}</code></p>
+            {editor.id && isGroupPath(pathname) && (
+              <button onClick={() => openReplicate(editor.id!)} className="mt-2 w-full rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">⧉ Répliquer sur d&apos;autres groupes</button>
+            )}
+            <p className="mt-2 text-[11px] text-gray-400">
+              {editor.anchorSelector
+                ? <>📌 Ancrée à un élément de la page (restera alignée pour tous).</>
+                : <>📍 Position libre (repli sur coordonnées). Posez-la sur un bouton/lien pour l&apos;ancrer.</>}
+            </p>
+            <p className="mt-0.5 text-[11px] text-gray-400">Page : <code>{pathname}</code></p>
+          </div>
+        </div>
+      )}
+
+      {/* Réplication sur d'autres groupes */}
+      {replicateFor !== null && isAdmin && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setReplicateFor(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-5 flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-bold text-gray-900">⧉ Répliquer sur d&apos;autres groupes</h3>
+              <button onClick={() => setReplicateFor(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">La même bulle sera créée sur la <strong>page équivalente</strong> de chaque groupe choisi (même texte, même emplacement).</p>
+
+            {repGroups.length === 0 ? (
+              <p className="text-sm text-gray-400">Aucun autre groupe disponible.</p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={() => setRepSelected(repGroups.map((g) => g.id))} className="text-xs font-medium text-indigo-600 hover:text-indigo-500">Tout sélectionner</button>
+                  <button onClick={() => setRepSelected([])} className="text-xs font-medium text-gray-400 hover:text-gray-600">Tout désélectionner</button>
+                </div>
+                <div className="flex-1 overflow-y-auto rounded-lg border border-gray-200 divide-y divide-gray-50">
+                  {repGroups.map((g) => (
+                    <label key={g.id} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50">
+                      <input type="checkbox" checked={repSelected.includes(g.id)} onChange={() => toggleRepGroup(g.id)} className="rounded border-gray-300" />
+                      <span className="text-gray-700 truncate">{g.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {repMsg && <p className="mt-2 text-xs font-medium text-green-600">{repMsg}</p>}
+            <div className="mt-3 flex items-center gap-2">
+              <button onClick={doReplicate} disabled={repSelected.length === 0} className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                Répliquer{repSelected.length > 0 ? ` (${repSelected.length})` : ''}
+              </button>
+              <button onClick={() => setReplicateFor(null)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100">Fermer</button>
+            </div>
           </div>
         </div>
       )}
