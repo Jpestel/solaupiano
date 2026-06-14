@@ -105,6 +105,8 @@ export default function ProfilPage() {
   const [evaluationReminderOptOut, setEvaluationReminderOptOut] = useState(false)
   const [helpBubblesOptOut, setHelpBubblesOptOut] = useState(false)
   const [helpBubblesSaving, setHelpBubblesSaving] = useState(false)
+  const [imageConsents, setImageConsents] = useState<{ groupId: number; groupName: string; consent: boolean | null }[]>([])
+  const [imageConsentSaving, setImageConsentSaving] = useState<number | null>(null)
   const [evalReminderSaving, setEvalReminderSaving] = useState(false)
 
   // Password change state
@@ -225,6 +227,19 @@ export default function ProfilPage() {
       body: JSON.stringify({ hidden: newValue }),
     })
     setHelpBubblesSaving(false)
+  }
+
+  useEffect(() => {
+    fetch('/api/me/image-consent').then((r) => (r.ok ? r.json() : [])).then(setImageConsents).catch(() => {})
+  }, [])
+
+  const setImageConsent = async (groupId: number, value: boolean) => {
+    setImageConsentSaving(groupId)
+    const res = await fetch('/api/me/image-consent', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groupId, consent: value }),
+    })
+    setImageConsentSaving(null)
+    if (res.ok) setImageConsents((prev) => prev.map((g) => (g.groupId === groupId ? { ...g, consent: value } : g)))
   }
 
   const handlePlanChange = async (newPlan: 'MUSICIEN' | 'CREATEUR') => {
@@ -885,6 +900,39 @@ export default function ProfilPage() {
               </button>
             </div>
           </Card>
+
+          {/* Droit à l'image */}
+          {imageConsents.length > 0 && (
+            <Card>
+              <CardHeader title="Droit à l'image" subtitle="Autorisez ou non la diffusion de votre visage (photos/vidéos) sur les réseaux sociaux, groupe par groupe." />
+              <div className="space-y-3">
+                {imageConsents.map((g) => (
+                  <div key={g.groupId} className="flex items-center justify-between gap-3 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">📸 {g.groupName}</p>
+                      <p className="text-xs mt-0.5">
+                        {g.consent === true ? <span className="text-green-600 font-medium">Vous avez accepté</span>
+                          : g.consent === false ? <span className="text-red-600 font-medium">Vous avez refusé</span>
+                          : <span className="text-gray-400">Pas encore répondu</span>}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={() => setImageConsent(g.groupId, true)}
+                        disabled={imageConsentSaving === g.groupId}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50 ${g.consent === true ? 'bg-green-600 text-white' : 'border border-green-300 text-green-700 hover:bg-green-50'}`}
+                      >✓ J&apos;accepte</button>
+                      <button
+                        onClick={() => setImageConsent(g.groupId, false)}
+                        disabled={imageConsentSaving === g.groupId}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50 ${g.consent === false ? 'bg-red-600 text-white' : 'border border-red-300 text-red-600 hover:bg-red-50'}`}
+                      >✗ Je refuse</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
         </div>
 
