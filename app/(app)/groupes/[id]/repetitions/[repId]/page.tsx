@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -24,8 +24,8 @@ const PdfModal = dynamic(() => import('@/components/ui/PdfModal').then((m) => m.
 interface Resource { id: number; name: string; type: string; filePath: string }
 interface Song { id: number; title: string; artist?: string; resources: Resource[] }
 type SongProgressStatus = 'A_TRAVAILLER' | 'EN_COURS' | 'MAITRISE'
-interface MemberProgress { userId: number; userName: string; status: SongProgressStatus }
-interface RehearsalSongEntry { song: Song; position: number; userProgress: SongProgressStatus; membersProgress: MemberProgress[] | null }
+interface MemberProgress { userId: number; userName: string; status: SongProgressStatus; percent: number }
+interface RehearsalSongEntry { song: Song; position: number; userProgress: SongProgressStatus; userProgressPercent: number; membersProgress: MemberProgress[] | null }
 interface Attendance { userId: number; status: 'PRESENT' | 'ABSENT' | 'INCERTAIN' | 'EN_ATTENTE'; user: { id: number; name: string } }
 interface Rehearsal {
   id: number; date: string; location: string; startTime: string; endTime?: string; notes?: string; groupId: number
@@ -44,65 +44,103 @@ function DragHandle() {
   )
 }
 
-const STATUS_DOT: Record<SongProgressStatus, { bg: string; border: string; text: string; label: string }> = {
-  A_TRAVAILLER: { bg: 'bg-gray-100',   border: 'border-gray-300',  text: 'text-gray-500',  label: 'À travailler' },
-  EN_COURS:     { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-600', label: 'En cours...' },
-  MAITRISE:     { bg: 'bg-green-100',  border: 'border-green-300',  text: 'text-green-700', label: 'Je maîtrise' },
+// Couleur & libellé dérivés du pourcentage de maîtrise
+function pctColor(p: number) {
+  if (p >= 100) return { bar: 'bg-green-500', text: 'text-green-700', chipBg: 'bg-green-100', chipBorder: 'border-green-300', label: 'Maîtrisé' }
+  if (p >= 67)  return { bar: 'bg-lime-500',  text: 'text-lime-700',  chipBg: 'bg-lime-100',  chipBorder: 'border-lime-300',  label: 'Presque' }
+  if (p >= 34)  return { bar: 'bg-orange-500',text: 'text-orange-600',chipBg: 'bg-orange-100',chipBorder: 'border-orange-300',label: 'En cours' }
+  if (p > 0)    return { bar: 'bg-amber-400', text: 'text-amber-600', chipBg: 'bg-amber-100', chipBorder: 'border-amber-300', label: 'Débuté' }
+  return { bar: 'bg-gray-300', text: 'text-gray-500', chipBg: 'bg-gray-100', chipBorder: 'border-gray-200', label: 'À travailler' }
 }
 
 function MembersProgressPanel({ members }: { members: MemberProgress[] }) {
   const total = members.length
-  const mastered = members.filter((m) => m.status === 'MAITRISE').length
+  const mastered = members.filter((m) => m.percent >= 100).length
   const allMastered = mastered === total
+  const avg = total ? Math.round(members.reduce((a, m) => a + (m.percent || 0), 0) / total) : 0
 
   return (
     <div className={`border-t px-4 py-2.5 ${allMastered ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center flex-wrap gap-1.5">
           {members.map((m) => {
-            const s = STATUS_DOT[m.status as SongProgressStatus] ?? STATUS_DOT.A_TRAVAILLER
+            const c = pctColor(m.percent)
             return (
               <div
                 key={m.userId}
-                title={`${m.userName} — ${s.label}`}
-                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.border} ${s.text}`}
+                title={`${m.userName} — ${m.percent}% (${c.label})`}
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${c.chipBg} ${c.chipBorder} ${c.text}`}
               >
                 <span className="font-bold">{m.userName.charAt(0).toUpperCase()}</span>
-                <span className="hidden sm:inline truncate max-w-[80px]">{m.userName.split(' ')[0]}</span>
+                <span className="hidden sm:inline truncate max-w-[70px]">{m.userName.split(' ')[0]}</span>
+                <span className="tabular-nums opacity-80">{m.percent}%</span>
               </div>
             )
           })}
         </div>
-        <div className={`flex-shrink-0 text-xs font-semibold ${allMastered ? 'text-green-700' : 'text-gray-400'}`}>
-          {allMastered ? '✓ Tous maîtrisent' : `${mastered}/${total} maîtrisent`}
+        <div className="flex-shrink-0 text-right">
+          <div className={`text-xs font-semibold ${allMastered ? 'text-green-700' : 'text-gray-400'}`}>
+            {allMastered ? '✓ Tous maîtrisent' : `${mastered}/${total} maîtrisent`}
+          </div>
+          <div className="text-[10px] text-gray-400">moyenne {avg}%</div>
         </div>
       </div>
     </div>
   )
 }
 
-const PROGRESS_CYCLE: SongProgressStatus[] = ['A_TRAVAILLER', 'EN_COURS', 'MAITRISE']
+// Contrôle du pourcentage de maîtrise (presets + slider, popover)
+function ProgressControl({ percent, onChange }: { percent: number; onChange: (p: number) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  const c = pctColor(percent)
 
-const PROGRESS_CONFIG: Record<SongProgressStatus, { label: string; className: string; icon: string }> = {
-  A_TRAVAILLER: {
-    label: 'À travailler',
-    className: 'bg-white border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500',
-    icon: '○',
-  },
-  EN_COURS: {
-    label: 'En cours...',
-    className: 'bg-orange-50 border-orange-300 text-orange-600',
-    icon: '◑',
-  },
-  MAITRISE: {
-    label: 'Je maîtrise',
-    className: 'bg-green-100 border-green-300 text-green-700',
-    icon: '●',
-  },
+  return (
+    <div ref={ref} className="relative flex-shrink-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Changer mon niveau de maîtrise"
+        className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium transition-all ${c.chipBorder} ${c.chipBg} ${c.text}`}
+      >
+        <span className="w-12 h-1.5 rounded-full bg-black/10 overflow-hidden hidden sm:block">
+          <span className={`block h-full ${c.bar}`} style={{ width: `${percent}%` }} />
+        </span>
+        <span className="tabular-nums font-semibold">{percent}%</span>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-20 w-56 rounded-xl border border-gray-200 bg-white shadow-lg p-3">
+          <p className="text-xs font-semibold text-gray-700 mb-1">Mon niveau de maîtrise</p>
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`text-lg font-bold tabular-nums ${c.text}`}>{percent}%</span>
+            <span className={`text-[11px] ${c.text}`}>{c.label}</span>
+          </div>
+          <input
+            type="range" min={0} max={100} step={5} value={percent}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="w-full accent-indigo-500"
+          />
+          <div className="flex justify-between gap-1 mt-2">
+            {[0, 25, 50, 75, 100].map((p) => (
+              <button key={p} onClick={() => onChange(p)}
+                className={`flex-1 rounded-md py-1 text-[11px] font-semibold ${percent === p ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function SortableSongRow({
-  entry, index, isChef, expandedSongIds, toggleResources, removingId, removeSong, cycleProgress, onVideoClick, onPdfClick,
+  entry, index, isChef, expandedSongIds, toggleResources, removingId, removeSong, setProgress, onVideoClick, onPdfClick,
 }: {
   entry: RehearsalSongEntry
   index: number
@@ -111,7 +149,7 @@ function SortableSongRow({
   toggleResources: (id: number) => void
   removingId: number | null
   removeSong: (id: number) => void
-  cycleProgress: (id: number, current: SongProgressStatus) => void
+  setProgress: (id: number, percent: number) => void
   onVideoClick: (embedUrl: string, title: string) => void
   onPdfClick: (url: string, title: string) => void
 }) {
@@ -120,7 +158,6 @@ function SortableSongRow({
     disabled: !isChef,
   })
   const { song } = entry
-  const prog = PROGRESS_CONFIG[entry.userProgress]
 
   return (
     <div
@@ -140,14 +177,7 @@ function SortableSongRow({
           {song.artist && <p className="text-xs text-gray-500">{song.artist}</p>}
         </div>
 
-        <button
-          onClick={() => cycleProgress(song.id, entry.userProgress)}
-          title="Changer le statut de travail"
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border transition-all flex-shrink-0 ${prog.className}`}
-        >
-          <span className="text-sm leading-none">{prog.icon}</span>
-          {prog.label}
-        </button>
+        <ProgressControl percent={entry.userProgressPercent} onChange={(p) => setProgress(song.id, p)} />
 
         {isChef && (
           <button
@@ -388,15 +418,15 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
     fetchData()
   }
 
-  const cycleProgress = async (songId: number, current: SongProgressStatus) => {
-    const nextIndex = (PROGRESS_CYCLE.indexOf(current) + 1) % PROGRESS_CYCLE.length
-    const next = PROGRESS_CYCLE[nextIndex]
-    // Optimistic update du bouton
-    setSongs((prev) => prev.map((s) => s.song.id === songId ? { ...s, userProgress: next } : s))
+  const setProgress = async (songId: number, percent: number) => {
+    const p = Math.max(0, Math.min(100, Math.round(percent)))
+    const status: SongProgressStatus = p >= 100 ? 'MAITRISE' : p <= 0 ? 'A_TRAVAILLER' : 'EN_COURS'
+    // Optimistic update
+    setSongs((prev) => prev.map((s) => s.song.id === songId ? { ...s, userProgress: status, userProgressPercent: p } : s))
     await fetch(`/api/morceaux/${songId}/progress`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: next }),
+      body: JSON.stringify({ percent: p }),
     })
     // Rafraîchir pour mettre à jour membersProgress et les compteurs
     fetchData()
@@ -546,7 +576,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                         toggleResources={toggleResources}
                         removingId={removingId}
                         removeSong={removeSong}
-                        cycleProgress={cycleProgress}
+                        setProgress={setProgress}
                         onVideoClick={(embedUrl, title) => setVideoModal({ embedUrl, title })}
                         onPdfClick={(url, title) => setPdfModal({ url, title })}
                       />

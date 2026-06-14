@@ -43,9 +43,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     where: { userId, songId: { in: songIds } },
   })
   const progressMap = Object.fromEntries(progress.map((p) => [p.songId, p.status]))
+  const percentMap = Object.fromEntries(progress.map((p) => [p.songId, p.percent]))
 
   // Chef: also fetch all members' progress for each song
-  let memberProgressBySong: Record<number, { userId: number; userName: string; status: string }[]> = {}
+  let memberProgressBySong: Record<number, { userId: number; userName: string; status: string; percent: number }[]> = {}
   if (isChef && songIds.length > 0) {
     const [members, allProgress] = await Promise.all([
       prisma.groupMember.findMany({
@@ -54,23 +55,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       }),
       prisma.userSongProgress.findMany({
         where: { songId: { in: songIds } },
-        select: { userId: true, songId: true, status: true },
+        select: { userId: true, songId: true, status: true, percent: true },
       }),
     ])
-    // Build a map: userId → name
-    const memberMap = Object.fromEntries(members.map((m) => [m.userId, m.user.name]))
     // Build progress map by song
-    const progressBySong: Record<number, Record<number, string>> = {}
+    const progressBySong: Record<number, Record<number, { status: string; percent: number }>> = {}
     for (const p of allProgress) {
       if (!progressBySong[p.songId]) progressBySong[p.songId] = {}
-      progressBySong[p.songId][p.userId] = p.status
+      progressBySong[p.songId][p.userId] = { status: p.status, percent: p.percent }
     }
     // For each song, combine all members with their status (default A_TRAVAILLER)
     for (const songId of songIds) {
       memberProgressBySong[songId] = members.map((m) => ({
         userId: m.userId,
         userName: m.user.name,
-        status: progressBySong[songId]?.[m.userId] ?? 'A_TRAVAILLER',
+        status: progressBySong[songId]?.[m.userId]?.status ?? 'A_TRAVAILLER',
+        percent: progressBySong[songId]?.[m.userId]?.percent ?? 0,
       }))
     }
   }
@@ -80,6 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     songs: rehearsal.songs.map((rs) => ({
       ...rs,
       userProgress: progressMap[rs.songId] ?? 'A_TRAVAILLER',
+      userProgressPercent: percentMap[rs.songId] ?? 0,
       membersProgress: memberProgressBySong[rs.songId] ?? null,
     })),
   })
