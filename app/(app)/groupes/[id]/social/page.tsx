@@ -53,17 +53,24 @@ export default function SocialPage({ params }: { params: { id: string } }) {
 
   const sharePost = async () => {
     setMsg(''); setBusy(true)
+    // On copie la légende AVANT le partage (dans le geste utilisateur) : la plupart des apps
+    // (Instagram, Facebook…) ignorent le texte joint à une image → il suffira de la coller.
+    let captionCopied = false
+    if (caption.trim()) { try { await navigator.clipboard.writeText(caption); captionCopied = true } catch { /* ignore */ } }
     try {
       const files = selected.length ? await toFiles() : []
       const nav = navigator as Navigator & { canShare?: (d: unknown) => boolean }
       const hasShare = 'share' in navigator
       if (files.length && nav.canShare && nav.canShare({ files })) {
         await navigator.share({ files, text: caption } as ShareData)
+        setMsg(captionCopied
+          ? '✓ Image partagée. La légende est dans le presse-papier — dans l’app, faites un appui long puis « Coller ».'
+          : '✓ Image partagée.')
       } else if (hasShare) {
         await navigator.share({ text: caption })
-        if (files.length) setMsg('Votre appareil ne permet pas de partager l’image directement : téléchargez-la puis ajoutez-la dans l’app.')
+        if (files.length) setMsg('Votre appareil ne partage pas l’image directement : téléchargez-la puis ajoutez-la dans l’app (la légende est copiée).')
       } else {
-        await navigator.clipboard.writeText(caption)
+        if (!captionCopied) await navigator.clipboard.writeText(caption)
         setMsg('Partage natif indisponible : la légende a été copiée. Téléchargez les images puis publiez manuellement.')
       }
     } catch { /* annulé */ } finally { setBusy(false) }
@@ -154,7 +161,7 @@ export default function SocialPage({ params }: { params: { id: string } }) {
           <button onClick={savePost} disabled={busy} className="ml-auto rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-60">💾 Enregistrer</button>
         </div>
         {msg && <p className="text-xs text-gray-500 mt-2">{msg}</p>}
-        <p className="text-[11px] text-gray-400 mt-2">💡 Sur mobile, « Partager » ouvre directement Instagram, Facebook, etc. avec l’image. Sur ordinateur, copiez la légende et téléchargez l’image pour la publier.</p>
+        <p className="text-[11px] text-gray-400 mt-2">💡 Sur mobile, « Partager » ouvre Instagram, Facebook, etc. avec l’image. La plupart de ces apps n’importent pas la légende automatiquement : elle est <strong>copiée</strong> pour vous — il suffit de la <strong>coller</strong> (appui long → Coller) dans l’app.</p>
       </div>
 
       {/* Posts enregistrés */}
