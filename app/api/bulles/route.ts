@@ -6,7 +6,14 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 const ALLOWED_COLORS = ['indigo', 'amber', 'green', 'sky', 'rose', 'purple']
-const ALLOWED_AUDIENCES = ['ALL', 'MEMBERS', 'CHEFS', 'ADMINS']
+const ALLOWED_AUDIENCES = ['ALL', 'MEMBERS', 'CHEFS', 'ADMINS', 'USERS']
+function parseIds(s: string | null | undefined): number[] {
+  if (!s) return []
+  try { const a = JSON.parse(s); return Array.isArray(a) ? a.filter((x) => Number.isInteger(x)) : [] } catch { return [] }
+}
+function cleanIds(v: unknown): number[] {
+  return Array.isArray(v) ? Array.from(new Set(v.map((x) => Number(x)).filter((n) => Number.isInteger(n)))) : []
+}
 function clampPct(v: unknown): number {
   const n = Number(v)
   if (!isFinite(n)) return 50
@@ -59,6 +66,7 @@ export async function GET(req: NextRequest) {
       case 'ADMINS': return isAdmin
       case 'MEMBERS': return !isAdmin
       case 'CHEFS': return isChef || isAdmin
+      case 'USERS': return parseIds(b.targetUserIds).includes(userId)
       case 'ALL':
       default: return true
     }
@@ -91,6 +99,7 @@ export async function POST(req: NextRequest) {
       emoji: String(b.emoji || '💡').slice(0, 8),
       color: ALLOWED_COLORS.includes(b.color) ? b.color : 'indigo',
       audience: ALLOWED_AUDIENCES.includes(b.audience) ? b.audience : 'ALL',
+      targetUserIds: b.audience === 'USERS' ? JSON.stringify(cleanIds(b.targetUserIds)) : null,
       active: b.active !== false,
     },
   })

@@ -12,6 +12,7 @@ interface Bubble {
   anchorSelector?: string | null
   anchorDx?: number | null
   anchorDy?: number | null
+  targetUserIds?: string | null
   title: string
   content: string
   emoji: string
@@ -78,8 +79,13 @@ const AUDIENCES: { value: string; label: string }[] = [
   { value: 'ALL', label: 'Tout le monde' },
   { value: 'MEMBERS', label: 'Membres uniquement' },
   { value: 'CHEFS', label: "Chefs d'orchestre" },
+  { value: 'USERS', label: 'Utilisateurs précis' },
   { value: 'ADMINS', label: 'Admins (test)' },
 ]
+function parseIdsString(s?: string | null): number[] {
+  if (!s) return []
+  try { const a = JSON.parse(s); return Array.isArray(a) ? a.filter((x) => Number.isInteger(x)) : [] } catch { return [] }
+}
 const EMOJIS = ['💡', 'ℹ️', '✨', '👉', '🎯', '⭐', '🔔', '❓', '🎵', '🚀']
 
 export default function HelpBubbleLayer() {
@@ -95,6 +101,11 @@ export default function HelpBubbleLayer() {
   const [hidden, setHidden] = useState(false) // préférence perso : masquer TOUTES les bulles
   const [positions, setPositions] = useState<Record<number, { left: number; top: number }>>({})
   const overlayRef = useRef<HTMLDivElement>(null)
+
+  // Ciblage par utilisateurs (audience USERS)
+  const [editorTargets, setEditorTargets] = useState<{ id: number; name: string; email: string }[]>([])
+  const [userQuery, setUserQuery] = useState('')
+  const [userResults, setUserResults] = useState<{ id: number; name: string; email: string }[]>([])
 
   // Réplication sur d'autres groupes
   const [replicateFor, setReplicateFor] = useState<number | null>(null)
@@ -186,6 +197,7 @@ export default function HelpBubbleLayer() {
     const target = elementUnder(overlay, e.clientX, e.clientY)
     const anchor = computeAnchor(target, e.clientX, e.clientY)
     setPlacing(false)
+    setEditorTargets([]); setUserQuery(''); setUserResults([])
     setEditor({
       xPct: Math.max(0, Math.min(100, x)), yPx: Math.max(0, Math.round(y)),
       anchorSelector: anchor.anchorSelector, anchorDx: anchor.anchorDx, anchorDy: anchor.anchorDy,
@@ -232,7 +244,32 @@ export default function HelpBubbleLayer() {
     setTimeout(resolveAnchors, 0) // recale exactement sur l'élément
   }
 
-  const openEditor = (b: Bubble) => setEditor({ ...b })
+  const openEditor = (b: Bubble) => {
+    setEditor({ ...b })
+    setUserQuery(''); setUserResults([]); setEditorTargets([])
+    const ids = parseIdsString(b.targetUserIds)
+    if (b.audience === 'USERS' && ids.length > 0) {
+      fetch(`/api/bulles/users?ids=${ids.join(',')}`).then((r) => (r.ok ? r.json() : [])).then(setEditorTargets).catch(() => {})
+    }
+  }
+
+  // Recherche d'utilisateurs (audience USERS)
+  const aud = editor?.audience
+  useEffect(() => {
+    if (aud !== 'USERS') return
+    const q = userQuery.trim()
+    if (q.length < 1) { setUserResults([]); return }
+    const t = setTimeout(() => {
+      fetch(`/api/bulles/users?q=${encodeURIComponent(q)}`).then((r) => (r.ok ? r.json() : [])).then(setUserResults).catch(() => {})
+    }, 250)
+    return () => clearTimeout(t)
+  }, [userQuery, aud])
+
+  const addTarget = (u: { id: number; name: string; email: string }) => {
+    setEditorTargets((prev) => (prev.some((x) => x.id === u.id) ? prev : [...prev, u]))
+    setUserQuery(''); setUserResults([])
+  }
+  const removeTarget = (id: number) => setEditorTargets((prev) => prev.filter((x) => x.id !== id))
 
   const saveEditor = async () => {
     if (!editor) return
@@ -248,6 +285,7 @@ export default function HelpBubbleLayer() {
       emoji: editor.emoji ?? '💡',
       color: editor.color ?? 'indigo',
       audience: editor.audience ?? 'ALL',
+      targetUserIds: editor.audience === 'USERS' ? editorTargets.map((u) => u.id) : [],
       active: editor.active !== false,
     }
     if (editor.id) {
@@ -405,6 +443,35 @@ export default function HelpBubbleLayer() {
                 </select>
               </div>
             </div>
+
+            {editor.audience === 'USERS' && (
+              <div className="mb-3 rounded-lg border border-indigo-100 bg-indigo-50/50 p-3">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Utilisateurs ciblés</label>
+                {editorTargets.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {editorTargets.map((u) => (
+                      <span key={u.id} className="inline-flex items-center gap-1 rounded-full bg-white border border-indigo-200 px-2 py-0.5 text-xs text-indigo-700">
+                        {u.name}
+                        <button onClick={() => removeTarget(u.id)} className="text-indigo-400 hover:text-red-500 font-bold">×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="relative">
+                  <input value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Rechercher un nom ou un email…" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                  {userResults.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full max-h-44 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                      {userResults.filter((u) => !editorTargets.some((t) => t.id === u.id)).map((u) => (
+                        <button key={u.id} onClick={() => addTarget(u)} className="block w-full text-left px-3 py-2 text-sm hover:bg-indigo-50">
+                          <span className="text-gray-800">{u.name}</span> <span className="text-gray-400 text-xs">· {u.email}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {editorTargets.length === 0 && <p className="mt-1 text-[11px] text-amber-600">Ajoutez au moins un utilisateur, sinon personne ne verra la bulle.</p>}
+              </div>
+            )}
 
             <label className="flex items-center gap-2 text-sm text-gray-700 mb-4 cursor-pointer">
               <input type="checkbox" checked={editor.active !== false} onChange={(e) => setEditor({ ...editor, active: e.target.checked })} className="rounded border-gray-300" />

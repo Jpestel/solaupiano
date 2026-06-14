@@ -6,7 +6,10 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 const ALLOWED_COLORS = ['indigo', 'amber', 'green', 'sky', 'rose', 'purple']
-const ALLOWED_AUDIENCES = ['ALL', 'MEMBERS', 'CHEFS', 'ADMINS']
+const ALLOWED_AUDIENCES = ['ALL', 'MEMBERS', 'CHEFS', 'ADMINS', 'USERS']
+function cleanIds(v: unknown): number[] {
+  return Array.isArray(v) ? Array.from(new Set(v.map((x) => Number(x)).filter((n) => Number.isInteger(n)))) : []
+}
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -25,6 +28,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (typeof b.emoji === 'string') data.emoji = b.emoji.slice(0, 8)
   if (typeof b.color === 'string' && ALLOWED_COLORS.includes(b.color)) data.color = b.color
   if (typeof b.audience === 'string' && ALLOWED_AUDIENCES.includes(b.audience)) data.audience = b.audience
+  if (b.targetUserIds !== undefined || b.audience === 'USERS') {
+    data.targetUserIds = b.audience === 'USERS' ? JSON.stringify(cleanIds(b.targetUserIds)) : null
+  }
   if (typeof b.active === 'boolean') data.active = b.active
   if (typeof b.path === 'string' && b.path.trim()) data.path = b.path.trim()
 

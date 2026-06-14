@@ -1323,7 +1323,8 @@ model HelpBubble {
   content   String   @db.Text
   emoji     String   @default("💡")
   color     String   @default("indigo") // indigo | amber | green | sky | rose | purple
-  audience  String   @default("ALL")    // ALL | MEMBERS | CHEFS | ADMINS
+  audience  String   @default("ALL")    // ALL | MEMBERS | CHEFS | ADMINS | USERS
+  targetUserIds String? @db.Text        // JSON : ids des utilisateurs ciblés (audience USERS)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

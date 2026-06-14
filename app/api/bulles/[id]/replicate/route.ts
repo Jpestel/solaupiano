@@ -74,6 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         emoji: bubble.emoji,
         color: bubble.color,
         audience: bubble.audience,
+        targetUserIds: bubble.targetUserIds,
         active: bubble.active,
       },
     })

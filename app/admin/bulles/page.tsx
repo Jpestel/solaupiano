@@ -18,7 +18,7 @@ interface Bubble {
 interface Dismissal { userId: number; name: string; email: string; createdAt: string }
 
 const AUDIENCE_LABEL: Record<string, string> = {
-  ALL: 'Tout le monde', MEMBERS: 'Membres', CHEFS: 'Chefs', ADMINS: 'Admins',
+  ALL: 'Tout le monde', MEMBERS: 'Membres', CHEFS: 'Chefs', ADMINS: 'Admins', USERS: 'Utilisateurs précis',
 }
 
 export default function AdminBullesPage() {
