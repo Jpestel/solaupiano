@@ -26,13 +26,23 @@ export default function AdminBullesPage() {
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<number | null>(null)
   const [dismissals, setDismissals] = useState<Record<number, Dismissal[]>>({})
+  const [optedOut, setOptedOut] = useState<{ id: number; name: string; email: string }[]>([])
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/bulles?all=1')
+    const [res, optRes] = await Promise.all([
+      fetch('/api/bulles?all=1'),
+      fetch('/api/bulles/opted-out'),
+    ])
     if (res.ok) setBubbles(await res.json())
+    if (optRes.ok) setOptedOut(await optRes.json())
     setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
+
+  const reactivate = async (body: Record<string, unknown>) => {
+    await fetch('/api/bulles/opted-out', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    load()
+  }
 
   const toggleActive = async (b: Bubble) => {
     await fetch(`/api/bulles/${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !b.active }) })
@@ -77,6 +87,25 @@ export default function AdminBullesPage() {
         </ol>
         <p className="mt-2 text-indigo-700">Cette page liste toutes les bulles existantes. Le bouton « 💡 Bulles » est disponible partout dans l&apos;espace connecté.</p>
       </div>
+
+      {/* Utilisateurs ayant désactivé TOUTES les bulles (préférence globale du profil) */}
+      {optedOut.length > 0 && (
+        <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-rose-800">🔕 {optedOut.length} utilisateur(s) ont désactivé toutes les bulles</p>
+            <button onClick={() => reactivate({ all: true })} className="text-xs font-semibold text-indigo-600 hover:text-indigo-500">Réactiver pour tous</button>
+          </div>
+          <p className="text-xs text-rose-700/80 mb-2">Ces personnes ne voient aucune astuce (réglage « Bulles d&apos;aide » désactivé dans leur profil). Vous pouvez réactiver l&apos;affichage à leur demande.</p>
+          <ul className="space-y-1">
+            {optedOut.map((u) => (
+              <li key={u.id} className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-gray-700 truncate">{u.name} <span className="text-gray-400">· {u.email}</span></span>
+                <button onClick={() => reactivate({ userId: u.id })} className="flex-shrink-0 rounded-full bg-white border border-indigo-200 px-2 py-0.5 font-semibold text-indigo-600 hover:bg-indigo-50">Réactiver</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-gray-400 text-sm">Chargement…</p>
