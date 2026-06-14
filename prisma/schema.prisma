@@ -75,6 +75,7 @@ model Plan {
   hasUnavailabilities Boolean @default(true)
   hasPolls           Boolean @default(true)
   hasGalerie         Boolean @default(true)
+  hasSocial          Boolean @default(true)
 
   color     String   @default("gray")
 
@@ -200,6 +201,7 @@ model User {
   scoreMarkers             ScoreMarker[]
   blogPosts                BlogPost[]              @relation("BlogAuthor")
   blogLikes                BlogLike[]
+  socialPosts              SocialPost[]
 }
 
 // ─── Blog ────────────────────────────────────────────────────────────────────
@@ -373,6 +375,7 @@ model Group {
   resourceLinkOverrides GroupResourceLink[]
   galleryPhotos    GalleryPhoto[]
   galleryCategories GalleryCategory[]
+  socialPosts      SocialPost[]
 }
 
 // Catalogue de liens de ressources (audios, vidéos, tutos, partitions…)
@@ -538,6 +541,22 @@ model GalleryPhoto {
 
   @@index([groupId])
   @@index([groupId, eventType, eventId])
+}
+
+// Posts réseaux sociaux composés par le chef/co-chef (texte + images), pour partage.
+model SocialPost {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  authorId  Int?
+  caption   String   @db.Text
+  images    String   @db.Text // JSON : tableau d'URLs d'images
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([groupId])
 }
 
 model GalleryCategory {

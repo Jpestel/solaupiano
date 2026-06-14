@@ -8,6 +8,7 @@ import JoinRequestsPanel from './JoinRequestsPanel'
 import { GroupSettingsButton } from './GroupSettingsButton'
 import { GroupCards } from './GroupCards'
 import { PlanSection } from './PlanSection'
+import { coChefCanDo } from '@/lib/permissions'
 import { GroupCoverUpload } from './GroupCoverUpload'
 import { PermissionsSettings } from './PermissionsSettings'
 import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
@@ -56,7 +57,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   // Check plan features (stats + member limit + storage)
   const groupMeta = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true, maxMembersOverride: true, storageQuotaOverrideGb: true } })
-  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, maxMembersPerGroup: true } }) : null
+  const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, hasSocial: true, maxMembersPerGroup: true } }) : null
   const planHasStats = isAdminUser || (planData?.hasStats ?? false)
   // Fonctionnalités débloquées par le plan (admin = tout)
   const planFeatures = {
@@ -71,6 +72,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
     unavailabilities: isAdminUser || (planData?.hasUnavailabilities ?? true),
     polls:          isAdminUser || (planData?.hasPolls ?? true),
     galerie:        isAdminUser || (planData?.hasGalerie ?? true),
+    social:         isAdminUser || (planData?.hasSocial ?? true),
   }
   // Effective member limit: override (if set by admin) > plan limit > null (unlimited)
   const effectiveMemberLimit = groupMeta?.maxMembersOverride ?? planData?.maxMembersPerGroup ?? null
@@ -127,6 +129,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   const isChef = isAdminUser || membership?.groupRole === 'CHEF'
   const canManageMembers = isChef
+  const canSocial = coChefCanDo({ createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null }, userId, isAdminUser, 'social', 'post')
 
   // Auto-assign founder if missing (done in GET API, but also compute here)
   const isFounder = isAdminUser || group.createdBy === userId
@@ -284,6 +287,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             iconBg: 'bg-fuchsia-100', textColor: 'text-fuchsia-700', border: 'border-fuchsia-200 hover:border-fuchsia-400 hover:bg-fuchsia-50/60',
             chefDesc: 'Photos répèts & concerts', memberDesc: 'Partager vos photos',
           },
+          {
+            href: 'social', label: 'Réseaux', icon: '📣',
+            iconBg: 'bg-sky-100', textColor: 'text-sky-700', border: 'border-sky-200 hover:border-sky-400 hover:bg-sky-50/60',
+            chefDesc: 'Créer des posts à partager', memberDesc: 'Créer des posts à partager',
+          },
         ] as const)
           // Masque les fonctionnalités non incluses dans le plan du groupe
           .filter((link) => {
@@ -298,6 +306,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
             if (link.href === 'disponibilites')  return planFeatures.unavailabilities
             if (link.href === 'sondages')        return planFeatures.polls
             if (link.href === 'galerie')         return planFeatures.galerie
+            if (link.href === 'social')          return planFeatures.social && canSocial
             return true
           })
           .map((link) => (

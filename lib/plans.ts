@@ -35,6 +35,7 @@ export interface DbPlan {
   hasUnavailabilities: boolean
   hasPolls: boolean
   hasGalerie: boolean
+  hasSocial: boolean
   color: string
   stripePriceId: string | null
   createdAt: Date
@@ -191,6 +192,7 @@ export function generateFeatureList(p: DbPlan): string[] {
   if (p.hasUnavailabilities) f.push('Disponibilités des membres')
   if (p.hasPolls) f.push('Sondages de dates')
   if (p.hasGalerie) f.push('Galerie photos (répèts & concerts)')
+  if (p.hasSocial) f.push('Atelier réseaux sociaux')
   if (p.hasGrilles) f.push("Grilles d'accords")
   if (p.hasSetlists) f.push('Setlists')
   if (p.hasConcerts) f.push('Concerts')
@@ -286,6 +288,7 @@ export const COMP_ROWS: CompRowDef[] = [
   { label: 'Disponibilités',         musicien: '—',  get: p => p.hasUnavailabilities ? '✓' : '—' },
   { label: 'Sondages',               musicien: '—',  get: p => p.hasPolls ? '✓' : '—' },
   { label: 'Galerie photos',         musicien: '—',  get: p => p.hasGalerie ? '✓' : '—' },
+  { label: 'Atelier réseaux',        musicien: '—',  get: p => p.hasSocial ? '✓' : '—' },
   { label: "Grilles d'accords",      musicien: '—',  get: p => p.hasGrilles ? '✓' : '—' },
   { label: 'Concerts',               musicien: '✓',  get: p => p.hasConcerts ? '✓' : '—' },
   { label: 'Setlists',               musicien: '—',  get: p => p.hasSetlists ? '✓' : '—' },
@@ -307,7 +310,7 @@ export const DEFAULT_PLAN_SEEDS = [
     maxConcerts: null, maxCharts: null, maxFilesPerSong: null,
     hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
     hasMaPage: true, hasCoChefs: true, hasPrioritySupport: false, hasStats: false,
-    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, color: 'gray',
+    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, hasSocial: true, color: 'gray',
   },
   {
     key: 'PRO', label: 'Pro', description: "Pour les groupes actifs qui veulent aller plus loin.",
@@ -317,7 +320,7 @@ export const DEFAULT_PLAN_SEEDS = [
     maxConcerts: null, maxCharts: null, maxFilesPerSong: null,
     hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
     hasMaPage: true, hasCoChefs: true, hasPrioritySupport: true, hasStats: false,
-    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, color: 'indigo',
+    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, hasSocial: true, color: 'indigo',
   },
   {
     key: 'PREMIUM', label: 'Premium', description: 'La puissance maximale pour les professionnels.',
@@ -327,7 +330,7 @@ export const DEFAULT_PLAN_SEEDS = [
     maxConcerts: null, maxCharts: null, maxFilesPerSong: null,
     hasGrilles: true, hasConcerts: true, hasSetlists: true, hasFicheTechnique: true,
     hasMaPage: true, hasCoChefs: true, hasPrioritySupport: true, hasStats: true,
-    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, color: 'purple',
+    hasFileSubmissions: true, hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, hasSocial: true, color: 'purple',
   },
 ]
 
