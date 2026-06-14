@@ -317,9 +317,9 @@ export default async function GroupePage({ params }: { params: { id: string } })
           <Link
             key={link.href}
             href={`/groupes/${groupId}/${link.href}`}
-            className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all group ${link.border}`}
+            className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all duration-150 group hover:shadow-md hover:-translate-y-0.5 ${link.border}`}
           >
-            <div className={`w-8 h-8 rounded-lg ${link.iconBg} flex items-center justify-center text-base flex-shrink-0`}>
+            <div className={`w-8 h-8 rounded-lg ${link.iconBg} flex items-center justify-center text-base flex-shrink-0 transition-transform group-hover:scale-110`}>
               {link.icon}
             </div>
             <div className="min-w-0 flex-1">
@@ -328,12 +328,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
                 {isChef ? link.chefDesc : link.memberDesc}
               </p>
             </div>
-            <svg className={`w-3.5 h-3.5 flex-shrink-0 opacity-30 group-hover:opacity-60 group-hover:translate-x-0.5 transition-all ${link.textColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            {isChef && link.href !== 'tchat' && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white text-[9px] font-bold flex items-center justify-center shadow-sm">+</span>
-            )}
+            <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full transition-all ${link.iconBg} ${link.textColor} opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5`}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
             {link.href === 'tchat' && (
               <TchatBadge groupId={String(groupId)} />
             )}
@@ -346,13 +345,13 @@ export default async function GroupePage({ params }: { params: { id: string } })
         <div className="mb-6">
           <Link
             href={`/groupes/${groupId}/stats`}
-            className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all group w-full ${
+            className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all duration-150 group w-full hover:shadow-md hover:-translate-y-0.5 ${
               planHasStats
                 ? 'border-violet-200 hover:border-violet-400 hover:bg-violet-50/60'
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/60 opacity-70'
             }`}
           >
-            <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center text-base flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center text-base flex-shrink-0 transition-transform group-hover:scale-110">
               📊
             </div>
             <div className="min-w-0 flex-1">
@@ -364,9 +363,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
                 {planHasStats ? 'Présence, répertoire, fréquence…' : 'Disponible sur les plans payants'}
               </p>
             </div>
-            <svg className="w-3.5 h-3.5 flex-shrink-0 opacity-30 group-hover:opacity-60 group-hover:translate-x-0.5 transition-all text-violet-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-violet-100 text-violet-700 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
           </Link>
         </div>
       )}
