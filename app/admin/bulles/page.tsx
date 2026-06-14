@@ -21,20 +21,42 @@ const AUDIENCE_LABEL: Record<string, string> = {
   ALL: 'Tout le monde', MEMBERS: 'Membres', CHEFS: 'Chefs', ADMINS: 'Admins', USERS: 'Utilisateurs précis',
 }
 
+// Libellés des sous-pages d'un groupe
+const SUBPATH_LABEL: Record<string, string> = {
+  '': 'Accueil du groupe', repetitions: 'Répétitions', concerts: 'Concerts', morceaux: 'Répertoire',
+  setlists: 'Setlists', grilles: 'Grilles', 'fiche-technique': 'Fiche technique', 'ma-page': 'Ma page',
+  comptabilite: 'Comptabilité', tchat: 'Tchat', 'ressources-partagees': 'Ressources', disponibilites: 'Disponibilités',
+  sondages: 'Sondages', galerie: 'Galerie', social: 'Réseaux', stats: 'Statistiques',
+}
+
+// Transforme un chemin en libellé lisible avec le nom du groupe.
+function prettyPath(path: string, groupNames: Record<number, string>): string {
+  const m = path.match(/^\/groupes\/(\d+)(?:\/([^/]+))?/)
+  if (m) {
+    const name = groupNames[Number(m[1])] || `Groupe #${m[1]}`
+    const sub = m[2] !== undefined ? (SUBPATH_LABEL[m[2]] || m[2]) : SUBPATH_LABEL['']
+    return `🎵 ${name} › ${sub}`
+  }
+  return path
+}
+
 export default function AdminBullesPage() {
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<number | null>(null)
   const [dismissals, setDismissals] = useState<Record<number, Dismissal[]>>({})
   const [optedOut, setOptedOut] = useState<{ id: number; name: string; email: string }[]>([])
+  const [groupNames, setGroupNames] = useState<Record<number, string>>({})
 
   const load = useCallback(async () => {
-    const [res, optRes] = await Promise.all([
+    const [res, optRes, gnRes] = await Promise.all([
       fetch('/api/bulles?all=1'),
       fetch('/api/bulles/opted-out'),
+      fetch('/api/bulles/group-names'),
     ])
     if (res.ok) setBubbles(await res.json())
     if (optRes.ok) setOptedOut(await optRes.json())
+    if (gnRes.ok) setGroupNames(await gnRes.json())
     setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
@@ -116,8 +138,11 @@ export default function AdminBullesPage() {
           {Object.entries(byPath).map(([path, list]) => (
             <div key={path} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                <code className="text-xs font-semibold text-gray-700">{path}</code>
-                <Link href={path} className="text-xs font-medium text-indigo-600 hover:text-indigo-500">Aller positionner →</Link>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 truncate">{prettyPath(path, groupNames)}</p>
+                  <code className="text-[10px] text-gray-400">{path}</code>
+                </div>
+                <Link href={path} className="text-xs font-medium text-indigo-600 hover:text-indigo-500 flex-shrink-0 ml-3">Aller positionner →</Link>
               </div>
               <ul className="divide-y divide-gray-50">
                 {list.map((b) => (
