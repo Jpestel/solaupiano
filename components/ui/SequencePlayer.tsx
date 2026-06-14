@@ -69,6 +69,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const [delaySec, setDelaySec] = useState(0)
   const [countdown, setCountdown] = useState<number | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const wantPlayRef = useRef(false) // intention de lecture (l'utilisateur veut-il que ça joue ?)
   useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current) }, [])
   // Champs éditables (saisie manuelle ex. "3:03")
   const [aStr, setAStr] = useState('')
@@ -199,6 +200,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const beginPlay = async () => {
     const a = audioRef.current
     if (!a) return
+    wantPlayRef.current = true
     try { await a.play(); setPlaying(true) } catch { /* autoplay bloqué */ }
   }
 
@@ -214,7 +216,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     if (countdown !== null) { cancelCountdown(); return }
     ensureGraph()
     if (ctxRef.current?.state === 'suspended') await ctxRef.current.resume()
-    if (!a.paused) { a.pause(); setPlaying(false); return }
+    if (!a.paused) { wantPlayRef.current = false; a.pause(); setPlaying(false); return }
     // Lecture : départ différé éventuel
     if (delaySec > 0) {
       setCountdown(delaySec)
@@ -236,10 +238,12 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
   const loopValid = loopOn && aPt !== null && bPt !== null && bPt > aPt
   const onTime = (t: number) => {
     setCur(t)
-    if (loopValid && t >= (bPt as number)) seek(aPt as number)
+    // boucle uniquement pendant la lecture réelle (jamais en pause)
+    if (loopValid && t >= (bPt as number) && audioRef.current && !audioRef.current.paused) seek(aPt as number)
   }
   const onEnded = async () => {
-    if (loopValid) { seek(aPt as number); try { await audioRef.current?.play() } catch { /* ignore */ } }
+    // ne relance la boucle que si l'utilisateur veut toujours écouter (sinon, on respecte la pause)
+    if (loopValid && wantPlayRef.current) { seek(aPt as number); try { await audioRef.current?.play() } catch { /* ignore */ } }
     else setPlaying(false)
   }
   const clearLoop = () => { setLoopOn(false); setAPt(null); setBPt(null) }
@@ -268,6 +272,7 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     const a = audioRef.current
     if (!a) return
     cancelCountdown()
+    wantPlayRef.current = true
     ensureGraph()
     if (ctxRef.current?.state === 'suspended') await ctxRef.current.resume()
     a.currentTime = l.startSec; setCur(l.startSec)
