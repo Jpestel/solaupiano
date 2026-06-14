@@ -550,6 +550,7 @@ model SocialPost {
   authorId  Int?
   caption   String   @db.Text
   images    String   @db.Text // JSON : tableau d'URLs d'images
+  taggedUserIds String? @db.Text // JSON : ids des membres identifiés (ayant consenti au droit à l'image)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -636,6 +637,10 @@ model GroupMember {
   groupRole GroupRole @default(MEMBRE)
   joinedAt  DateTime  @default(now())
   cardOrder String?
+  // Consentement à la diffusion du visage (photos/vidéos) sur les réseaux sociaux.
+  // null = pas encore répondu, true = accepté, false = refusé.
+  imageConsent   Boolean?
+  imageConsentAt DateTime?
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)

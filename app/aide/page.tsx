@@ -665,11 +665,22 @@ export default async function AidePage() {
               <ol className="space-y-2 mt-1">
                 <Step n={1}>Ouvrez la carte <strong>📣 Réseaux</strong> du groupe.</Step>
                 <Step n={2}><strong>Sélectionnez des photos</strong> de la Galerie (plusieurs possibles, numérotées dans l&apos;ordre).</Step>
-                <Step n={3}>Rédigez la <strong>légende</strong> : bouton <strong>✨ Suggérer un texte</strong> et <strong>hashtags</strong> rapides.</Step>
-                <Step n={4}>Cliquez <strong>📤 Partager</strong>.</Step>
+                <Step n={3}><strong>Indiquez qui apparaît</strong> sur les photos/vidéos (voir « Droit à l&apos;image » ci-dessous).</Step>
+                <Step n={4}>Rédigez la <strong>légende</strong> : bouton <strong>✨ Suggérer un texte</strong> et <strong>hashtags</strong> rapides.</Step>
+                <Step n={5}>Cliquez <strong>📤 Partager</strong>.</Step>
               </ol>
               <Note>📱 Sur <strong>mobile</strong>, « Partager » ouvre directement Instagram, Facebook, WhatsApp… avec l&apos;image. Comme ces apps n&apos;importent pas le texte joint, la <strong>légende est copiée</strong> automatiquement : faites un <strong>appui long → Coller</strong> dans l&apos;app. Sur <strong>ordinateur</strong>, utilisez <strong>📋 Copier la légende</strong> + <strong>⬇ Télécharger</strong> l&apos;image.</Note>
               <Tip>Vous pouvez <strong>💾 enregistrer</strong> un post pour le <strong>réutiliser</strong> plus tard (liste « Posts enregistrés »).</Tip>
+            </HelpCard>
+            <HelpCard title="Droit à l'image (obligatoire)" badge={{ label: 'RGPD', color: 'indigo' }}>
+              <p>Pour respecter le <strong>droit à l&apos;image</strong>, chaque membre doit <strong>accepter ou refuser</strong> la diffusion de son visage (photos/vidéos) sur les réseaux. Une <strong>bannière</strong> s&apos;affiche sur la page du groupe ; le choix est modifiable à tout moment.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Avant de partager, le chef <strong>indique qui apparaît</strong> sur les médias.</li>
+                <li>Seuls les membres ayant <strong>accepté</strong> peuvent être identifiés. Un membre qui a <strong>refusé</strong> (⛔) ou <strong>pas encore répondu</strong> (⏳) ne peut pas être sélectionné.</li>
+                <li>Si personne n&apos;est reconnaissable (instruments, de dos…), cochez <strong>« Aucune personne identifiable »</strong>.</li>
+                <li>Tant que ce choix n&apos;est pas fait, <strong>Partager / Télécharger / Enregistrer</strong> restent bloqués.</li>
+              </ul>
+              <Note>Ne publiez <strong>jamais</strong> une photo où une personne ayant refusé est reconnaissable.</Note>
             </HelpCard>
             <HelpCard title="Qui peut publier ?">
               <p>Réservé au <strong>chef d&apos;orchestre</strong> et aux <strong>co-chefs</strong> à qui le fondateur a accordé le droit <strong>« Réseaux sociaux → Publier »</strong> (configurable dans <em>Permissions des co-chefs</em>, en bas de la page du groupe).</p>

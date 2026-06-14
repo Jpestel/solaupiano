@@ -14,6 +14,7 @@ import { PermissionsSettings } from './PermissionsSettings'
 import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
 import { getGroupStorageInfo } from '@/lib/storage'
 import { TchatBadge } from '@/components/ui/TchatBadge'
+import ImageConsentBanner from '@/components/ImageConsentBanner'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -211,6 +212,9 @@ export default async function GroupePage({ params }: { params: { id: string } })
           </div>
         </div>
       </div>
+
+      {/* Droit à l'image — chaque membre donne/refuse son consentement (si le module Réseaux sociaux est actif) */}
+      <ImageConsentBanner groupId={groupId} />
 
       {/* Pending join requests — chef only */}
       {isChef && group.joinRequests.length > 0 && (

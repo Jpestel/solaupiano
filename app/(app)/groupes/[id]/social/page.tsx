@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 
 interface Photo { id: number; filePath: string; eventLabel: string | null }
-interface SavedPost { id: number; caption: string; images: string[]; createdAt: string; author: { name: string } | null }
+interface SavedPost { id: number; caption: string; images: string[]; taggedUserIds: number[]; createdAt: string; author: { name: string } | null }
+interface Member { userId: number; name: string; consent: boolean | null }
 
 const HASHTAGS = ['#musique', '#groupedemusique', '#musiciens', '#répétition', '#concert', '#live', '#backstage']
 
@@ -15,6 +16,9 @@ export default function SocialPage({ params }: { params: { id: string } }) {
   const [selected, setSelected] = useState<string[]>([])
   const [caption, setCaption] = useState('')
   const [posts, setPosts] = useState<SavedPost[]>([])
+  const [members, setMembers] = useState<Member[]>([])
+  const [tagged, setTagged] = useState<number[]>([])
+  const [noneIdentifiable, setNoneIdentifiable] = useState(false)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -28,10 +32,20 @@ export default function SocialPage({ params }: { params: { id: string } }) {
     ])
     if (gRes.ok) { const g = await gRes.json(); setGroupName(g.name || '') }
     if (galRes.ok) { const d = await galRes.json(); setPhotos((d.photos || []).map((p: Photo) => ({ id: p.id, filePath: p.filePath, eventLabel: p.eventLabel }))) }
-    if (postsRes.ok) setPosts(await postsRes.json())
+    if (postsRes.ok) { const d = await postsRes.json(); setPosts(d.posts || []); setMembers(d.members || []) }
     setLoading(false)
   }, [groupId])
   useEffect(() => { load() }, [load])
+
+  // Droit à l'image : on ne peut publier que si les personnes identifiables ont consenti.
+  const consentReady = noneIdentifiable || tagged.length > 0
+  const refusedMembers = members.filter((m) => m.consent === false)
+  const pendingMembers = members.filter((m) => m.consent === null)
+  const toggleTag = (m: Member) => {
+    if (m.consent !== true) return
+    setNoneIdentifiable(false)
+    setTagged((t) => (t.includes(m.userId) ? t.filter((x) => x !== m.userId) : [...t, m.userId]))
+  }
 
   const toggle = (url: string) => setSelected((s) => (s.includes(url) ? s.filter((u) => u !== url) : [...s, url]))
 
@@ -52,6 +66,7 @@ export default function SocialPage({ params }: { params: { id: string } }) {
   }
 
   const sharePost = async () => {
+    if (!consentReady) { setMsg("Droit à l'image : indiquez qui apparaît, ou cochez « Aucune personne identifiable »."); return }
     setMsg(''); setBusy(true)
     // On copie la légende AVANT le partage (dans le geste utilisateur) : la plupart des apps
     // (Instagram, Facebook…) ignorent le texte joint à une image → il suffira de la coller.
@@ -87,14 +102,16 @@ export default function SocialPage({ params }: { params: { id: string } }) {
 
   const savePost = async () => {
     if (!caption.trim() && selected.length === 0) { setMsg('Ajoutez du texte ou une image.'); return }
+    if (!consentReady) { setMsg("Droit à l'image : indiquez qui apparaît, ou cochez « Aucune personne identifiable »."); return }
     setBusy(true)
     const res = await fetch(`/api/groupes/${groupId}/social`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caption, images: selected }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caption, images: selected, taggedUserIds: tagged }),
     })
     setBusy(false)
-    if (res.ok) { setMsg('✓ Post enregistré.'); load() } else setMsg('Erreur à l’enregistrement.')
+    if (res.ok) { setMsg('✓ Post enregistré.'); load() }
+    else { const e = await res.json().catch(() => ({})); setMsg(e.error || 'Erreur à l’enregistrement.') }
   }
-  const reusePost = (p: SavedPost) => { setCaption(p.caption); setSelected(p.images); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  const reusePost = (p: SavedPost) => { setCaption(p.caption); setSelected(p.images); setTagged(p.taggedUserIds || []); setNoneIdentifiable((p.taggedUserIds || []).length === 0); window.scrollTo({ top: 0, behavior: 'smooth' }) }
   const delPost = async (id: number) => { if (!confirm('Supprimer ce post enregistré ?')) return; await fetch(`/api/groupes/${groupId}/social/${id}`, { method: 'DELETE' }); load() }
 
   const t = encodeURIComponent(caption)
@@ -134,10 +151,68 @@ export default function SocialPage({ params }: { params: { id: string } }) {
         )}
       </div>
 
+      {/* Droit à l'image */}
+      <div className="mt-5">
+        <p className="text-sm font-semibold text-gray-700 mb-1">2. Qui apparaît sur ces photos / vidéos ?</p>
+        <p className="text-[12px] text-gray-500 mb-2">Le <strong>droit à l&apos;image</strong> impose le consentement de chaque personne reconnaissable. Vous ne pouvez identifier que les membres ayant <strong>accepté</strong> la diffusion de leur visage.</p>
+        {members.length === 0 ? (
+          <p className="text-sm text-gray-400 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3">Aucun membre dans le groupe.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {members.map((m) => {
+              const on = tagged.includes(m.userId)
+              const ok = m.consent === true
+              return (
+                <button
+                  key={m.userId}
+                  type="button"
+                  onClick={() => toggleTag(m)}
+                  disabled={!ok}
+                  title={ok ? '' : m.consent === false ? 'A refusé le droit à l’image' : "N'a pas encore répondu au droit à l’image"}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    !ok
+                      ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                      : on
+                        ? 'border-sky-500 bg-sky-50 text-sky-700'
+                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <span>{on && ok ? '☑' : ok ? '☐' : m.consent === false ? '⛔' : '⏳'}</span>
+                  {m.name}
+                  {!ok && <span className="text-[10px]">{m.consent === false ? '(a refusé)' : '(en attente)'}</span>}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        <label className="mt-2 flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={noneIdentifiable}
+            onChange={(e) => { setNoneIdentifiable(e.target.checked); if (e.target.checked) setTagged([]) }}
+            className="rounded border-gray-300"
+          />
+          Aucune personne identifiable sur ces médias (instruments, de dos, foule…).
+        </label>
+
+        {refusedMembers.length > 0 && (
+          <p className="mt-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-[12px] text-red-700">
+            ⚠️ {refusedMembers.map((m) => m.name).join(', ')} a refusé le droit à l&apos;image. Ne publiez <strong>aucune</strong> photo/vidéo où cette personne est reconnaissable.
+          </p>
+        )}
+        {pendingMembers.length > 0 && (
+          <p className="mt-2 text-[11px] text-gray-400">{pendingMembers.length} membre(s) n&apos;ont pas encore répondu au droit à l&apos;image — ils ne peuvent pas être identifiés tant qu&apos;ils n&apos;ont pas accepté.</p>
+        )}
+        {!consentReady && (
+          <p className="mt-2 text-[12px] font-medium text-amber-600">Pour publier : sélectionnez les membres qui apparaissent, ou cochez « Aucune personne identifiable ».</p>
+        )}
+      </div>
+
       {/* Légende */}
       <div className="mt-5">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-gray-700">2. Rédigez la légende</p>
+          <p className="text-sm font-semibold text-gray-700">3. Rédigez la légende</p>
           <button onClick={suggest} className="text-xs font-medium text-indigo-600 hover:text-indigo-700">✨ Suggérer un texte</button>
         </div>
         <textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={5} className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200" placeholder="Écrivez votre message… ajoutez des emojis et des hashtags 🎶" />
@@ -149,16 +224,18 @@ export default function SocialPage({ params }: { params: { id: string } }) {
 
       {/* Actions */}
       <div className="mt-5 rounded-xl border border-gray-200 bg-white p-4">
-        <p className="text-sm font-semibold text-gray-700 mb-3">3. Partagez</p>
+        <p className="text-sm font-semibold text-gray-700 mb-3">4. Partagez</p>
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={sharePost} disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-sky-500 disabled:opacity-60">📤 Partager</button>
+          <button onClick={sharePost} disabled={busy || !consentReady} className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-sky-500 disabled:opacity-50 disabled:cursor-not-allowed">📤 Partager</button>
           <button onClick={copyCaption} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">{copied ? '✓ Copié' : '📋 Copier la légende'}</button>
-          {selected.length > 0 && <button onClick={download} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">⬇ Télécharger {selected.length > 1 ? 'les images' : "l'image"}</button>}
+          {selected.length > 0 && <button onClick={download} disabled={!consentReady} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">⬇ Télécharger {selected.length > 1 ? 'les images' : "l'image"}</button>}
           <span className="text-gray-300">|</span>
           {quick.map((q) => (
-            <a key={q.label} href={q.href} target="_blank" rel="noopener noreferrer" title={`Partager le texte sur ${q.label}`} className={`w-9 h-9 rounded-full text-white flex items-center justify-center text-sm font-bold ${q.cls}`}>{q.icon}</a>
+            consentReady
+              ? <a key={q.label} href={q.href} target="_blank" rel="noopener noreferrer" title={`Partager le texte sur ${q.label}`} className={`w-9 h-9 rounded-full text-white flex items-center justify-center text-sm font-bold ${q.cls}`}>{q.icon}</a>
+              : <span key={q.label} title="Réglez d’abord le droit à l’image" className={`w-9 h-9 rounded-full text-white flex items-center justify-center text-sm font-bold opacity-40 cursor-not-allowed ${q.cls}`}>{q.icon}</span>
           ))}
-          <button onClick={savePost} disabled={busy} className="ml-auto rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-60">💾 Enregistrer</button>
+          <button onClick={savePost} disabled={busy || !consentReady} className="ml-auto rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed">💾 Enregistrer</button>
         </div>
         {msg && <p className="text-xs text-gray-500 mt-2">{msg}</p>}
         <p className="text-[11px] text-gray-400 mt-2">💡 Sur mobile, « Partager » ouvre Instagram, Facebook, etc. avec l’image. La plupart de ces apps n’importent pas la légende automatiquement : elle est <strong>copiée</strong> pour vous — il suffit de la <strong>coller</strong> (appui long → Coller) dans l’app.</p>

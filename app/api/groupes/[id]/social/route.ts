@@ -19,11 +19,21 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!(await canPost(groupId, Number(session.user.id), session.user.siteRole === 'ADMIN'))) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
-  const posts = await prisma.socialPost.findMany({
-    where: { groupId }, orderBy: { createdAt: 'desc' }, take: 50,
-    select: { id: true, caption: true, images: true, createdAt: true, author: { select: { name: true } } },
+  const [posts, members] = await Promise.all([
+    prisma.socialPost.findMany({
+      where: { groupId }, orderBy: { createdAt: 'desc' }, take: 50,
+      select: { id: true, caption: true, images: true, taggedUserIds: true, createdAt: true, author: { select: { name: true } } },
+    }),
+    prisma.groupMember.findMany({
+      where: { groupId },
+      select: { userId: true, imageConsent: true, user: { select: { name: true } } },
+      orderBy: { joinedAt: 'asc' },
+    }),
+  ])
+  return NextResponse.json({
+    posts: posts.map((p) => ({ ...p, images: safeImages(p.images), taggedUserIds: safeIds(p.taggedUserIds) })),
+    members: members.map((m) => ({ userId: m.userId, name: m.user.name, consent: m.imageConsent ?? null })),
   })
-  return NextResponse.json(posts.map((p) => ({ ...p, images: safeImages(p.images) })))
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -40,13 +50,41 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!caption.trim() && images.length === 0) {
     return NextResponse.json({ error: 'Ajoutez du texte ou au moins une image.' }, { status: 400 })
   }
+
+  // Droit à l'image : les membres identifiés sur ce post doivent avoir consenti.
+  const taggedIds: number[] = Array.isArray(b.taggedUserIds)
+    ? Array.from(new Set(b.taggedUserIds.map((x: unknown) => Number(x)).filter((n: number) => Number.isInteger(n))))
+    : []
+  if (taggedIds.length > 0) {
+    const tagged = await prisma.groupMember.findMany({
+      where: { groupId, userId: { in: taggedIds } },
+      select: { userId: true, imageConsent: true, user: { select: { name: true } } },
+    })
+    const knownIds = new Set(tagged.map((m) => m.userId))
+    const unknown = taggedIds.filter((id) => !knownIds.has(id))
+    if (unknown.length > 0) {
+      return NextResponse.json({ error: 'Un membre identifié ne fait pas partie du groupe.' }, { status: 400 })
+    }
+    const notConsented = tagged.filter((m) => m.imageConsent !== true)
+    if (notConsented.length > 0) {
+      return NextResponse.json({
+        error: `Droit à l'image manquant : ${notConsented.map((m) => m.user.name).join(', ')} n'a pas accepté la diffusion de son visage. Retirez-le(s) ou attendez son accord.`,
+      }, { status: 403 })
+    }
+  }
+
   const post = await prisma.socialPost.create({
-    data: { groupId, authorId: userId, caption, images: JSON.stringify(images) },
-    select: { id: true, caption: true, images: true, createdAt: true, author: { select: { name: true } } },
+    data: { groupId, authorId: userId, caption, images: JSON.stringify(images), taggedUserIds: JSON.stringify(taggedIds) },
+    select: { id: true, caption: true, images: true, taggedUserIds: true, createdAt: true, author: { select: { name: true } } },
   })
-  return NextResponse.json({ ...post, images: safeImages(post.images) }, { status: 201 })
+  return NextResponse.json({ ...post, images: safeImages(post.images), taggedUserIds: safeIds(post.taggedUserIds) }, { status: 201 })
 }
 
 function safeImages(s: string): string[] {
   try { const a = JSON.parse(s); return Array.isArray(a) ? a : [] } catch { return [] }
+}
+
+function safeIds(s: string | null): number[] {
+  if (!s) return []
+  try { const a = JSON.parse(s); return Array.isArray(a) ? a.filter((x) => Number.isInteger(x)) : [] } catch { return [] }
 }
