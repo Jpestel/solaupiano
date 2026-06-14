@@ -39,43 +39,51 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const ext = path.extname(filePath).toLowerCase()
 
+  const mimeTypes: Record<string, string> = {
+    '.pdf': 'application/pdf',
+    '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac', '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.m4a': 'audio/m4a',
+    '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp',
+  }
+  const contentType = mimeTypes[ext] || 'application/octet-stream'
+
   // Cache navigateur : ETag basé sur taille + date de modif (le fichier change => ETag change)
   const stat = fs.statSync(filePath)
-  const etag = `"${stat.size}-${Math.round(stat.mtimeMs)}"`
-  const cacheHeaders = {
+  const fileSize = stat.size
+  const etag = `"${fileSize}-${Math.round(stat.mtimeMs)}"`
+  const baseHeaders: Record<string, string> = {
     'Cache-Control': 'private, max-age=86400, stale-while-revalidate=604800',
     ETag: etag,
+    'Accept-Ranges': 'bytes',
+    'Content-Type': contentType,
+    'Content-Disposition': `inline; filename="${resource.name}${ext}"`,
   }
+
   if (req.headers.get('if-none-match') === etag) {
-    return new NextResponse(null, { status: 304, headers: cacheHeaders })
+    return new NextResponse(null, { status: 304, headers: baseHeaders })
+  }
+
+  // Requêtes Range (chargement progressif des PDF par pdf.js, seek audio/vidéo)
+  const range = req.headers.get('range')
+  const m = range ? /bytes=(\d+)-(\d*)/.exec(range) : null
+  if (m) {
+    const start = parseInt(m[1], 10)
+    const end = m[2] ? Math.min(parseInt(m[2], 10), fileSize - 1) : fileSize - 1
+    if (start >= fileSize || start > end) {
+      return new NextResponse(null, { status: 416, headers: { ...baseHeaders, 'Content-Range': `bytes */${fileSize}` } })
+    }
+    const chunkSize = end - start + 1
+    const buf = Buffer.alloc(chunkSize)
+    const fd = fs.openSync(filePath, 'r')
+    try { fs.readSync(fd, buf, 0, chunkSize, start) } finally { fs.closeSync(fd) }
+    return new NextResponse(buf, {
+      status: 206,
+      headers: { ...baseHeaders, 'Content-Range': `bytes ${start}-${end}/${fileSize}`, 'Content-Length': String(chunkSize) },
+    })
   }
 
   const fileBuffer = fs.readFileSync(filePath)
-
-  const mimeTypes: Record<string, string> = {
-    '.pdf': 'application/pdf',
-    '.mp3': 'audio/mpeg',
-    '.wav': 'audio/wav',
-    '.flac': 'audio/flac',
-    '.aac': 'audio/aac',
-    '.ogg': 'audio/ogg',
-    '.m4a': 'audio/m4a',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-  }
-
-  const contentType = mimeTypes[ext] || 'application/octet-stream'
-
   return new NextResponse(fileBuffer, {
-    headers: {
-      'Content-Type': contentType,
-      'Content-Disposition': `inline; filename="${resource.name}${ext}"`,
-      'Content-Length': String(fileBuffer.length),
-      ...cacheHeaders,
-    },
+    headers: { ...baseHeaders, 'Content-Length': String(fileSize) },
   })
 }
 
