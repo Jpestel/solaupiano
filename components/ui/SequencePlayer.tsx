@@ -216,7 +216,14 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     if (countdown !== null) { cancelCountdown(); return }
     ensureGraph()
     if (ctxRef.current?.state === 'suspended') await ctxRef.current.resume()
-    if (!a.paused) { wantPlayRef.current = false; a.pause(); setPlaying(false); return }
+    if (!a.paused) {
+      wantPlayRef.current = false
+      a.pause()
+      // Coupe aussi la sortie Web Audio (sécurité : silence garanti même si l'élément glitche)
+      try { await ctxRef.current?.suspend() } catch { /* ignore */ }
+      setPlaying(false)
+      return
+    }
     // Lecture : départ différé éventuel
     if (delaySec > 0) {
       setCountdown(delaySec)
