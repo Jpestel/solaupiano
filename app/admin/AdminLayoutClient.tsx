@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
-import { BottomNav } from '@/components/BottomNav'
 import { useSettings } from '@/components/SettingsProvider'
 import { SettingsProvider } from '@/components/SettingsProvider'
 
@@ -45,12 +44,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 transition-colors active:scale-95"
             aria-label="Ouvrir le menu"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
+            <span className="text-sm font-medium">Menu</span>
           </button>
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
@@ -62,7 +62,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className="flex-1 overflow-auto">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 lg:pb-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-10 lg:pb-8">
 
             {/* Admin sub-nav — scrollable horizontally on mobile */}
             <div className="mb-6 -mx-4 sm:mx-0">
@@ -88,8 +88,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
-
-      <BottomNav />
     </div>
   )
 }
