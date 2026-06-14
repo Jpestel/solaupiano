@@ -162,8 +162,10 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     a.playbackRate = speed
   }, [speed])
 
-  // Construit le graphe Web Audio (une seule fois)
+  // Construit le graphe Web Audio (uniquement pour le mode Click G / Backing D).
+  // En stéréo normale, on joue directement sur l'élément <audio> natif (fiable sur mobile/iOS).
   const ensureGraph = useCallback(() => {
+    if (seq.channelMode !== 'SPLIT_LR') return
     if (wiredRef.current || !audioRef.current) return
     const Ctx = window.AudioContext || (window as any).webkitAudioContext
     const ctx = new Ctx()
@@ -182,18 +184,17 @@ function AudioSeqPlayer({ seq, compact }: { seq: Sequence; compact?: boolean }) 
     rg.connect(merger, 0, 1)
     merger.connect(ctx.destination)
     wiredRef.current = true
-  }, [])
+  }, [seq.channelMode])
 
   // Applique les volumes
   useEffect(() => {
     const lg = leftGainRef.current, rg = rightGainRef.current
-    if (!lg || !rg) return
-    if (split) {
+    if (split && lg && rg) {
       lg.gain.value = clickMute ? 0 : clickVol
       rg.gain.value = backingMute ? 0 : backingVol
-    } else {
-      lg.gain.value = master
-      rg.gain.value = master
+    } else if (audioRef.current) {
+      // Stéréo : volume natif de l'élément (pas de graphe Web Audio)
+      audioRef.current.volume = Math.max(0, Math.min(1, master))
     }
   }, [split, master, clickVol, backingVol, clickMute, backingMute, playing])
 
