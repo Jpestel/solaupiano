@@ -44,8 +44,23 @@ export default function HelpBubbleLayer() {
   const [editMode, setEditMode] = useState(false)
   const [placing, setPlacing] = useState(false)
   const [editor, setEditor] = useState<Partial<Bubble> | null>(null)
-  const [hidden, setHidden] = useState(false) // préférence perso : masquer les bulles
+  const [hidden, setHidden] = useState(false) // préférence perso : masquer TOUTES les bulles
+  const [dismissed, setDismissed] = useState<number[]>([]) // bulles masquées individuellement
   const overlayRef = useRef<HTMLDivElement>(null)
+
+  // Bulles masquées une par une (stockées localement sur l'appareil)
+  useEffect(() => {
+    try { setDismissed(JSON.parse(localStorage.getItem('bulles-dismissed') || '[]')) } catch { /* ignore */ }
+  }, [])
+  const dismissOne = (id: number) => {
+    setOpenId(null)
+    setDismissed((prev) => {
+      if (prev.includes(id)) return prev
+      const next = [...prev, id]
+      try { localStorage.setItem('bulles-dismissed', JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }
 
   // Préférence d'affichage de l'utilisateur (relue à chaque page : le layout persiste,
   // donc on récupère un éventuel changement fait depuis le profil).
@@ -168,7 +183,7 @@ export default function HelpBubbleLayer() {
         className="absolute inset-0 z-20"
         style={{ pointerEvents: placing ? 'auto' : 'none', cursor: placing ? 'crosshair' : 'default' }}
       >
-        {(editMode || !hidden) && bubbles.map((b) => {
+        {(editMode || !hidden) && bubbles.filter((b) => editMode || !dismissed.includes(b.id)).map((b) => {
           const c = COLORS[b.color] || COLORS.indigo
           const isOpen = openId === b.id
           return (
@@ -197,7 +212,10 @@ export default function HelpBubbleLayer() {
                 >
                   {b.title && <p className={`text-sm font-bold mb-1 ${c.text}`}>{b.emoji} {b.title}</p>}
                   {b.content && <p className="text-sm text-gray-700 whitespace-pre-wrap">{b.content}</p>}
-                  <button onClick={() => setOpenId(null)} className="mt-2 w-full rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-200">J&apos;ai compris</button>
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={() => setOpenId(null)} className="flex-1 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-200">Fermer</button>
+                    <button onClick={() => dismissOne(b.id)} className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white ${c.dot} hover:opacity-90`}>Ne plus afficher</button>
+                  </div>
                   <button onClick={() => setHiddenPref(true)} className="mt-1.5 w-full text-[11px] text-gray-400 hover:text-gray-600">🔕 Masquer toutes les astuces</button>
                 </div>
               )}
