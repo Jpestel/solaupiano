@@ -116,9 +116,8 @@ export default function HelpBubbleLayer() {
     if (!dragRef.current || dragRef.current.id !== b.id) return
     const moved = dragRef.current.moved
     dragRef.current = null
-    if (!moved) { // simple clic
+    if (!moved) { // simple clic en mode édition → ouvrir l'éditeur (le clic en lecture est géré par onClick)
       if (editMode) openEditor(b)
-      else setOpenId((id) => (id === b.id ? null : b.id))
       return
     }
     const cur = bubbles.find((p) => p.id === b.id)
@@ -176,6 +175,7 @@ export default function HelpBubbleLayer() {
             <div key={b.id} className="absolute" style={{ left: `${b.xPct}%`, top: `${b.yPx}px`, pointerEvents: 'auto', transform: 'translate(-50%, -50%)' }}>
               {/* Marqueur pulsant */}
               <button
+                onClick={() => { if (!editMode) setOpenId((id) => (id === b.id ? null : b.id)) }}
                 onPointerDown={(e) => onDotPointerDown(e, b)}
                 onPointerMove={(e) => onDotPointerMove(e, b)}
                 onPointerUp={(e) => onDotPointerUp(e, b)}
@@ -187,9 +187,14 @@ export default function HelpBubbleLayer() {
                 <span className="relative text-sm leading-none">{b.emoji}</span>
               </button>
 
-              {/* Popover (lecture) */}
+              {/* Popover (lecture) — ancrage horizontal selon la position pour rester visible */}
               {isOpen && !editMode && (
-                <div className={`absolute left-1/2 top-10 -translate-x-1/2 w-64 rounded-xl border bg-white shadow-xl p-3 ${c.accent}`} style={{ zIndex: 30 }}>
+                <div
+                  className={`absolute top-10 w-64 rounded-xl border bg-white shadow-xl p-3 ${c.accent} ${
+                    b.xPct > 66 ? 'right-0' : b.xPct < 34 ? 'left-0' : 'left-1/2 -translate-x-1/2'
+                  }`}
+                  style={{ zIndex: 30 }}
+                >
                   {b.title && <p className={`text-sm font-bold mb-1 ${c.text}`}>{b.emoji} {b.title}</p>}
                   {b.content && <p className="text-sm text-gray-700 whitespace-pre-wrap">{b.content}</p>}
                   <button onClick={() => setOpenId(null)} className="mt-2 w-full rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-200">J&apos;ai compris</button>
@@ -210,7 +215,7 @@ export default function HelpBubbleLayer() {
 
       {/* Barre d'outils admin (fixe) */}
       {isAdmin && (
-        <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2" style={{ pointerEvents: 'auto' }}>
+        <div className="fixed bottom-4 left-4 lg:left-[17rem] z-40 flex items-center gap-2" style={{ pointerEvents: 'auto' }}>
           {!editMode ? (
             <button onClick={toggleEdit} title="Gérer les bulles d'aide" className="flex items-center gap-1.5 rounded-full bg-gray-900 px-3 py-2 text-sm font-semibold text-white shadow-lg hover:bg-gray-700">
               💡 Bulles
