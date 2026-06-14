@@ -766,12 +766,20 @@ export default async function AidePage() {
             </HelpCard>
 
             <HelpCard title="Suivi de progression">
-              <p>Chaque membre peut indiquer son niveau de maîtrise pour chaque morceau depuis la fiche de répétition :</p>
+              <p>Depuis la fiche d&apos;une répétition, chaque membre indique son <strong>pourcentage de maîtrise</strong> (de 0 à 100 %) pour chaque morceau — bien plus précis qu&apos;un simple « à travailler / en cours / maîtrisé ».</p>
+              <ol className="space-y-2 mt-2">
+                <Step n={1}>Sur un morceau, cliquez sur le <strong>bouton de progression</strong> (il affiche une petite barre et votre % actuel).</Step>
+                <Step n={2}>Réglez votre niveau avec le <strong>curseur</strong> (par pas de 5 %) ou un <strong>préréglage rapide</strong> : 0 / 25 / 50 / 75 / 100 %.</Step>
+              </ol>
+              <p className="mt-3">La couleur et le libellé s&apos;adaptent automatiquement à votre pourcentage :</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                <ProgressPill status="A_TRAVAILLER" />
-                <ProgressPill status="EN_COURS" />
-                <ProgressPill status="MAITRISE" />
+                <ProgressPct percent={0} />
+                <ProgressPct percent={20} />
+                <ProgressPct percent={50} />
+                <ProgressPct percent={80} />
+                <ProgressPct percent={100} />
               </div>
+              <Tip>Côté chef, le panneau de suivi affiche le % de chaque membre, le nombre de membres à 100 %, et la <strong>moyenne de maîtrise du groupe</strong> pour chaque morceau.</Tip>
             </HelpCard>
           </div>
         </section>
@@ -2283,6 +2291,23 @@ function ProgressPill({ status }: { status: 'A_TRAVAILLER' | 'EN_COURS' | 'MAITR
     MAITRISE: { label: '🟢 Maîtrisé', cls: 'bg-green-50 text-green-700 border-green-200' },
   }[status]
   return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${s.cls}`}>{s.label}</span>
+}
+
+function ProgressPct({ percent }: { percent: number }) {
+  const s =
+    percent >= 100 ? { label: 'Maîtrisé', cls: 'bg-green-50 text-green-700 border-green-200', bar: 'bg-green-500' }
+    : percent >= 67 ? { label: 'Presque',   cls: 'bg-lime-50 text-lime-700 border-lime-200',   bar: 'bg-lime-500' }
+    : percent >= 34 ? { label: 'En cours',  cls: 'bg-orange-50 text-orange-600 border-orange-200', bar: 'bg-orange-500' }
+    : percent > 0   ? { label: 'Débuté',    cls: 'bg-amber-50 text-amber-700 border-amber-200', bar: 'bg-amber-500' }
+    :                 { label: 'À travailler', cls: 'bg-gray-50 text-gray-500 border-gray-200', bar: 'bg-gray-300' }
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium ${s.cls}`}>
+      <span className="relative inline-block h-1.5 w-12 overflow-hidden rounded-full bg-black/10">
+        <span className={`absolute inset-y-0 left-0 rounded-full ${s.bar}`} style={{ width: `${percent}%` }} />
+      </span>
+      {percent}% · {s.label}
+    </span>
+  )
 }
 
 function PlanBadgeCard({ icon, name, color, features, active }: {
