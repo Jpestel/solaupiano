@@ -7,12 +7,14 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
 interface PdfModalProps {
-  url: string    // URL of the PDF (/api/ressources/ID)
+  url: string    // URL of the file (/api/ressources/ID)
   title: string
   onClose: () => void
+  kind?: 'pdf' | 'image'   // 'image' : partition au format photo (jpeg/png…)
 }
 
-export function PdfModal({ url, title, onClose }: PdfModalProps) {
+export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
+  const isImage = kind === 'image'
   const [numPages, setNumPages] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [scale, setScale] = useState(1.2)
@@ -129,39 +131,49 @@ export function PdfModal({ url, title, onClose }: PdfModalProps) {
           </div>
         </div>
 
-        {/* PDF content */}
+        {/* Content */}
         <div className="flex-1 overflow-auto flex justify-center bg-gray-800 p-4 min-h-0">
-          <Document
-            file={url}
-            onLoadSuccess={onDocumentLoadSuccess}
-            loading={
-              <div className="flex items-center justify-center h-48 text-gray-400">
-                <div className="text-center">
-                  <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <p className="text-sm">Chargement de la partition...</p>
-                </div>
-              </div>
-            }
-            error={
-              <div className="flex items-center justify-center h-48 text-red-400">
-                <div className="text-center">
-                  <p className="text-2xl mb-2">⚠️</p>
-                  <p className="text-sm">Impossible de charger le PDF.</p>
-                </div>
-              </div>
-            }
-          >
-            <Page
-              pageNumber={currentPage}
-              scale={scale}
-              renderTextLayer={false}
-              className="shadow-2xl"
+          {isImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={url}
+              alt={title}
+              style={{ width: `${Math.round((scale / 1.2) * 100)}%`, height: 'auto', maxWidth: 'none' }}
+              className="self-start object-contain shadow-2xl"
             />
-          </Document>
+          ) : (
+            <Document
+              file={url}
+              onLoadSuccess={onDocumentLoadSuccess}
+              loading={
+                <div className="flex items-center justify-center h-48 text-gray-400">
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    <p className="text-sm">Chargement de la partition...</p>
+                  </div>
+                </div>
+              }
+              error={
+                <div className="flex items-center justify-center h-48 text-red-400">
+                  <div className="text-center">
+                    <p className="text-2xl mb-2">⚠️</p>
+                    <p className="text-sm">Impossible de charger le PDF.</p>
+                  </div>
+                </div>
+              }
+            >
+              <Page
+                pageNumber={currentPage}
+                scale={scale}
+                renderTextLayer={false}
+                className="shadow-2xl"
+              />
+            </Document>
+          )}
         </div>
 
         {/* Bottom navigation bar */}
-        {numPages > 0 && (
+        {!isImage && numPages > 0 && (
           <div className="flex items-center justify-between px-4 py-2.5 bg-gray-800 border-t border-gray-700 flex-shrink-0">
             {/* Prev */}
             <button

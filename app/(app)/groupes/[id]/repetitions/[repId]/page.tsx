@@ -151,7 +151,7 @@ function SortableSongRow({
   removeSong: (id: number) => void
   setProgress: (id: number, percent: number) => void
   onVideoClick: (embedUrl: string, title: string) => void
-  onPdfClick: (url: string, title: string) => void
+  onPdfClick: (url: string, title: string, kind?: 'pdf' | 'image') => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.song.id,
@@ -221,14 +221,14 @@ function SortableSongRow({
                     </div>
                   )
                 }
-                if (res.type === 'PDF') {
+                if (res.type === 'PDF' || res.type === 'IMAGE') {
                   return (
                     <div key={res.id}>
                       <button
-                        onClick={() => onPdfClick(`/api/ressources/${res.id}`, res.name)}
+                        onClick={() => onPdfClick(`/api/ressources/${res.id}`, res.name, res.type === 'IMAGE' ? 'image' : 'pdf')}
                         className="w-full flex items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 hover:border-indigo-400 hover:bg-indigo-50 transition-colors group text-left"
                       >
-                        <span className="text-base">📄</span>
+                        <span className="text-base">{res.type === 'IMAGE' ? '🖼️' : '📄'}</span>
                         <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 flex-1 truncate">{res.name}</span>
                         <span className="text-[10px] font-semibold text-indigo-500 group-hover:text-indigo-700 flex-shrink-0">Lire</span>
                       </button>
@@ -288,7 +288,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
   const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string } | null>(null)
-  const [pdfModal, setPdfModal] = useState<{ url: string; title: string } | null>(null)
+  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image' } | null>(null)
 
   // Edit state
   const [editOpen, setEditOpen] = useState(false)
@@ -578,7 +578,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                         removeSong={removeSong}
                         setProgress={setProgress}
                         onVideoClick={(embedUrl, title) => setVideoModal({ embedUrl, title })}
-                        onPdfClick={(url, title) => setPdfModal({ url, title })}
+                        onPdfClick={(url, title, kind) => setPdfModal({ url, title, kind })}
                       />
                     ))}
                   </div>
@@ -819,6 +819,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
         <PdfModal
           url={pdfModal.url}
           title={pdfModal.title}
+          kind={pdfModal.kind}
           onClose={() => setPdfModal(null)}
         />
       )}
