@@ -1305,3 +1305,20 @@ model Newsletter {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
+
+model HelpBubble {
+  id        Int      @id @default(autoincrement())
+  path      String              // pathname où la bulle s'affiche (correspondance exacte)
+  xPct      Float               // position horizontale : % de la largeur du contenu (0–100)
+  yPx       Int                 // position verticale : px depuis le haut du contenu
+  title     String
+  content   String   @db.Text
+  emoji     String   @default("💡")
+  color     String   @default("indigo") // indigo | amber | green | sky | rose | purple
+  audience  String   @default("ALL")    // ALL | MEMBERS | CHEFS | ADMINS
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([path])
+}

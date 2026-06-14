@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Sidebar } from '@/components/Sidebar'
+import HelpBubbleLayer from '@/components/HelpBubbleLayer'
 import { SettingsProvider, useSettings } from '@/components/SettingsProvider'
 import { WakeUpOverlay } from '@/components/WakeUpOverlay'
 import { FlashInfo } from '@/components/FlashInfo'
@@ -59,8 +60,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className="flex-1 overflow-auto">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-10 lg:pb-8">
+          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-10 lg:pb-8">
             {children}
+            <HelpBubbleLayer />
           </div>
         </main>
       </div>
