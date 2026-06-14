@@ -77,6 +77,7 @@ export default async function AidePage() {
             { href: '#ressources', label: '📒 Ressources' },
             { href: '#comptabilite', label: '💶 Comptabilité' },
             { href: '#galerie', label: '📸 Galerie' },
+            { href: '#social', label: '📣 Réseaux sociaux' },
             { href: '#repertoire', label: '🎼 Répertoire' },
             { href: '#setlists', label: '🎶 Setlists' },
             { href: '#grilles', label: '🎸 Grilles' },
@@ -650,6 +651,30 @@ export default async function AidePage() {
               <Note>Le module <strong>Galerie</strong> peut être inclus ou non selon l&apos;offre du groupe (il apparaît grisé 🔒 s&apos;il n&apos;est pas inclus).</Note>
             </HelpCard>
 
+          </div>
+        </section>
+
+        {/* ─── RÉSEAUX SOCIAUX ─── */}
+        <section id="social">
+          <SectionTitle icon="📣" title="Atelier réseaux sociaux" color="sky" tutorials={[]} />
+          <div className="space-y-4">
+            <HelpCard title="À quoi ça sert">
+              <p>Composez et partagez rapidement des <strong>posts pour les réseaux sociaux</strong> à partir des <strong>photos de la Galerie</strong> du groupe — idéal pour animer la communauté sans quitter l&apos;appli.</p>
+            </HelpCard>
+            <HelpCard title="Créer et partager un post" badge={{ label: 'Chef / co-chef autorisé', color: 'indigo' }}>
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Ouvrez la carte <strong>📣 Réseaux</strong> du groupe.</Step>
+                <Step n={2}><strong>Sélectionnez des photos</strong> de la Galerie (plusieurs possibles, numérotées dans l&apos;ordre).</Step>
+                <Step n={3}>Rédigez la <strong>légende</strong> : bouton <strong>✨ Suggérer un texte</strong> et <strong>hashtags</strong> rapides.</Step>
+                <Step n={4}>Cliquez <strong>📤 Partager</strong>.</Step>
+              </ol>
+              <Note>📱 Sur <strong>mobile</strong>, « Partager » ouvre directement Instagram, Facebook, WhatsApp… avec l&apos;image. Comme ces apps n&apos;importent pas le texte joint, la <strong>légende est copiée</strong> automatiquement : faites un <strong>appui long → Coller</strong> dans l&apos;app. Sur <strong>ordinateur</strong>, utilisez <strong>📋 Copier la légende</strong> + <strong>⬇ Télécharger</strong> l&apos;image.</Note>
+              <Tip>Vous pouvez <strong>💾 enregistrer</strong> un post pour le <strong>réutiliser</strong> plus tard (liste « Posts enregistrés »).</Tip>
+            </HelpCard>
+            <HelpCard title="Qui peut publier ?">
+              <p>Réservé au <strong>chef d&apos;orchestre</strong> et aux <strong>co-chefs</strong> à qui le fondateur a accordé le droit <strong>« Réseaux sociaux → Publier »</strong> (configurable dans <em>Permissions des co-chefs</em>, en bas de la page du groupe).</p>
+              <Note>Le module peut être inclus ou non selon l&apos;offre du groupe (il apparaît grisé 🔒 s&apos;il n&apos;est pas inclus).</Note>
+            </HelpCard>
           </div>
         </section>
 
