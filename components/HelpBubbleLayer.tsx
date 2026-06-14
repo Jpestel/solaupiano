@@ -54,14 +54,14 @@ function computeAnchor(target: Element | null, clientX: number, clientY: number)
   return { anchorSelector: sel, anchorDx: Math.max(0, Math.min(1, dx)), anchorDy: Math.max(0, Math.min(1, dy)) }
 }
 
-// Élément réel sous un point, en neutralisant temporairement la couche/le marqueur.
-function elementUnder(overlay: HTMLElement | null, x: number, y: number, ignore?: HTMLElement | null): Element | null {
-  const restore: { el: HTMLElement; v: string }[] = []
-  if (overlay) { restore.push({ el: overlay, v: overlay.style.pointerEvents }); overlay.style.pointerEvents = 'none' }
-  if (ignore) { restore.push({ el: ignore, v: ignore.style.pointerEvents }); ignore.style.pointerEvents = 'none' }
-  const el = document.elementFromPoint(x, y)
-  restore.forEach((r) => { r.el.style.pointerEvents = r.v })
-  return el
+// Élément réel sous un point, en ignorant TOUTE la couche des bulles (marqueurs inclus).
+function elementUnder(overlay: HTMLElement | null, x: number, y: number): Element | null {
+  const stack = document.elementsFromPoint(x, y)
+  for (const el of stack) {
+    if (overlay && overlay.contains(el)) continue // saute la couche + ses marqueurs
+    return el
+  }
+  return null
 }
 
 const isGroupPath = (p: string | null) => !!p && /^\/groupes\/\d+/.test(p)
@@ -237,7 +237,7 @@ export default function HelpBubbleLayer() {
     const xPct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
     const yPx = Math.max(0, Math.round(e.clientY - rect.top))
     // Ré-ancrage sur l'élément lâché (sinon coordonnées de repli)
-    const target = elementUnder(overlay, e.clientX, e.clientY, e.currentTarget as HTMLElement)
+    const target = elementUnder(overlay, e.clientX, e.clientY)
     const anchor = computeAnchor(target, e.clientX, e.clientY)
     setBubbles((prev) => prev.map((p) => (p.id === b.id ? { ...p, xPct, yPx, ...anchor } : p)))
     await fetch(`/api/bulles/${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ xPct, yPx, ...anchor }) })
