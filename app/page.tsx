@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { PublicJoinButton } from './PublicJoinButton'
+import { PublicNav } from './PublicNav'
 import { HomeCarousel } from '@/components/HomeCarousel'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
 
@@ -122,44 +123,7 @@ export default async function PublicHomePage() {
               <span className="text-[10px] text-indigo-400 italic font-normal">du solo à l&apos;orchestre</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/annonces"
-              className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
-            >
-              Annonces
-            </Link>
-            <Link
-              href="/blog"
-              className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
-            >
-              Blog
-            </Link>
-            <Link
-              href="/tarifs"
-              className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
-            >
-              Tarifs
-            </Link>
-            <Link
-              href="/aide"
-              className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
-            >
-              Aide
-            </Link>
-            <Link
-              href="/connexion"
-              className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
-            >
-              Se connecter
-            </Link>
-            <Link
-              href="/inscription"
-              className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
-            >
-              S&apos;inscrire
-            </Link>
-          </div>
+          <PublicNav />
         </div>
       </header>
 
@@ -449,7 +413,7 @@ export default async function PublicHomePage() {
 
       {/* Footer */}
       <footer className="mt-4 border-t border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center sm:justify-between gap-4 text-center sm:text-left">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-indigo-600 rounded-md flex items-center justify-center">
               <span className="text-xs">🎹</span>
@@ -459,8 +423,7 @@ export default async function PublicHomePage() {
               <span className="text-[10px] text-indigo-400 italic">du solo à l&apos;orchestre</span>
             </div>
           </div>
-          <p className="text-xs text-gray-400 hidden sm:block">La plateforme pour les musiciens en groupe</p>
-          <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-gray-500">
             <Link href="/connexion" className="hover:text-indigo-600 transition-colors">Connexion</Link>
             <Link href="/inscription" className="hover:text-indigo-600 transition-colors">Inscription</Link>
             <Link href="/annonces" className="hover:text-indigo-600 transition-colors">Annonces</Link>
