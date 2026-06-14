@@ -12,7 +12,10 @@ interface Bubble {
   color: string
   audience: string
   active: boolean
+  dismissedCount?: number
 }
+
+interface Dismissal { userId: number; name: string; email: string; createdAt: string }
 
 const AUDIENCE_LABEL: Record<string, string> = {
   ALL: 'Tout le monde', MEMBERS: 'Membres', CHEFS: 'Chefs', ADMINS: 'Admins',
@@ -21,6 +24,8 @@ const AUDIENCE_LABEL: Record<string, string> = {
 export default function AdminBullesPage() {
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState<number | null>(null)
+  const [dismissals, setDismissals] = useState<Record<number, Dismissal[]>>({})
 
   const load = useCallback(async () => {
     const res = await fetch('/api/bulles?all=1')
@@ -36,6 +41,19 @@ export default function AdminBullesPage() {
   const del = async (id: number) => {
     if (!confirm('Supprimer cette bulle ?')) return
     await fetch(`/api/bulles/${id}`, { method: 'DELETE' })
+    load()
+  }
+
+  const toggleDismissals = async (id: number) => {
+    if (expanded === id) { setExpanded(null); return }
+    setExpanded(id)
+    const res = await fetch(`/api/bulles/${id}/dismissals`)
+    if (res.ok) { const data = await res.json(); setDismissals((prev) => ({ ...prev, [id]: data })) }
+  }
+  const reshow = async (id: number, body: Record<string, unknown>) => {
+    await fetch(`/api/bulles/${id}/dismissals`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const res = await fetch(`/api/bulles/${id}/dismissals`)
+    if (res.ok) { const data = await res.json(); setDismissals((prev) => ({ ...prev, [id]: data })) }
     load()
   }
 
@@ -74,17 +92,54 @@ export default function AdminBullesPage() {
               </div>
               <ul className="divide-y divide-gray-50">
                 {list.map((b) => (
-                  <li key={b.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <span className="text-lg flex-shrink-0">{b.emoji}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-800 truncate">{b.title || <span className="text-gray-400">(sans titre)</span>}</p>
-                      <p className="text-xs text-gray-500 truncate">{b.content}</p>
+                  <li key={b.id}>
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <span className="text-lg flex-shrink-0">{b.emoji}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-800 truncate">{b.title || <span className="text-gray-400">(sans titre)</span>}</p>
+                        <p className="text-xs text-gray-500 truncate">{b.content}</p>
+                      </div>
+                      <button
+                        onClick={() => toggleDismissals(b.id)}
+                        disabled={!b.dismissedCount}
+                        className={`text-[11px] font-semibold rounded-full px-2 py-0.5 flex-shrink-0 ${b.dismissedCount ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-50 text-gray-300 cursor-default'}`}
+                        title={b.dismissedCount ? 'Voir qui a masqué cette bulle' : 'Personne ne l\'a masquée'}
+                      >
+                        🙈 {b.dismissedCount || 0}
+                      </button>
+                      <span className="text-[11px] text-gray-500 bg-gray-100 rounded-full px-2 py-0.5 flex-shrink-0">{AUDIENCE_LABEL[b.audience] || b.audience}</span>
+                      <button onClick={() => toggleActive(b)} className={`text-[11px] font-semibold rounded-full px-2 py-0.5 flex-shrink-0 ${b.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {b.active ? 'Active' : 'Inactive'}
+                      </button>
+                      <button onClick={() => del(b.id)} className="text-xs text-red-500 hover:text-red-700 flex-shrink-0">Supprimer</button>
                     </div>
-                    <span className="text-[11px] text-gray-500 bg-gray-100 rounded-full px-2 py-0.5 flex-shrink-0">{AUDIENCE_LABEL[b.audience] || b.audience}</span>
-                    <button onClick={() => toggleActive(b)} className={`text-[11px] font-semibold rounded-full px-2 py-0.5 flex-shrink-0 ${b.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                      {b.active ? 'Active' : 'Inactive'}
-                    </button>
-                    <button onClick={() => del(b.id)} className="text-xs text-red-500 hover:text-red-700 flex-shrink-0">Supprimer</button>
+
+                    {expanded === b.id && (
+                      <div className="px-4 pb-3 -mt-0.5">
+                        <div className="rounded-lg bg-amber-50/60 border border-amber-100 p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-semibold text-amber-800">Masquée par {dismissals[b.id]?.length ?? '…'} utilisateur(s)</p>
+                            {(dismissals[b.id]?.length ?? 0) > 0 && (
+                              <button onClick={() => reshow(b.id, { all: true })} className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-500">Ré-afficher pour tous</button>
+                            )}
+                          </div>
+                          {dismissals[b.id] === undefined ? (
+                            <p className="text-xs text-gray-400">Chargement…</p>
+                          ) : dismissals[b.id].length === 0 ? (
+                            <p className="text-xs text-gray-400">Plus personne ne masque cette bulle.</p>
+                          ) : (
+                            <ul className="space-y-1">
+                              {dismissals[b.id].map((d) => (
+                                <li key={d.userId} className="flex items-center justify-between gap-3 text-xs">
+                                  <span className="text-gray-700 truncate">{d.name} <span className="text-gray-400">· {d.email}</span></span>
+                                  <button onClick={() => reshow(b.id, { userId: d.userId })} className="flex-shrink-0 rounded-full bg-white border border-indigo-200 px-2 py-0.5 font-semibold text-indigo-600 hover:bg-indigo-50">Ré-afficher</button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

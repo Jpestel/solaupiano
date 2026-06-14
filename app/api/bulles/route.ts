@@ -23,8 +23,11 @@ export async function GET(req: NextRequest) {
 
   if (searchParams.get('all')) {
     if (!isAdmin) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
-    const bubbles = await prisma.helpBubble.findMany({ orderBy: [{ path: 'asc' }, { createdAt: 'asc' }] })
-    return NextResponse.json(bubbles)
+    const bubbles = await prisma.helpBubble.findMany({
+      orderBy: [{ path: 'asc' }, { createdAt: 'asc' }],
+      include: { _count: { select: { dismissals: true } } },
+    })
+    return NextResponse.json(bubbles.map(({ _count, ...b }) => ({ ...b, dismissedCount: _count.dismissals })))
   }
 
   const path = searchParams.get('path')
@@ -36,8 +39,13 @@ export async function GET(req: NextRequest) {
   // côté admin afin qu'il puisse tout voir/éditer). Le composant gère l'affichage.
   if (isAdmin && searchParams.get('edit')) return NextResponse.json(all)
 
-  // Filtre d'audience pour l'affichage normal.
+  // Filtre d'audience + exclusion des bulles que l'utilisateur a masquées individuellement.
   const userId = Number(session.user.id)
+  const dismissedRows = await prisma.helpBubbleDismissal.findMany({
+    where: { userId, bubbleId: { in: all.map((b) => b.id) } },
+    select: { bubbleId: true },
+  })
+  const dismissedSet = new Set(dismissedRows.map((d) => d.bubbleId))
   let isChef = false
   if (all.some((b) => b.audience === 'CHEFS')) {
     const chefCount = await prisma.groupMember.count({ where: { userId, groupRole: 'CHEF' } })
@@ -46,6 +54,7 @@ export async function GET(req: NextRequest) {
   }
 
   const visible = all.filter((b) => {
+    if (dismissedSet.has(b.id)) return false
     switch (b.audience) {
       case 'ADMINS': return isAdmin
       case 'MEMBERS': return !isAdmin

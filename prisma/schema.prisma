@@ -203,6 +203,7 @@ model User {
   blogPosts                BlogPost[]              @relation("BlogAuthor")
   blogLikes                BlogLike[]
   socialPosts              SocialPost[]
+  helpBubbleDismissals     HelpBubbleDismissal[]
 }
 
 // ─── Blog ────────────────────────────────────────────────────────────────────
@@ -1321,5 +1322,21 @@ model HelpBubble {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  dismissals HelpBubbleDismissal[]
+
   @@index([path])
+}
+
+model HelpBubbleDismissal {
+  id        Int      @id @default(autoincrement())
+  bubbleId  Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  bubble HelpBubble @relation(fields: [bubbleId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bubbleId, userId])
+  @@index([bubbleId])
+  @@index([userId])
 }

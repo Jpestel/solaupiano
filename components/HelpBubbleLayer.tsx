@@ -45,21 +45,13 @@ export default function HelpBubbleLayer() {
   const [placing, setPlacing] = useState(false)
   const [editor, setEditor] = useState<Partial<Bubble> | null>(null)
   const [hidden, setHidden] = useState(false) // préférence perso : masquer TOUTES les bulles
-  const [dismissed, setDismissed] = useState<number[]>([]) // bulles masquées individuellement
   const overlayRef = useRef<HTMLDivElement>(null)
 
-  // Bulles masquées une par une (stockées localement sur l'appareil)
-  useEffect(() => {
-    try { setDismissed(JSON.parse(localStorage.getItem('bulles-dismissed') || '[]')) } catch { /* ignore */ }
-  }, [])
-  const dismissOne = (id: number) => {
+  // Masque cette bulle uniquement, pour cet utilisateur (mémorisé en base → visible par l'admin)
+  const dismissOne = async (id: number) => {
     setOpenId(null)
-    setDismissed((prev) => {
-      if (prev.includes(id)) return prev
-      const next = [...prev, id]
-      try { localStorage.setItem('bulles-dismissed', JSON.stringify(next)) } catch { /* ignore */ }
-      return next
-    })
+    setBubbles((prev) => prev.filter((b) => b.id !== id)) // retrait immédiat
+    await fetch(`/api/bulles/${id}/dismiss`, { method: 'POST' }).catch(() => {})
   }
 
   // Préférence d'affichage de l'utilisateur (relue à chaque page : le layout persiste,
@@ -183,7 +175,7 @@ export default function HelpBubbleLayer() {
         className="absolute inset-0 z-20"
         style={{ pointerEvents: placing ? 'auto' : 'none', cursor: placing ? 'crosshair' : 'default' }}
       >
-        {(editMode || !hidden) && bubbles.filter((b) => editMode || !dismissed.includes(b.id)).map((b) => {
+        {(editMode || !hidden) && bubbles.map((b) => {
           const c = COLORS[b.color] || COLORS.indigo
           const isOpen = openId === b.id
           return (
