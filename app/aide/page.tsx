@@ -95,6 +95,7 @@ export default async function AidePage() {
             { href: '#cachet-guso', label: '💶 Cachet GUSO' },
             { href: '#stats', label: '📊 Statistiques' },
             { href: '#annonces', label: '📢 Annonces' },
+            { href: '#blog', label: '📰 Blog' },
             { href: '#plans', label: '📦 Plans' },
             { href: '#assistance', label: '🆘 Assistance' },
             { href: '#faq', label: '❓ FAQ' },
@@ -1847,6 +1848,26 @@ export default async function AidePage() {
                 Ouvrir le simulateur →
               </Link>
             </div>
+          </div>
+        </section>
+
+        {/* ─── BLOG ─── */}
+        <section id="blog">
+          <SectionTitle icon="📰" title="Blog" color="rose" tutorials={[]} />
+          <div className="space-y-4">
+            <HelpCard title="Lire, aimer, partager">
+              <p>Le <strong>Blog</strong> (accessible depuis la barre latérale, et publiquement sur <strong>/blog</strong>) rassemble actualités, conseils de répétition, tutos et coulisses.</p>
+              <ul className="mt-2 space-y-1">
+                <li>📖 <strong>Lecture libre</strong> : les articles sont publics, classés par <strong>catégories</strong></li>
+                <li>❤️ <strong>J&apos;aime</strong> : en tant que membre connecté, aimez vos articles préférés</li>
+                <li>🔗 <strong>Partage</strong> : Facebook, X, WhatsApp, LinkedIn ou copier le lien</li>
+              </ul>
+            </HelpCard>
+            {session?.user?.siteRole === 'ADMIN' && (
+              <HelpCard title="Gérer le blog" badge={{ label: 'Admin', color: 'indigo' }}>
+                <p>Depuis <strong>Admin → Blog</strong> : rédigez des articles (titre, image de couverture, contenu, résumé), gérez les <strong>catégories</strong> et leurs couleurs, et publiez en un clic (ou enregistrez en brouillon).</p>
+              </HelpCard>
+            )}
           </div>
         </section>
 
