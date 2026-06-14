@@ -130,6 +130,12 @@ export default async function PublicHomePage() {
               Annonces
             </Link>
             <Link
+              href="/blog"
+              className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
+            >
+              Blog
+            </Link>
+            <Link
               href="/tarifs"
               className="hidden sm:block text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
             >
@@ -458,6 +464,7 @@ export default async function PublicHomePage() {
             <Link href="/connexion" className="hover:text-indigo-600 transition-colors">Connexion</Link>
             <Link href="/inscription" className="hover:text-indigo-600 transition-colors">Inscription</Link>
             <Link href="/annonces" className="hover:text-indigo-600 transition-colors">Annonces</Link>
+            <Link href="/blog" className="hover:text-indigo-600 transition-colors">Blog</Link>
             <Link href="/tarifs" className="hover:text-indigo-600 transition-colors">Tarifs</Link>
             <Link href="/aide" className="hover:text-indigo-600 transition-colors">Aide</Link>
             <Link href="/newsletter" className="hover:text-indigo-600 transition-colors">Newsletter</Link>
