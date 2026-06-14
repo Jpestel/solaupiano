@@ -22,6 +22,7 @@ export default withAuth(
         if (pathname === '/aide' || pathname.startsWith('/aide/')) return true
         if (pathname === '/tarifs') return true
         if (pathname === '/annonces' || pathname.startsWith('/annonces/')) return true
+        if (pathname === '/blog' || pathname.startsWith('/blog/')) return true
         return !!token
       },
     },

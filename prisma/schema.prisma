@@ -198,6 +198,55 @@ model User {
   moduleVisits             ModuleVisit[]
   sequenceLoops            SequenceLoop[]
   scoreMarkers             ScoreMarker[]
+  blogPosts                BlogPost[]              @relation("BlogAuthor")
+  blogLikes                BlogLike[]
+}
+
+// ─── Blog ────────────────────────────────────────────────────────────────────
+model BlogCategory {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  color     String   @default("indigo")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  posts BlogPost[]
+}
+
+model BlogPost {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  excerpt     String?   @db.Text
+  content     String    @db.LongText // HTML
+  coverImage  String?
+  status      String    @default("DRAFT") // DRAFT | PUBLISHED
+  publishedAt DateTime?
+  viewCount   Int       @default(0)
+  categoryId  Int?
+  authorId    Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author   User?         @relation("BlogAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  likes    BlogLike[]
+
+  @@index([status, publishedAt])
+}
+
+model BlogLike {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  post BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
 }
 
 enum FlashInfoType {

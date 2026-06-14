@@ -134,6 +134,15 @@ const navItems = [
     ),
   },
   {
+    href: '/blog',
+    label: 'Blog',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m-6 12h6a2 2 0 002-2v-7a2 2 0 00-2-2h-2v4l-2-1-2 1V7H9a2 2 0 00-2 2v9a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
     href: '/aide',
     label: 'Aide',
     icon: (
