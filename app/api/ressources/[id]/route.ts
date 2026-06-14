@@ -37,8 +37,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Fichier introuvable.' }, { status: 404 })
   }
 
-  const fileBuffer = fs.readFileSync(filePath)
   const ext = path.extname(filePath).toLowerCase()
+
+  // Cache navigateur : ETag basé sur taille + date de modif (le fichier change => ETag change)
+  const stat = fs.statSync(filePath)
+  const etag = `"${stat.size}-${Math.round(stat.mtimeMs)}"`
+  const cacheHeaders = {
+    'Cache-Control': 'private, max-age=86400, stale-while-revalidate=604800',
+    ETag: etag,
+  }
+  if (req.headers.get('if-none-match') === etag) {
+    return new NextResponse(null, { status: 304, headers: cacheHeaders })
+  }
+
+  const fileBuffer = fs.readFileSync(filePath)
 
   const mimeTypes: Record<string, string> = {
     '.pdf': 'application/pdf',
@@ -62,6 +74,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       'Content-Type': contentType,
       'Content-Disposition': `inline; filename="${resource.name}${ext}"`,
       'Content-Length': String(fileBuffer.length),
+      ...cacheHeaders,
     },
   })
 }
