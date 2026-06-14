@@ -317,6 +317,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
           <Link
             key={link.href}
             href={`/groupes/${groupId}/${link.href}`}
+            data-bubble={`mod-${link.href}`}
             className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all duration-150 group hover:shadow-md hover:-translate-y-0.5 ${link.border}`}
           >
             <div className={`w-8 h-8 rounded-lg ${link.iconBg} flex items-center justify-center text-base flex-shrink-0 transition-transform group-hover:scale-110`}>
@@ -345,6 +346,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         <div className="mb-6">
           <Link
             href={`/groupes/${groupId}/stats`}
+            data-bubble="mod-stats"
             className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all duration-150 group w-full hover:shadow-md hover:-translate-y-0.5 ${
               planHasStats
                 ? 'border-violet-200 hover:border-violet-400 hover:bg-violet-50/60'

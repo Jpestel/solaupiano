@@ -28,17 +28,21 @@ function cssEscape(s: string): string {
   return s.replace(/["\\]/g, '\\$&')
 }
 
-// Cherche un sélecteur stable (id, lien, data-testid) sur l'élément ou ses parents proches.
+// Cherche un sélecteur stable (data-bubble, id, lien, data-testid) sur l'élément ou ses parents proches.
 function buildSelector(el: Element | null): string | null {
+  const uniq = (s: string): string | null => { try { return document.querySelectorAll(s).length === 1 ? s : null } catch { return null } }
   let cur: Element | null = el
-  for (let depth = 0; cur && depth < 6; depth++, cur = cur.parentElement) {
+  for (let depth = 0; cur && depth < 8; depth++, cur = cur.parentElement) {
+    // Ancre dédiée, indépendante du rôle/groupe (prioritaire)
+    const db = cur.getAttribute('data-bubble')
+    if (db) { const s = uniq(`[data-bubble="${db.replace(/"/g, '\\"')}"]`); if (s) return s }
     const id = (cur as HTMLElement).id
-    if (id) { const s = `#${cssEscape(id)}`; try { if (document.querySelectorAll(s).length === 1) return s } catch { /* ignore */ } }
+    if (id) { const s = uniq(`#${cssEscape(id)}`); if (s) return s }
     const tag = cur.tagName.toLowerCase()
     const href = cur.getAttribute('href')
-    if (tag === 'a' && href) { const s = `a[href="${href.replace(/"/g, '\\"')}"]`; try { if (document.querySelectorAll(s).length === 1) return s } catch { /* ignore */ } }
+    if (tag === 'a' && href) { const s = uniq(`a[href="${href.replace(/"/g, '\\"')}"]`); if (s) return s }
     const testid = cur.getAttribute('data-testid')
-    if (testid) { const s = `[data-testid="${testid.replace(/"/g, '\\"')}"]`; try { if (document.querySelectorAll(s).length === 1) return s } catch { /* ignore */ } }
+    if (testid) { const s = uniq(`[data-testid="${testid.replace(/"/g, '\\"')}"]`); if (s) return s }
   }
   return null
 }
@@ -271,6 +275,20 @@ export default function HelpBubbleLayer() {
   }
   const removeTarget = (id: number) => setEditorTargets((prev) => prev.filter((x) => x.id !== id))
 
+  // Ancre la bulle en cours d'édition à l'élément situé sous sa position actuelle.
+  const anchorHere = () => {
+    if (!editor || !overlayRef.current) return
+    const overlay = overlayRef.current
+    const orr = overlay.getBoundingClientRect()
+    const pos = editor.id ? positions[editor.id] : undefined
+    const leftPx = pos ? pos.left : ((editor.xPct ?? 50) / 100) * overlay.clientWidth
+    const topPx = pos ? pos.top : (editor.yPx ?? 0)
+    const target = elementUnder(overlay, orr.left + leftPx, orr.top + topPx)
+    const anchor = computeAnchor(target, orr.left + leftPx, orr.top + topPx)
+    if (anchor.anchorSelector) setEditor({ ...editor, ...anchor })
+    else setEditor({ ...editor, anchorSelector: null, anchorDx: null, anchorDy: null })
+  }
+
   const saveEditor = async () => {
     if (!editor) return
     const payload = {
@@ -345,8 +363,8 @@ export default function HelpBubbleLayer() {
                 onPointerDown={(e) => onDotPointerDown(e, b)}
                 onPointerMove={(e) => onDotPointerMove(e, b)}
                 onPointerUp={(e) => onDotPointerUp(e, b)}
-                title={editMode ? 'Glisser pour déplacer · cliquer pour éditer' : b.title}
-                className={`relative flex items-center justify-center w-8 h-8 rounded-full text-white shadow-lg ${c.dot} ${editMode ? 'cursor-move ring-2 ring-white' : 'cursor-pointer'}`}
+                title={editMode ? (b.anchorSelector ? 'Ancrée · glisser pour déplacer · cliquer pour éditer' : 'NON ancrée (position libre) · glisser sur un élément ou « Ancrer ici »') : b.title}
+                className={`relative flex items-center justify-center w-8 h-8 rounded-full text-white shadow-lg ${c.dot} ${editMode ? `cursor-move ring-2 ${b.anchorSelector ? 'ring-white' : 'ring-amber-400'}` : 'cursor-pointer'}`}
                 style={{ touchAction: 'none' }}
               >
                 {!editMode && <span className={`absolute inset-0 rounded-full ${c.ring} opacity-60 animate-ping`} />}
@@ -485,11 +503,16 @@ export default function HelpBubbleLayer() {
             {editor.id && isGroupPath(pathname) && (
               <button onClick={() => openReplicate(editor.id!)} className="mt-2 w-full rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">⧉ Répliquer sur d&apos;autres groupes</button>
             )}
-            <p className="mt-2 text-[11px] text-gray-400">
-              {editor.anchorSelector
-                ? <>📌 Ancrée à un élément de la page (restera alignée pour tous).</>
-                : <>📍 Position libre (repli sur coordonnées). Posez-la sur un bouton/lien pour l&apos;ancrer.</>}
-            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <p className="text-[11px] text-gray-500 flex-1">
+                {editor.anchorSelector
+                  ? <>📌 <strong>Ancrée</strong> à un élément (restera alignée pour tous).</>
+                  : <>📍 <strong>Position libre</strong> — peut se décaler selon l&apos;écran.</>}
+              </p>
+              <button onClick={anchorHere} className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-indigo-600 hover:bg-indigo-50">
+                {editor.anchorSelector ? 'Ré-ancrer ici' : '📌 Ancrer ici'}
+              </button>
+            </div>
             <p className="mt-0.5 text-[11px] text-gray-400">Page : <code>{pathname}</code></p>
           </div>
         </div>
