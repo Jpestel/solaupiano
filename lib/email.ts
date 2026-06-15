@@ -34,9 +34,10 @@ function emailWrapper(body: string, unsubscribeUrl?: string) {
 export async function sendNewsletterToSubscribers(
   subject: string,
   contentHtml: string,
-  subscribers: { email: string; token: string }[]
+  subscribers: { id: number; email: string; token: string }[]
 ) {
-  let sent = 0
+  // Renvoie les abonnés dont l'envoi a réussi (pour tracer les destinataires).
+  const delivered: { id: number; email: string }[] = []
   // Envoi par lots pour ménager le quota d'envoi
   const BATCH = 40
   for (let i = 0; i < subscribers.length; i += BATCH) {
@@ -48,11 +49,11 @@ export async function sendNewsletterToSubscribers(
           to: s.email,
           subject,
           html: emailWrapper(contentHtml, `${SITE_URL}/desinscription?token=${s.token}`),
-        }).then(() => { sent++ }).catch((e) => { console.error('newsletter send', s.email, e) })
+        }).then(() => { delivered.push({ id: s.id, email: s.email }) }).catch((e) => { console.error('newsletter send', s.email, e) })
       )
     )
   }
-  return sent
+  return delivered
 }
 
 function ctaButton(href: string, label: string) {

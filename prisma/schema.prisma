@@ -1294,6 +1294,8 @@ model NewsletterSubscriber {
   createdAt      DateTime  @default(now())
   unsubscribedAt DateTime?
 
+  receipts NewsletterRecipient[]
+
   @@index([active])
 }
 
@@ -1306,6 +1308,26 @@ model Newsletter {
   recipientCount Int       @default(0)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  recipients NewsletterRecipient[]
+}
+
+// Trace de chaque destinataire ayant reçu une newsletter donnée.
+// Permet de renvoyer la même news aux abonnés inscrits après l'envoi
+// (ceux qui ne figurent pas encore dans cette table pour cette news).
+model NewsletterRecipient {
+  id           Int      @id @default(autoincrement())
+  newsletterId Int
+  subscriberId Int
+  email        String   // snapshot de l'adresse au moment de l'envoi
+  sentAt       DateTime @default(now())
+
+  newsletter Newsletter           @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  subscriber NewsletterSubscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@unique([newsletterId, subscriberId])
+  @@index([newsletterId])
+  @@index([subscriberId])
 }
 
 model HelpBubble {

@@ -44,14 +44,21 @@ export async function POST(req: NextRequest) {
 
   const subscribers = await prisma.newsletterSubscriber.findMany({
     where: { active: true },
-    select: { email: true, token: true },
+    select: { id: true, email: true, token: true },
   })
 
-  const count = await sendNewsletterToSubscribers(subject.trim(), html, subscribers)
+  const delivered = await sendNewsletterToSubscribers(subject.trim(), html, subscribers)
 
   const nl = await prisma.newsletter.create({
-    data: { subject: subject.trim(), content: html, status: 'SENT', sentAt: new Date(), recipientCount: count },
+    data: { subject: subject.trim(), content: html, status: 'SENT', sentAt: new Date(), recipientCount: delivered.length },
   })
 
-  return NextResponse.json({ ok: true, sent: count, newsletter: nl })
+  if (delivered.length) {
+    await prisma.newsletterRecipient.createMany({
+      data: delivered.map((d) => ({ newsletterId: nl.id, subscriberId: d.id, email: d.email })),
+      skipDuplicates: true,
+    })
+  }
+
+  return NextResponse.json({ ok: true, sent: delivered.length, newsletter: nl })
 }
