@@ -9,6 +9,7 @@ import { GroupSettingsButton } from './GroupSettingsButton'
 import { GroupCards } from './GroupCards'
 import { PlanSection } from './PlanSection'
 import { coChefCanDo } from '@/lib/permissions'
+import { getPreviewContext } from '@/lib/preview'
 import { GroupCoverUpload } from './GroupCoverUpload'
 import { PermissionsSettings } from './PermissionsSettings'
 import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
@@ -29,6 +30,14 @@ export default async function GroupePage({ params }: { params: { id: string } })
   const groupId = Number(params.id)
 
   const isAdminUser = session.user.siteRole === 'ADMIN'
+
+  // Aperçu par rôle : si un admin « voit en tant que » CE groupe, on calcule un
+  // rôle effectif (Chef ou Musicien) au lieu du mode admin tout-puissant, et on
+  // désactive ses super-pouvoirs (adminPower). La lecture seule est garantie par
+  // le middleware.
+  const preview = getPreviewContext()
+  const previewActive = isAdminUser && preview?.groupId === groupId
+  const adminPower = isAdminUser && !previewActive
 
   // Fetch plans from DB (auto-seed if empty)
   let dbPlans = await prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } })
@@ -128,12 +137,16 @@ export default async function GroupePage({ params }: { params: { id: string } })
 
   if (!group) notFound()
 
-  const isChef = isAdminUser || membership?.groupRole === 'CHEF'
+  // Rôle effectif : en aperçu = le rôle choisi ; sinon admin = Chef, ou le rôle réel du membre.
+  const effectiveRole: 'CHEF' | 'MEMBRE' = previewActive
+    ? preview!.role
+    : (adminPower ? 'CHEF' : (membership?.groupRole ?? 'CHEF'))
+  const isChef = adminPower || effectiveRole === 'CHEF'
   const canManageMembers = isChef
-  const canSocial = coChefCanDo({ createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null }, userId, isAdminUser, 'social', 'post')
+  const canSocial = coChefCanDo({ createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null }, userId, adminPower, 'social', 'post')
 
   // Auto-assign founder if missing (done in GET API, but also compute here)
-  const isFounder = isAdminUser || group.createdBy === userId
+  const isFounder = adminPower || group.createdBy === userId
 
   // Number of co-chefs (chefs other than founder) — used to show settings hint
   const coChefCount = group.members.filter(
@@ -194,7 +207,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
             }`}>
               {group.isPublic ? '🌐 Public' : group.isHidden ? '🙈 Masqué' : '🔒 Privé'}
             </span>
-            <RoleBadge role={isAdminUser ? 'CHEF' : membership!.groupRole} />
+            <RoleBadge role={effectiveRole} />
             {isChef && (
               <GroupSettingsButton
                 groupId={groupId}
@@ -404,13 +417,13 @@ export default async function GroupePage({ params }: { params: { id: string } })
         showInvite={isChef}
         isChef={isChef}
         canManage={canManageMembers}
-        isAdmin={isAdminUser}
+        isAdmin={adminPower}
         currentUserId={userId}
-        currentUserRole={isAdminUser ? 'CHEF' : (membership?.groupRole ?? 'CHEF')}
+        currentUserRole={effectiveRole}
         savedCardOrder={membership?.cardOrder ?? null}
         createdBy={group.createdBy ?? null}
         chefPermissions={group.chefPermissions ?? null}
-        memberLimit={isAdminUser ? null : effectiveMemberLimit}
+        memberLimit={adminPower ? null : effectiveMemberLimit}
       />
 
       {/* Paramètres des permissions — fondateur + admin site */}

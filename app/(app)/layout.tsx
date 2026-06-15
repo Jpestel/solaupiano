@@ -8,6 +8,7 @@ import { WakeUpOverlay } from '@/components/WakeUpOverlay'
 import { FlashInfo } from '@/components/FlashInfo'
 import { UsageTracker } from '@/components/UsageTracker'
 import { AdminConfigButton } from '@/components/AdminConfigButton'
+import { PreviewBanner } from '@/components/PreviewBanner'
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -37,6 +38,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
+        <PreviewBanner />
         {/* Mobile top bar */}
         <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
           <button

@@ -233,6 +233,16 @@ export default function AdminGroupesPage() {
     fetchData()
     router.refresh() // vide le cache des pages serveur (tableau de bord, etc.)
   }
+  // Démarre un aperçu « voir en tant que » puis ouvre le groupe côté usage.
+  const startPreview = async (group: Group, role: 'CHEF' | 'MEMBRE') => {
+    const res = await fetch('/api/admin/preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupId: group.id, role }),
+    })
+    if (res.ok) window.location.href = `/groupes/${group.id}`
+    else setError('Impossible de démarrer l’aperçu.')
+  }
+
   const handleArchive = async (id: number, archive: boolean) => {
     await fetch(`/api/admin/groupes/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archive }),
@@ -380,6 +390,20 @@ export default function AdminGroupesPage() {
                           >
                             Voir
                           </a>
+                          <button
+                            onClick={() => startPreview(group, 'CHEF')}
+                            className="text-xs font-medium text-amber-600 hover:text-amber-700"
+                            title="Voir ce groupe comme un chef (lecture seule)"
+                          >
+                            👁 Chef
+                          </button>
+                          <button
+                            onClick={() => startPreview(group, 'MEMBRE')}
+                            className="text-xs font-medium text-amber-600 hover:text-amber-700"
+                            title="Voir ce groupe comme un musicien (lecture seule)"
+                          >
+                            👁 Musicien
+                          </button>
                           <a
                             href={`/groupes/${group.id}#permissions`}
                             className="text-xs font-medium text-teal-600 hover:text-teal-700"

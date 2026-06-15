@@ -21,6 +21,8 @@ export function AdminConfigButton() {
   const pathname = usePathname()
 
   if (session?.user?.siteRole !== 'ADMIN') return null
+  // Masqué pendant un aperçu par rôle (l'admin est « dans la peau » d'un membre).
+  if (typeof document !== 'undefined' && document.cookie.includes('preview_as=')) return null
   const cfg = configForPath(pathname || '')
   if (!cfg) return null
 

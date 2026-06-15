@@ -6,6 +6,22 @@ export default withAuth(
     const token = req.nextauth.token
     const pathname = req.nextUrl.pathname
 
+    // Mode aperçu (admin « voir en tant que ») = lecture seule globale.
+    // Tant que le cookie est présent, toute écriture est bloquée — sauf l'endpoint
+    // qui permet justement de démarrer/quitter l'aperçu.
+    const previewing = !!req.cookies.get('preview_as')?.value
+    if (
+      previewing &&
+      req.method !== 'GET' &&
+      req.method !== 'HEAD' &&
+      !pathname.startsWith('/api/admin/preview')
+    ) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Mode aperçu : lecture seule. Quittez l’aperçu pour modifier.' }),
+        { status: 403, headers: { 'content-type': 'application/json' } }
+      )
+    }
+
     // Admin routes require ADMIN role
     if (pathname.startsWith('/admin') && token?.siteRole !== 'ADMIN') {
       return NextResponse.redirect(new URL('/tableau-de-bord', req.url))
