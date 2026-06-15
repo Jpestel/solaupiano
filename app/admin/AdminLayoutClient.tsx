@@ -24,6 +24,7 @@ const adminGroups = [
   {
     label: 'Contenu', icon: '📰',
     items: [
+      { href: '/admin/annonces',         label: 'Annonces',            icon: '📣' },
       { href: '/admin/flash-infos',      label: 'Flash infos',         icon: '⚡' },
       { href: '/admin/newsletter',       label: 'Newsletter',          icon: '📬' },
       { href: '/admin/blog',             label: 'Blog',                icon: '✍️' },
@@ -36,6 +37,8 @@ const adminGroups = [
     label: 'Configuration', icon: '⚙️',
     items: [
       { href: '/admin/personnalisation', label: 'Personnalisation', icon: '🎨' },
+      { href: '/admin/emails',           label: 'Emails',           icon: '📧' },
+      { href: '/admin/modules',          label: 'Modules',          icon: '🧩' },
       { href: '/admin/placeholders',     label: 'Placeholders',     icon: '🔤' },
       { href: '/admin/bulles',           label: 'Bulles d\'aide',   icon: '💡' },
       { href: '/admin/rappels',          label: 'Rappels',          icon: '🔔' },
@@ -47,6 +50,7 @@ const adminGroups = [
       { href: '/admin/fichiers',    label: 'Fichiers',       icon: '📁' },
       { href: '/admin/performance', label: 'Performance',    icon: '📈' },
       { href: '/admin/usage',       label: 'Audit d\'usage', icon: '🔍' },
+      { href: '/admin/support',     label: 'Support',        icon: '🛟' },
     ],
   },
 ]
