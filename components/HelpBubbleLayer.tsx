@@ -364,11 +364,11 @@ export default function HelpBubbleLayer() {
                 onPointerMove={(e) => onDotPointerMove(e, b)}
                 onPointerUp={(e) => onDotPointerUp(e, b)}
                 title={editMode ? (b.anchorSelector ? 'Ancrée · glisser pour déplacer · cliquer pour éditer' : 'NON ancrée (position libre) · glisser sur un élément ou « Ancrer ici »') : b.title}
-                className={`relative flex items-center justify-center w-8 h-8 rounded-full text-white shadow-lg ${c.dot} ${editMode ? `cursor-move ring-2 ${b.anchorSelector ? 'ring-white' : 'ring-amber-400'}` : 'cursor-pointer'}`}
+                className={`relative flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full text-white shadow-lg transition-opacity ${c.dot} ${editMode ? `cursor-move ring-2 ${b.anchorSelector ? 'ring-white' : 'ring-amber-400'}` : 'cursor-pointer opacity-75 hover:opacity-100'}`}
                 style={{ touchAction: 'none' }}
               >
-                {!editMode && <span className={`absolute inset-0 rounded-full ${c.ring} opacity-60 animate-ping`} />}
-                <span className="relative text-sm leading-none">{b.emoji}</span>
+                {!editMode && <span className={`absolute inset-0 rounded-full ${c.ring} opacity-50 animate-ping`} />}
+                <span className="relative text-[11px] sm:text-sm leading-none">{b.emoji}</span>
               </button>
 
               {/* Popover (lecture) — ancrage horizontal selon la position pour rester visible */}
