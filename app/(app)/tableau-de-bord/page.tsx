@@ -6,6 +6,7 @@ import { InviteButton } from './InviteButton'
 import { GroupsLookingSection } from './GroupsLookingSection'
 import { AdminCharts } from '@/components/admin/AdminCharts'
 import { RepertoiresPanel } from '@/components/admin/RepertoiresPanel'
+import { PreviewGroupButtons } from '@/components/admin/PreviewGroupButtons'
 import { UNSPECIFIED_GENRE } from '@/lib/genres'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -209,6 +210,9 @@ export default async function TableauDeBordPage({
 
         {/* Groupes */}
         <Panel title="Groupes" icon="🎵" count={groups.length} href="/admin/groupes">
+          <div className="px-4 pt-2.5 pb-1 text-xs text-gray-400">
+            👁 Prévisualisez un groupe comme le verrait un chef ou un musicien (lecture seule).
+          </div>
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-gray-50 text-gray-500 text-xs">
               <tr>
@@ -216,9 +220,10 @@ export default async function TableauDeBordPage({
                 <th className="text-left font-medium px-2 py-2">Plan</th>
                 <th className="text-right font-medium px-2 py-2">Membres</th>
                 <th className="text-right font-medium px-2 py-2 hidden sm:table-cell">Morceaux</th>
-                <th className="text-right font-medium px-2 py-2 hidden sm:table-cell">Concerts</th>
-                <th className="text-right font-medium px-2 py-2 hidden sm:table-cell">Répét.</th>
-                <th className="text-left font-medium px-2 py-2 hidden md:table-cell">Chef(s)</th>
+                <th className="text-right font-medium px-2 py-2 hidden lg:table-cell">Concerts</th>
+                <th className="text-right font-medium px-2 py-2 hidden lg:table-cell">Répét.</th>
+                <th className="text-left font-medium px-2 py-2 hidden xl:table-cell">Chef(s)</th>
+                <th className="text-right font-medium px-2 py-2">Aperçu</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -231,10 +236,13 @@ export default async function TableauDeBordPage({
                   <td className="px-2 py-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${PLAN_BADGE[g.plan] ?? 'bg-gray-100 text-gray-600'}`}>{g.plan}</span></td>
                   <td className="px-2 py-2 text-right text-gray-700">{g._count.members}</td>
                   <td className="px-2 py-2 text-right text-gray-700 hidden sm:table-cell">{g._count.songs}</td>
-                  <td className="px-2 py-2 text-right text-gray-700 hidden sm:table-cell">{g._count.concerts}</td>
-                  <td className="px-2 py-2 text-right text-gray-700 hidden sm:table-cell">{g._count.rehearsals}</td>
-                  <td className="px-2 py-2 text-gray-500 text-xs hidden md:table-cell truncate max-w-[160px]">
+                  <td className="px-2 py-2 text-right text-gray-700 hidden lg:table-cell">{g._count.concerts}</td>
+                  <td className="px-2 py-2 text-right text-gray-700 hidden lg:table-cell">{g._count.rehearsals}</td>
+                  <td className="px-2 py-2 text-gray-500 text-xs hidden xl:table-cell truncate max-w-[160px]">
                     {g.members.map((m) => m.user.name).join(', ') || '—'}
+                  </td>
+                  <td className="px-2 py-2">
+                    <PreviewGroupButtons groupId={g.id} />
                   </td>
                 </tr>
               ))}
