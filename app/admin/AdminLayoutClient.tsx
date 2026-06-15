@@ -1,40 +1,86 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
 import { useSettings } from '@/components/SettingsProvider'
 import { SettingsProvider } from '@/components/SettingsProvider'
 
-const adminNav = [
-  { href: '/admin',                  label: 'Vue d\'ensemble' },
-  { href: '/admin/instruments',      label: 'Instruments' },
-  { href: '/admin/utilisateurs',     label: 'Utilisateurs' },
-  { href: '/admin/groupes',          label: 'Groupes' },
-  { href: '/admin/plans',            label: 'Plans' },
-  { href: '/admin/rappels',          label: 'Rappels' },
-  { href: '/admin/personnalisation', label: 'Personnalisation' },
-  { href: '/admin/placeholders',     label: 'Placeholders' },
-  { href: '/admin/bulles',           label: 'Bulles d\'aide' },
-  { href: '/admin/tutoriels',       label: 'Tutoriels vidéo' },
-  { href: '/admin/flash-infos',      label: 'Flash infos' },
-  { href: '/admin/newsletter',       label: 'Newsletter' },
-  { href: '/admin/blog',             label: 'Blog' },
-  { href: '/admin/ressources-liens',  label: 'Liens de ressources' },
-  { href: '/admin/carrousel',        label: 'Carrousel' },
-  { href: '/admin/fichiers',         label: 'Fichiers' },
-  { href: '/admin/performance',      label: 'Performance' },
-  { href: '/admin/usage',            label: 'Audit d\'usage' },
+// Entrée autonome
+const overview = { href: '/admin', label: 'Vue d\'ensemble', icon: '📊' }
+
+// Catégories regroupant les 18 sections d'administration
+const adminGroups = [
+  {
+    label: 'Communauté', icon: '👥',
+    items: [
+      { href: '/admin/utilisateurs', label: 'Utilisateurs',  icon: '👤' },
+      { href: '/admin/groupes',      label: 'Groupes',       icon: '🎸' },
+      { href: '/admin/instruments',  label: 'Instruments',   icon: '🎹' },
+      { href: '/admin/plans',        label: 'Plans',         icon: '💳' },
+    ],
+  },
+  {
+    label: 'Contenu', icon: '📰',
+    items: [
+      { href: '/admin/flash-infos',      label: 'Flash infos',         icon: '⚡' },
+      { href: '/admin/newsletter',       label: 'Newsletter',          icon: '📬' },
+      { href: '/admin/blog',             label: 'Blog',                icon: '✍️' },
+      { href: '/admin/carrousel',        label: 'Carrousel',           icon: '🖼️' },
+      { href: '/admin/tutoriels',        label: 'Tutoriels vidéo',     icon: '🎬' },
+      { href: '/admin/ressources-liens', label: 'Liens de ressources', icon: '🔗' },
+    ],
+  },
+  {
+    label: 'Configuration', icon: '⚙️',
+    items: [
+      { href: '/admin/personnalisation', label: 'Personnalisation', icon: '🎨' },
+      { href: '/admin/placeholders',     label: 'Placeholders',     icon: '🔤' },
+      { href: '/admin/bulles',           label: 'Bulles d\'aide',   icon: '💡' },
+      { href: '/admin/rappels',          label: 'Rappels',          icon: '🔔' },
+    ],
+  },
+  {
+    label: 'Système', icon: '🛠️',
+    items: [
+      { href: '/admin/fichiers',    label: 'Fichiers',       icon: '📁' },
+      { href: '/admin/performance', label: 'Performance',    icon: '📈' },
+      { href: '/admin/usage',       label: 'Audit d\'usage', icon: '🔍' },
+    ],
+  },
 ]
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
   const pathname = usePathname()
   const { siteIcon } = useSettings()
+  const navRef = useRef<HTMLDivElement>(null)
 
   const isActive = (href: string) =>
     href === '/admin' ? pathname === href : pathname.startsWith(href)
+  const groupActive = (items: { href: string }[]) => items.some((it) => isActive(it.href))
+  const activeItem = (items: { href: string; label: string }[]) =>
+    items.find((it) => isActive(it.href))
+
+  // Ferme le menu déroulant au changement de page
+  useEffect(() => { setOpenMenu(null) }, [pathname])
+
+  // Ferme au clic extérieur / touche Échap
+  useEffect(() => {
+    if (!openMenu) return
+    const onClick = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenMenu(null)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenMenu(null) }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [openMenu])
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -65,25 +111,90 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-auto">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-10 lg:pb-8">
 
-            {/* Admin sub-nav — scrollable horizontally on mobile */}
-            <div className="mb-6 -mx-4 sm:mx-0">
-              <div className="flex items-center gap-1 border-b border-gray-200 pb-3 px-4 sm:px-0 overflow-x-auto scrollbar-hide">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2 flex-shrink-0">Admin</span>
-                {adminNav.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                      isActive(item.href)
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+            {/* Admin sub-nav — catégories déroulantes */}
+            <nav className="mb-6 border-b border-gray-200 pb-3">
+              <div ref={navRef} className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1 flex-shrink-0">Admin</span>
+
+                {/* Entrée autonome : Vue d'ensemble */}
+                <Link
+                  href={overview.href}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                    isActive(overview.href)
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="text-[15px] leading-none">{overview.icon}</span>
+                  {overview.label}
+                </Link>
+
+                {/* Catégories déroulantes */}
+                {adminGroups.map((g) => {
+                  const active = groupActive(g.items)
+                  const open = openMenu === g.label
+                  const current = activeItem(g.items)
+                  return (
+                    <div key={g.label} className="relative flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setOpenMenu(open ? null : g.label)}
+                        aria-haspopup="menu"
+                        aria-expanded={open}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                          active
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : open
+                              ? 'bg-gray-100 text-gray-900'
+                              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        }`}
+                      >
+                        <span className="text-[15px] leading-none">{g.icon}</span>
+                        {g.label}
+                        {/* Pastille : sous-page active de la catégorie */}
+                        {active && current && (
+                          <span className="hidden sm:inline text-[11px] font-normal text-white/80">· {current.label}</span>
+                        )}
+                        <svg
+                          className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''} ${active ? 'text-white/70' : 'text-gray-400'}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {open && (
+                        <div
+                          role="menu"
+                          className="absolute left-0 top-full mt-1.5 z-40 w-60 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 p-1.5 animate-[fadeIn_0.12s_ease-out]"
+                        >
+                          {g.items.map((it) => (
+                            <Link
+                              key={it.href}
+                              href={it.href}
+                              role="menuitem"
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                                isActive(it.href)
+                                  ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                                  : 'text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              <span className="text-base leading-none w-5 text-center">{it.icon}</span>
+                              <span className="flex-1">{it.label}</span>
+                              {isActive(it.href) && (
+                                <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 011.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            </div>
+            </nav>
 
             {children}
           </div>
