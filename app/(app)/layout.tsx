@@ -7,6 +7,7 @@ import { SettingsProvider, useSettings } from '@/components/SettingsProvider'
 import { WakeUpOverlay } from '@/components/WakeUpOverlay'
 import { FlashInfo } from '@/components/FlashInfo'
 import { UsageTracker } from '@/components/UsageTracker'
+import { AdminConfigButton } from '@/components/AdminConfigButton'
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -70,6 +71,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       <WakeUpOverlay />
       <FlashInfo />
       <UsageTracker />
+      <AdminConfigButton />
     </div>
   )
 }
