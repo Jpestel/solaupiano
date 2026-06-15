@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Sidebar } from '@/components/Sidebar'
 import { useSettings } from '@/components/SettingsProvider'
 import { SettingsProvider } from '@/components/SettingsProvider'
 
@@ -56,7 +55,6 @@ const adminGroups = [
 ]
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const pathname = usePathname()
   const { siteIcon } = useSettings()
@@ -87,33 +85,31 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }, [openMenu])
 
   return (
-    <div className="flex min-h-screen bg-white">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile top bar */}
-        <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 transition-colors active:scale-95"
-            aria-label="Ouvrir le menu"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <span className="text-sm font-medium">Menu</span>
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
+    <div className="min-h-screen bg-white">
+      {/* En-tête admin (plein largeur, sans menu latéral) */}
+      <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 px-4 sm:px-6 py-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-sm">{siteIcon}</span>
             </div>
-            <span className="font-bold text-indigo-900 text-base">Sol au piano</span>
-            <span className="text-xs font-semibold text-purple-600 bg-purple-50 rounded-full px-2 py-0.5">Admin</span>
+            <span className="font-bold text-indigo-900 text-base truncate">Sol au piano</span>
+            <span className="text-xs font-semibold text-purple-600 bg-purple-50 rounded-full px-2 py-0.5 flex-shrink-0">Admin</span>
           </div>
-        </header>
+          <Link
+            href="/tableau-de-bord"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex-shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span className="hidden sm:inline">Retour à l&apos;app</span>
+          </Link>
+        </div>
+      </header>
 
-        <main className="flex-1 overflow-auto">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-10 lg:pb-8">
+      <main>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-10">
 
             {/* Admin sub-nav — catégories déroulantes */}
             <nav className="mb-6 border-b border-gray-200 pb-3">
@@ -203,7 +199,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </main>
-      </div>
     </div>
   )
 }
