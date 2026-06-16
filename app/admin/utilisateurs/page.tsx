@@ -33,7 +33,7 @@ export default function AdminUtilisateursPage() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [editUser, setEditUser] = useState<User | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', email: '', instrumentIds: [] as number[] })
+  const [editForm, setEditForm] = useState({ name: '', email: '', instrumentIds: [] as number[], accountPlan: 'FREE' })
   const [editError, setEditError] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -63,6 +63,7 @@ export default function AdminUtilisateursPage() {
       name: user.name,
       email: user.email,
       instrumentIds: user.instruments.map((ui) => ui.instrument.id),
+      accountPlan: user.accountPlan ?? 'FREE',
     })
     setEditError('')
     setAvatarError('')
@@ -115,7 +116,7 @@ export default function AdminUtilisateursPage() {
     const res = await fetch(`/api/admin/utilisateurs/${editUser.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editForm.name, email: editForm.email, instrumentIds: editForm.instrumentIds }),
+      body: JSON.stringify({ name: editForm.name, email: editForm.email, instrumentIds: editForm.instrumentIds, accountPlan: editForm.accountPlan }),
     })
     setEditSaving(false)
     if (!res.ok) {
@@ -422,6 +423,23 @@ export default function AdminUtilisateursPage() {
               className="form-input"
             />
           </div>
+          {editUser?.siteRole !== 'ADMIN' && (
+            <div>
+              <label className="form-label">Plan du compte</label>
+              <select
+                value={editForm.accountPlan}
+                onChange={(e) => setEditForm({ ...editForm, accountPlan: e.target.value })}
+                className="form-input"
+              >
+                {(Object.keys(PLANS) as string[]).map((k) => (
+                  <option key={k} value={k}>{PLANS[k].label} — jusqu&apos;à {PLANS[k].maxGroups} groupe{PLANS[k].maxGroups > 1 ? 's' : ''}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-400 mt-1">
+                Le plan s&apos;applique au compte et se répercute sur <strong>tous les groupes</strong> dont cet utilisateur est fondateur (stockage, fonctionnalités, nombre de groupes).
+              </p>
+            </div>
+          )}
           {allInstruments.length > 0 && (
             <div>
               <label className="form-label">Instruments</label>
