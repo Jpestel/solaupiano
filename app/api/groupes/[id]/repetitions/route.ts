@@ -18,9 +18,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
   if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
-  const group = await prisma.group.findUnique({ where: { id: groupId }, select: { peerRatingVisibility: true } })
+  const group = await prisma.group.findUnique({ where: { id: groupId }, select: { peerRatingVisibility: true, type: true } })
   const visibility = group?.peerRatingVisibility ?? 'PRIVATE'
   const isChef = isAdmin || membership?.groupRole === 'CHEF'
+  // Confidentialité école : un élève ne voit que les cours qui le concernent.
+  const isSchoolStudent = group?.type === 'SCHOOL' && !isChef
 
   const rehearsals = await prisma.rehearsal.findMany({
     where: { groupId },
@@ -43,6 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     select: { rehearsalId: true, status: true },
   })
   const myStatusByRehearsal = new Map(myAttendances.map((a) => [a.rehearsalId, a.status]))
+  const myRehearsalIds = new Set(myAttendances.map((a) => a.rehearsalId))
 
   // Modèle prudent : on n'expose JAMAIS le détail nominatif des notes entre
   // musiciens, sauf en mode PUBLIC. On calcule des agrégats côté serveur.
@@ -87,7 +90,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
   })
 
-  return NextResponse.json(result)
+  // Élève d'une école : on ne renvoie que les cours auxquels il est convié.
+  const visible = isSchoolStudent ? result.filter((r) => myRehearsalIds.has(r.id)) : result
+
+  return NextResponse.json(visible)
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -137,7 +143,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Invited members = selected ones + always the creator
   const invitedIds: number[] = Array.isArray(invitedMemberIds) && invitedMemberIds.length > 0
-    ? [...new Set([...invitedMemberIds.map(Number), userId])]
+    ? Array.from(new Set([...invitedMemberIds.map(Number), userId]))
     : allMembers.map((m) => m.userId)
 
   const invitedMembers = allMembers.filter((m) => invitedIds.includes(m.userId))

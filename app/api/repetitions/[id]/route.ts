@@ -36,6 +36,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!isAdmin && !membership) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
 
   const isChef = isAdmin || membership?.groupRole === 'CHEF'
+
+  // Confidentialité école : un élève ne peut consulter qu'un cours auquel il est convié.
+  if (!isChef) {
+    const grp = await prisma.group.findUnique({ where: { id: rehearsal.groupId }, select: { type: true } })
+    if (grp?.type === 'SCHOOL' && !rehearsal.attendances.some((a) => a.userId === userId)) {
+      return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+    }
+  }
+
   const songIds = rehearsal.songs.map((rs) => rs.songId)
 
   // My own progress

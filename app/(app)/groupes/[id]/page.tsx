@@ -414,15 +414,18 @@ export default async function GroupePage({ params }: { params: { id: string } })
         concert={group.concerts[0]
           ? { ...group.concerts[0], date: group.concerts[0].date.toISOString() }
           : null}
-        members={group.members.map(({ user, groupRole }) => ({
-          userId: user.id,
-          groupRole,
-          user: { id: user.id, name: user.name, avatarUrl: user.avatarUrl ?? null, instruments: user.instruments },
-        }))}
+        members={group.members
+          .filter((m) => ((group as any).type !== 'SCHOOL' || isChef) ? true : m.user.id === userId)
+          .map(({ user, groupRole }) => ({
+            userId: user.id,
+            groupRole,
+            user: { id: user.id, name: user.name, avatarUrl: user.avatarUrl ?? null, instruments: user.instruments },
+          }))}
         showInvite={isChef}
         isChef={isChef}
         canManage={canManageMembers}
         groupType={(group as any).type}
+        showRoster={(group as any).type !== 'SCHOOL' || isChef}
         isAdmin={adminPower}
         currentUserId={userId}
         currentUserRole={effectiveRole}

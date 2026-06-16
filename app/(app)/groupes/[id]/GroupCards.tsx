@@ -51,6 +51,7 @@ interface Concert {
 interface Props {
   groupId: number
   groupType?: string
+  showRoster?: boolean
   rehearsal: Rehearsal | null
   concert: Concert | null
   members: Member[]
@@ -94,12 +95,12 @@ function SortableCard({ id, children, spanFull }: { id: string; children: React.
 }
 
 export function GroupCards({
-  groupId, groupType, rehearsal, concert, members, showInvite,
+  groupId, groupType, showRoster = true, rehearsal, concert, members, showInvite,
   isChef, canManage, isAdmin, currentUserId, currentUserRole, savedCardOrder,
   createdBy, chefPermissions, memberLimit,
 }: Props) {
   const isSchool = groupType === 'SCHOOL'
-  const defaultOrder = ['rehearsal', 'concert', 'members', ...(showInvite ? ['invite'] : [])]
+  const defaultOrder = ['rehearsal', 'concert', ...(showRoster ? ['members'] : []), ...(showInvite ? ['invite'] : [])]
 
   const LS_KEY = `group-card-order-${groupId}`
 
