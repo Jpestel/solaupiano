@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { LookingForSelector } from '@/components/ui/LookingForSelector'
 import { MUSIC_GENRES } from '@/lib/genres'
 import { ph } from '@/lib/placeholders'
-import { groupVocab, type GroupType } from '@/lib/group-vocab'
+import { type GroupType } from '@/lib/group-vocab'
 
 export function CreateGroupButton({ defaultType = 'BAND' }: { defaultType?: GroupType }) {
   const router = useRouter()
@@ -22,7 +22,18 @@ export function CreateGroupButton({ defaultType = 'BAND' }: { defaultType?: Grou
   const [error, setError] = useState('')
 
   const isSchool = spaceType === 'SCHOOL'
-  const v = groupVocab(spaceType)
+
+  // Intention reportée depuis l'inscription « prof / école » : ouvre directement
+  // la création pré-réglée sur Classe / École.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('spaceIntent') === 'SCHOOL') {
+        localStorage.removeItem('spaceIntent')
+        setSpaceType('SCHOOL')
+        setOpen(true)
+      }
+    } catch {}
+  }, [])
 
   const reset = () => {
     setSpaceType(defaultType)

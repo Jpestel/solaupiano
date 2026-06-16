@@ -13,6 +13,15 @@ interface Instrument {
 export default function InscriptionPage() {
   const router = useRouter()
   const [userPlan, setUserPlan] = useState<'MUSICIEN' | 'CREATEUR'>('MUSICIEN')
+  const [schoolMode, setSchoolMode] = useState(false)
+
+  // Porte « prof / école » : adapte le vocabulaire et présélectionne le créateur.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('profil') === 'ecole') {
+      setSchoolMode(true)
+      setUserPlan('CREATEUR')
+    }
+  }, [])
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -79,12 +88,25 @@ export default function InscriptionPage() {
       return
     }
 
+    // Reporte l'intention « école » : la 1re création d'espace sera pré-réglée sur Classe/École.
+    if (schoolMode && userPlan === 'CREATEUR') {
+      try { localStorage.setItem('spaceIntent', 'SCHOOL') } catch {}
+    }
+
     router.push('/connexion?registered=1')
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 px-4 py-8">
       <div className="w-full max-w-md">
+        <div className="mb-3">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Retour à l&apos;accueil
+          </Link>
+        </div>
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg hover:bg-indigo-500 transition-colors">
             <span className="text-2xl">🎹</span>
@@ -97,9 +119,18 @@ export default function InscriptionPage() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Créer un compte</h2>
 
+          {schoolMode && (
+            <div className="mb-5 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3 text-sm text-indigo-800 flex items-start gap-2">
+              <span className="text-lg leading-none">🎓</span>
+              <span>Espace <strong>prof / école de musique</strong> : créez votre classe, ajoutez vos élèves et suivez leur progression.</span>
+            </div>
+          )}
+
           {/* Plan choice */}
           <div className="mb-6">
-            <p className="text-sm font-medium text-gray-700 mb-3">Comment souhaitez-vous utiliser Sol au piano ?</p>
+            <p className="text-sm font-medium text-gray-700 mb-3">
+              {schoolMode ? 'Vous êtes professeur ou élève ?' : 'Comment souhaitez-vous utiliser Sol au piano ?'}
+            </p>
             <div className="grid grid-cols-2 gap-3">
               {/* Musicien */}
               <button
@@ -111,14 +142,24 @@ export default function InscriptionPage() {
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
-                <span className="text-3xl">🎵</span>
+                <span className="text-3xl">{schoolMode ? '🎒' : '🎵'}</span>
                 <p className={`text-sm font-bold ${userPlan === 'MUSICIEN' ? 'text-indigo-700' : 'text-gray-800'}`}>
-                  Musicien
+                  {schoolMode ? 'Élève' : 'Musicien'}
                 </p>
                 <ul className="text-[11px] text-gray-500 text-left space-y-0.5 w-full px-1">
-                  <li>✓ Rejoindre un ou plusieurs groupes</li>
-                  <li>✓ Répétitions, répertoire, concerts</li>
-                  <li className="text-red-400">✗ Créer un groupe</li>
+                  {schoolMode ? (
+                    <>
+                      <li>✓ Rejoindre la classe de votre prof</li>
+                      <li>✓ Cours, morceaux à travailler, suivi</li>
+                      <li className="text-red-400">✗ Créer une classe</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>✓ Rejoindre un ou plusieurs groupes</li>
+                      <li>✓ Répétitions, répertoire, concerts</li>
+                      <li className="text-red-400">✗ Créer un groupe</li>
+                    </>
+                  )}
                 </ul>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   userPlan === 'MUSICIEN' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
@@ -135,15 +176,26 @@ export default function InscriptionPage() {
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
-                <span className="text-3xl">🎼</span>
+                <span className="text-3xl">{schoolMode ? '🎓' : '🎼'}</span>
                 <p className={`text-sm font-bold ${userPlan === 'CREATEUR' ? 'text-indigo-700' : 'text-gray-800'}`}>
-                  Chef d&apos;orchestre
+                  {schoolMode ? 'Professeur / École' : "Chef d'orchestre"}
                 </p>
                 <ul className="text-[11px] text-gray-500 text-left space-y-0.5 w-full px-1">
-                  <li>✓ Rejoindre un ou plusieurs groupes</li>
-                  <li>✓ Créer et gérer <strong>1 groupe</strong></li>
-                  <li>✓ Stockage de fichiers inclus</li>
-                  <li className="text-indigo-500 text-[10px]">↑ Pro : 3 groupes, 5 Go · Premium : 5 groupes, 10 Go</li>
+                  {schoolMode ? (
+                    <>
+                      <li>✓ Créer et gérer <strong>votre classe / école</strong></li>
+                      <li>✓ Cours, élèves, ressources de cours</li>
+                      <li>✓ Stockage de fichiers inclus</li>
+                      <li className="text-indigo-500 text-[10px]">↑ Pro : 3 classes, 5 Go · Premium : 5 classes, 10 Go</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>✓ Rejoindre un ou plusieurs groupes</li>
+                      <li>✓ Créer et gérer <strong>1 groupe</strong></li>
+                      <li>✓ Stockage de fichiers inclus</li>
+                      <li className="text-indigo-500 text-[10px]">↑ Pro : 3 groupes, 5 Go · Premium : 5 groupes, 10 Go</li>
+                    </>
+                  )}
                 </ul>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   userPlan === 'CREATEUR' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
