@@ -47,11 +47,24 @@ export async function GET() {
 
   const nlSub = await prisma.newsletterSubscriber.findUnique({ where: { email: user.email }, select: { active: true } })
 
+  // Quota de groupes gérables = meilleur plan parmi les groupes fondés (Gratuit=1, Pro/Premium=5)
+  const foundedPlans = await prisma.group.findMany({ where: { createdBy: userId }, select: { plan: true } })
+  let maxGroups = 1
+  if (foundedPlans.length > 0) {
+    const plans = await prisma.plan.findMany({
+      where: { key: { in: foundedPlans.map((g) => g.plan) } },
+      select: { maxGroups: true },
+    })
+    maxGroups = Math.max(1, ...plans.map((p) => p.maxGroups))
+  }
+  const managedGroupsCount = await prisma.groupMember.count({ where: { userId, groupRole: 'CHEF' } })
+
   const { password, ...safeUser } = user
   return NextResponse.json({
     ...safeUser,
     newsletterSubscribed: !!nlSub?.active,
     foundedGroupsCount,
+    groupQuota: { managed: managedGroupsCount, max: maxGroups },
     myGroups,
     stats: {
       groupCount,

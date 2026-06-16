@@ -65,17 +65,33 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // FREE creators can only manage 1 group — enforce limit
+  // Limite du nombre de groupes gérés : déterminée par le MEILLEUR plan parmi les
+  // groupes que l'utilisateur a fondés (même logique que le stockage mutualisé).
+  // Plan Gratuit = 1, Pro/Premium = 5. Un groupe offert en Premium par l'admin
+  // relève donc la limite.
   if (!isAdmin) {
-    const existingGroupsCount = await prisma.groupMember.count({
-      where: { userId: Number(session.user.id), groupRole: 'CHEF' },
+    const myId = Number(session.user.id)
+    const foundedGroups = await prisma.group.findMany({
+      where: { createdBy: myId },
+      select: { plan: true },
     })
-    // FREE plan limit = 1 group (PRO/PREMIUM = 5, coming soon)
-    const FREE_MAX_GROUPS = 1
-    if (existingGroupsCount >= FREE_MAX_GROUPS) {
+    let maxGroups = 1 // défaut : plan Gratuit
+    if (foundedGroups.length > 0) {
+      const plans = await prisma.plan.findMany({
+        where: { key: { in: foundedGroups.map((g) => g.plan) } },
+        select: { maxGroups: true },
+      })
+      maxGroups = Math.max(1, ...plans.map((p) => p.maxGroups))
+    }
+    const existingGroupsCount = await prisma.groupMember.count({
+      where: { userId: myId, groupRole: 'CHEF' },
+    })
+    if (existingGroupsCount >= maxGroups) {
       return NextResponse.json(
         {
-          error: `Votre plan Gratuit vous permet de créer et gérer ${FREE_MAX_GROUPS} groupe maximum. Passez au plan Pro ou Premium pour gérer jusqu'à 5 groupes.`,
+          error: maxGroups <= 1
+            ? `Votre plan Gratuit vous permet de gérer 1 groupe maximum. Pour en gérer davantage, faites passer l'un de vos groupes en Pro ou Premium.`
+            : `Vous gérez déjà le maximum de ${maxGroups} groupes autorisé par votre plan.`,
           code: 'GROUP_LIMIT_REACHED',
         },
         { status: 403 }

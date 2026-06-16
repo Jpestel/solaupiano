@@ -26,6 +26,7 @@ interface ProfileData {
   siteRole: string
   userPlan: string
   foundedGroupsCount?: number
+  groupQuota?: { managed: number; max: number }
   myGroups?: { id: number; name: string; coverUrl?: string | null; groupRole: string; isFounder: boolean }[]
   gusoNumber?: string | null
   weeklyDigestOptOut: boolean
@@ -1020,6 +1021,21 @@ export default function ProfilPage() {
                         ? 'Vous êtes chef d\'au moins un groupe : le plan Musicien est indisponible. Supprimez vos groupes pour y repasser. (Être chef permet déjà de rejoindre d\'autres groupes en tant que musicien.)'
                         : 'Passer en plan Musicien vous empêchera de créer de nouveaux groupes.'}
                     </p>
+
+                    {/* Quota de groupes gérables — selon le meilleur plan de vos groupes */}
+                    {profile.userPlan === 'CREATEUR' && profile.groupQuota && (
+                      <div className="mt-4 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3">
+                        <p className="text-sm font-semibold text-indigo-900">
+                          Groupes gérés : {profile.groupQuota.managed} / {profile.groupQuota.max}
+                        </p>
+                        <p className="text-xs text-indigo-700 mt-1 leading-relaxed">
+                          {profile.groupQuota.max > 1
+                            ? `Votre meilleur plan vous permet de gérer jusqu'à ${profile.groupQuota.max} groupes.`
+                            : 'Le plan Gratuit permet de gérer 1 groupe. Pour en gérer plusieurs, faites passer l’un de vos groupes en Pro ou Premium (l’abonnement se choisit sur le groupe, pas ici).'}{' '}
+                          <Link href="/tarifs" className="underline underline-offset-2 font-medium">Voir les tarifs →</Link>
+                        </p>
+                      </div>
+                    )}
                   </>
                 )
               })()}
