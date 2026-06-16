@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cleanupGroupFiles } from '@/lib/file-cleanup'
+import { setUserPlan } from '@/lib/user-plan'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -16,6 +17,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (plan) {
     const planExists = await prisma.plan.findUnique({ where: { key: plan } })
     if (!planExists) return NextResponse.json({ error: 'Plan invalide.' }, { status: 400 })
+    // Le plan est porté par le COMPTE : on le propage au fondateur du groupe
+    // (et donc à tous ses groupes), pour rester cohérent.
+    const grp = await prisma.group.findUnique({ where: { id: Number(params.id) }, select: { createdBy: true } })
+    if (grp?.createdBy) {
+      await setUserPlan(grp.createdBy, plan, planExpiresAt ? new Date(planExpiresAt) : null)
+    }
   }
 
   // Validation de maxMembersOverride

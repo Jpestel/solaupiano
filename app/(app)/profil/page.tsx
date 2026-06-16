@@ -25,6 +25,7 @@ interface ProfileData {
   avatarUrl?: string | null
   siteRole: string
   userPlan: string
+  accountPlan?: string
   foundedGroupsCount?: number
   groupQuota?: { managed: number; max: number }
   myGroups?: { id: number; name: string; coverUrl?: string | null; groupRole: string; isFounder: boolean }[]
@@ -1026,12 +1027,12 @@ export default function ProfilPage() {
                     {profile.userPlan === 'CREATEUR' && profile.groupQuota && (
                       <div className="mt-4 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3">
                         <p className="text-sm font-semibold text-indigo-900">
-                          Groupes gérés : {profile.groupQuota.managed} / {profile.groupQuota.max}
+                          Plan {(profile.accountPlan ?? 'FREE') === 'FREE' ? 'Gratuit' : profile.accountPlan} · Groupes gérés : {profile.groupQuota.managed} / {profile.groupQuota.max}
                         </p>
                         <p className="text-xs text-indigo-700 mt-1 leading-relaxed">
                           {profile.groupQuota.max > 1
-                            ? `Votre meilleur plan vous permet de gérer jusqu'à ${profile.groupQuota.max} groupes.`
-                            : 'Le plan Gratuit permet de gérer 1 groupe. Pour en gérer plusieurs, faites passer l’un de vos groupes en Pro ou Premium (l’abonnement se choisit sur le groupe, pas ici).'}{' '}
+                            ? `Votre plan vous permet de gérer jusqu'à ${profile.groupQuota.max} groupes.`
+                            : 'Le plan Gratuit permet de gérer 1 groupe. Pour en gérer plusieurs, il faut un plan Pro ou Premium (contactez l’administrateur ou voyez les tarifs).'}{' '}
                           <Link href="/tarifs" className="underline underline-offset-2 font-medium">Voir les tarifs →</Link>
                         </p>
                       </div>

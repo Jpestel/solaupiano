@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { unlinkPublicFile } from '@/lib/file-cleanup'
+import { setUserPlan } from '@/lib/user-plan'
 
 async function requireAdmin(session: Awaited<ReturnType<typeof getServerSession>>) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
@@ -16,8 +17,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (err) return err
 
   const body = await req.json()
-  const { siteRole, name, email, instrumentIds } = body
+  const { siteRole, name, email, instrumentIds, accountPlan, planExpiresAt } = body
   const targetId = Number(params.id)
+
+  // Plan du compte (se répercute sur tous les groupes fondés par l'utilisateur).
+  if (accountPlan !== undefined) {
+    try {
+      await setUserPlan(targetId, String(accountPlan), planExpiresAt ? new Date(planExpiresAt) : null)
+    } catch {
+      return NextResponse.json({ error: 'Plan invalide.' }, { status: 400 })
+    }
+  }
 
   const data: Record<string, unknown> = {}
 
@@ -45,7 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const user = await prisma.user.update({
     where: { id: targetId },
     data,
-    select: { id: true, name: true, email: true, siteRole: true },
+    select: { id: true, name: true, email: true, siteRole: true, accountPlan: true },
   })
 
   if (Array.isArray(instrumentIds)) {

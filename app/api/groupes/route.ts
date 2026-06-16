@@ -65,24 +65,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Limite du nombre de groupes gérés : déterminée par le MEILLEUR plan parmi les
-  // groupes que l'utilisateur a fondés (même logique que le stockage mutualisé).
-  // Plan Gratuit = 1, Pro/Premium = 5. Un groupe offert en Premium par l'admin
-  // relève donc la limite.
+  // Limite du nombre de groupes gérés : déterminée par le plan du COMPTE
+  // (user.accountPlan). Plan Gratuit = 1, Pro/Premium = 5.
+  const myId = Number(session.user.id)
+  const me = await prisma.user.findUnique({ where: { id: myId }, select: { accountPlan: true } })
+  const myPlanKey = me?.accountPlan ?? 'FREE'
   if (!isAdmin) {
-    const myId = Number(session.user.id)
-    const foundedGroups = await prisma.group.findMany({
-      where: { createdBy: myId },
-      select: { plan: true },
-    })
-    let maxGroups = 1 // défaut : plan Gratuit
-    if (foundedGroups.length > 0) {
-      const plans = await prisma.plan.findMany({
-        where: { key: { in: foundedGroups.map((g) => g.plan) } },
-        select: { maxGroups: true },
-      })
-      maxGroups = Math.max(1, ...plans.map((p) => p.maxGroups))
-    }
+    const planRec = await prisma.plan.findUnique({ where: { key: myPlanKey }, select: { maxGroups: true } })
+    const maxGroups = Math.max(1, planRec?.maxGroups ?? 1)
     const existingGroupsCount = await prisma.groupMember.count({
       where: { userId: myId, groupRole: 'CHEF' },
     })
@@ -90,7 +80,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: maxGroups <= 1
-            ? `Votre plan Gratuit vous permet de gérer 1 groupe maximum. Pour en gérer davantage, faites passer l'un de vos groupes en Pro ou Premium.`
+            ? `Votre plan Gratuit vous permet de gérer 1 groupe maximum. Passez à un plan Pro ou Premium pour en gérer plusieurs.`
             : `Vous gérez déjà le maximum de ${maxGroups} groupes autorisé par votre plan.`,
           code: 'GROUP_LIMIT_REACHED',
         },
@@ -102,10 +92,16 @@ export async function POST(req: NextRequest) {
   // If chefId provided (admin panel), use it — otherwise the creator becomes CHEF
   const chefUserId = chefId ? Number(chefId) : Number(session.user.id)
 
+  // Le groupe hérite du plan de son FONDATEUR (le plan est porté par le compte).
+  const founderPlanKey = chefUserId === myId
+    ? myPlanKey
+    : ((await prisma.user.findUnique({ where: { id: chefUserId }, select: { accountPlan: true } }))?.accountPlan ?? 'FREE')
+
   const group = await prisma.group.create({
     data: {
       name: name.trim(),
       type: groupType,
+      plan: founderPlanKey,
       description: description?.trim() || undefined,
       style: typeof style === 'string' && style.trim() ? style.trim() : undefined,
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,

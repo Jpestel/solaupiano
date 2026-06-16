@@ -159,6 +159,7 @@ model User {
   stageName     String?   // nom de scène affiché sur le plan de scène (sinon : nom)
   siteRole      SiteRole  @default(USER)
   userPlan      UserPlan  @default(CREATEUR)
+  accountPlan   String    @default("FREE") // abonnement au niveau du compte (FREE|PRO|PREMIUM), se répercute sur les groupes fondés
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

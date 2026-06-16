@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { ph } from '@/lib/placeholders'
+import { PLANS } from '@/lib/plans'
 
 interface Instrument {
   id: number
@@ -19,6 +20,7 @@ interface User {
   email: string
   avatarUrl?: string | null
   siteRole: string
+  accountPlan?: string
   createdAt: string
   groups: { group: { id: number; name: string }; groupRole: string }[]
   instruments: { instrument: Instrument }[]
@@ -138,6 +140,18 @@ export default function AdminUtilisateursPage() {
     fetchUsers()
   }
 
+  // Affecte un plan au COMPTE (se répercute sur tous les groupes fondés).
+  const changePlan = async (user: User, plan: string) => {
+    setUpdatingId(user.id)
+    await fetch(`/api/admin/utilisateurs/${user.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountPlan: plan }),
+    })
+    setUpdatingId(null)
+    fetchUsers()
+  }
+
   const deleteUser = async (user: User) => {
     if (!confirm(`Supprimer définitivement le compte de ${user.name} ?`)) return
     setUpdatingId(user.id)
@@ -218,12 +232,13 @@ export default function AdminUtilisateursPage() {
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Instruments</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupes</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Rôle site</th>
+                <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-400">Aucun utilisateur ne correspond aux filtres.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">Aucun utilisateur ne correspond aux filtres.</td></tr>
               )}
               {filtered.map((user) => {
                 const hasNoGroups = user.groups.length === 0
@@ -277,6 +292,23 @@ export default function AdminUtilisateursPage() {
                       <Badge variant={isAdmin ? 'admin' : 'default'}>
                         {isAdmin ? 'Admin' : 'Utilisateur'}
                       </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      {isAdmin ? (
+                        <span className="text-xs text-gray-400">—</span>
+                      ) : (
+                        <select
+                          value={user.accountPlan ?? 'FREE'}
+                          disabled={updatingId === user.id}
+                          onChange={(e) => changePlan(user, e.target.value)}
+                          className="text-xs rounded-lg border border-gray-200 px-2 py-1 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                          title="Plan du compte (s'applique à tous ses groupes)"
+                        >
+                          {(Object.keys(PLANS) as string[]).map((k) => (
+                            <option key={k} value={k}>{PLANS[k].label}</option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3 flex-wrap">
