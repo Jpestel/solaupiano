@@ -422,6 +422,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         showInvite={isChef}
         isChef={isChef}
         canManage={canManageMembers}
+        groupType={(group as any).type}
         isAdmin={adminPower}
         currentUserId={userId}
         currentUserRole={effectiveRole}

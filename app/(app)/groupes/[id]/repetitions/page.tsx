@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { StarRating, EvaluationModal, PresencePicker } from '@/components/ui/RehearsalEvaluation'
 import { ph } from '@/lib/placeholders'
+import { groupVocab } from '@/lib/group-vocab'
 
 interface MemberRating { ratedUserId: number; rating: number; ratedUser: { id: number; name: string } }
 interface SongRating { songId: number; rating: number; song: { id: number; title: string } }
@@ -32,6 +33,7 @@ interface Rehearsal {
 
 interface GroupInfo {
   name: string
+  type?: string
   groupRole: string
   createdBy: number | null
   chefPermissions: unknown
@@ -80,7 +82,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, hasEvaluations: g.planFeatures?.hasEvaluations ?? true })
+      setGroupInfo({ name: g.name, type: g.type, groupRole: role, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null, hasEvaluations: g.planFeatures?.hasEvaluations ?? true })
       const otherMembers = (g.members || []).filter((m: { userId: number }) => m.userId !== Number(session?.user?.id))
       setMembers(otherMembers)
       setSelectedMemberIds(otherMembers.map((m: Member) => m.userId))
@@ -173,6 +175,10 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
+  // Vocabulaire école : « Répétitions » → « Cours », « Membres » → « Élèves »
+  const isSchool = groupInfo?.type === 'SCHOOL'
+  const v = groupVocab(groupInfo?.type)
+
   const isChef = groupInfo?.groupRole === 'CHEF'
   const isFounder = isChef && (session?.user?.siteRole === 'ADMIN' || Number(session?.user?.id) === groupInfo?.createdBy)
   const perms = resolvePermissions(groupInfo?.chefPermissions)
@@ -189,14 +195,14 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
         <span>/</span>
         <Link href={`/groupes/${groupId}`} className="hover:text-indigo-600">{groupInfo?.name}</Link>
         <span>/</span>
-        <span className="text-gray-900">Répétitions</span>
+        <span className="text-gray-900">{v.rehearsals}</span>
       </div>
 
       <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
-        <h1 className="text-2xl font-bold text-gray-900">Répétitions</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{v.rehearsals}</h1>
         {chefCan('repetitions', 'create') && (
           <Button onClick={() => setModalOpen(true)}>
-            + Nouvelle répétition
+            {isSchool ? '+ Nouveau cours' : '+ Nouvelle répétition'}
           </Button>
         )}
       </div>
@@ -205,7 +211,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
       <div className="mb-8">
         <h2 className="text-base font-semibold text-gray-700 mb-3">À venir ({upcoming.length})</h2>
         {upcoming.length === 0 ? (
-          <Card><p className="text-sm text-gray-500 text-center py-6">Aucune répétition à venir.</p></Card>
+          <Card><p className="text-sm text-gray-500 text-center py-6">{isSchool ? 'Aucun cours à venir.' : 'Aucune répétition à venir.'}</p></Card>
         ) : (
           <div className="space-y-3">
             {upcoming.map((r) => {
@@ -366,7 +372,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
       )}
 
       {/* Create modal */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Nouvelle répétition">
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={isSchool ? 'Nouveau cours' : 'Nouvelle répétition'}>
         <form onSubmit={handleCreate} className="space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -439,7 +445,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
           {members.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="form-label mb-0">Membres invités</label>
+                <label className="form-label mb-0">{isSchool ? 'Élèves concernés' : 'Membres invités'}</label>
                 <button
                   type="button"
                   onClick={() => {
@@ -453,9 +459,14 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
                   {inviteAll ? 'Personnaliser' : 'Tous sélectionner'}
                 </button>
               </div>
+              {isSchool && (
+                <p className="text-xs text-gray-400 mb-2">
+                  Sélectionnez <strong>un élève</strong> pour un cours individuel, ou <strong>plusieurs</strong> pour un cours collectif.
+                </p>
+              )}
               {inviteAll ? (
                 <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-                  Tous les membres seront invités ({members.length})
+                  {isSchool ? `Tous les élèves seront concernés (${members.length})` : `Tous les membres seront invités (${members.length})`}
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -488,7 +499,7 @@ export default function RepetitionsPage({ params }: { params: { id: string } }) 
               Annuler
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? 'Enregistrement...' : 'Créer la répétition'}
+              {saving ? 'Enregistrement...' : (isSchool ? 'Créer le cours' : 'Créer la répétition')}
             </Button>
           </div>
         </form>

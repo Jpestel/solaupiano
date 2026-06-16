@@ -50,6 +50,7 @@ interface Concert {
 
 interface Props {
   groupId: number
+  groupType?: string
   rehearsal: Rehearsal | null
   concert: Concert | null
   members: Member[]
@@ -93,10 +94,11 @@ function SortableCard({ id, children, spanFull }: { id: string; children: React.
 }
 
 export function GroupCards({
-  groupId, rehearsal, concert, members, showInvite,
+  groupId, groupType, rehearsal, concert, members, showInvite,
   isChef, canManage, isAdmin, currentUserId, currentUserRole, savedCardOrder,
   createdBy, chefPermissions, memberLimit,
 }: Props) {
+  const isSchool = groupType === 'SCHOOL'
   const defaultOrder = ['rehearsal', 'concert', 'members', ...(showInvite ? ['invite'] : [])]
 
   const LS_KEY = `group-card-order-${groupId}`
@@ -144,7 +146,7 @@ export function GroupCards({
       node: (
         <Card className="rounded-none border-0">
           <CardHeader
-            title="Prochaine répétition"
+            title={isSchool ? 'Prochain cours' : 'Prochaine répétition'}
             action={
               <Link href={`/groupes/${groupId}/repetitions`} className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">
                 Voir tout
@@ -163,7 +165,7 @@ export function GroupCards({
               <p className="text-sm text-gray-600">{rehearsal.location}</p>
             </Link>
           ) : (
-            <p className="text-sm text-gray-500 text-center py-4">Aucune répétition prévue.</p>
+            <p className="text-sm text-gray-500 text-center py-4">{isSchool ? 'Aucun cours prévu.' : 'Aucune répétition prévue.'}</p>
           )}
         </Card>
       ),
@@ -198,7 +200,7 @@ export function GroupCards({
       spanFull: true,
       node: (
         <Card className="rounded-none border-0">
-          <CardHeader title={`Membres (${members.length})`} />
+          <CardHeader title={`${isSchool ? 'Élèves' : 'Membres'} (${members.length})`} />
           <MembresPanel
             groupId={groupId}
             members={members}
@@ -218,7 +220,7 @@ export function GroupCards({
       spanFull: true,
       node: (
         <Card className="rounded-none border-0">
-          <CardHeader title="➕ Inviter un musicien" />
+          <CardHeader title={isSchool ? '➕ Inviter un élève' : '➕ Inviter un musicien'} />
           <InvitePanel groupId={groupId} />
         </Card>
       ),
