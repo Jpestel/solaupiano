@@ -31,8 +31,10 @@ export async function POST(req: NextRequest) {
     const allInstrumentIds: number[] = Array.isArray(instrumentIds) ? [...instrumentIds] : []
     if (otherInstrument?.trim()) {
       const trimmed = otherInstrument.trim()
+      // NB : MySQL compare déjà sans tenir compte de la casse (collation _ci) ;
+      // `mode: 'insensitive'` n'existe pas en MySQL et ferait planter la requête.
       const existing = await prisma.instrument.findFirst({
-        where: { name: { equals: trimmed, mode: 'insensitive' } },
+        where: { name: { equals: trimmed } },
       })
       if (existing) {
         if (!allInstrumentIds.includes(existing.id)) allInstrumentIds.push(existing.id)
@@ -74,10 +76,11 @@ export async function POST(req: NextRequest) {
       })
       const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
       const admin = await prisma.user.findFirst({ where: { siteRole: 'ADMIN' }, select: { email: true } })
+      // Non bloquant : un échec d'envoi d'email ne doit pas faire échouer l'inscription.
       await Promise.all([
         sendEmailVerification(email, name, `${baseUrl}/verifier-email?token=${token}`),
         admin ? sendNewUserNotification(admin.email, { name, email }) : Promise.resolve(),
-      ])
+      ]).catch((e) => console.error('Envoi emails inscription échoué:', e))
     }
 
     return NextResponse.json({ id: user.id, name: user.name, email: user.email }, { status: 201 })
