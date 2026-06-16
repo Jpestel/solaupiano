@@ -115,7 +115,7 @@ function ProgressControl({ percent, onChange }: { percent: number; onChange: (p:
         <span className="tabular-nums font-semibold">{percent}%</span>
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-20 w-56 rounded-xl border border-gray-200 bg-white shadow-lg p-3">
+        <div className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-xl border border-gray-200 bg-white shadow-lg p-3">
           <p className="text-xs font-semibold text-gray-700 mb-1">Mon niveau de maîtrise</p>
           <div className="flex items-center gap-2 mb-2">
             <span className={`text-lg font-bold tabular-nums ${c.text}`}>{percent}%</span>
@@ -164,7 +164,7 @@ function SortableSongRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-xl border border-gray-100 bg-gray-50 overflow-hidden ${isDragging ? 'shadow-lg ring-2 ring-indigo-300 z-50 opacity-90' : ''}`}
+      className={`rounded-xl border border-gray-100 bg-gray-50 ${isDragging ? 'shadow-lg ring-2 ring-indigo-300 z-50 opacity-90 overflow-hidden' : ''}`}
     >
       <div className="flex items-center gap-3 px-4 py-3 group">
         {isChef && (
