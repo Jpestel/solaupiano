@@ -65,18 +65,19 @@ export function AttendanceBadge({ status }: { status: string }) {
  * Couleurs littérales (non affectées par le thème du site) :
  * fondateur = orange, co-chef = bleu, membre = blanc/gris.
  */
-export function GroupRoleBadge({ groupRole, isFounder }: { groupRole: string; isFounder: boolean }) {
+export function GroupRoleBadge({ groupRole, isFounder, groupType }: { groupRole: string; isFounder: boolean; groupType?: string }) {
+  const isSchool = groupType === 'SCHOOL'
   let cls = 'border-gray-200 bg-white text-gray-600'
-  let label = 'Membre'
-  let icon = '🎵'
+  let label = isSchool ? 'Élève' : 'Membre'
+  let icon = isSchool ? '🎒' : '🎵'
   if (isFounder) {
     cls = 'border-amber-200 bg-amber-100 text-amber-700'
-    label = "Chef d'orchestre"
-    icon = '👑'
+    label = isSchool ? 'Professeur' : "Chef d'orchestre"
+    icon = isSchool ? '🎓' : '👑'
   } else if (groupRole === 'CHEF') {
     cls = 'border-blue-200 bg-blue-100 text-blue-700'
-    label = 'Co-chef'
-    icon = '⭐'
+    label = isSchool ? 'Professeur' : 'Co-chef'
+    icon = isSchool ? '🎓' : '⭐'
   }
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${cls}`}>

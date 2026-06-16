@@ -172,16 +172,28 @@ export default async function GroupesPage() {
                         : group.name.charAt(0)
                       }
                     </div>
-                    <GroupRoleBadge groupRole={groupRole} isFounder={group.createdBy === userId} />
+                    <GroupRoleBadge groupRole={groupRole} isFounder={group.createdBy === userId} groupType={(group as any).type} />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-1">{group.name}</h3>
+                  <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-1.5">
+                    {(group as any).type === 'SCHOOL' && <span title="Classe / école">🎓</span>}
+                    {group.name}
+                  </h3>
                   {group.description && (
                     <p className="text-sm text-gray-500 mb-3 line-clamp-2">{group.description}</p>
                   )}
                   <div className={`flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100 ${groupRole === 'CHEF' ? 'pr-20' : ''}`}>
-                    <span>{group._count.members} membre{group._count.members > 1 ? 's' : ''}</span>
-                    <span>{group._count.rehearsals} répétition{group._count.rehearsals > 1 ? 's' : ''}</span>
-                    <span>{group._count.songs} morceau{group._count.songs > 1 ? 'x' : ''}</span>
+                    {(group as any).type === 'SCHOOL' ? (
+                      <>
+                        <span>{group._count.members} élève{group._count.members > 1 ? 's' : ''}</span>
+                        <span>{group._count.rehearsals} cours</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{group._count.members} membre{group._count.members > 1 ? 's' : ''}</span>
+                        <span>{group._count.rehearsals} répétition{group._count.rehearsals > 1 ? 's' : ''}</span>
+                        <span>{group._count.songs} morceau{group._count.songs > 1 ? 'x' : ''}</span>
+                      </>
+                    )}
                   </div>
                 </Card>
               </Link>
