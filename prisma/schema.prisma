@@ -181,6 +181,8 @@ model User {
   passwordResetTokens      PasswordResetToken[]
   emailVerificationTokens  EmailVerificationToken[]
   songProgress             UserSongProgress[]
+  assignmentsReceived      Assignment[]            @relation("AssignmentStudent")
+  assignmentsGiven         Assignment[]            @relation("AssignmentTeacher")
   remindersReceived        ReminderLog[]            @relation("RemindedUser")
   remindersSent            ReminderLog[]            @relation("ReminderSender")
   autoReminders            RehearsalAutoReminder[]
@@ -366,6 +368,7 @@ model Group {
   founder          User?     @relation("GroupFounder", fields: [createdBy], references: [id], onDelete: SetNull)
 
   members          GroupMember[]
+  assignments      Assignment[]
   rehearsals       Rehearsal[]
   concerts         Concert[]
   songs            Song[]
@@ -926,6 +929,7 @@ model Song {
   pendingResources PendingResource[]
   rehearsals       RehearsalSong[]
   userProgress     UserSongProgress[]
+  assignments      Assignment[]
   setlists         SetlistSong[]
   chordCharts      ChordChart[]
   lyrics           SongLyrics?
@@ -1375,4 +1379,33 @@ model HelpBubbleDismissal {
   @@unique([bubbleId, userId])
   @@index([bubbleId])
   @@index([userId])
+}
+
+// ─── Devoirs (mode École) : assignation privée prof → élève ───
+enum AssignmentStatus {
+  A_FAIRE
+  EN_COURS
+  FAIT
+}
+
+model Assignment {
+  id          Int              @id @default(autoincrement())
+  groupId     Int
+  studentId   Int              // élève concerné
+  teacherId   Int              // prof qui assigne
+  title       String
+  instruction String?          @db.Text
+  songId      Int?             // morceau lié (optionnel)
+  dueDate     DateTime?
+  status      AssignmentStatus @default(A_FAIRE)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  student User  @relation("AssignmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  teacher User  @relation("AssignmentTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  song    Song? @relation(fields: [songId], references: [id], onDelete: SetNull)
+
+  @@index([groupId])
+  @@index([studentId])
 }

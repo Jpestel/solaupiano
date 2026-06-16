@@ -208,9 +208,17 @@ export default async function GroupePage({ params }: { params: { id: string } })
               {group.isPublic ? '🌐 Public' : group.isHidden ? '🙈 Masqué' : '🔒 Privé'}
             </span>
             {(group as any).type === 'SCHOOL' && (
-              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                🎓 École
-              </span>
+              <>
+                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  🎓 École
+                </span>
+                <Link
+                  href={`/groupes/${groupId}/devoirs`}
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors"
+                >
+                  📒 Devoirs
+                </Link>
+              </>
             )}
             <RoleBadge role={effectiveRole} groupType={(group as any).type} />
             {isChef && (
