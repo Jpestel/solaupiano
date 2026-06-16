@@ -35,6 +35,12 @@ enum GroupRole {
   MEMBRE
 }
 
+// Type d'espace : groupe de musique ou classe / école de musique.
+enum GroupType {
+  BAND
+  SCHOOL
+}
+
 model Plan {
   id          Int     @id @default(autoincrement())
   key         String  @unique
@@ -335,9 +341,10 @@ model UserInstrument {
 }
 
 model Group {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
-  description String?  @db.Text
+  type        GroupType @default(BAND) // groupe de musique ou classe / école
+  description String?   @db.Text
   style       String?  // genre / style musical (null = non renseigné)
   coverUrl         String?
   isPublic         Boolean   @default(true)

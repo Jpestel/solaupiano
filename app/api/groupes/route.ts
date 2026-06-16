@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
   const body = await req.json()
-  const { name, description, style, chefId, isPublic, isHidden, lookingFor } = body
+  const { name, description, style, chefId, isPublic, isHidden, lookingFor, type } = body
+  const groupType = type === 'SCHOOL' ? 'SCHOOL' : 'BAND'
 
   if (!name?.trim()) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
 
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
   const group = await prisma.group.create({
     data: {
       name: name.trim(),
+      type: groupType,
       description: description?.trim() || undefined,
       style: typeof style === 'string' && style.trim() ? style.trim() : undefined,
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,

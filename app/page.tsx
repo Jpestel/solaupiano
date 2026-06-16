@@ -170,6 +170,30 @@ export default async function PublicHomePage() {
                 Déjà inscrit ? →
               </Link>
             </div>
+
+            {/* Deux portes : groupe ou école */}
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
+              <Link
+                href="/inscription"
+                className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+              >
+                <div className="flex items-center gap-2 text-white font-semibold">
+                  <span className="text-xl">🎵</span> Vous êtes un groupe
+                </div>
+                <p className="mt-1 text-sm text-white/70">Répétitions, concerts, répertoire et accords partagés.</p>
+                <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+              </Link>
+              <Link
+                href="/inscription?profil=ecole"
+                className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+              >
+                <div className="flex items-center gap-2 text-white font-semibold">
+                  <span className="text-xl">🎓</span> Vous êtes prof ou école
+                </div>
+                <p className="mt-1 text-sm text-white/70">Gérez vos cours, vos élèves et leur progression.</p>
+                <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+              </Link>
+            </div>
           </div>
 
           {/* Compteurs */}

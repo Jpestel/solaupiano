@@ -207,7 +207,12 @@ export default async function GroupePage({ params }: { params: { id: string } })
             }`}>
               {group.isPublic ? '🌐 Public' : group.isHidden ? '🙈 Masqué' : '🔒 Privé'}
             </span>
-            <RoleBadge role={effectiveRole} />
+            {(group as any).type === 'SCHOOL' && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                🎓 École
+              </span>
+            )}
+            <RoleBadge role={effectiveRole} groupType={(group as any).type} />
             {isChef && (
               <GroupSettingsButton
                 groupId={groupId}

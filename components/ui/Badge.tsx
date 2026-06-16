@@ -85,10 +85,11 @@ export function GroupRoleBadge({ groupRole, isFounder }: { groupRole: string; is
   )
 }
 
-export function RoleBadge({ role }: { role: string }) {
+export function RoleBadge({ role, groupType }: { role: string; groupType?: string }) {
+  const isSchool = groupType === 'SCHOOL'
   const map: Record<string, { variant: BadgeVariant; label: string }> = {
-    CHEF: { variant: 'chef', label: "Chef d'orchestre" },
-    MEMBRE: { variant: 'membre', label: 'Membre' },
+    CHEF: { variant: 'chef', label: isSchool ? 'Professeur' : "Chef d'orchestre" },
+    MEMBRE: { variant: 'membre', label: isSchool ? 'Élève' : 'Membre' },
     ADMIN: { variant: 'admin', label: 'Admin' },
   }
   const { variant, label } = map[role] || { variant: 'default', label: role }
