@@ -13,6 +13,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { formatDateWithDay, getResourceIcon, getVideoEmbedUrl } from '@/lib/utils'
 import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
+import { groupVocab } from '@/lib/group-vocab'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { AttendanceBadge } from '@/components/ui/Badge'
 import { AttendanceButton } from '@/components/AttendanceButton'
@@ -280,7 +281,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const router = useRouter()
   const [rehearsal, setRehearsal] = useState<Rehearsal | null>(null)
   const [songs, setSongs] = useState<RehearsalSongEntry[]>([])
-  const [groupInfo, setGroupInfo] = useState<{ name: string; groupRole: string; memberCount: number; createdBy: number | null; chefPermissions: unknown } | null>(null)
+  const [groupInfo, setGroupInfo] = useState<{ name: string; type?: string; groupRole: string; memberCount: number; createdBy: number | null; chefPermissions: unknown } | null>(null)
   const [groupSongs, setGroupSongs] = useState<GroupSong[]>([])
   const [groupSetlists, setGroupSetlists] = useState<GroupSetlist[]>([])
   const [loading, setLoading] = useState(true)
@@ -328,7 +329,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
       const g = await grpRes.json()
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
-      setGroupInfo({ name: g.name, groupRole: role, memberCount: g.members?.length ?? 0, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
+      setGroupInfo({ name: g.name, type: g.type, groupRole: role, memberCount: g.members?.length ?? 0, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
     }
     if (songsRes.ok) setGroupSongs(await songsRes.json())
     if (setlistsRes.ok) setGroupSetlists(await setlistsRes.json())
@@ -446,7 +447,9 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   }
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
-  if (!rehearsal) return <div className="text-gray-500">Répétition introuvable.</div>
+  const isSchool = groupInfo?.type === 'SCHOOL'
+  const v = groupVocab(groupInfo?.type)
+  if (!rehearsal) return <div className="text-gray-500">{isSchool ? 'Cours introuvable.' : 'Répétition introuvable.'}</div>
 
   const myUserId = Number(session?.user?.id)
   const myAttendance = rehearsal.attendances.find((a) => a.userId === myUserId)
@@ -473,7 +476,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
         <span>/</span>
         <Link href={`/groupes/${params.id}`} className="hover:text-indigo-600">{groupInfo?.name}</Link>
         <span>/</span>
-        <Link href={`/groupes/${params.id}/repetitions`} className="hover:text-indigo-600">Répétitions</Link>
+        <Link href={`/groupes/${params.id}/repetitions`} className="hover:text-indigo-600">{v.rehearsals}</Link>
         <span>/</span>
         <span className="text-gray-900">Détail</span>
       </div>
@@ -682,7 +685,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
       {editOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setEditOpen(false)}>
           <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Modifier la répétition</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{isSchool ? 'Modifier le cours' : 'Modifier la répétition'}</h3>
             {editError && (
               <p className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{editError}</p>
             )}
@@ -784,7 +787,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                 </svg>
               </div>
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Supprimer la répétition ?</h3>
+                <h3 className="text-base font-semibold text-gray-900">{isSchool ? 'Supprimer le cours ?' : 'Supprimer la répétition ?'}</h3>
                 <p className="text-sm text-gray-500 mt-0.5">Cette action est irréversible.</p>
               </div>
             </div>

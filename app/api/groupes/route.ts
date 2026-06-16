@@ -43,6 +43,28 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Un co-chef ne peut pas créer son propre groupe : ce statut (proche de celui
+  // de chef) ne vaut que pour le groupe dont il est co-chef. Il doit d'abord
+  // quitter ce rôle pour créer le sien.
+  if (!isAdmin) {
+    const myId = Number(session.user.id)
+    const chefMemberships = await prisma.groupMember.findMany({
+      where: { userId: myId, groupRole: 'CHEF' },
+      include: { group: { select: { name: true, createdBy: true } } },
+    })
+    const coChefOf = chefMemberships.filter((m) => m.group.createdBy !== myId)
+    if (coChefOf.length > 0) {
+      const names = coChefOf.map((m) => `« ${m.group.name} »`).join(', ')
+      return NextResponse.json(
+        {
+          error: `Vous êtes co-chef du groupe ${names}. Un co-chef ne peut pas créer son propre groupe : ce rôle ne concerne que ce groupe. Pour créer le vôtre, quittez d'abord votre rôle de co-chef.`,
+          code: 'COCHEF_CONFLICT',
+        },
+        { status: 403 }
+      )
+    }
+  }
+
   // FREE creators can only manage 1 group — enforce limit
   if (!isAdmin) {
     const existingGroupsCount = await prisma.groupMember.count({
