@@ -371,6 +371,7 @@ model Group {
 
   members          GroupMember[]
   assignments      Assignment[]
+  levelGroups      StudentLevelGroup[]
   rehearsals       Rehearsal[]
   concerts         Concert[]
   songs            Song[]
@@ -1410,6 +1411,20 @@ model Assignment {
 
   @@index([groupId])
   @@index([studentId])
+}
+
+// Groupe de niveau (école) : un sous-ensemble nommé d'élèves, pour assigner un
+// devoir à tout un niveau d'un coup. memberIds = JSON des userId.
+model StudentLevelGroup {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  name      String
+  memberIds String   @default("[]") @db.Text
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
 }
 
 // Déduplication de la relance « dernière mise à jour du niveau de maîtrise »

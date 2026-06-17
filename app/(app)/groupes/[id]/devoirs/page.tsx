@@ -17,6 +17,7 @@ interface Assignment {
 }
 interface Member { userId: number; groupRole: string; user: { name: string } }
 interface SongLite { id: number; title: string }
+interface Level { id: number; name: string; memberIds: number[] }
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
   A_FAIRE: { label: 'À faire', cls: 'bg-gray-100 text-gray-600 border-gray-200' },
@@ -33,15 +34,22 @@ export default function DevoirsPage({ params }: { params: { id: string } }) {
   const [students, setStudents] = useState<Member[]>([])
   const [songs, setSongs] = useState<SongLite[]>([])
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ studentId: '', title: '', instruction: '', songId: '', dueDate: '' })
+  const [form, setForm] = useState({ title: '', instruction: '', songId: '', dueDate: '' })
+  const [recipients, setRecipients] = useState<number[]>([])
+  const [levels, setLevels] = useState<Level[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // Gestion des groupes de niveau
+  const [levelName, setLevelName] = useState('')
+  const [levelMembers, setLevelMembers] = useState<number[]>([])
+  const [levelBusy, setLevelBusy] = useState(false)
 
   const load = async () => {
-    const [devRes, grpRes, songRes] = await Promise.all([
+    const [devRes, grpRes, songRes, lvlRes] = await Promise.all([
       fetch(`/api/groupes/${groupId}/devoirs`),
       fetch(`/api/groupes/${groupId}`),
       fetch(`/api/groupes/${groupId}/morceaux`),
+      fetch(`/api/groupes/${groupId}/niveaux`),
     ])
     if (devRes.ok) {
       const d = await devRes.json()
@@ -53,27 +61,52 @@ export default function DevoirsPage({ params }: { params: { id: string } }) {
       setStudents((g.members || []).filter((m: Member) => m.groupRole !== 'CHEF'))
     }
     if (songRes.ok) setSongs(await songRes.json())
+    if (lvlRes.ok) { const d = await lvlRes.json(); setLevels(d.levels || []) }
     setLoading(false)
   }
   useEffect(() => { if (session) load() }, [session, groupId])
 
+  const toggleRecipient = (id: number) =>
+    setRecipients((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id])
+  const allStudentIds = students.map((s) => s.userId)
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.studentId || !form.title.trim()) { setError('Élève et intitulé requis.'); return }
+    if (recipients.length === 0 || !form.title.trim()) { setError('Au moins un élève et un intitulé sont requis.'); return }
     setSaving(true); setError('')
     const res = await fetch(`/api/groupes/${groupId}/devoirs`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        studentId: form.studentId, title: form.title, instruction: form.instruction,
+        studentIds: recipients, title: form.title, instruction: form.instruction,
         songId: form.songId || null, dueDate: form.dueDate || null,
       }),
     })
     setSaving(false)
     const d = await res.json().catch(() => ({}))
     if (!res.ok) { setError(d.error || 'Erreur.'); return }
-    setForm({ studentId: '', title: '', instruction: '', songId: '', dueDate: '' })
+    setForm({ title: '', instruction: '', songId: '', dueDate: '' })
+    setRecipients([])
     load()
   }
+
+  // ── Groupes de niveau ──
+  const createLevel = async () => {
+    if (!levelName.trim()) return
+    setLevelBusy(true)
+    const res = await fetch(`/api/groupes/${groupId}/niveaux`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: levelName, memberIds: levelMembers }),
+    })
+    setLevelBusy(false)
+    if (res.ok) { setLevelName(''); setLevelMembers([]); load() }
+  }
+  const deleteLevel = async (id: number) => {
+    if (!confirm('Supprimer ce groupe de niveau ?')) return
+    await fetch(`/api/groupes/${groupId}/niveaux/${id}`, { method: 'DELETE' })
+    load()
+  }
+  const applyLevel = (lvl: Level) =>
+    setRecipients((p) => Array.from(new Set([...p, ...lvl.memberIds.filter((id) => allStudentIds.includes(id))])))
 
   const setStatus = async (id: number, status: string) => {
     setAssignments((prev) => prev.map((a) => a.id === id ? { ...a, status: status as Assignment['status'] } : a))
@@ -111,18 +144,42 @@ export default function DevoirsPage({ params }: { params: { id: string } }) {
           <h3 className="font-semibold text-gray-900 mb-3">Nouveau devoir</h3>
           {error && <div className="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
           <form onSubmit={create} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="form-label">Élève *</label>
-                <select className="form-input" value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })}>
-                  <option value="">— Choisir un élève —</option>
-                  {students.map((s) => <option key={s.userId} value={s.userId}>{s.user.name}</option>)}
-                </select>
+            {/* Destinataires : sélection multiple + raccourcis groupes de niveau */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="form-label mb-0">Élèves concernés * <span className="text-gray-400 font-normal">({recipients.length})</span></label>
+                <div className="flex gap-2 text-xs">
+                  <button type="button" onClick={() => setRecipients(allStudentIds)} className="font-medium text-indigo-600 hover:text-indigo-700">Tous</button>
+                  {recipients.length > 0 && <button type="button" onClick={() => setRecipients([])} className="font-medium text-gray-400 hover:text-gray-600">Aucun</button>}
+                </div>
               </div>
-              <div>
-                <label className="form-label">Échéance <span className="text-gray-400 font-normal">(optionnel)</span></label>
-                <input type="date" className="form-input" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+              {levels.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  <span className="text-xs text-gray-400">Niveaux :</span>
+                  {levels.map((l) => (
+                    <button key={l.id} type="button" onClick={() => applyLevel(l)} className="rounded-full bg-violet-50 border border-violet-200 px-2.5 py-1 text-xs font-medium text-violet-700 hover:bg-violet-100">
+                      + {l.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex flex-wrap gap-1.5">
+                {students.length === 0 ? (
+                  <p className="text-xs text-gray-400">Aucun élève dans la classe pour l’instant.</p>
+                ) : students.map((s) => {
+                  const on = recipients.includes(s.userId)
+                  return (
+                    <button key={s.userId} type="button" onClick={() => toggleRecipient(s.userId)}
+                      className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors ${on ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'}`}>
+                      {on ? '✓ ' : ''}{s.user.name}
+                    </button>
+                  )
+                })}
               </div>
+            </div>
+            <div>
+              <label className="form-label">Échéance <span className="text-gray-400 font-normal">(optionnel)</span></label>
+              <input type="date" className="form-input" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
             </div>
             <div>
               <label className="form-label">Intitulé *</label>
@@ -142,9 +199,58 @@ export default function DevoirsPage({ params }: { params: { id: string } }) {
               </div>
             )}
             <div className="flex justify-end">
-              <Button type="submit" disabled={saving}>{saving ? 'Envoi…' : 'Assigner le devoir'}</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Envoi…' : (recipients.length > 1 ? `Assigner à ${recipients.length} élèves` : 'Assigner le devoir')}
+              </Button>
             </div>
           </form>
+        </Card>
+      )}
+
+      {/* Prof : groupes de niveau */}
+      {isChef && (
+        <Card className="mb-6">
+          <h3 className="font-semibold text-gray-900 mb-1">🎚️ Groupes de niveau</h3>
+          <p className="text-xs text-gray-400 mb-3">Regroupez des élèves (ex. Débutants, Intermédiaires) pour leur assigner un devoir en un clic.</p>
+
+          {levels.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {levels.map((l) => (
+                <div key={l.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{l.name}</p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {l.memberIds.length === 0 ? 'Aucun élève' : students.filter((s) => l.memberIds.includes(s.userId)).map((s) => s.user.name).join(', ')}
+                    </p>
+                  </div>
+                  <button onClick={() => deleteLevel(l.id)} className="text-xs text-red-500 hover:text-red-600 shrink-0">Supprimer</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 space-y-2">
+            <input className="form-input" placeholder="Nom du niveau (ex. Débutants)" value={levelName} onChange={(e) => setLevelName(e.target.value)} />
+            {students.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {students.map((s) => {
+                  const on = levelMembers.includes(s.userId)
+                  return (
+                    <button key={s.userId} type="button"
+                      onClick={() => setLevelMembers((p) => on ? p.filter((x) => x !== s.userId) : [...p, s.userId])}
+                      className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors ${on ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-600 border-gray-300 hover:border-violet-400'}`}>
+                      {on ? '✓ ' : ''}{s.user.name}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            <div className="flex justify-end">
+              <Button type="button" onClick={createLevel} disabled={levelBusy || !levelName.trim()}>
+                {levelBusy ? 'Création…' : 'Créer le groupe de niveau'}
+              </Button>
+            </div>
+          </div>
         </Card>
       )}
 

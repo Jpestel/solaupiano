@@ -44,18 +44,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!ctx) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   if (!ctx.isChef) return NextResponse.json({ error: 'Réservé au professeur.' }, { status: 403 })
 
-  const { studentId, title, instruction, songId, dueDate } = await req.json().catch(() => ({}))
-  const sid = Number(studentId)
-  if (!Number.isInteger(sid) || !title?.trim()) {
-    return NextResponse.json({ error: 'Élève et intitulé requis.' }, { status: 400 })
+  const body = await req.json().catch(() => ({}))
+  const { title, instruction, songId, dueDate } = body
+  // Accepte studentIds[] (multi) ou studentId (compat).
+  const rawIds: unknown[] = Array.isArray(body.studentIds) ? body.studentIds : (body.studentId != null ? [body.studentId] : [])
+  const ids = Array.from(new Set(rawIds.map(Number).filter(Number.isInteger)))
+
+  if (ids.length === 0 || !title?.trim()) {
+    return NextResponse.json({ error: 'Au moins un élève et un intitulé sont requis.' }, { status: 400 })
   }
 
-  // L'élève doit appartenir au groupe.
-  const member = await prisma.groupMember.findUnique({ where: { userId_groupId: { userId: sid, groupId } } })
-  if (!member) return NextResponse.json({ error: 'Cet élève ne fait pas partie de la classe.' }, { status: 400 })
+  // On ne garde que les élèves réellement membres de la classe.
+  const members = await prisma.groupMember.findMany({
+    where: { groupId, userId: { in: ids } },
+    select: { userId: true },
+  })
+  const validIds = members.map((m) => m.userId)
+  if (validIds.length === 0) {
+    return NextResponse.json({ error: 'Aucun élève valide dans la classe.' }, { status: 400 })
+  }
 
-  const assignment = await prisma.assignment.create({
-    data: {
+  await prisma.assignment.createMany({
+    data: validIds.map((sid) => ({
       groupId,
       studentId: sid,
       teacherId: ctx.userId,
@@ -63,8 +73,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       instruction: instruction?.trim() || null,
       songId: songId ? Number(songId) : null,
       dueDate: dueDate ? new Date(dueDate) : null,
-    },
+    })),
   })
 
-  return NextResponse.json({ ok: true, assignment }, { status: 201 })
+  return NextResponse.json({ ok: true, created: validIds.length }, { status: 201 })
 }
