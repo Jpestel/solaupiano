@@ -7,8 +7,16 @@ import { coChefCanDo } from '@/lib/permissions'
 export const dynamic = 'force-dynamic'
 
 async function canPost(groupId: number, userId: number, isAdmin: boolean) {
+  if (isAdmin) return true
   const group = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
   if (!group) return false
+  if (group.createdBy === userId) return true // fondateur
+  // Réservé aux chefs / co-chefs : un simple membre (ou élève) ne peut pas poster.
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId, groupId } },
+    select: { groupRole: true },
+  })
+  if (membership?.groupRole !== 'CHEF') return false
   return coChefCanDo({ createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null }, userId, isAdmin, 'social', 'post')
 }
 

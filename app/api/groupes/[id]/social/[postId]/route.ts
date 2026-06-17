@@ -15,7 +15,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   const group = await prisma.group.findUnique({ where: { id: groupId }, select: { createdBy: true, chefPermissions: true } })
   if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
-  if (!coChefCanDo({ createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null }, userId, isAdmin, 'social', 'post')) {
+  // Réservé aux chefs / co-chefs (un simple membre ne peut pas gérer les posts).
+  const isFounder = group.createdBy === userId
+  const membership = isAdmin || isFounder ? null : await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId, groupId } }, select: { groupRole: true },
+  })
+  const isChefHere = isAdmin || isFounder || membership?.groupRole === 'CHEF'
+  if (!isChefHere || !coChefCanDo({ createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null }, userId, isAdmin, 'social', 'post')) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
   const post = await prisma.socialPost.findFirst({ where: { id: Number(params.postId), groupId }, select: { id: true } })

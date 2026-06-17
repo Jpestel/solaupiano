@@ -26,6 +26,7 @@ export default function MembresPanel({
   createdBy,
   chefPermissions,
   memberLimit,
+  groupType,
 }: {
   groupId: number
   members: Member[]
@@ -36,7 +37,9 @@ export default function MembresPanel({
   createdBy?: number | null
   chefPermissions?: unknown
   memberLimit?: number | null
+  groupType?: string
 }) {
+  const isSchool = groupType === 'SCHOOL'
   const router = useRouter()
   const [members, setMembers] = useState(initialMembers)
   const [processing, setProcessing] = useState<number | null>(null)
@@ -175,8 +178,8 @@ export default function MembresPanel({
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Role toggle — chef or admin */}
-              {(isAdmin || isChef) && !isSelf && chefCan('membres', 'promote') && (
+              {/* Role toggle — chef or admin (pas de co-chef dans une école) */}
+              {!isSchool && (isAdmin || isChef) && !isSelf && chefCan('membres', 'promote') && (
                 <button
                   onClick={() => toggleRole(member)}
                   disabled={processing === member.userId}

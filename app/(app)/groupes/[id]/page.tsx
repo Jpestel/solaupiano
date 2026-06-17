@@ -143,7 +143,8 @@ export default async function GroupePage({ params }: { params: { id: string } })
     : (adminPower ? 'CHEF' : (membership?.groupRole ?? 'CHEF'))
   const isChef = adminPower || effectiveRole === 'CHEF'
   const canManageMembers = isChef
-  const canSocial = coChefCanDo({ createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null }, userId, adminPower, 'social', 'post')
+  // Réseaux : réservé aux chefs / co-chefs (un simple membre ou élève ne peut pas poster).
+  const canSocial = isChef && coChefCanDo({ createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null }, userId, adminPower, 'social', 'post')
 
   // Auto-assign founder if missing (done in GET API, but also compute here)
   const isFounder = adminPower || group.createdBy === userId

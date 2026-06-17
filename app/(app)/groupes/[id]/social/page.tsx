@@ -20,6 +20,7 @@ export default function SocialPage({ params }: { params: { id: string } }) {
   const [tagged, setTagged] = useState<number[]>([])
   const [noneIdentifiable, setNoneIdentifiable] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [forbidden, setForbidden] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [copied, setCopied] = useState(false)
@@ -32,6 +33,8 @@ export default function SocialPage({ params }: { params: { id: string } }) {
     ])
     if (gRes.ok) { const g = await gRes.json(); setGroupName(g.name || '') }
     if (galRes.ok) { const d = await galRes.json(); setPhotos((d.photos || []).map((p: Photo) => ({ id: p.id, filePath: p.filePath, eventLabel: p.eventLabel }))) }
+    // Module réservé aux chefs / co-chefs : un membre/élève reçoit 403.
+    if (postsRes.status === 403) { setForbidden(true); setLoading(false); return }
     if (postsRes.ok) { const d = await postsRes.json(); setPosts(d.posts || []); setMembers(d.members || []) }
     setLoading(false)
   }, [groupId])
@@ -122,6 +125,16 @@ export default function SocialPage({ params }: { params: { id: string } }) {
   ]
 
   if (loading) return <div className="px-4 py-8 text-gray-500">Chargement…</div>
+
+  if (forbidden) return (
+    <div className="max-w-xl mx-auto px-4 py-12 text-center">
+      <div className="text-4xl mb-3">🔒</div>
+      <h1 className="text-xl font-bold text-gray-900 mb-2">Atelier réseaux — réservé</h1>
+      <p className="text-gray-500 text-sm">
+        Ce module est réservé aux <strong>chefs et co-chefs</strong> du groupe. En tant que membre, vous n&apos;y avez pas accès.
+      </p>
+    </div>
+  )
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 pb-24">

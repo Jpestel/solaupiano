@@ -53,11 +53,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Fetch group to check permissions AND member limit
   const grp = await prisma.group.findUnique({
     where: { id: groupId },
-    select: { createdBy: true, chefPermissions: true, plan: true, maxMembersOverride: true },
+    select: { createdBy: true, chefPermissions: true, plan: true, maxMembersOverride: true, type: true },
   })
 
   if (!isAdmin && grp && !coChefCanDo(grp, requesterId, isAdmin, 'membres', 'add')) {
     return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
+  }
+
+  // Dans une école, il n'y a pas de co-chef : seul le professeur (fondateur) gère.
+  if (grp?.type === 'SCHOOL' && groupRole === 'CHEF') {
+    return NextResponse.json({ error: 'Dans une école, seul le professeur gère la classe : un élève ne peut pas être nommé co-chef.' }, { status: 400 })
   }
 
   // Check member limit (admins bypass the limit)

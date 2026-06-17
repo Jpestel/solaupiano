@@ -204,6 +204,7 @@ export function GroupCards({
           <CardHeader title={`${isSchool ? 'Élèves' : 'Membres'} (${members.length})`} />
           <MembresPanel
             groupId={groupId}
+            groupType={groupType}
             members={members}
             canManage={canManage}
             isAdmin={isAdmin}
