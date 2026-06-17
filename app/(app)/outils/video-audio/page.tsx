@@ -23,6 +23,7 @@ export default function VideoAudioPage() {
   const [fmt, setFmt] = useState<Fmt>('mp3')
   const [kbps, setKbps] = useState(192)
   const [busy, setBusy] = useState(false)
+  const [rightsConfirmed, setRightsConfirmed] = useState(false)
   const [progress, setProgress] = useState(0)
   const [phase, setPhase] = useState('')
   const [error, setError] = useState('')
@@ -38,10 +39,11 @@ export default function VideoAudioPage() {
   const pick = (f: File | null) => {
     reset()
     setFile(f)
+    setRightsConfirmed(false)
   }
 
   const extract = async () => {
-    if (!file) return
+    if (!file || !rightsConfirmed) return
     setBusy(true); setError(''); setResult(null); setProgress(0)
     try {
       setPhase('Décodage de la vidéo…')
@@ -133,9 +135,21 @@ export default function VideoAudioPage() {
           </div>
 
           {/* Action */}
+          <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <input
+              type="checkbox"
+              checked={rightsConfirmed}
+              onChange={(e) => setRightsConfirmed(e.target.checked)}
+              className="mt-0.5 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>
+              Je confirme disposer des droits ou de l&apos;autorisation nécessaire pour extraire l&apos;audio de ce fichier, et ne pas utiliser cet outil pour contourner les conditions d&apos;une plateforme comme YouTube.
+            </span>
+          </label>
+
           <button
             onClick={extract}
-            disabled={busy}
+            disabled={busy || !rightsConfirmed}
             className="w-full rounded-xl bg-indigo-600 px-6 py-3 text-base font-bold text-white hover:bg-indigo-500 disabled:opacity-60"
           >
             {busy ? (phase || 'Traitement…') : `🎵 Extraire l’audio (${fmt.toUpperCase()})`}
