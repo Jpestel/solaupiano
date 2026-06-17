@@ -23,6 +23,7 @@ interface ChartData {
  *   r = symbole de fin de mesure (:||, 𝄌, Fine…)
  */
 type BarData = { l: string; b: string[]; r: string }
+type ChartSound = { bar?: number; label: string; url?: string }
 
 /** Cible active dans la palette */
 type ActiveTarget =
@@ -47,13 +48,21 @@ function normalizeCells(raw: unknown, totalBars: number, bpb: number): BarData[]
     const item = src[i]
 
     if (item && typeof item === 'object' && !Array.isArray(item) && 'b' in item) {
-      // Format BarData { l, b, r }
+      // Format courant BarData { l, b, r }
       const bar = item as any
       const beats = (Array.isArray(bar.b) ? bar.b : []).map((v: any) => typeof v === 'string' ? v : '')
       const paddedBeats = beats.length < bpb
         ? [...beats, ...Array(bpb - beats.length).fill('')]
         : beats.slice(0, bpb)
       result.push({ l: bar.l || '', b: paddedBeats, r: bar.r || '' })
+
+    } else if (item && typeof item === 'object' && !Array.isArray(item) && 'chord' in item) {
+      // Ancien format de démo { chord, section }
+      const legacy = item as any
+      const beats = Array(bpb).fill('')
+      beats[0] = typeof legacy.chord === 'string' ? legacy.chord : ''
+      const section = typeof legacy.section === 'string' ? legacy.section.trim() : ''
+      result.push({ l: section ? section : '', b: beats, r: '' })
 
     } else if (Array.isArray(item)) {
       // Ancien format string[]
@@ -74,6 +83,36 @@ function normalizeCells(raw: unknown, totalBars: number, bpb: number): BarData[]
     }
   }
   return result
+}
+
+function parseChartSounds(value: string): ChartSound[] | null {
+  const trimmed = value.trim()
+  if (!trimmed) return []
+  try {
+    const parsed = JSON.parse(trimmed)
+    if (!Array.isArray(parsed)) return null
+    return parsed
+      .map((item): ChartSound | null => {
+        if (!item || typeof item !== 'object') return null
+        const label = typeof item.label === 'string' ? item.label.trim() : ''
+        const url = typeof item.url === 'string' ? item.url.trim() : undefined
+        const bar = Number.isFinite(Number(item.bar)) ? Number(item.bar) : undefined
+        if (!label && !url) return null
+        return { bar, label: label || url || 'Son', url }
+      })
+      .filter((item): item is ChartSound => Boolean(item))
+  } catch {
+    return null
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
 }
 
 /* ─── Palette data ─── */
@@ -127,6 +166,7 @@ const RIGHT_MARKERS = [
 const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '5/4', '12/8', '2/2']
 const BARS_PER_ROW_OPTIONS = [2, 3, 4, 6]
 const TOTAL_BARS_OPTIONS = [8, 16, 24, 32, 48, 64, 80]
+const TEST_ACCOUNT_EMAIL = 'testeur@solaupiano.fr'
 
 /* ─── Beat content renderer ─── */
 function BeatContent({ content }: { content: string }) {
@@ -254,6 +294,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   }
 
   const isChef = groupRole === 'CHEF'
+  const readOnlyTestAccount = session?.user?.email === TEST_ACCOUNT_EMAIL
+  const canEditGrid = isChef && !readOnlyTestAccount
 
   /* Ouvrir une cible dans la palette */
   const openTarget = (target: ActiveTarget) => {
@@ -437,6 +479,14 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     if (!chart) return
     const bpr = chart.barsPerRow
     const bpb = beatsPerBar(chart.timeSignature)
+    const parsedSounds = parseChartSounds(sons)
+    const soundsHtml = parsedSounds
+      ? parsedSounds.map((sound) => {
+          const label = escapeHtml(sound.label)
+          const barLabel = sound.bar ? `<span style="color:#777;">Mesure ${sound.bar} · </span>` : ''
+          return `<div style="font-size:12px;color:#555;margin-top:2px;">${barLabel}${label}</div>`
+        }).join('')
+      : `<span style="font-size:12px;color:#555;">${escapeHtml(sons)}</span>`
     let rowsHtml = ''
     for (let i = 0; i < cells.length; i += bpr) {
       const rowBg = Math.floor(i / bpr) % 2 === 0 ? '#ffffff' : '#f5f5f5'
@@ -446,14 +496,14 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         const bar = barIdx < cells.length ? cells[barIdx] : { l: '', b: Array(bpb).fill(''), r: '' }
         const barNum = barIdx + 1
         const beatsHtml = bar.b.map((beat, bi) =>
-          `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #ddd;' : ''}font-size:12px;font-weight:700;color:#111;min-height:18px;">${beat || ''}</div>`
+          `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #ddd;' : ''}font-size:12px;font-weight:700;color:#111;min-height:18px;">${escapeHtml(beat || '')}</div>`
         ).join('')
         tds += `<td style="border:1px solid #bbb;padding:0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${rowBg}">
           <div style="display:flex;align-items:baseline;justify-content:space-between;padding:2px 5px 1px;border-bottom:1px solid #e5e5e5;">
             <span style="font-size:9px;color:#aaa;">${barNum}</span>
-            ${bar.l ? `<span style="font-size:13px;font-weight:900;color:#4338ca;">${bar.l}</span>` : ''}
+            ${bar.l ? `<span style="font-size:13px;font-weight:900;color:#4338ca;">${escapeHtml(bar.l)}</span>` : ''}
             <span style="flex:1;"></span>
-            ${bar.r ? `<span style="font-size:13px;font-weight:900;color:#4338ca;">${bar.r}</span>` : ''}
+            ${bar.r ? `<span style="font-size:13px;font-weight:900;color:#4338ca;">${escapeHtml(bar.r)}</span>` : ''}
           </div>
           <div style="display:flex;">${beatsHtml}</div>
         </td>`
@@ -463,7 +513,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     const pw = window.open('', '_blank', 'width=900,height=1200')
     if (!pw) return
     pw.document.write(`<!DOCTYPE html><html lang="fr"><head>
-      <meta charset="UTF-8"><title>${chart.title}</title>
+              <meta charset="UTF-8"><title>${escapeHtml(chart.title)}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Arial,Helvetica,sans-serif;padding:20px;background:white}
@@ -483,15 +533,15 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           <tr>
             <td style="border:1px solid #bbb;padding:8px 12px;background:#fff;">
               <div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">Tempo</div>
-              <div style="font-size:14px;font-weight:700;">${chart.tempo || ''}</div>
+              <div style="font-size:14px;font-weight:700;">${escapeHtml(chart.tempo || '')}</div>
             </td>
             <td colspan="${bpr - 2}" style="border:1px solid #bbb;padding:8px 12px;text-align:center;background:#fff;">
-              <div style="font-size:18px;font-weight:800;">${chart.title}</div>
-              ${chart.keySignature ? `<div style="font-size:11px;color:#666;margin-top:2px;">${chart.keySignature}</div>` : ''}
+              <div style="font-size:18px;font-weight:800;">${escapeHtml(chart.title)}</div>
+              ${chart.keySignature ? `<div style="font-size:11px;color:#666;margin-top:2px;">${escapeHtml(chart.keySignature)}</div>` : ''}
             </td>
             <td style="border:1px solid #bbb;padding:8px 12px;text-align:right;background:#fff;">
               <div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">Mesure</div>
-              <div style="font-size:14px;font-weight:700;">${chart.timeSignature}</div>
+              <div style="font-size:14px;font-weight:700;">${escapeHtml(chart.timeSignature)}</div>
             </td>
           </tr>
         </thead>
@@ -499,8 +549,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         <tfoot>
           <tr>
             <td colspan="${bpr}" style="border:1px solid #bbb;padding:8px 12px;background:#fff;">
-              <span style="font-size:11px;font-weight:700;color:#333;">SONS : </span>
-              <span style="font-size:12px;color:#555;">${sons || ''}</span>
+              <div style="font-size:11px;font-weight:700;color:#333;">SONS :</div>
+              ${soundsHtml || '<div style="font-size:12px;color:#999;margin-top:2px;">Aucun son associé.</div>'}
             </td>
           </tr>
         </tfoot>
@@ -514,6 +564,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
   const bpr = chart.barsPerRow
   const bpb = beatsPerBar(chart.timeSignature)
+  const parsedSounds = parseChartSounds(sons)
 
   const rows: number[][] = []
   for (let i = 0; i < cells.length; i += bpr) {
@@ -561,7 +612,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
             🖨️ Imprimer
           </button>
-          {isChef && (
+          {canEditGrid && (
             <button onClick={openSettings}
               className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -572,6 +623,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           )}
         </div>
       </div>
+
+      {readOnlyTestAccount && (
+        <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          Compte TESTEUR : cette grille est une démonstration en lecture seule. Les accords, repères et sons ne peuvent pas être modifiés.
+        </div>
+      )}
 
       {/* Grid */}
       <div className="rounded-xl border border-gray-300 overflow-hidden mb-4 bg-white">
@@ -608,17 +665,17 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
                         {/* Marqueur gauche */}
                         <div
-                          onClick={() => isChef && openTarget({ bar: barIdx, type: 'left' })}
+                          onClick={() => canEditGrid && openTarget({ bar: barIdx, type: 'left' })}
                           className={`flex items-center flex-shrink-0 rounded px-0.5 transition-colors leading-none
-                            ${isChef ? 'cursor-pointer hover:bg-indigo-50' : ''}
+                            ${canEditGrid ? 'cursor-pointer hover:bg-indigo-50' : ''}
                             ${isActiveBar && active?.type === 'left' ? 'bg-orange-100 ring-1 ring-orange-300' : ''}
                           `}
                           style={{ minWidth: '20px', height: '14px' }}
-                          title={isChef ? 'Cliquer pour ajouter un symbole de début' : undefined}
+                          title={canEditGrid ? 'Cliquer pour ajouter un symbole de début' : undefined}
                         >
                           {bar.l
                             ? <MarkerContent value={bar.l} side="left" />
-                            : isChef && <span className="text-[8px] text-gray-200 select-none">+</span>
+                            : canEditGrid && <span className="text-[8px] text-gray-200 select-none">+</span>
                           }
                         </div>
 
@@ -626,17 +683,17 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
                         {/* Marqueur droit */}
                         <div
-                          onClick={() => isChef && openTarget({ bar: barIdx, type: 'right' })}
+                          onClick={() => canEditGrid && openTarget({ bar: barIdx, type: 'right' })}
                           className={`flex items-center justify-end flex-shrink-0 rounded px-0.5 transition-colors leading-none
-                            ${isChef ? 'cursor-pointer hover:bg-indigo-50' : ''}
+                            ${canEditGrid ? 'cursor-pointer hover:bg-indigo-50' : ''}
                             ${isActiveBar && active?.type === 'right' ? 'bg-orange-100 ring-1 ring-orange-300' : ''}
                           `}
                           style={{ minWidth: '20px', height: '14px' }}
-                          title={isChef ? 'Cliquer pour ajouter un symbole de fin' : undefined}
+                          title={canEditGrid ? 'Cliquer pour ajouter un symbole de fin' : undefined}
                         >
                           {bar.r
                             ? <MarkerContent value={bar.r} side="right" />
-                            : isChef && <span className="text-[8px] text-gray-200 select-none">+</span>
+                            : canEditGrid && <span className="text-[8px] text-gray-200 select-none">+</span>
                           }
                         </div>
                       </div>
@@ -648,11 +705,11 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                           return (
                             <div
                               key={beatIdx}
-                              onClick={() => isChef && openTarget({ bar: barIdx, type: 'beat', beat: beatIdx })}
+                              onClick={() => canEditGrid && openTarget({ bar: barIdx, type: 'beat', beat: beatIdx })}
                               className={`
                                 flex-1 flex items-center justify-center relative min-w-0
                                 ${beatIdx < bpb - 1 ? 'border-r border-gray-100' : ''}
-                                ${isChef ? 'cursor-pointer hover:bg-orange-50/60' : ''}
+                                ${canEditGrid ? 'cursor-pointer hover:bg-orange-50/60' : ''}
                                 ${isActiveBeat ? 'bg-orange-50/80 ring-2 ring-inset ring-orange-400' : ''}
                                 transition-colors
                               `}
@@ -674,18 +731,40 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       {/* SONS footer */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 mb-4">
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">SONS :</label>
-        <textarea
-          value={sons}
-          onChange={(e) => handleSonsChange(e.target.value)}
-          placeholder={ph('groupes_id_grilles_grilleid_1')}
-          rows={2}
-          disabled={!isChef}
-          className="w-full text-sm text-gray-700 placeholder:text-gray-300 resize-none focus:outline-none bg-transparent"
-        />
+        {parsedSounds && parsedSounds.length > 0 ? (
+            <div className="space-y-2">
+              {parsedSounds.map((sound, index) => (
+                <div key={`${sound.label}-${index}`} className="flex flex-col gap-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-700 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900 truncate">{sound.label}</div>
+                    {sound.bar && <div className="text-xs text-gray-500">Repère mesure {sound.bar}</div>}
+                  </div>
+                  {sound.url && !sound.url.includes('/uploads/test/') && (
+                    <audio controls src={sound.url} className="h-8 max-w-full sm:w-64" />
+                  )}
+                  {sound.url?.includes('/uploads/test/') && (
+                    <span className="text-xs font-medium text-gray-400">Exemple de démonstration</span>
+                  )}
+                </div>
+              ))}
+            </div>
+        ) : canEditGrid ? (
+          <textarea
+            value={sons}
+            onChange={(e) => handleSonsChange(e.target.value)}
+            placeholder={ph('groupes_id_grilles_grilleid_1')}
+            rows={2}
+            className="w-full text-sm text-gray-700 placeholder:text-gray-300 resize-none focus:outline-none bg-transparent"
+          />
+        ) : !sons.trim() ? (
+          <p className="text-sm text-gray-400">Aucun son associé.</p>
+        ) : (
+          <p className="whitespace-pre-wrap text-sm text-gray-700">{sons}</p>
+        )}
       </div>
 
       {/* ── Palette sticky ── */}
-      {isChef && active !== null && (
+      {canEditGrid && active !== null && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-orange-200 shadow-2xl">
           <div className="max-w-6xl mx-auto px-3 py-2">
 
