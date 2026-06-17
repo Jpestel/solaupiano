@@ -53,17 +53,19 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
+        token.email = user.email
         token.siteRole = (user as any).siteRole
         token.userPlan = (user as any).userPlan
         token.picture = (user as any).avatarUrl ?? undefined
       }
-      // Re-fetch from DB on explicit update() call OR when userPlan is missing (old sessions)
-      if (trigger === 'update' || !token.userPlan) {
+      // Re-fetch from DB on explicit update() call OR when token data is missing (old sessions)
+      if (trigger === 'update' || !token.userPlan || !token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { id: Number(token.id) },
-          select: { siteRole: true, userPlan: true, avatarUrl: true },
+          select: { email: true, siteRole: true, userPlan: true, avatarUrl: true },
         })
         if (dbUser) {
+          token.email = dbUser.email
           token.siteRole = dbUser.siteRole
           token.userPlan = dbUser.userPlan
           token.picture = dbUser.avatarUrl ?? undefined
@@ -154,6 +156,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string
+    email?: string
     siteRole?: string
     userPlan?: string
   }

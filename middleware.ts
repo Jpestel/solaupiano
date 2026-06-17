@@ -1,10 +1,24 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 
+const TEST_ACCOUNT_EMAIL = 'testeur@solaupiano.fr'
+const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token
     const pathname = req.nextUrl.pathname
+    const writeRequest = !READ_METHODS.has(req.method)
+
+    if (token?.email === TEST_ACCOUNT_EMAIL && writeRequest) {
+      return new NextResponse(
+        JSON.stringify({
+          error:
+            'Compte TESTEUR : lecture seule. Les créations, modifications et suppressions sont désactivées pour préserver les données de démonstration.',
+        }),
+        { status: 403, headers: { 'content-type': 'application/json' } }
+      )
+    }
 
     // Mode aperçu (admin « voir en tant que ») = lecture seule globale.
     // Tant que le cookie est présent, toute écriture est bloquée — sauf l'endpoint
@@ -12,8 +26,7 @@ export default withAuth(
     const previewing = !!req.cookies.get('preview_as')?.value
     if (
       previewing &&
-      req.method !== 'GET' &&
-      req.method !== 'HEAD' &&
+      writeRequest &&
       !pathname.startsWith('/api/admin/preview')
     ) {
       return new NextResponse(
