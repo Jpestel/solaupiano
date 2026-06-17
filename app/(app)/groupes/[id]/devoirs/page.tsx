@@ -43,6 +43,10 @@ export default function DevoirsPage({ params }: { params: { id: string } }) {
   const [levelName, setLevelName] = useState('')
   const [levelMembers, setLevelMembers] = useState<number[]>([])
   const [levelBusy, setLevelBusy] = useState(false)
+  const [levelError, setLevelError] = useState('')
+  const [editingLevelId, setEditingLevelId] = useState<number | null>(null)
+  const [editingLevelName, setEditingLevelName] = useState('')
+  const [editingLevelMembers, setEditingLevelMembers] = useState<number[]>([])
 
   const load = async () => {
     const [devRes, grpRes, songRes, lvlRes] = await Promise.all([
@@ -92,17 +96,53 @@ export default function DevoirsPage({ params }: { params: { id: string } }) {
   // ── Groupes de niveau ──
   const createLevel = async () => {
     if (!levelName.trim()) return
-    setLevelBusy(true)
+    setLevelBusy(true); setLevelError('')
     const res = await fetch(`/api/groupes/${groupId}/niveaux`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: levelName, memberIds: levelMembers }),
     })
     setLevelBusy(false)
-    if (res.ok) { setLevelName(''); setLevelMembers([]); load() }
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) { setLevelError(d.error || 'Impossible de créer ce groupe de niveau.'); return }
+    setLevelName(''); setLevelMembers([])
+    load()
   }
+
+  const startEditLevel = (lvl: Level) => {
+    setLevelError('')
+    setEditingLevelId(lvl.id)
+    setEditingLevelName(lvl.name)
+    setEditingLevelMembers(lvl.memberIds.filter((id) => allStudentIds.includes(id)))
+  }
+
+  const cancelEditLevel = () => {
+    setEditingLevelId(null)
+    setEditingLevelName('')
+    setEditingLevelMembers([])
+  }
+
+  const updateLevel = async () => {
+    if (!editingLevelId || !editingLevelName.trim()) return
+    setLevelBusy(true); setLevelError('')
+    const res = await fetch(`/api/groupes/${groupId}/niveaux/${editingLevelId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editingLevelName, memberIds: editingLevelMembers }),
+    })
+    setLevelBusy(false)
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) { setLevelError(d.error || 'Impossible de modifier ce groupe de niveau.'); return }
+    cancelEditLevel()
+    load()
+  }
+
   const deleteLevel = async (id: number) => {
     if (!confirm('Supprimer ce groupe de niveau ?')) return
-    await fetch(`/api/groupes/${groupId}/niveaux/${id}`, { method: 'DELETE' })
+    setLevelBusy(true); setLevelError('')
+    const res = await fetch(`/api/groupes/${groupId}/niveaux/${id}`, { method: 'DELETE' })
+    setLevelBusy(false)
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) { setLevelError(d.error || 'Impossible de supprimer ce groupe de niveau.'); return }
+    if (editingLevelId === id) cancelEditLevel()
     load()
   }
   const applyLevel = (lvl: Level) =>
@@ -212,18 +252,55 @@ export default function DevoirsPage({ params }: { params: { id: string } }) {
         <Card className="mb-6">
           <h3 className="font-semibold text-gray-900 mb-1">🎚️ Groupes de niveau</h3>
           <p className="text-xs text-gray-400 mb-3">Regroupez des élèves (ex. Débutants, Intermédiaires) pour leur assigner un devoir en un clic.</p>
+          {levelError && <div className="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{levelError}</div>}
 
           {levels.length > 0 && (
             <div className="space-y-2 mb-4">
               {levels.map((l) => (
-                <div key={l.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{l.name}</p>
-                    <p className="text-xs text-gray-400 truncate">
-                      {l.memberIds.length === 0 ? 'Aucun élève' : students.filter((s) => l.memberIds.includes(s.userId)).map((s) => s.user.name).join(', ')}
-                    </p>
-                  </div>
-                  <button onClick={() => deleteLevel(l.id)} className="text-xs text-red-500 hover:text-red-600 shrink-0">Supprimer</button>
+                <div key={l.id} className="rounded-lg border border-gray-200 px-3 py-2">
+                  {editingLevelId === l.id ? (
+                    <div className="space-y-2">
+                      <input
+                        className="form-input"
+                        value={editingLevelName}
+                        onChange={(e) => setEditingLevelName(e.target.value)}
+                        placeholder="Nom du niveau"
+                      />
+                      {students.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {students.map((s) => {
+                            const on = editingLevelMembers.includes(s.userId)
+                            return (
+                              <button key={s.userId} type="button"
+                                onClick={() => setEditingLevelMembers((p) => on ? p.filter((x) => x !== s.userId) : [...p, s.userId])}
+                                className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors ${on ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-600 border-gray-300 hover:border-violet-400'}`}>
+                                {on ? '✓ ' : ''}{s.user.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                      <div className="flex justify-end gap-2">
+                        <button type="button" onClick={cancelEditLevel} className="text-sm font-medium text-gray-500 hover:text-gray-700">Annuler</button>
+                        <Button type="button" onClick={updateLevel} disabled={levelBusy || !editingLevelName.trim()}>
+                          {levelBusy ? 'Enregistrement…' : 'Enregistrer'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{l.name}</p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {l.memberIds.length === 0 ? 'Aucun élève' : students.filter((s) => l.memberIds.includes(s.userId)).map((s) => s.user.name).join(', ')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button type="button" onClick={() => startEditLevel(l)} className="text-xs font-medium text-indigo-600 hover:text-indigo-700">Modifier</button>
+                        <button type="button" onClick={() => deleteLevel(l.id)} disabled={levelBusy} className="text-xs text-red-500 hover:text-red-600 disabled:opacity-50">Supprimer</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
