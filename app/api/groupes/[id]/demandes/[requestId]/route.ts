@@ -68,12 +68,12 @@ export async function PATCH(
     // Send welcome email
     if (requester) {
       const [group, chef] = await Promise.all([
-        prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+        prisma.group.findUnique({ where: { id: groupId }, select: { name: true, type: true } }),
         prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
       ])
       const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
       if (group && chef) {
-        sendGroupWelcomeEmail(requester.email, requester.name, group.name, groupId, chef.name, baseUrl).catch(() => {})
+        sendGroupWelcomeEmail(requester.email, requester.name, group.name, groupId, chef.name, baseUrl, group.type).catch(() => {})
       }
     }
   }

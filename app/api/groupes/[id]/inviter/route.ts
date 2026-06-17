@@ -39,14 +39,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (existing) return NextResponse.json({ error: 'Ce musicien est déjà membre du groupe.' }, { status: 409 })
 
   const [group] = await Promise.all([
-    prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+    prisma.group.findUnique({ where: { id: groupId }, select: { name: true, type: true } }),
     prisma.groupMember.create({ data: { userId: target.id, groupId, groupRole: 'MEMBRE' } }),
   ])
 
   const adder = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } })
   const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
   if (group && adder) {
-    sendGroupWelcomeEmail(target.email, target.name, group.name, groupId, adder.name, baseUrl).catch(() => {})
+    sendGroupWelcomeEmail(target.email, target.name, group.name, groupId, adder.name, baseUrl, group.type).catch(() => {})
   }
 
   return NextResponse.json({ success: true, name: target.name })

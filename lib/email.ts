@@ -476,11 +476,12 @@ export async function sendMasteryReminderEmail(
   groupType?: string
 ) {
   const isSchool = groupType === 'SCHOOL'
-  // Vocabulaire adapté au type d'espace
-  const evtLabelCap = isSchool ? 'Cours' : 'Répétition'   // « Cours demain » / « Répétition demain »
-  const evtArticle = isSchool ? 'Le cours' : 'La répétition' // « Le cours de X approche »
-  const evtVeille = isSchool ? "d'un cours" : "d'une répétition" // « la veille d'un cours »
-  const collectif = isSchool ? 'au prof' : 'au groupe'
+  // Vocabulaire adapté au type d'espace (injecté dans le template éditable)
+  const evtLabelCap = isSchool ? 'Cours' : 'Répétition'        // badge « Cours demain »
+  const eventArticleCap = isSchool ? 'Le cours' : 'La répétition'
+  const eventArticleLower = isSchool ? 'le cours' : 'la répétition'
+  const collective = isSchool ? 'le prof' : 'le groupe'
+  const evtVeille = isSchool ? "d'un cours" : "d'une répétition"
 
   const dateStr = new Date(rehearsal.date).toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long',
@@ -488,31 +489,33 @@ export async function sendMasteryReminderEmail(
   const timeStr = rehearsal.endTime ? `${rehearsal.startTime} – ${rehearsal.endTime}` : rehearsal.startTime
   const rehearsalUrl = `${baseUrl}/groupes/${groupId}/repetitions/${rehearsal.id}`
   const profileUrl = `${baseUrl}/profil`
-  const plural = songsRemaining > 1
+
+  const tpl = await getEmailTemplate('mastery_reminder')
+  const { subject, introHtml, outroHtml } = tpl.render({
+    memberName: member.name,
+    groupName,
+    songsRemaining: String(songsRemaining),
+    eventArticleCap,
+    eventArticleLower,
+    collective,
+  })
 
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: member.email,
-    subject: `🎯 ${groupName} — mettez à jour votre niveau de maîtrise avant ${isSchool ? 'le cours' : 'la répétition'}`,
+    subject,
     html: emailWrapper(`
       <div style="display: inline-flex; align-items: center; gap: 6px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 6px 12px; margin-bottom: 20px;">
         <span style="font-size: 14px;">⏰</span>
         <span style="font-size: 12px; font-weight: 600; color: #92400e;">${evtLabelCap} demain</span>
       </div>
-      <p style="margin: 0 0 14px; font-size: 15px; color: #374151;">Bonjour ${member.name},</p>
-      <p style="margin: 0 0 14px; font-size: 15px; line-height: 1.6; color: #374151;">
-        ${evtArticle} de <strong>${groupName}</strong> approche, et il vous reste
-        <strong>${songsRemaining} morceau${plural ? 'x' : ''}</strong> qui ${plural ? 'ne sont' : "n'est"} pas encore à
-        <strong>100 % de maîtrise</strong> de votre côté.
-      </p>
+      ${introHtml}
       ${dataBox(`
         <p style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1e3a8a; text-transform: capitalize;">${dateStr}</p>
         <p style="margin: 0 0 4px; font-size: 13px; color: #1d4ed8;">🕐 ${timeStr}</p>
         <p style="margin: 0; font-size: 13px; color: #1d4ed8;">📍 ${rehearsal.location}</p>
       `)}
-      <p style="margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: #374151;">
-        Prenez un instant pour <strong>mettre à jour votre niveau de maîtrise</strong> — ça aide ${collectif} à préparer la séance.
-      </p>
+      ${outroHtml}
       ${ctaButton(rehearsalUrl, 'Mettre à jour ma maîtrise')}
       <p style="color: #d1d5db; font-size: 11px; text-align: center; margin: 16px 0 0; border-top: 1px solid #f3f4f6; padding-top: 12px;">
         Vous recevez cet email la veille ${evtVeille} lorsque certains morceaux ne sont pas encore maîtrisés.<br/>
@@ -582,10 +585,12 @@ export async function sendGroupWelcomeEmail(
   groupName: string,
   groupId: number,
   addedByName: string,
-  baseUrl: string
+  baseUrl: string,
+  groupType?: string
 ) {
+  const isSchool = groupType === 'SCHOOL'
   const groupUrl = `${baseUrl}/groupes/${groupId}`
-  const tpl = await getEmailTemplate('group_welcome')
+  const tpl = await getEmailTemplate(isSchool ? 'group_welcome_school' : 'group_welcome')
   const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName })
 
   await resend.emails.send({
@@ -595,11 +600,11 @@ export async function sendGroupWelcomeEmail(
     html: emailWrapper(`
       ${introHtml}
       ${dataBox(`
-        <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #1e3a8a;">🎵 ${groupName}</p>
+        <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #1e3a8a;">${isSchool ? '🎓' : '🎵'} ${groupName}</p>
         <p style="margin: 0; font-size: 13px; color: #3b82f6;">Ajouté(e) par ${addedByName}</p>
       `)}
       ${outroHtml}
-      ${ctaButton(groupUrl, 'Accéder au groupe →')}
+      ${ctaButton(groupUrl, isSchool ? 'Accéder aux cours →' : 'Accéder au groupe →')}
       <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 12px 0 0;">
         Vous recevrez un résumé hebdomadaire des nouveautés du groupe chaque vendredi.
         Vous pouvez vous désabonner depuis votre <a href="${baseUrl}/profil" style="color: #6b7280;">profil</a>.

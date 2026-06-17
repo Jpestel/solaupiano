@@ -96,6 +96,18 @@ export function WakeUpOverlay() {
 
       if (!hasPresences && !hasRehearsal && !hasChats && !hasPolls) return
 
+      // Signature du contenu : on ne ré-affiche pas le popup tant que rien n'a
+      // changé depuis la dernière fois qu'il a été montré (évite de le revoir à
+      // chaque connexion alors qu'on l'a déjà lu).
+      const signature = JSON.stringify({
+        reh: hasRehearsal ? [d.nextRehearsal!.rehearsalId, d.nextRehearsal!.pendingSongs] : null,
+        pres: d.missingPresences.map((p) => p.rehearsalId).sort(),
+        polls: (d.pendingPolls ?? []).map((p) => [p.id, p.answered]).sort(),
+        chats: newChats.map((c) => [c.groupId, c.lastMessageAt]).sort(),
+      })
+      if (localStorage.getItem('wakeup_last_sig') === signature) return
+      localStorage.setItem('wakeup_last_sig', signature)
+
       setData({
         ...d,
         groupsLatestMessage: newChats, // on n'affiche que les groupes avec de nouveaux messages

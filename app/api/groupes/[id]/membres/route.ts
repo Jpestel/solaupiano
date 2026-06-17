@@ -94,12 +94,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Send welcome email only on first addition (not on role change)
   if (!existingMember && targetUser) {
     const [group, adder] = await Promise.all([
-      prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+      prisma.group.findUnique({ where: { id: groupId }, select: { name: true, type: true } }),
       prisma.user.findUnique({ where: { id: Number(session!.user.id) }, select: { name: true } }),
     ])
     const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
     if (group && adder) {
-      sendGroupWelcomeEmail(targetUser.email, targetUser.name, group.name, groupId, adder.name, baseUrl).catch(() => {})
+      sendGroupWelcomeEmail(targetUser.email, targetUser.name, group.name, groupId, adder.name, baseUrl, group.type).catch(() => {})
     }
   }
 
