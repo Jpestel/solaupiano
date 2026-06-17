@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import { decodeAudioFromFile, audioBufferToWav, audioBufferToMp3, baseName } from '@/lib/audio-extract'
 
 type Fmt = 'mp3' | 'wav'
+const TEST_ACCOUNT_EMAIL = 'testeur@solaupiano.fr'
 
 function fmtBytes(b: number) {
   if (b < 1024) return `${b} o`
@@ -19,6 +21,7 @@ function fmtDur(s: number) {
 }
 
 export default function VideoAudioPage() {
+  const { data: session } = useSession()
   const [file, setFile] = useState<File | null>(null)
   const [fmt, setFmt] = useState<Fmt>('mp3')
   const [kbps, setKbps] = useState(192)
@@ -30,6 +33,7 @@ export default function VideoAudioPage() {
   const [result, setResult] = useState<{ url: string; name: string; size: number } | null>(null)
   const [info, setInfo] = useState<{ duration: number; channels: number; rate: number } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const readOnlyTestAccount = session?.user?.email === TEST_ACCOUNT_EMAIL
 
   const reset = () => {
     if (result) URL.revokeObjectURL(result.url)
@@ -81,6 +85,11 @@ export default function VideoAudioPage() {
       <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
         ⚖️ À n’utiliser que pour des vidéos <strong>dont vous détenez les droits</strong> (vos propres enregistrements, contenus libres…). L’extraction depuis des contenus protégés sans autorisation n’est pas permise.
       </div>
+      {readOnlyTestAccount && (
+        <div className="mt-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800">
+          Compte TESTEUR : le fichier extrait reste local sur votre appareil. L&apos;import ou l&apos;enregistrement dans l&apos;application est désactivé pour préserver les données de démonstration.
+        </div>
+      )}
 
       {/* Zone de dépôt */}
       <div className="mt-5 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-6 text-center">
