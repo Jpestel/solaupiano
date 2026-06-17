@@ -52,6 +52,8 @@ export default withAuth(
         if (pathname === '/tarifs') return true
         if (pathname === '/annonces' || pathname.startsWith('/annonces/')) return true
         if (pathname === '/blog' || pathname.startsWith('/blog/')) return true
+        // Lien d'invitation : la page gère elle-même connecté / non connecté.
+        if (pathname.startsWith('/rejoindre/')) return true
         return !!token
       },
     },
