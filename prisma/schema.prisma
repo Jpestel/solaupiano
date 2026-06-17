@@ -347,6 +347,7 @@ model Group {
   id          Int       @id @default(autoincrement())
   name        String
   type        GroupType @default(BAND) // groupe de musique ou classe / école
+  studentModules String? @db.Text // école : JSON des modules visibles par les élèves (null = défaut)
   description String?   @db.Text
   style       String?  // genre / style musical (null = non renseigné)
   coverUrl         String?

@@ -111,8 +111,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const group = await prisma.group.update({
     where: { id: groupId },
     data: {
-      name: body.name,
-      description: body.description,
+      ...('name' in body && { name: body.name }),
+      ...('description' in body && { description: body.description }),
+      ...('studentModules' in body && {
+        studentModules: Array.isArray(body.studentModules)
+          ? JSON.stringify(body.studentModules.filter((x: unknown) => typeof x === 'string'))
+          : null,
+      }),
       ...('style' in body && { style: typeof body.style === 'string' && body.style.trim() ? body.style.trim() : null }),
       ...(typeof body.isPublic === 'boolean' && { isPublic: body.isPublic }),
       ...(typeof body.isHidden === 'boolean' && { isHidden: body.isHidden }),

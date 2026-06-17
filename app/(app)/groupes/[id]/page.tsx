@@ -6,10 +6,12 @@ import Link from 'next/link'
 import { RoleBadge } from '@/components/ui/Badge'
 import JoinRequestsPanel from './JoinRequestsPanel'
 import { GroupSettingsButton } from './GroupSettingsButton'
+import { StudentModulesButton } from './StudentModulesButton'
 import { GroupCards } from './GroupCards'
 import { PlanSection } from './PlanSection'
 import { coChefCanDo } from '@/lib/permissions'
 import { getPreviewContext } from '@/lib/preview'
+import { parseStudentModules } from '@/lib/group-modules'
 import { GroupCoverUpload } from './GroupCoverUpload'
 import { PermissionsSettings } from './PermissionsSettings'
 import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
@@ -146,6 +148,10 @@ export default async function GroupePage({ params }: { params: { id: string } })
   // Réseaux : réservé aux chefs / co-chefs (un simple membre ou élève ne peut pas poster).
   const canSocial = isChef && coChefCanDo({ createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null }, userId, adminPower, 'social', 'post')
 
+  // École : les élèves (non-chefs) ne voient que les modules autorisés par le prof.
+  const isStudentView = (group as any).type === 'SCHOOL' && !isChef
+  const studentMods = parseStudentModules((group as any).studentModules)
+
   // Auto-assign founder if missing (done in GET API, but also compute here)
   const isFounder = adminPower || group.createdBy === userId
 
@@ -219,6 +225,9 @@ export default async function GroupePage({ params }: { params: { id: string } })
                 >
                   📒 Devoirs
                 </Link>
+                {isChef && (
+                  <StudentModulesButton groupId={groupId} initial={studentMods} />
+                )}
               </>
             )}
             <RoleBadge role={effectiveRole} groupType={(group as any).type} />
@@ -328,6 +337,8 @@ export default async function GroupePage({ params }: { params: { id: string } })
         ] as const)
           // Masque les fonctionnalités non incluses dans le plan du groupe
           .filter((link) => {
+            // École : un élève ne voit que les modules autorisés par le prof.
+            if (isStudentView && !studentMods.includes(link.href)) return false
             if (link.href === 'concerts')        return planFeatures.concerts
             if (link.href === 'setlists')        return planFeatures.setlists
             if (link.href === 'grilles')         return planFeatures.grilles
