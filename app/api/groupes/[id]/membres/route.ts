@@ -170,11 +170,48 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       await tx.joinRequest.deleteMany({ where: { groupId } })
       await tx.group.delete({ where: { id: groupId } })
       groupDeleted = true
-    } else if (isSelf && group) {
-      await tx.groupMemberHistory.create({
-        data: { userId: targetUserId, groupId, groupName: group.name },
+    } else {
+      // Le groupe survit : on nettoie les données scopées (utilisateur × groupe) que
+      // la cascade DB ne touche pas — elle ne se déclenche que si l'utilisateur OU le
+      // groupe est supprimé, pas sur un simple retrait d'adhésion. Vaut pour un départ
+      // volontaire comme pour un retrait par le chef/prof.
+
+      // Présences aux répétitions / cours de CE groupe.
+      await tx.attendance.deleteMany({
+        where: { userId: targetUserId, rehearsal: { groupId } },
       })
+
+      // Devoirs où l'utilisateur est l'élève concerné (on conserve ceux qu'il aurait
+      // créés en tant que prof/co-prof : ils concernent d'autres élèves).
+      await tx.assignment.deleteMany({
+        where: { groupId, studentId: targetUserId },
+      })
+
+      // Retrait de l'utilisateur des groupes de niveau (memberIds = JSON d'userId).
+      const levels = await tx.studentLevelGroup.findMany({
+        where: { groupId },
+        select: { id: true, memberIds: true },
+      })
+      for (const lvl of levels) {
+        let ids: number[] = []
+        try { ids = JSON.parse(lvl.memberIds) } catch { ids = [] }
+        if (ids.includes(targetUserId)) {
+          await tx.studentLevelGroup.update({
+            where: { id: lvl.id },
+            data: { memberIds: JSON.stringify(ids.filter((id) => id !== targetUserId)) },
+          })
+        }
+      }
+
+      // Demandes d'adhésion en attente pour ce groupe.
       await tx.joinRequest.deleteMany({ where: { userId: targetUserId, groupId } })
+
+      // Trace dans l'historique (départ volontaire uniquement).
+      if (isSelf && group) {
+        await tx.groupMemberHistory.create({
+          data: { userId: targetUserId, groupId, groupName: group.name },
+        })
+      }
     }
   })
 

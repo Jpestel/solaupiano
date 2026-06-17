@@ -100,7 +100,10 @@ export function GroupCards({
   createdBy, chefPermissions, memberLimit,
 }: Props) {
   const isSchool = groupType === 'SCHOOL'
-  const defaultOrder = ['rehearsal', 'concert', ...(showRoster ? ['members'] : []), ...(showInvite ? ['invite'] : [])]
+  // Un membre simple qui ne voit pas le trombinoscope (ex. élève en école) doit
+  // tout de même pouvoir quitter : on lui propose une carte « Quitter » dédiée.
+  const showLeaveOnly = !showRoster && !isChef
+  const defaultOrder = ['rehearsal', 'concert', ...(showRoster ? ['members'] : []), ...(showInvite ? ['invite'] : []), ...(showLeaveOnly ? ['leave'] : [])]
 
   const LS_KEY = `group-card-order-${groupId}`
 
@@ -224,6 +227,28 @@ export function GroupCards({
         <Card className="rounded-none border-0">
           <CardHeader title={isSchool ? '➕ Inviter un élève' : '➕ Inviter un musicien'} />
           <InvitePanel groupId={groupId} groupType={groupType} />
+        </Card>
+      ),
+    },
+
+    leave: {
+      spanFull: true,
+      node: (
+        <Card className="rounded-none border-0">
+          <CardHeader title={isSchool ? 'Mon inscription' : 'Mon appartenance'} />
+          <MembresPanel
+            groupId={groupId}
+            groupType={groupType}
+            members={members}
+            canManage={false}
+            isAdmin={isAdmin}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            createdBy={createdBy}
+            chefPermissions={chefPermissions}
+            memberLimit={memberLimit}
+            leaveOnly
+          />
         </Card>
       ),
     },

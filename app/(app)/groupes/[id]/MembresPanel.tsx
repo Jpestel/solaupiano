@@ -27,6 +27,7 @@ export default function MembresPanel({
   chefPermissions,
   memberLimit,
   groupType,
+  leaveOnly = false,
 }: {
   groupId: number
   members: Member[]
@@ -38,6 +39,10 @@ export default function MembresPanel({
   chefPermissions?: unknown
   memberLimit?: number | null
   groupType?: string
+  // Mode compact : l'utilisateur ne voit pas le trombinoscope (ex. élève en école),
+  // on n'affiche qu'un bouton « Quitter ». La liste `members` étant alors réduite à
+  // lui-même, on ne se fie pas à son cardinal (le serveur tranche).
+  leaveOnly?: boolean
 }) {
   const isSchool = groupType === 'SCHOOL'
   const router = useRouter()
@@ -74,7 +79,7 @@ export default function MembresPanel({
   }
 
   const removeMember = async (targetUserId: number, isSelf: boolean) => {
-    if (isSelf && currentUserRole === 'CHEF') {
+    if (isSelf && currentUserRole === 'CHEF' && !leaveOnly) {
       const otherMembers = members.filter((m) => m.userId !== currentUserId)
       if (otherMembers.length > 0) {
         // Chef cannot leave a group that still has members
@@ -82,11 +87,12 @@ export default function MembresPanel({
         return
       }
     }
-    const isSoleMember = members.length === 1 && isSelf
+    // En mode compact, la liste est réduite à soi-même : ne pas en déduire « seul membre ».
+    const isSoleMember = !leaveOnly && members.length === 1 && isSelf
     const label = isSoleMember
-      ? 'Vous êtes le seul membre. Quitter supprimera définitivement ce groupe. Confirmer ?'
+      ? `Vous êtes le seul membre. Quitter supprimera définitivement ${isSchool ? 'cette école' : 'ce groupe'}. Confirmer ?`
       : isSelf
-        ? 'Voulez-vous vraiment quitter ce groupe ?'
+        ? `Voulez-vous vraiment quitter ${isSchool ? 'cette école' : 'ce groupe'} ?`
         : 'Retirer ce membre du groupe ?'
     if (!confirm(label)) return
     setProcessing(targetUserId)
@@ -113,6 +119,34 @@ export default function MembresPanel({
 
   const atLimit = memberLimit != null && members.length >= memberLimit
   const nearLimit = memberLimit != null && members.length >= memberLimit * 0.8 && !atLimit
+
+  // Mode compact : juste le bouton « Quitter » (élève en école, trombinoscope masqué).
+  if (leaveOnly) {
+    return (
+      <div className="space-y-3">
+        {actionError && (
+          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+            <div className="flex-1 text-sm text-red-800">{actionError}</div>
+            <button onClick={() => setActionError('')} className="text-red-400 hover:text-red-600 flex-shrink-0">✕</button>
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+          <p className="text-sm text-gray-600">
+            {isSchool
+              ? 'Vous ne faites plus partie de cette école ?'
+              : 'Vous ne faites plus partie de ce groupe ?'}
+          </p>
+          <button
+            onClick={() => removeMember(currentUserId, true)}
+            disabled={processing === currentUserId}
+            className="flex-shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 whitespace-nowrap"
+          >
+            {processing === currentUserId ? '...' : isSchool ? "Quitter l'école" : 'Quitter le groupe'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
