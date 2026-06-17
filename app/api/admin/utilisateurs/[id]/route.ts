@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (err) return err
 
   const body = await req.json()
-  const { siteRole, name, email, password, instrumentIds, accountPlan, planExpiresAt } = body
+  const { siteRole, name, email, password, instrumentIds, accountPlan, planExpiresAt, adminLoginAlertEnabled } = body
   const targetId = Number(params.id)
 
   // Plan du compte (se répercute sur tous les groupes fondés par l'utilisateur).
@@ -60,10 +60,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     data.password = await bcrypt.hash(password, 12)
   }
 
+  if (adminLoginAlertEnabled !== undefined) {
+    data.adminLoginAlertEnabled = Boolean(adminLoginAlertEnabled)
+  }
+
   const user = await prisma.user.update({
     where: { id: targetId },
     data,
-    select: { id: true, name: true, email: true, siteRole: true, accountPlan: true },
+    select: { id: true, name: true, email: true, siteRole: true, accountPlan: true, adminLoginAlertEnabled: true },
   })
 
   if (Array.isArray(instrumentIds)) {

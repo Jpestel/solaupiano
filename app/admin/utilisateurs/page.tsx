@@ -21,6 +21,7 @@ interface User {
   avatarUrl?: string | null
   siteRole: string
   accountPlan?: string
+  adminLoginAlertEnabled: boolean
   createdAt: string
   groups: { group: { id: number; name: string }; groupRole: string }[]
   instruments: { instrument: Instrument }[]
@@ -33,7 +34,7 @@ export default function AdminUtilisateursPage() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [editUser, setEditUser] = useState<User | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', email: '', password: '', instrumentIds: [] as number[], accountPlan: 'FREE' })
+  const [editForm, setEditForm] = useState({ name: '', email: '', password: '', instrumentIds: [] as number[], accountPlan: 'FREE', adminLoginAlertEnabled: true })
   const [editError, setEditError] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -65,6 +66,7 @@ export default function AdminUtilisateursPage() {
       password: '',
       instrumentIds: user.instruments.map((ui) => ui.instrument.id),
       accountPlan: user.accountPlan ?? 'FREE',
+      adminLoginAlertEnabled: user.adminLoginAlertEnabled ?? true,
     })
     setEditError('')
     setAvatarError('')
@@ -123,6 +125,7 @@ export default function AdminUtilisateursPage() {
         password: editForm.password || undefined,
         instrumentIds: editForm.instrumentIds,
         accountPlan: editForm.accountPlan,
+        adminLoginAlertEnabled: editForm.adminLoginAlertEnabled,
       }),
     })
     setEditSaving(false)
@@ -459,6 +462,32 @@ export default function AdminUtilisateursPage() {
               </p>
             </div>
           )}
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Alerte e-mail à chaque connexion</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Quand cette option est active, les administrateurs reçoivent un e-mail lorsque ce compte se connecte.
+                  Les comptes administrateurs restent ignorés par l’audit de connexion.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={editForm.adminLoginAlertEnabled}
+                onClick={() => setEditForm((f) => ({ ...f, adminLoginAlertEnabled: !f.adminLoginAlertEnabled }))}
+                className={`relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
+                  editForm.adminLoginAlertEnabled ? 'bg-indigo-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                    editForm.adminLoginAlertEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
           {allInstruments.length > 0 && (
             <div>
               <label className="form-label">Instruments</label>

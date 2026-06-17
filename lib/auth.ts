@@ -96,12 +96,12 @@ export const authOptions: NextAuthOptions = {
         const u = await prisma.user.findUnique({
           where: { id: uid },
           select: {
-            name: true, email: true, siteRole: true, userPlan: true,
+            name: true, email: true, siteRole: true, userPlan: true, adminLoginAlertEnabled: true,
             groups: { select: { group: { select: { name: true } } } },
           },
         })
         // On n'envoie pas pour les connexions d'un admin (bruit)
-        if (u && u.siteRole !== 'ADMIN' && u.email) {
+        if (u && u.siteRole !== 'ADMIN' && u.email && u.adminLoginAlertEnabled) {
           const admins = await prisma.user.findMany({ where: { siteRole: 'ADMIN' }, select: { email: true } })
           const adminEmails = admins.map((a) => a.email).filter((e): e is string => !!e)
           if (adminEmails.length) {

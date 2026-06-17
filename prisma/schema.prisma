@@ -169,6 +169,7 @@ model User {
   weeklyDigestOptOut          Boolean   @default(false)
   rehearsalReminderOptOut     Boolean   @default(false)
   evaluationReminderOptOut    Boolean   @default(false)
+  adminLoginAlertEnabled      Boolean   @default(true)  // envoie une alerte admin quand ce compte se connecte
   helpBubblesOptOut           Boolean   @default(false) // masque les bulles d'aide contextuelles
 
   instruments              UserInstrument[]
