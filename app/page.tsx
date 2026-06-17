@@ -140,15 +140,16 @@ export default async function PublicHomePage() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
-              🎵 La plateforme des musiciens en groupe
+              🎵 La plateforme des musiciens — du solo à l&apos;orchestre
             </span>
             <h1 className="mt-4 text-3xl sm:text-5xl font-bold leading-tight">
-              Répétez, jouez,{' '}
-              <span className="text-amber-300">progressez ensemble</span>
+              Jouez, répétez,{' '}
+              <span className="text-amber-300">progressez</span>
             </h1>
             <p className="mt-4 text-white/80 text-base sm:text-lg leading-relaxed">
-              Organisez vos répétitions, gérez votre répertoire et vos accords, suivez vos concerts.
-              Rejoignez un groupe ou trouvez les musiciens qui vous manquent.
+              Que vous jouiez seul, en groupe, que vous donniez des cours ou que vous en suiviez :
+              gérez votre répertoire et vos accords, organisez vos répétitions et vos concerts,
+              suivez la progression de chacun. Le tout au même endroit.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
@@ -170,29 +171,53 @@ export default async function PublicHomePage() {
                 Déjà inscrit ? →
               </Link>
             </div>
+            <p className="mt-3 text-xs text-white/60">✓ Gratuit, sans carte bancaire · ✓ Prêt en 2 minutes</p>
 
-            {/* Deux portes : groupe ou école */}
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
-              <Link
-                href="/inscription"
-                className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
-              >
-                <div className="flex items-center gap-2 text-white font-semibold">
-                  <span className="text-xl">🎵</span> Vous êtes un groupe
-                </div>
-                <p className="mt-1 text-sm text-white/70">Répétitions, concerts, répertoire et accords partagés.</p>
-                <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
-              </Link>
-              <Link
-                href="/inscription?profil=ecole"
-                className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
-              >
-                <div className="flex items-center gap-2 text-white font-semibold">
-                  <span className="text-xl">🎓</span> Vous êtes prof ou école
-                </div>
-                <p className="mt-1 text-sm text-white/70">Gérez vos cours, vos élèves et leur progression.</p>
-                <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
-              </Link>
+            {/* Quatre profils : à chacun son entrée, pas besoin d'être « un groupe » ou « une école » */}
+            <div className="mt-8">
+              <p className="text-sm font-semibold text-white/90 mb-3">Vous êtes…</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+                <Link
+                  href="/inscription?profil=musicien"
+                  className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-white font-semibold">
+                    <span className="text-xl">🎵</span> Musicien
+                  </div>
+                  <p className="mt-1 text-sm text-white/70">Seul ou en groupe : rejoignez vos groupes, gérez votre répertoire et vos accords.</p>
+                  <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+                </Link>
+                <Link
+                  href="/inscription?profil=groupe"
+                  className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-white font-semibold">
+                    <span className="text-xl">🎼</span> Chef de groupe
+                  </div>
+                  <p className="mt-1 text-sm text-white/70">Créez votre groupe, organisez répétitions et concerts, recrutez les musiciens qui manquent.</p>
+                  <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+                </Link>
+                <Link
+                  href="/inscription?profil=prof"
+                  className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-white font-semibold">
+                    <span className="text-xl">🎓</span> Professeur / École
+                  </div>
+                  <p className="mt-1 text-sm text-white/70">Gérez vos cours, vos élèves, leurs devoirs et leur progression — en privé.</p>
+                  <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+                </Link>
+                <Link
+                  href="/inscription?profil=eleve"
+                  className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-white font-semibold">
+                    <span className="text-xl">🎒</span> Élève
+                  </div>
+                  <p className="mt-1 text-sm text-white/70">Rejoignez les cours de votre professeur, accédez à vos morceaux et à votre suivi.</p>
+                  <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -214,7 +239,7 @@ export default async function PublicHomePage() {
       {/* Aperçu (carrousel) */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <h2 className="text-center text-xl font-bold text-gray-900 mb-1">Découvrez la plateforme</h2>
-        <p className="text-center text-sm text-gray-500 mb-6">Un aperçu de ce que vous pourrez faire avec votre groupe.</p>
+        <p className="text-center text-sm text-gray-500 mb-6">Un aperçu de ce que vous pourrez faire, en solo, en groupe ou en cours.</p>
         <HomeCarousel dbSlides={homeSlides} />
       </div>
 

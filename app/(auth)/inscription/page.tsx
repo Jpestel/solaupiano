@@ -15,11 +15,25 @@ export default function InscriptionPage() {
   const [userPlan, setUserPlan] = useState<'MUSICIEN' | 'CREATEUR'>('MUSICIEN')
   const [schoolMode, setSchoolMode] = useState(false)
 
-  // Porte « prof / école » : adapte le vocabulaire et présélectionne le créateur.
+  // Le profil choisi sur l'accueil présélectionne les deux axes (groupe/école × rejoindre/créer).
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('profil') === 'ecole') {
+    const profil = new URLSearchParams(window.location.search).get('profil')
+    if (profil === 'ecole' || profil === 'prof') {
+      // Professeur / École : crée et gère sa classe.
       setSchoolMode(true)
       setUserPlan('CREATEUR')
+    } else if (profil === 'eleve') {
+      // Élève : rejoint la classe de son prof.
+      setSchoolMode(true)
+      setUserPlan('MUSICIEN')
+    } else if (profil === 'groupe' || profil === 'chef') {
+      // Chef de groupe : crée et gère son groupe.
+      setSchoolMode(false)
+      setUserPlan('CREATEUR')
+    } else if (profil === 'musicien') {
+      // Musicien : rejoint un ou plusieurs groupes.
+      setSchoolMode(false)
+      setUserPlan('MUSICIEN')
     }
   }, [])
   const [form, setForm] = useState({
