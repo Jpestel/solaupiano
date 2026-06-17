@@ -12,30 +12,9 @@ interface Instrument {
 
 export default function InscriptionPage() {
   const router = useRouter()
-  const [userPlan, setUserPlan] = useState<'MUSICIEN' | 'CREATEUR'>('MUSICIEN')
-  const [schoolMode, setSchoolMode] = useState(false)
-
-  // Le profil choisi sur l'accueil présélectionne les deux axes (groupe/école × rejoindre/créer).
-  useEffect(() => {
-    const profil = new URLSearchParams(window.location.search).get('profil')
-    if (profil === 'ecole' || profil === 'prof') {
-      // Professeur / École : crée et gère sa classe.
-      setSchoolMode(true)
-      setUserPlan('CREATEUR')
-    } else if (profil === 'eleve') {
-      // Élève : rejoint la classe de son prof.
-      setSchoolMode(true)
-      setUserPlan('MUSICIEN')
-    } else if (profil === 'groupe' || profil === 'chef') {
-      // Chef de groupe : crée et gère son groupe.
-      setSchoolMode(false)
-      setUserPlan('CREATEUR')
-    } else if (profil === 'musicien') {
-      // Musicien : rejoint un ou plusieurs groupes.
-      setSchoolMode(false)
-      setUserPlan('MUSICIEN')
-    }
-  }, [])
+  // Un seul type de compte : tout compte est d'abord un musicien, et peut ensuite
+  // rejoindre un groupe, en créer/gérer un, enseigner ou suivre des cours.
+  // Les capacités sont gouvernées par le plan du compte, pas par un choix à l'inscription.
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -90,7 +69,6 @@ export default function InscriptionPage() {
         password: form.password,
         instrumentIds: form.instrumentIds,
         otherInstrument: form.otherInstrument.trim() || undefined,
-        userPlan,
       }),
     })
 
@@ -100,11 +78,6 @@ export default function InscriptionPage() {
       const data = await res.json()
       setError(data.error || 'Une erreur est survenue.')
       return
-    }
-
-    // Reporte l'intention « école » : la 1re création d'espace sera pré-réglée sur Classe/École.
-    if (schoolMode && userPlan === 'CREATEUR') {
-      try { localStorage.setItem('spaceIntent', 'SCHOOL') } catch {}
     }
 
     router.push('/connexion?registered=1')
@@ -133,93 +106,22 @@ export default function InscriptionPage() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Créer un compte</h2>
 
-          {schoolMode && (
-            <div className="mb-5 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3 text-sm text-indigo-800 flex items-start gap-2">
-              <span className="text-lg leading-none">🎓</span>
-              <span>Espace <strong>prof / école de musique</strong> : créez votre classe, ajoutez vos élèves et suivez leur progression.</span>
-            </div>
-          )}
-
-          {/* Plan choice */}
-          <div className="mb-6">
-            <p className="text-sm font-medium text-gray-700 mb-3">
-              {schoolMode ? 'Vous êtes professeur ou élève ?' : 'Comment souhaitez-vous utiliser Sol au piano ?'}
+          {/* Un seul compte, toutes les casquettes */}
+          <div className="mb-6 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-4">
+            <p className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
+              <span className="text-lg leading-none">🎵</span> Un seul compte, et vous pouvez tout faire
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Musicien */}
-              <button
-                type="button"
-                onClick={() => setUserPlan('MUSICIEN')}
-                className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all ${
-                  userPlan === 'MUSICIEN'
-                    ? 'border-indigo-500 bg-indigo-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <span className="text-3xl">{schoolMode ? '🎒' : '🎵'}</span>
-                <p className={`text-sm font-bold ${userPlan === 'MUSICIEN' ? 'text-indigo-700' : 'text-gray-800'}`}>
-                  {schoolMode ? 'Élève' : 'Musicien'}
-                </p>
-                <ul className="text-[11px] text-gray-500 text-left space-y-0.5 w-full px-1">
-                  {schoolMode ? (
-                    <>
-                      <li>✓ Rejoindre la classe de votre prof</li>
-                      <li>✓ Cours, morceaux à travailler, suivi</li>
-                      <li className="text-red-400">✗ Créer une classe</li>
-                    </>
-                  ) : (
-                    <>
-                      <li>✓ Rejoindre un ou plusieurs groupes</li>
-                      <li>✓ Répétitions, répertoire, concerts</li>
-                      <li className="text-red-400">✗ Créer un groupe</li>
-                    </>
-                  )}
-                </ul>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                  userPlan === 'MUSICIEN' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
-                }`}>Gratuit</span>
-              </button>
-
-              {/* Créateur */}
-              <button
-                type="button"
-                onClick={() => setUserPlan('CREATEUR')}
-                className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all ${
-                  userPlan === 'CREATEUR'
-                    ? 'border-indigo-500 bg-indigo-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <span className="text-3xl">{schoolMode ? '🎓' : '🎼'}</span>
-                <p className={`text-sm font-bold ${userPlan === 'CREATEUR' ? 'text-indigo-700' : 'text-gray-800'}`}>
-                  {schoolMode ? 'Professeur / École' : "Chef d'orchestre"}
-                </p>
-                <ul className="text-[11px] text-gray-500 text-left space-y-0.5 w-full px-1">
-                  {schoolMode ? (
-                    <>
-                      <li>✓ Créer et gérer <strong>votre classe / école</strong></li>
-                      <li>✓ Cours, élèves, ressources de cours</li>
-                      <li>✓ Stockage de fichiers inclus</li>
-                      <li className="text-indigo-500 text-[10px]">↑ Pro : 3 classes, 5 Go · Premium : 5 classes, 10 Go</li>
-                    </>
-                  ) : (
-                    <>
-                      <li>✓ Rejoindre un ou plusieurs groupes</li>
-                      <li>✓ Créer et gérer <strong>1 groupe</strong></li>
-                      <li>✓ Stockage de fichiers inclus</li>
-                      <li className="text-indigo-500 text-[10px]">↑ Pro : 3 groupes, 5 Go · Premium : 5 groupes, 10 Go</li>
-                    </>
-                  )}
-                </ul>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                  userPlan === 'CREATEUR' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
-                }`}>Gratuit</span>
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 mt-2 text-center">
-              Vous pourrez évoluer vers un plan payant depuis votre profil à tout moment.{' '}
-              <Link href="/tarifs" className="text-indigo-500 hover:text-indigo-600 underline underline-offset-2">
-                Voir tous les plans →
+            <ul className="mt-2.5 space-y-1.5 text-sm text-indigo-800/90">
+              <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Jouer en solo : votre répertoire, vos accords, vos outils.</li>
+              <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Rejoindre un groupe sur invitation, ou candidater à un groupe public.</li>
+              <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Créer et gérer votre propre groupe (1 en gratuit, plus avec un plan payant).</li>
+              <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Enseigner : ouvrir une classe, suivre vos élèves et leurs devoirs.</li>
+              <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Apprendre : rejoindre la classe de votre professeur.</li>
+            </ul>
+            <p className="text-xs text-indigo-500/80 mt-3">
+              Pas de choix à faire maintenant : vous déciderez au fur et à mesure depuis votre espace.{' '}
+              <Link href="/tarifs" className="text-indigo-600 hover:text-indigo-700 underline underline-offset-2">
+                Voir les plans →
               </Link>
             </p>
           </div>

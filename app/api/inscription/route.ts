@@ -7,7 +7,7 @@ import { sendEmailVerification, sendNewUserNotification } from '@/lib/email'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, email, password, instrumentIds, otherInstrument, userPlan } = body
+    const { name, email, password, instrumentIds, otherInstrument } = body
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Tous les champs obligatoires doivent être remplis.' }, { status: 400 })
@@ -50,7 +50,9 @@ export async function POST(req: NextRequest) {
         email,
         password: hashedPassword,
         siteRole: isFirstUser ? 'ADMIN' : 'USER',
-        userPlan: isFirstUser ? 'CREATEUR' : (userPlan === 'CREATEUR' ? 'CREATEUR' : 'MUSICIEN'),
+        // Tout compte est un musicien complet : il peut rejoindre ET créer/gérer
+        // un groupe ou une classe (dans la limite de son plan). Plus de choix à l'inscription.
+        userPlan: 'CREATEUR',
         emailVerified: isFirstUser ? new Date() : null,
         instruments: {
           create: allInstrumentIds.map((id: number) => ({ instrumentId: id })),

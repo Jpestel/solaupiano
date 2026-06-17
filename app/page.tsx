@@ -173,51 +173,51 @@ export default async function PublicHomePage() {
             </div>
             <p className="mt-3 text-xs text-white/60">✓ Gratuit, sans carte bancaire · ✓ Prêt en 2 minutes</p>
 
-            {/* Quatre profils : à chacun son entrée, pas besoin d'être « un groupe » ou « une école » */}
+            {/* Un seul compte, toutes les casquettes : pas besoin de choisir un « type » */}
             <div className="mt-8">
-              <p className="text-sm font-semibold text-white/90 mb-3">Vous êtes…</p>
+              <p className="text-sm font-semibold text-white/90 mb-1">Un seul compte, et vous pouvez…</p>
+              <p className="text-xs text-white/60 mb-3">Inutile de choisir maintenant : votre compte sait tout faire, vous décidez au fil de l&apos;eau.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
                 <Link
-                  href="/inscription?profil=musicien"
+                  href="/inscription"
                   className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
                 >
                   <div className="flex items-center gap-2 text-white font-semibold">
-                    <span className="text-xl">🎵</span> Musicien
+                    <span className="text-xl">🎵</span> Jouer, seul ou en groupe
                   </div>
-                  <p className="mt-1 text-sm text-white/70">Seul ou en groupe : rejoignez vos groupes, gérez votre répertoire et vos accords.</p>
-                  <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+                  <p className="mt-1 text-sm text-white/70">Votre répertoire et vos accords ; rejoignez un groupe sur invitation ou candidatez.</p>
                 </Link>
                 <Link
-                  href="/inscription?profil=groupe"
+                  href="/inscription"
                   className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
                 >
                   <div className="flex items-center gap-2 text-white font-semibold">
-                    <span className="text-xl">🎼</span> Chef de groupe
+                    <span className="text-xl">🎼</span> Créer & gérer un groupe
                   </div>
-                  <p className="mt-1 text-sm text-white/70">Créez votre groupe, organisez répétitions et concerts, recrutez les musiciens qui manquent.</p>
-                  <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+                  <p className="mt-1 text-sm text-white/70">Organisez répétitions et concerts, recrutez les musiciens qui manquent.</p>
                 </Link>
                 <Link
-                  href="/inscription?profil=prof"
+                  href="/inscription"
                   className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
                 >
                   <div className="flex items-center gap-2 text-white font-semibold">
-                    <span className="text-xl">🎓</span> Professeur / École
+                    <span className="text-xl">🎓</span> Enseigner
                   </div>
-                  <p className="mt-1 text-sm text-white/70">Gérez vos cours, vos élèves, leurs devoirs et leur progression — en privé.</p>
-                  <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+                  <p className="mt-1 text-sm text-white/70">Ouvrez une classe, suivez vos élèves, leurs devoirs et leur progression — en privé.</p>
                 </Link>
                 <Link
-                  href="/inscription?profil=eleve"
+                  href="/inscription"
                   className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
                 >
                   <div className="flex items-center gap-2 text-white font-semibold">
-                    <span className="text-xl">🎒</span> Élève
+                    <span className="text-xl">🎒</span> Apprendre
                   </div>
-                  <p className="mt-1 text-sm text-white/70">Rejoignez les cours de votre professeur, accédez à vos morceaux et à votre suivi.</p>
-                  <span className="mt-2 inline-block text-sm font-medium text-amber-300">Démarrer →</span>
+                  <p className="mt-1 text-sm text-white/70">Rejoignez la classe de votre professeur, accédez à vos morceaux et à votre suivi.</p>
                 </Link>
               </div>
+              <Link href="/inscription" className="mt-4 inline-block text-sm font-semibold text-amber-300 hover:text-amber-200 transition-colors">
+                Créer mon compte gratuitement →
+              </Link>
             </div>
           </div>
 
