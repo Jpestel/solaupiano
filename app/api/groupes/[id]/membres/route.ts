@@ -60,11 +60,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Action non autorisée par le fondateur du groupe.' }, { status: 403 })
   }
 
-  // Dans une école, il n'y a pas de co-chef : seul le professeur (fondateur) gère.
-  if (grp?.type === 'SCHOOL' && groupRole === 'CHEF') {
-    return NextResponse.json({ error: 'Dans une école, seul le professeur gère la classe : un élève ne peut pas être nommé co-chef.' }, { status: 400 })
-  }
-
   // Check member limit (admins bypass the limit)
   if (!isAdmin && grp) {
     const plan = await prisma.plan.findUnique({ where: { key: grp.plan }, select: { maxMembersPerGroup: true } })

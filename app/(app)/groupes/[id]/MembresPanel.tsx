@@ -47,6 +47,8 @@ export default function MembresPanel({
 
   const isChef = currentUserRole === 'CHEF'
   const isFounder = isAdmin || currentUserId === createdBy
+  const leaderLabel = isSchool ? 'professeur' : 'chef d\'orchestre'
+  const coLeaderLabel = isSchool ? 'co-prof' : 'co-chef'
   const perms = resolvePermissions(chefPermissions)
   const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
     if (!isChef) return false
@@ -76,7 +78,7 @@ export default function MembresPanel({
       const otherMembers = members.filter((m) => m.userId !== currentUserId)
       if (otherMembers.length > 0) {
         // Chef cannot leave a group that still has members
-        setActionError('En tant que chef d\'orchestre responsable du plan du groupe, vous ne pouvez pas le quitter tant qu\'il y a d\'autres membres. Supprimez le groupe ou transférez le titre de chef à un autre membre avant de partir.')
+        setActionError(`En tant que ${leaderLabel} responsable du plan du groupe, vous ne pouvez pas le quitter tant qu'il y a d'autres ${isSchool ? 'élèves' : 'membres'}. Supprimez le groupe ou transférez le rôle de ${leaderLabel} à un autre membre avant de partir.`)
         return
       }
     }
@@ -178,19 +180,19 @@ export default function MembresPanel({
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Role toggle — chef or admin (pas de co-chef dans une école) */}
-              {!isSchool && (isAdmin || isChef) && !isSelf && chefCan('membres', 'promote') && (
+              {/* Role toggle — chef/prof or admin */}
+              {(isAdmin || isChef) && !isSelf && chefCan('membres', 'promote') && (
                 <button
                   onClick={() => toggleRole(member)}
                   disabled={processing === member.userId}
-                  title={member.groupRole === 'CHEF' ? 'Rétrograder en membre' : 'Nommer chef de groupe'}
+                  title={member.groupRole === 'CHEF' ? `Rétrograder en ${isSchool ? 'élève' : 'membre'}` : `Nommer ${coLeaderLabel}`}
                   className={`rounded-lg border px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
                     member.groupRole === 'CHEF'
                       ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-red-50 hover:border-red-200 hover:text-red-700'
                       : 'border-gray-200 bg-white text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700'
                   }`}
                 >
-                  {processing === member.userId ? '...' : member.groupRole === 'CHEF' ? '★ Chef' : '☆ Chef ?'}
+                  {processing === member.userId ? '...' : member.groupRole === 'CHEF' ? `★ ${isSchool ? 'Prof' : 'Chef'}` : `☆ ${isSchool ? 'Co-prof ?' : 'Chef ?'}`}
                 </button>
               )}
 

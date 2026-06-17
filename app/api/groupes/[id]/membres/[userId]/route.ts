@@ -40,14 +40,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Rôle invalide.' }, { status: 400 })
   }
 
-  // Dans une école, pas de co-chef : seul le professeur (fondateur) gère.
-  if (groupRole === 'CHEF') {
-    const g = await prisma.group.findUnique({ where: { id: groupId }, select: { type: true } })
-    if (g?.type === 'SCHOOL') {
-      return NextResponse.json({ error: 'Dans une école, seul le professeur gère la classe : un élève ne peut pas être nommé co-chef.' }, { status: 400 })
-    }
-  }
-
   const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } })
   if (!targetUser) return NextResponse.json({ error: 'Utilisateur introuvable.' }, { status: 404 })
   if (targetUser.siteRole === 'ADMIN') {

@@ -223,7 +223,7 @@ export function GroupCards({
       node: (
         <Card className="rounded-none border-0">
           <CardHeader title={isSchool ? '➕ Inviter un élève' : '➕ Inviter un musicien'} />
-          <InvitePanel groupId={groupId} />
+          <InvitePanel groupId={groupId} groupType={groupType} />
         </Card>
       ),
     },

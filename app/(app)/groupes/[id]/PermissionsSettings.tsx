@@ -6,9 +6,10 @@ import { resolvePermissions, DEFAULT_PERMISSIONS, MODULE_LABELS, ACTION_LABELS, 
 interface PermissionsSettingsProps {
   groupId: number
   initialPermissions: unknown
+  groupType?: string
 }
 
-export function PermissionsSettings({ groupId, initialPermissions }: PermissionsSettingsProps) {
+export function PermissionsSettings({ groupId, initialPermissions, groupType }: PermissionsSettingsProps) {
   const [perms, setPerms] = useState<ChefPermissions>(() => resolvePermissions(initialPermissions))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -59,12 +60,13 @@ export function PermissionsSettings({ groupId, initialPermissions }: Permissions
     stats:       '📊',
     estimations: '💰',
   }
+  const coLeaderLabel = groupType === 'SCHOOL' ? 'co-profs' : 'co-chefs'
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <p className="text-sm text-gray-500">
-          Définissez ce que les <strong>co-chefs</strong> (chefs que vous avez nommés) peuvent faire dans chaque module.
+          Définissez ce que les <strong>{coLeaderLabel}</strong> ({groupType === 'SCHOOL' ? 'professeurs associés' : 'chefs que vous avez nommés'}) peuvent faire dans chaque module.
           Ces permissions ne s&apos;appliquent pas à vous en tant que fondateur.
         </p>
         <div className="flex items-center gap-2">

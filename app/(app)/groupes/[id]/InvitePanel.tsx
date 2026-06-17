@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ph } from '@/lib/placeholders'
 
-export function InvitePanel({ groupId }: { groupId: number }) {
+export function InvitePanel({ groupId, groupType }: { groupId: number; groupType?: string }) {
   const router = useRouter()
+  const isSchool = groupType === 'SCHOOL'
+  const inviteLabel = isSchool ? 'élève' : 'musicien'
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
@@ -17,7 +19,7 @@ export function InvitePanel({ groupId }: { groupId: number }) {
 
   const reset = () => { setSuccess(''); setError(''); setNotRegistered(''); setSignupSent('') }
 
-  // 1) Invitation directe : ajoute le musicien s'il a déjà un compte
+  // 1) Invitation directe : ajoute la personne si elle a déjà un compte
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
@@ -33,7 +35,7 @@ export function InvitePanel({ groupId }: { groupId: number }) {
     setLoading(false)
 
     if (res.ok) {
-      setSuccess(`${data.name} a été ajouté au groupe ✅`)
+      setSuccess(`${data.name} a été ajouté${isSchool ? ' comme élève' : ' au groupe'} ✅`)
       setEmail('')
       router.refresh()
     } else if (res.status === 404) {
@@ -67,7 +69,7 @@ export function InvitePanel({ groupId }: { groupId: number }) {
     <div>
       {/* Explication des 2 cas */}
       <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 mb-3 text-xs text-blue-800 leading-relaxed">
-        <p className="font-semibold mb-1">💡 Deux façons d&apos;ajouter un musicien :</p>
+        <p className="font-semibold mb-1">💡 Deux façons d&apos;ajouter un {inviteLabel} :</p>
         <p>
           <strong>Déjà inscrit ?</strong> Saisissez son e-mail ci-dessous : il est ajouté immédiatement au groupe.
         </p>
@@ -103,7 +105,7 @@ export function InvitePanel({ groupId }: { groupId: number }) {
             Aucun compte Sol au piano n&apos;est associé à <strong>{notRegistered}</strong>.
           </p>
           <p className="text-xs text-amber-600 mt-0.5 mb-2.5">
-            On ne peut ajouter au groupe qu&apos;un musicien déjà inscrit. Envoyez-lui plutôt une invitation à créer son compte :
+            On ne peut ajouter {isSchool ? 'à la classe' : 'au groupe'} qu&apos;un {inviteLabel} déjà inscrit. Envoyez-lui plutôt une invitation à créer son compte :
           </p>
           <button
             onClick={handleSignupInvite}

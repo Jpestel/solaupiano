@@ -463,10 +463,10 @@ export default async function GroupePage({ params }: { params: { id: string } })
       {isFounder && (
         <div id="permissions" className="mt-10">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <h2 className="text-lg font-semibold text-gray-900">⚙️ Permissions des co-chefs</h2>
+            <h2 className="text-lg font-semibold text-gray-900">⚙️ Permissions des {(group as any).type === 'SCHOOL' ? 'co-profs' : 'co-chefs'}</h2>
             {coChefCount > 0 && (
               <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                {coChefCount} co-chef{coChefCount > 1 ? 's' : ''}
+                {coChefCount} {(group as any).type === 'SCHOOL' ? 'co-prof' : 'co-chef'}{coChefCount > 1 ? 's' : ''}
               </span>
             )}
             {isAdminUser && (
@@ -477,11 +477,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
           </div>
           <p className="text-sm text-gray-500 mb-4">
             {coChefCount > 0
-              ? 'Contrôlez ce que les co-chefs peuvent faire dans chaque module.'
-              : 'Aucun co-chef pour l\'instant — ces permissions s\'appliqueront dès qu\'un co-chef sera nommé.'}
+              ? `Contrôlez ce que les ${(group as any).type === 'SCHOOL' ? 'co-profs' : 'co-chefs'} peuvent faire dans chaque module.`
+              : `Aucun ${(group as any).type === 'SCHOOL' ? 'co-prof' : 'co-chef'} pour l'instant — ces permissions s'appliqueront dès qu'un ${(group as any).type === 'SCHOOL' ? 'co-prof' : 'co-chef'} sera nommé.`}
           </p>
           <div className={`rounded-xl border bg-white p-5 ${isAdminUser && !isFounder ? 'border-amber-200' : 'border-gray-200'}`}>
-            <PermissionsSettings groupId={groupId} initialPermissions={group.chefPermissions} />
+            <PermissionsSettings groupId={groupId} initialPermissions={group.chefPermissions} groupType={(group as any).type} />
           </div>
         </div>
       )}

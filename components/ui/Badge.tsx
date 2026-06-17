@@ -61,7 +61,7 @@ export function AttendanceBadge({ status }: { status: string }) {
 }
 
 /**
- * Badge de rôle dans un groupe, distinguant le fondateur des co-chefs.
+ * Badge de rôle dans un groupe, distinguant le fondateur des co-chefs/co-profs.
  * Couleurs littérales (non affectées par le thème du site) :
  * fondateur = orange, co-chef = bleu, membre = blanc/gris.
  */
@@ -76,7 +76,7 @@ export function GroupRoleBadge({ groupRole, isFounder, groupType }: { groupRole:
     icon = isSchool ? '🎓' : '👑'
   } else if (groupRole === 'CHEF') {
     cls = 'border-blue-200 bg-blue-100 text-blue-700'
-    label = isSchool ? 'Professeur' : 'Co-chef'
+    label = isSchool ? 'Co-prof' : 'Co-chef'
     icon = isSchool ? '🎓' : '⭐'
   }
   return (
