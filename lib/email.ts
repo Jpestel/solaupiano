@@ -465,6 +465,55 @@ export async function sendRehearsalAutoReminderEmail(
   })
 }
 
+// ─── Relance « dernière mise à jour du niveau de maîtrise » (veille de répét) ──
+export async function sendMasteryReminderEmail(
+  member: { email: string; name: string },
+  groupName: string,
+  groupId: number,
+  rehearsal: { id: number; date: Date; startTime: string; endTime?: string | null; location: string },
+  songsRemaining: number,
+  baseUrl: string
+) {
+  const dateStr = new Date(rehearsal.date).toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  })
+  const timeStr = rehearsal.endTime ? `${rehearsal.startTime} – ${rehearsal.endTime}` : rehearsal.startTime
+  const rehearsalUrl = `${baseUrl}/groupes/${groupId}/repetitions/${rehearsal.id}`
+  const profileUrl = `${baseUrl}/profil`
+  const plural = songsRemaining > 1
+
+  await resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to: member.email,
+    subject: `🎯 ${groupName} — mettez à jour votre niveau de maîtrise avant la répétition`,
+    html: emailWrapper(`
+      <div style="display: inline-flex; align-items: center; gap: 6px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 6px 12px; margin-bottom: 20px;">
+        <span style="font-size: 14px;">⏰</span>
+        <span style="font-size: 12px; font-weight: 600; color: #92400e;">Répétition demain</span>
+      </div>
+      <p style="margin: 0 0 14px; font-size: 15px; color: #374151;">Bonjour ${member.name},</p>
+      <p style="margin: 0 0 14px; font-size: 15px; line-height: 1.6; color: #374151;">
+        La répétition de <strong>${groupName}</strong> approche, et il vous reste
+        <strong>${songsRemaining} morceau${plural ? 'x' : ''}</strong> qui ${plural ? 'ne sont' : "n'est"} pas encore à
+        <strong>100 % de maîtrise</strong> de votre côté.
+      </p>
+      ${dataBox(`
+        <p style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1e3a8a; text-transform: capitalize;">${dateStr}</p>
+        <p style="margin: 0 0 4px; font-size: 13px; color: #1d4ed8;">🕐 ${timeStr}</p>
+        <p style="margin: 0; font-size: 13px; color: #1d4ed8;">📍 ${rehearsal.location}</p>
+      `)}
+      <p style="margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: #374151;">
+        Prenez un instant pour <strong>mettre à jour votre niveau de maîtrise</strong> — ça aide tout le groupe à préparer la séance.
+      </p>
+      ${ctaButton(rehearsalUrl, 'Mettre à jour ma maîtrise')}
+      <p style="color: #d1d5db; font-size: 11px; text-align: center; margin: 16px 0 0; border-top: 1px solid #f3f4f6; padding-top: 12px;">
+        Vous recevez cet email la veille d'une répétition lorsque certains morceaux ne sont pas encore maîtrisés.<br/>
+        <a href="${profileUrl}" style="color: #6b7280; text-decoration: underline;">Se désabonner de ces rappels</a>
+      </p>
+    `),
+  })
+}
+
 // ─── 3. Rappel de présence ────────────────────────────────────────────────────
 
 export async function sendAttendanceReminder(

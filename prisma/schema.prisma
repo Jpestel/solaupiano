@@ -1410,3 +1410,14 @@ model Assignment {
   @@index([groupId])
   @@index([studentId])
 }
+
+// Déduplication de la relance « dernière mise à jour du niveau de maîtrise »
+// (envoyée la veille d'une répétition aux membres dont les morceaux ne sont pas
+// tous à 100 %).
+model MasteryReminderLog {
+  rehearsalId Int
+  userId      Int
+  sentAt      DateTime @default(now())
+
+  @@id([rehearsalId, userId])
+}
