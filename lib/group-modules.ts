@@ -16,6 +16,7 @@ export const GROUP_MODULES: GroupModuleDef[] = [
   { href: 'sondages',             label: 'Sondages' },
   { href: 'comptabilite',         label: 'Comptabilité' },
   { href: 'galerie',              label: 'Galerie' },
+  { href: 'stockage',             label: 'Stockage (espace fichiers)' },
   // (« Réseaux » et « Statistiques » sont de toute façon réservés aux chefs/co-chefs.)
 ]
 

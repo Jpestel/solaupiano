@@ -414,6 +414,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         </div>
       )}
 
+      {(!isStudentView || studentMods.includes('stockage')) && (
       <PlanSection
         currentPlanKey={group.plan}
         storageUsedBytes={storageInfo.usedBytes}
@@ -427,6 +428,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         groupId={groupId}
         stripeSubscriptionId={group.stripeSubscriptionId ?? null}
       />
+      )}
 
       <GroupCards
         groupId={groupId}
