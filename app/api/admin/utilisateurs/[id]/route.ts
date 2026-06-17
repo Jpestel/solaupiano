@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import bcrypt from 'bcryptjs'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { unlinkPublicFile } from '@/lib/file-cleanup'
@@ -17,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (err) return err
 
   const body = await req.json()
-  const { siteRole, name, email, instrumentIds, accountPlan, planExpiresAt } = body
+  const { siteRole, name, email, password, instrumentIds, accountPlan, planExpiresAt } = body
   const targetId = Number(params.id)
 
   // Plan du compte (se répercute sur tous les groupes fondés par l'utilisateur).
@@ -50,6 +51,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     })
     if (existing) return NextResponse.json({ error: 'Cet email est déjà utilisé.' }, { status: 400 })
     data.email = email.trim()
+  }
+
+  if (password !== undefined && password !== '') {
+    if (typeof password !== 'string' || password.length < 8) {
+      return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 8 caractères.' }, { status: 400 })
+    }
+    data.password = await bcrypt.hash(password, 12)
   }
 
   const user = await prisma.user.update({

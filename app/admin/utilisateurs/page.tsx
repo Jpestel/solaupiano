@@ -33,7 +33,7 @@ export default function AdminUtilisateursPage() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [editUser, setEditUser] = useState<User | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', email: '', instrumentIds: [] as number[], accountPlan: 'FREE' })
+  const [editForm, setEditForm] = useState({ name: '', email: '', password: '', instrumentIds: [] as number[], accountPlan: 'FREE' })
   const [editError, setEditError] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -62,6 +62,7 @@ export default function AdminUtilisateursPage() {
     setEditForm({
       name: user.name,
       email: user.email,
+      password: '',
       instrumentIds: user.instruments.map((ui) => ui.instrument.id),
       accountPlan: user.accountPlan ?? 'FREE',
     })
@@ -116,7 +117,13 @@ export default function AdminUtilisateursPage() {
     const res = await fetch(`/api/admin/utilisateurs/${editUser.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editForm.name, email: editForm.email, instrumentIds: editForm.instrumentIds, accountPlan: editForm.accountPlan }),
+      body: JSON.stringify({
+        name: editForm.name,
+        email: editForm.email,
+        password: editForm.password || undefined,
+        instrumentIds: editForm.instrumentIds,
+        accountPlan: editForm.accountPlan,
+      }),
     })
     setEditSaving(false)
     if (!res.ok) {
@@ -422,6 +429,18 @@ export default function AdminUtilisateursPage() {
               onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
               className="form-input"
             />
+          </div>
+          <div>
+            <label className="form-label">Nouveau mot de passe <span className="text-gray-400 font-normal">(optionnel)</span></label>
+            <input
+              type="password"
+              value={editForm.password}
+              onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+              className="form-input"
+              minLength={8}
+              placeholder="Laisser vide pour ne pas changer"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">8 caractères minimum. Le mot de passe actuel n'est jamais affiché.</p>
           </div>
           {editUser?.siteRole !== 'ADMIN' && (
             <div>
