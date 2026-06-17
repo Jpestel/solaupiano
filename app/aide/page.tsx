@@ -66,6 +66,7 @@ export default async function AidePage() {
             { href: '#profil', label: '👤 Mon profil' },
             { href: '#groupes', label: '👥 Mes groupes' },
             { href: '#repetitions', label: '🎵 Répétitions' },
+            { href: '#devoirs', label: '📒 Devoirs / École' },
             { href: '#disponibilites', label: '🗓 Disponibilités' },
             { href: '#sondages', label: '📊 Sondages' },
             { href: '#concerts', label: '🎭 Concerts' },
@@ -136,7 +137,7 @@ export default async function AidePage() {
             </HelpCard>
 
             <HelpCard title="Mes rôles">
-              <p>Votre profil récapitule votre <strong>rôle dans chacun de vos groupes</strong> : 👑 Chef d&apos;orchestre, ⭐ Co-chef ou 🎵 Membre.</p>
+              <p>Votre profil récapitule votre <strong>rôle dans chacun de vos groupes</strong> : 👑 Chef d&apos;orchestre, ⭐ Co-chef ou 🎵 Membre. Dans une école, les libellés deviennent <strong>Professeur</strong>, <strong>Co-prof</strong> et <strong>Élève</strong>.</p>
             </HelpCard>
 
             <HelpCard title="Plan utilisateur">
@@ -206,6 +207,7 @@ export default async function AidePage() {
                     </>
                   })()}
                 </Note>
+                <Tip>Pour un usage pédagogique, créez un groupe de type <strong>École</strong> : les membres y sont présentés comme des <strong>élèves</strong>, et le chef comme <strong>professeur</strong>.</Tip>
               </HelpCard>
             )}
 
@@ -263,7 +265,7 @@ export default async function AidePage() {
                   </ul>
                 </div>
               </div>
-              <Note>Un groupe peut avoir <strong>plusieurs chefs</strong>. Le fondateur du groupe peut nommer des co-chefs depuis le panneau membres, et configurer finement leurs permissions depuis la section <em>Permissions des co-chefs</em> en bas de la page du groupe. Les modules contrôlables sont : Répétitions, Répertoire, Ressources, Setlists, Concerts, Grilles d&apos;accords, Membres, Statistiques et <strong>Estimation de cachet</strong>.</Note>
+              <Note>Un groupe peut avoir <strong>plusieurs chefs</strong>. Le fondateur peut nommer des co-chefs depuis le panneau membres, puis configurer leurs permissions depuis la section dédiée en bas de la page du groupe. Dans une école, ces co-chefs sont affichés comme <strong>co-profs</strong> : pratique pour un associé ou un autre professeur qui gère les cours avec vous. Les modules contrôlables sont : Répétitions, Répertoire, Ressources, Setlists, Concerts, Grilles d&apos;accords, Membres, Statistiques, Réseaux sociaux et <strong>Estimation de cachet</strong>.</Note>
             </HelpCard>
           </div>
         </section>
@@ -306,6 +308,48 @@ export default async function AidePage() {
                 <p>Depuis la fiche d&apos;une répétition, vous pouvez associer des morceaux du répertoire à travailler lors de cette séance. Les membres voient quels morceaux sont prévus.</p>
               </HelpCard>
             )}
+          </div>
+        </section>
+
+        {/* ─── DEVOIRS / ÉCOLE ─── */}
+        <section id="devoirs">
+          <SectionTitle icon="📒" title="Devoirs et suivi des élèves" color="teal" tutorials={tf('feature_devoirs')} />
+          <div className="space-y-4">
+            <HelpCard title="À quoi sert le module Devoirs ?">
+              <p>Dans un groupe de type <strong>École</strong>, le professeur peut assigner des exercices ou morceaux à travailler à ses <strong>élèves</strong>, avec une consigne, une échéance et éventuellement un morceau du répertoire lié.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Le professeur voit les devoirs de tous les élèves du groupe.</li>
+                <li>Chaque élève ne voit que ses propres devoirs.</li>
+                <li>L&apos;élève indique son avancement : <strong>À faire</strong>, <strong>En cours</strong> ou <strong>Fait</strong>.</li>
+              </ul>
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Assigner un devoir" badge={{ label: "Professeur", color: "indigo" }}>
+                <ol className="space-y-2 mt-1">
+                  <Step n={1}>Ouvrez votre école puis cliquez sur <strong>Devoirs</strong>.</Step>
+                  <Step n={2}>Sélectionnez un ou plusieurs élèves concernés. Les boutons <strong>Tous</strong> et <strong>Aucun</strong> permettent d&apos;aller vite.</Step>
+                  <Step n={3}>Ajoutez une échéance, un intitulé, une consigne et, si besoin, un morceau du répertoire.</Step>
+                  <Step n={4}>Cliquez sur <strong>Assigner le devoir</strong>. Le devoir apparaît immédiatement dans l&apos;espace des élèves concernés.</Step>
+                </ol>
+                <Tip>Un même devoir peut être assigné à plusieurs élèves en une seule fois : l&apos;application crée un suivi individuel pour chacun.</Tip>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Groupes de niveau">
+              <p>Les <strong>groupes de niveau</strong> servent à regrouper des élèves pour assigner plus vite les devoirs récurrents : Débutants, Intermédiaires, Préparation audition, Cycle 2, etc.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Un professeur crée un groupe de niveau avec un nom et une liste d&apos;élèves.</li>
+                <li>Depuis le formulaire de devoir, un clic sur le groupe ajoute tous ses élèves aux destinataires.</li>
+                <li>Les groupes de niveau peuvent être <strong>créés, modifiés et supprimés</strong> depuis le module Devoirs.</li>
+              </ul>
+              <Note>Un groupe de niveau est un raccourci de sélection, pas un nouveau groupe Sol au piano. Il ne change pas les droits des élèves.</Note>
+            </HelpCard>
+
+            <HelpCard title="Ce que voit l'élève">
+              <p>L&apos;élève dispose d&apos;une liste simple de ses devoirs : titre, consigne, échéance, morceau lié et statut. Il peut mettre à jour son statut sans voir les devoirs des autres élèves.</p>
+              <Tip>Pour un prof, cela donne une vue claire de l&apos;avancement de la classe sans mélanger les devoirs personnels de chaque élève.</Tip>
+            </HelpCard>
           </div>
         </section>
 
@@ -422,28 +466,39 @@ export default async function AidePage() {
                 <ol className="space-y-2 mt-2">
                   <Step n={1}>Dans votre groupe, cliquez sur <strong>Concerts</strong>.</Step>
                   <Step n={2}>Sur la carte d&apos;un concert, cliquez sur le badge <strong>🗺️ Plan de scène →</strong>.</Step>
-                  <Step n={3}>Les membres du groupe apparaissent dans le panneau de gauche. Faites-les glisser sur la scène.</Step>
+                  <Step n={3}>Les membres, leurs instruments et le matériel apparaissent dans le panneau de gauche. Faites glisser les éléments sur la scène.</Step>
                   <Step n={4}>Le plan est sauvegardé automatiquement à chaque modification.</Step>
                 </ol>
               </HelpCard>
             )}
 
             <HelpCard title="Placer les musiciens sur scène">
-              <p>Chaque musicien est représenté par un <strong>token coloré</strong> indiquant son nom et son instrument :</p>
+              <p>Chaque musicien est représenté par un <strong>personnage de scène</strong> avec son nom, sa couleur et son allure. Les instruments déclarés dans son profil apparaissent sous sa carte.</p>
               <ul className="mt-2 space-y-1">
-                <li>Faites glisser un token depuis le panneau gauche pour le <strong>placer sur scène</strong></li>
-                <li>Les tokens déjà sur scène sont <strong>repositionnables librement</strong> par drag &amp; drop</li>
-                <li>Double-cliquez (ou cliquez sur ✕) sur un token pour le <strong>retirer</strong> de la scène</li>
+                <li>Faites glisser un musicien, un instrument ou un élément de matériel depuis le panneau gauche.</li>
+                <li>Les éléments déjà sur scène sont <strong>repositionnables librement</strong> par drag &amp; drop.</li>
+                <li>Les boutons sur un élément permettent de le <strong>retirer</strong> ou de le <strong>pivoter</strong>.</li>
                 <li>La position est enregistrée en <strong>pourcentage</strong> — le plan s&apos;adapte à toutes les tailles d&apos;écran</li>
               </ul>
-              <Tip>Chaque membre a une couleur distincte. L&apos;icône de son instrument principal s&apos;affiche sur le token pour repérer rapidement la disposition.</Tip>
+              <Tip>Chaque membre personnalise son personnage, sa couleur et son nom de scène depuis <strong>Mon profil</strong>. Le chef récupère automatiquement ces informations dans le plan de scène.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Matériel, lumières et structures">
+              <p>Le plan de scène inclut une palette d&apos;éléments prêts à placer :</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>Équipement &amp; sono</strong> : retours, façade, table de mixage, amplis, micros, DI, alimentation…</li>
+                <li><strong>Lumières</strong> : PAR, découpe, wash, barre LED, blinder, stroboscope, poursuite…</li>
+                <li><strong>Structures &amp; déco</strong> : truss, praticables, fond de scène, mur LED, pupitres, barrières, tapis…</li>
+              </ul>
+              <Tip>Le bouton <strong>Disposer</strong> aide à répartir rapidement les éléments si la scène devient trop chargée.</Tip>
             </HelpCard>
 
             <HelpCard title="Orientation et partage">
               <ul className="mt-1 space-y-1">
-                <li>La scène est représentée avec une <strong>perspective de profondeur</strong> (avant-scène en bas, fond de scène en haut)</li>
-                <li>Un effet <strong>spotlight</strong> visuel rappelle les conditions réelles</li>
-                <li>Le plan est accessible à <strong>tous les membres</strong> du groupe en lecture — seul le chef peut le modifier</li>
+                <li>La scène indique clairement le <strong>fond de scène</strong> en haut et le <strong>public</strong> en bas.</li>
+                <li>Les libellés des objets peuvent être affichés ou masqués pour alléger la lecture.</li>
+                <li>Le plan est imprimable et consultable par <strong>tous les membres</strong> du groupe en lecture.</li>
+                <li>Seuls les chefs, co-chefs ou co-profs autorisés peuvent le modifier.</li>
               </ul>
             </HelpCard>
 
@@ -683,7 +738,7 @@ export default async function AidePage() {
               <Note>Ne publiez <strong>jamais</strong> une photo où une personne ayant refusé est reconnaissable.</Note>
             </HelpCard>
             <HelpCard title="Qui peut publier ?">
-              <p>Réservé au <strong>chef d&apos;orchestre</strong> et aux <strong>co-chefs</strong> à qui le fondateur a accordé le droit <strong>« Réseaux sociaux → Publier »</strong> (configurable dans <em>Permissions des co-chefs</em>, en bas de la page du groupe).</p>
+              <p>Réservé au <strong>chef d&apos;orchestre</strong> et aux <strong>co-chefs</strong> à qui le fondateur a accordé le droit <strong>« Réseaux sociaux → Publier »</strong>. Dans une école, cela concerne le <strong>professeur</strong> et les <strong>co-profs</strong> autorisés.</p>
               <Note>Le module peut être inclus ou non selon l&apos;offre du groupe (il apparaît grisé 🔒 s&apos;il n&apos;est pas inclus).</Note>
             </HelpCard>
           </div>
@@ -1764,12 +1819,12 @@ export default async function AidePage() {
             </HelpCard>
 
             {isCreateur && (
-              <HelpCard title="Permissions co-chefs pour les statistiques" badge={{ label: "Fondateur seulement", color: "indigo" }}>
-                <p>Par défaut, tous les <strong>co-chefs</strong> (chefs que vous avez nommés) ont accès aux statistiques. Vous pouvez restreindre cet accès depuis les paramètres de permissions en bas de la page du groupe :</p>
+              <HelpCard title="Permissions co-chefs / co-profs pour les statistiques" badge={{ label: "Fondateur seulement", color: "indigo" }}>
+                <p>Par défaut, tous les <strong>co-chefs</strong> ou <strong>co-profs</strong> que vous avez nommés ont accès aux statistiques. Vous pouvez restreindre cet accès depuis les paramètres de permissions en bas de la page du groupe :</p>
                 <ol className="space-y-2 mt-2">
                   <Step n={1}>Accédez à la page du groupe.</Step>
-                  <Step n={2}>Faites défiler jusqu&apos;à <strong>⚙️ Permissions des co-chefs</strong>.</Step>
-                  <Step n={3}>Dans le module <strong>📊 Statistiques</strong>, désactivez l&apos;action <em>Consulter</em> pour que les co-chefs ne puissent plus y accéder.</Step>
+                  <Step n={2}>Faites défiler jusqu&apos;à la section <strong>⚙️ Permissions</strong>.</Step>
+                  <Step n={3}>Dans le module <strong>📊 Statistiques</strong>, désactivez l&apos;action <em>Consulter</em> pour que les co-chefs ou co-profs ne puissent plus y accéder.</Step>
                 </ol>
                 <Note>Ces restrictions ne s&apos;appliquent pas à vous en tant que <strong>fondateur</strong> du groupe.</Note>
               </HelpCard>
@@ -1857,7 +1912,7 @@ export default async function AidePage() {
                   <Step n={2}>Cliquez sur <strong>💾 Sauvegarder</strong>, nommez la simulation et choisissez le concert à lier dans le menu déroulant.</Step>
                   <Step n={3}>La simulation apparaît sur la carte du concert avec le résumé financier (coût employeur / net musiciens).</Step>
                 </ol>
-                <Note>La sauvegarde des simulations est réservée aux <strong>forfaits incluant du stockage</strong> (plan personnel ou plan du groupe). Pour les co-chefs, le fondateur contrôle chaque action séparément depuis <em>Permissions des co-chefs</em> : <strong>Créer</strong> (enregistrer une estimation), <strong>Sauvegarder</strong> (la lier à un concert), <strong>Modifier</strong> et <strong>Supprimer</strong>.</Note>
+                <Note>La sauvegarde des simulations est réservée aux <strong>forfaits incluant du stockage</strong> (plan personnel ou plan du groupe). Pour les co-chefs ou co-profs, le fondateur contrôle chaque action séparément depuis les permissions du groupe : <strong>Créer</strong> (enregistrer une estimation), <strong>Sauvegarder</strong> (la lier à un concert), <strong>Modifier</strong> et <strong>Supprimer</strong>.</Note>
               </HelpCard>
             )}
             <HelpCard title="À quoi sert le simulateur cachet GUSO ?">
@@ -2053,6 +2108,18 @@ export default async function AidePage() {
                 ? 'Depuis la page du groupe, section Membres, cliquez sur les … à côté du membre et sélectionnez "Promouvoir chef".'
                 : 'Seul le chef du groupe peut modifier les rôles des membres.'}
             </FaqItem>
+            <FaqItem question="Quelle différence entre un groupe classique et une école ?">
+              Un groupe classique utilise les rôles <strong>Chef d&apos;orchestre</strong>, <strong>Co-chef</strong> et <strong>Membre</strong>. Une école adapte le vocabulaire : le chef devient <strong>Professeur</strong>, les co-chefs deviennent <strong>Co-profs</strong>, et les membres deviennent <strong>Élèves</strong>. Les écoles donnent aussi accès au module <strong>Devoirs</strong>.
+            </FaqItem>
+            <FaqItem question="Un prof peut-il nommer un co-prof ?">
+              Oui. Dans une école, le professeur peut nommer un autre membre comme <strong>co-prof</strong>, par exemple pour qu&apos;un associé ou un second professeur puisse gérer les cours. Le fondateur garde le contrôle des permissions du co-prof depuis la section <em>Permissions des co-profs</em>.
+            </FaqItem>
+            <FaqItem question="Les élèves voient-ils les devoirs des autres élèves ?">
+              Non. Un élève ne voit que ses propres devoirs. Le professeur et les co-profs autorisés peuvent consulter les devoirs assignés à l&apos;ensemble des élèves.
+            </FaqItem>
+            <FaqItem question="À quoi servent les groupes de niveau ?">
+              Les groupes de niveau sont des raccourcis de sélection pour assigner rapidement un devoir à plusieurs élèves : Débutants, Intermédiaires, Cycle 2, Préparation audition, etc. Ils ne changent pas les droits des élèves et peuvent être modifiés ou supprimés à tout moment.
+            </FaqItem>
             <FaqItem question="Une grille d'accords peut-elle être liée à un morceau ?">
               Oui ! Lors de la création ou depuis les paramètres d&apos;une grille, vous pouvez l&apos;associer à un morceau de votre répertoire. Son titre apparaîtra sur la carte de la grille.
             </FaqItem>
@@ -2104,6 +2171,9 @@ export default async function AidePage() {
             <FaqItem question="Le plan de scène est-il spécifique à chaque concert ?">
               Oui. Chaque concert dispose de son propre plan de scène indépendant, ce qui permet d&apos;avoir des configurations différentes selon la salle ou la formation.
             </FaqItem>
+            <FaqItem question="Qui peut modifier le plan de scène ?">
+              Le plan est consultable par tous les membres du groupe, mais seuls les chefs, co-chefs ou co-profs autorisés peuvent déplacer les musiciens, instruments, lumières et éléments de matériel. Les autres membres le voient en lecture seule.
+            </FaqItem>
             <FaqItem question="Puis-je partager la page publique de mon groupe sur les réseaux sociaux ?">
               Oui, il suffit de copier l&apos;URL (ex : solaupiano.fr/mon-groupe) et de la partager. La page est accessible à tous sans compte. Vous pouvez aussi renseigner vos liens Instagram, Facebook, YouTube, Spotify et site web dans l&apos;onglet Options de votre page.
             </FaqItem>
@@ -2117,13 +2187,13 @@ export default async function AidePage() {
               Oui. Depuis votre page <strong>Profil</strong>, section <em>Notifications</em>, désactivez le toggle <em>Rappels de répétition automatiques</em>. Vous ne recevrez plus les emails de rappel 5 jours avant chaque répétition. Le chef peut toujours vous envoyer un rappel manuel depuis la fiche d&apos;une répétition.
             </FaqItem>
             <FaqItem question="Peut-on avoir plusieurs chefs dans un groupe ?">
-              Oui. Le fondateur du groupe peut nommer autant de co-chefs qu&apos;il le souhaite depuis le panneau <strong>Membres</strong>. Il peut aussi configurer les permissions de chaque co-chef (quels modules il peut modifier) depuis la section <em>Permissions des co-chefs</em> en bas de la page du groupe. Cette fonctionnalité est disponible à partir du plan <strong>Pro</strong>.
+              Oui. Le fondateur du groupe peut nommer autant de co-chefs qu&apos;il le souhaite depuis le panneau <strong>Membres</strong>. Dans une école, on parle de <strong>co-profs</strong>. Il peut aussi configurer les permissions de chaque co-chef ou co-prof depuis la section dédiée en bas de la page du groupe. Cette fonctionnalité est disponible à partir du plan <strong>Pro</strong>.
             </FaqItem>
             <FaqItem question="Le stockage est-il partagé entre tous mes groupes ?">
               <strong>Oui — le quota de stockage est partagé entre TOUS vos groupes.</strong> Ce n&apos;est pas un quota par groupe : si votre plan inclut 5 Go, ces 5 Go sont communs à l&apos;ensemble de vos groupes. Par exemple, si vous avez 3 groupes et que le premier utilise 3 Go, il ne reste que 2 Go pour les deux autres. La barre de stockage visible sur chaque groupe affiche la consommation globale du compte.
             </FaqItem>
             <FaqItem question="Qui peut accéder aux statistiques du groupe ?">
-              Seuls les <strong>chefs</strong> du groupe y ont accès (fondateur et co-chefs). Les membres simples ne voient pas les statistiques. De plus, le module nécessite un <strong>plan payant</strong> (Pro ou Premium). Le fondateur peut restreindre l&apos;accès aux co-chefs depuis les paramètres de permissions.
+              Seuls les <strong>chefs</strong> du groupe y ont accès (fondateur et co-chefs, ou co-profs dans une école). Les membres simples et les élèves ne voient pas les statistiques. De plus, le module nécessite un <strong>plan payant</strong> (Pro ou Premium). Le fondateur peut restreindre l&apos;accès depuis les paramètres de permissions.
             </FaqItem>
             <FaqItem question="Les statistiques se mettent-elles à jour automatiquement ?">
               Oui. Les données sont calculées en temps réel à chaque ouverture de la page — aucun rafraîchissement manuel n&apos;est nécessaire.
