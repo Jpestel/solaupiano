@@ -76,6 +76,7 @@ export default function VideoAudioPage() {
       <p className="text-gray-500 text-sm mt-1">
         Déposez un fichier vidéo (MP4, MOV, WEBM…) et récupérez la piste audio en <strong>MP3</strong> ou <strong>WAV</strong>.
         Tout se passe <strong>sur votre appareil</strong> : aucun fichier n’est envoyé sur Internet.
+        Pratique par exemple pour extraire l&apos;audio d&apos;une vidéo de <strong>répétition</strong> ou de <strong>concert</strong> que vous avez enregistrée.
       </p>
       <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
         ⚖️ À n’utiliser que pour des vidéos <strong>dont vous détenez les droits</strong> (vos propres enregistrements, contenus libres…). L’extraction depuis des contenus protégés sans autorisation n’est pas permise.
