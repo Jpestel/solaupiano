@@ -472,8 +472,16 @@ export async function sendMasteryReminderEmail(
   groupId: number,
   rehearsal: { id: number; date: Date; startTime: string; endTime?: string | null; location: string },
   songsRemaining: number,
-  baseUrl: string
+  baseUrl: string,
+  groupType?: string
 ) {
+  const isSchool = groupType === 'SCHOOL'
+  // Vocabulaire adapté au type d'espace
+  const evtLabelCap = isSchool ? 'Cours' : 'Répétition'   // « Cours demain » / « Répétition demain »
+  const evtArticle = isSchool ? 'Le cours' : 'La répétition' // « Le cours de X approche »
+  const evtVeille = isSchool ? "d'un cours" : "d'une répétition" // « la veille d'un cours »
+  const collectif = isSchool ? 'au prof' : 'au groupe'
+
   const dateStr = new Date(rehearsal.date).toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long',
   })
@@ -485,15 +493,15 @@ export async function sendMasteryReminderEmail(
   await resend.emails.send({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: member.email,
-    subject: `🎯 ${groupName} — mettez à jour votre niveau de maîtrise avant la répétition`,
+    subject: `🎯 ${groupName} — mettez à jour votre niveau de maîtrise avant ${isSchool ? 'le cours' : 'la répétition'}`,
     html: emailWrapper(`
       <div style="display: inline-flex; align-items: center; gap: 6px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 6px 12px; margin-bottom: 20px;">
         <span style="font-size: 14px;">⏰</span>
-        <span style="font-size: 12px; font-weight: 600; color: #92400e;">Répétition demain</span>
+        <span style="font-size: 12px; font-weight: 600; color: #92400e;">${evtLabelCap} demain</span>
       </div>
       <p style="margin: 0 0 14px; font-size: 15px; color: #374151;">Bonjour ${member.name},</p>
       <p style="margin: 0 0 14px; font-size: 15px; line-height: 1.6; color: #374151;">
-        La répétition de <strong>${groupName}</strong> approche, et il vous reste
+        ${evtArticle} de <strong>${groupName}</strong> approche, et il vous reste
         <strong>${songsRemaining} morceau${plural ? 'x' : ''}</strong> qui ${plural ? 'ne sont' : "n'est"} pas encore à
         <strong>100 % de maîtrise</strong> de votre côté.
       </p>
@@ -503,11 +511,11 @@ export async function sendMasteryReminderEmail(
         <p style="margin: 0; font-size: 13px; color: #1d4ed8;">📍 ${rehearsal.location}</p>
       `)}
       <p style="margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: #374151;">
-        Prenez un instant pour <strong>mettre à jour votre niveau de maîtrise</strong> — ça aide tout le groupe à préparer la séance.
+        Prenez un instant pour <strong>mettre à jour votre niveau de maîtrise</strong> — ça aide ${collectif} à préparer la séance.
       </p>
       ${ctaButton(rehearsalUrl, 'Mettre à jour ma maîtrise')}
       <p style="color: #d1d5db; font-size: 11px; text-align: center; margin: 16px 0 0; border-top: 1px solid #f3f4f6; padding-top: 12px;">
-        Vous recevez cet email la veille d'une répétition lorsque certains morceaux ne sont pas encore maîtrisés.<br/>
+        Vous recevez cet email la veille ${evtVeille} lorsque certains morceaux ne sont pas encore maîtrisés.<br/>
         <a href="${profileUrl}" style="color: #6b7280; text-decoration: underline;">Se désabonner de ces rappels</a>
       </p>
     `),

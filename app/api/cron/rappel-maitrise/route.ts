@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       songs: { some: {} },
     },
     include: {
-      group: { select: { id: true, name: true } },
+      group: { select: { id: true, name: true, type: true } },
       songs: { select: { songId: true } },
       attendances: {
         include: {
@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
           { id: rehearsal.id, date: rehearsal.date, startTime: rehearsal.startTime, endTime: rehearsal.endTime, location: rehearsal.location },
           remaining,
           baseUrl,
+          rehearsal.group.type,
         )
         if (!force) {
           await prisma.masteryReminderLog.upsert({
