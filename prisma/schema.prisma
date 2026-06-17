@@ -1419,7 +1419,7 @@ model StudentLevelGroup {
   id        Int      @id @default(autoincrement())
   groupId   Int
   name      String
-  memberIds String   @default("[]") @db.Text
+  memberIds String   @db.Text
   createdAt DateTime @default(now())
 
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
