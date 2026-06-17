@@ -129,7 +129,7 @@ export default function MembresPanel({
         <div className="flex items-center gap-2">
           <span className="text-sm">👥</span>
           <span className={`text-xs font-medium ${atLimit ? 'text-red-700' : nearLimit ? 'text-amber-700' : 'text-gray-600'}`}>
-            {members.length} / {memberLimit} membres
+            {members.length} / {memberLimit} {isSchool ? 'élèves' : 'membres'}
           </span>
           {atLimit && (
             <span className="text-xs font-semibold bg-red-100 text-red-700 rounded-full px-2 py-0.5">
@@ -165,7 +165,7 @@ export default function MembresPanel({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-medium text-gray-900 truncate">{member.user.name}</p>
-                <GroupRoleBadge groupRole={member.groupRole} isFounder={member.userId === createdBy} />
+                <GroupRoleBadge groupRole={member.groupRole} isFounder={member.userId === createdBy} groupType={groupType} />
                 {isSelf && (
                   <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-500">Moi</span>
                 )}
