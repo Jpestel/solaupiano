@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { getShape, shapeForInstrument, shapeForEquip, resolveLook } from '@/components/ui/StageGraphics'
 
 const SCALE = 1.0 // facteur d'échelle global des objets
+const TEST_ACCOUNT_EMAIL = 'testeur@solaupiano.fr'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -212,6 +213,8 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
   const loadedRef = useRef(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showLabels, setShowLabels] = useState(true)
+  const readOnlyTestAccount = session?.user?.email === TEST_ACCOUNT_EMAIL
+  const canEditStage = isChef && !readOnlyTestAccount
 
   useEffect(() => {
     const v = localStorage.getItem('scene:showLabels')
@@ -251,7 +254,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
 
   // ── Auto-save (chef) : sauvegarde différée à chaque changement ──
   useEffect(() => {
-    if (!isChef || !loadedRef.current) return
+    if (!canEditStage || !loadedRef.current) return
     setStatus('saving')
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
@@ -262,7 +265,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
       setStatus('saved')
     }, 800)
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
-  }, [items, isChef, groupId, concertId])
+  }, [items, canEditStage, groupId, concertId])
 
   const getStagePercent = useCallback((cx: number, cy: number) => {
     const stage = stageRef.current
@@ -275,19 +278,19 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
   }, [])
 
   const startDragFromPanel = useCallback((e: React.PointerEvent, draft: StageItem) => {
-    if (!isChef) return
+    if (!canEditStage) return
     e.preventDefault()
     setDragging({ id: draft.id, fromPanel: true, draft })
     setDragPos({ x: e.clientX, y: e.clientY })
-  }, [isChef])
+  }, [canEditStage])
 
   const startDragOnStage = useCallback((e: React.PointerEvent, id: string) => {
-    if (!isChef) return
+    if (!canEditStage) return
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
     setDragging({ id, fromPanel: false })
     setDragPos({ x: e.clientX, y: e.clientY })
-  }, [isChef])
+  }, [canEditStage])
 
   useEffect(() => {
     if (!dragging) return
@@ -380,7 +383,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
             <input type="checkbox" checked={showLabels} onChange={toggleLabels} className="rounded border-gray-300 text-indigo-600" />
             Noms des objets
           </label>
-          {isChef && (
+          {canEditStage && (
             <>
               <span className={`text-xs font-medium ${status === 'saving' ? 'text-amber-500' : 'text-green-600'}`}>
                 {status === 'saving' ? '⏳ Sauvegarde…' : '✓ Sauvegardé'}
@@ -401,9 +404,14 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
 
       {/* Info personnalisation */}
       <div className="print:hidden mb-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-2.5 text-xs text-indigo-700 flex items-center gap-2">
-        <span>🎭</span>
-        <span>Votre <strong>personnage</strong> (allure & couleur) et votre <strong>nom de scène</strong> se définissent dans votre <Link href="/profil" className="font-semibold underline hover:text-indigo-900">profil</Link>.</span>
-      </div>
+          <span>🎭</span>
+          <span>Votre <strong>personnage</strong> (allure & couleur) et votre <strong>nom de scène</strong> se définissent dans votre <Link href="/profil" className="font-semibold underline hover:text-indigo-900">profil</Link>.</span>
+        </div>
+      {readOnlyTestAccount && (
+        <div className="print:hidden mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+          Compte TESTEUR : cette scène est une démonstration en lecture seule.
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
         {/* ─── Palette (à côté de la scène, défilement propre) ─── */}
@@ -422,7 +430,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
                     <div key={m.userId} className="w-full sm:w-60 lg:w-full rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">
                       <div className="flex items-center gap-2">
                         <PaletteChip
-                          isChef={isChef}
+                          isChef={canEditStage}
                           dimmed={placed}
                           color={color}
                           icon={
@@ -434,7 +442,7 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
                             </span>
                           }
                           label={m.name}
-                          onPointerDown={(e) => startDragFromPanel(e, { id: `member-${m.userId}`, kind: 'member', label: m.name, icon: '', figure: m.figure, x: 50, y: 50, color, ownerUserId: m.userId })}
+                          onPointerDown={canEditStage ? (e) => startDragFromPanel(e, { id: `member-${m.userId}`, kind: 'member', label: m.name, icon: '', figure: m.figure, x: 50, y: 50, color, ownerUserId: m.userId }) : undefined}
                         />
                         {placed && <span className="text-[10px] text-green-600 font-medium">placé</span>}
                       </div>
@@ -444,11 +452,11 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
                           {m.instruments.map((instr) => (
                             <PaletteChip
                               key={instr}
-                              isChef={isChef}
+                              isChef={canEditStage}
                               color={color}
                               icon={getInstrumentIcon(instr)}
                               label={instr}
-                              onPointerDown={(e) => startDragFromPanel(e, { id: uid('instr'), kind: 'instrument', label: instr, icon: getInstrumentIcon(instr), shape: shapeForInstrument(instr), x: 50, y: 50, color, ownerUserId: m.userId })}
+                              onPointerDown={canEditStage ? (e) => startDragFromPanel(e, { id: uid('instr'), kind: 'instrument', label: instr, icon: getInstrumentIcon(instr), shape: shapeForInstrument(instr), x: 50, y: 50, color, ownerUserId: m.userId }) : undefined}
                             />
                           ))}
                         </div>
@@ -477,17 +485,17 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
                 {cat.list.map((eq) => (
                   <PaletteChip
                     key={eq.key}
-                    isChef={isChef}
+                    isChef={canEditStage}
                     icon={eq.icon}
                     label={eq.label}
-                    onPointerDown={(e) => startDragFromPanel(e, { id: uid('equip'), kind: 'equip', label: eq.label, icon: eq.icon, shape: shapeForEquip(eq.key), x: 50, y: 50 })}
+                    onPointerDown={canEditStage ? (e) => startDragFromPanel(e, { id: uid('equip'), kind: 'equip', label: eq.label, icon: eq.icon, shape: shapeForEquip(eq.key), x: 50, y: 50 }) : undefined}
                   />
                 ))}
               </div>
             </div>
           ))}
 
-          {isChef && (
+          {canEditStage && (
             <p className="text-xs text-gray-400 italic">Glissez n&apos;importe quel élément sur la scène. Les instruments proviennent du profil de chaque musicien.</p>
           )}
         </div>
@@ -517,13 +525,13 @@ export default function ScenePage({ params }: { params: { id: string; concertId:
               )}
 
               {items.map((it) => (
-                <StageItemView key={it.id} item={it} isChef={isChef} showLabels={showLabels} onPointerDown={startDragOnStage} onRemove={removeItem} onRotate={rotateItem} />
+                <StageItemView key={it.id} item={it} isChef={canEditStage} showLabels={showLabels} onPointerDown={startDragOnStage} onRemove={removeItem} onRotate={rotateItem} />
               ))}
 
               {items.length === 0 && !dragging && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-4xl mb-3 opacity-30">🎭</span>
-                  <p className="text-white/30 text-sm font-medium">{isChef ? 'Glissez musiciens, instruments et matériel sur la scène' : 'Aucun placement défini'}</p>
+                  <p className="text-white/30 text-sm font-medium">{canEditStage ? 'Glissez musiciens, instruments et matériel sur la scène' : 'Aucun placement défini'}</p>
                 </div>
               )}
             </div>
