@@ -85,14 +85,11 @@ export default function ProfilPage() {
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [requestingGroup, setRequestingGroup] = useState<number | null>(null)
-  const [planSaving, setPlanSaving] = useState(false)
   // Avatar
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError] = useState('')
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [planSuccess, setPlanSuccess] = useState('')
-  const [planError, setPlanError] = useState('')
 
   const [gusoNumber, setGusoNumber] = useState('')
   const [stageFigure, setStageFigure] = useState<string>('p1')
@@ -242,27 +239,6 @@ export default function ProfilPage() {
     })
     setImageConsentSaving(null)
     if (res.ok) setImageConsents((prev) => prev.map((g) => (g.groupId === groupId ? { ...g, consent: value } : g)))
-  }
-
-  const handlePlanChange = async (newPlan: 'MUSICIEN' | 'CREATEUR') => {
-    if (!profile || profile.userPlan === newPlan) return
-    setPlanSaving(true)
-    setPlanSuccess('')
-    setPlanError('')
-    const res = await fetch('/api/profil', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: profile.name, instrumentIds: selectedIds, userPlan: newPlan }),
-    })
-    setPlanSaving(false)
-    if (res.ok) {
-      await fetchData()
-      setPlanSuccess('Plan mis à jour avec succès.')
-      await update({ userPlan: newPlan })
-    } else {
-      const d = await res.json().catch(() => ({}))
-      setPlanError(d.error || 'Erreur lors du changement de plan.')
-    }
   }
 
   const handleJoinRequest = async (groupId: number) => {
@@ -441,7 +417,7 @@ export default function ProfilPage() {
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                 isAdmin ? 'bg-purple-200/40 text-white' : 'bg-white/20 text-white'
               }`}>
-                {isAdmin ? '⚡ Administrateur' : profile.userPlan === 'CREATEUR' ? "🎼 Chef d'orchestre" : '🎵 Musicien'}
+                {isAdmin ? '⚡ Administrateur' : '🎵 Musicien'}
               </span>
               {profile.instruments.length > 0 && (
                 <span className="text-xs text-indigo-200">
@@ -944,87 +920,19 @@ export default function ProfilPage() {
           {/* Plan — hidden for admins */}
           {!isAdmin && (
             <Card>
-              <CardHeader title="Mon plan" subtitle="Choisissez comment vous utilisez Sol au piano." />
-              {planSuccess && (
-                <div className="mb-4 rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-                  ✓ {planSuccess}
-                </div>
-              )}
-              {planError && (
-                <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                  {planError}
-                </div>
-              )}
+              <CardHeader title="Mon compte" subtitle="Tout est inclus : vous décidez au fil de l'eau." />
               {(() => {
-                const isFounder = (profile.foundedGroupsCount ?? 0) > 0
                 return (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
-                      {([
-                        {
-                          value: 'MUSICIEN',
-                          icon: '🎵',
-                          label: 'Musicien',
-                          desc: 'Je rejoins des groupes existants',
-                          badge: 'Gratuit',
-                        },
-                        {
-                          value: 'CREATEUR',
-                          icon: '🎼',
-                          label: "Chef d'orchestre",
-                          desc: 'Je crée et gère mon groupe',
-                          badge: 'Gratuit',
-                        },
-                      ] as const).map((opt) => {
-                        const isActive = profile.userPlan === opt.value
-                        // Le plan Musicien est verrouillé tant qu'on est fondateur d'un groupe
-                        const isLocked = opt.value === 'MUSICIEN' && isFounder && !isActive
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            disabled={planSaving || isActive || isLocked}
-                            onClick={() => handlePlanChange(opt.value)}
-                            title={isLocked ? 'Indisponible : vous êtes chef d\'un groupe' : undefined}
-                            className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all disabled:cursor-default ${
-                              isActive
-                                ? 'border-indigo-500 bg-indigo-50'
-                                : isLocked
-                                  ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
-                                  : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50'
-                            }`}
-                          >
-                            <span className="text-2xl">{isLocked ? '🔒' : opt.icon}</span>
-                            <div>
-                              <p className={`text-sm font-bold ${isActive ? 'text-indigo-700' : 'text-gray-700'}`}>{opt.label}</p>
-                              <p className="text-xs text-gray-500 mt-0.5 leading-tight">{opt.desc}</p>
-                            </div>
-                            {isActive ? (
-                              <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                                ✓ Plan actuel
-                              </span>
-                            ) : isLocked ? (
-                              <span className="rounded-full bg-gray-200 px-2.5 py-0.5 text-xs text-gray-500">
-                                Indisponible
-                              </span>
-                            ) : (
-                              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-500">
-                                {opt.badge}
-                              </span>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <p className="text-xs text-gray-400 mt-3 flex items-start gap-1.5">
-                      <span className="mt-0.5 flex-shrink-0">⚠️</span>
-                      {isFounder
-                        ? 'Vous êtes chef d\'au moins un groupe : le plan Musicien est indisponible. Supprimez vos groupes pour y repasser. (Être chef permet déjà de rejoindre d\'autres groupes en tant que musicien.)'
-                        : 'Passer en plan Musicien vous empêchera de créer de nouveaux groupes.'}
-                    </p>
+                    <ul className="space-y-2 text-sm text-gray-600">
+                      <li className="flex items-start gap-2"><span className="text-indigo-500 flex-shrink-0">✓</span> Jouer en solo : votre répertoire, vos accords, vos outils.</li>
+                      <li className="flex items-start gap-2"><span className="text-indigo-500 flex-shrink-0">✓</span> Rejoindre des groupes sur invitation ou par candidature.</li>
+                      <li className="flex items-start gap-2"><span className="text-indigo-500 flex-shrink-0">✓</span> Créer et gérer votre propre groupe ou votre classe.</li>
+                      <li className="flex items-start gap-2"><span className="text-indigo-500 flex-shrink-0">✓</span> Enseigner et suivre vos élèves, ou rejoindre les cours d'un prof.</li>
+                    </ul>
 
                     {/* Quota de groupes gérables — selon le meilleur plan de vos groupes */}
-                    {profile.userPlan === 'CREATEUR' && profile.groupQuota && (
+                    {profile.groupQuota && (
                       <div className="mt-4 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3">
                         <p className="text-sm font-semibold text-indigo-900">
                           Plan {(profile.accountPlan ?? 'FREE') === 'FREE' ? 'Gratuit' : profile.accountPlan} · Groupes gérés : {profile.groupQuota.managed} / {profile.groupQuota.max}

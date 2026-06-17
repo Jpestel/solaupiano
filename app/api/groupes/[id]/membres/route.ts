@@ -176,9 +176,34 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       // groupe est supprimé, pas sur un simple retrait d'adhésion. Vaut pour un départ
       // volontaire comme pour un retrait par le chef/prof.
 
-      // Présences aux répétitions / cours de CE groupe.
+      // Présences (répétitions/cours et concerts) de CE groupe.
       await tx.attendance.deleteMany({
         where: { userId: targetUserId, rehearsal: { groupId } },
+      })
+      await tx.concertAttendance.deleteMany({
+        where: { userId: targetUserId, concert: { groupId } },
+      })
+
+      // Progression sur les morceaux de CE groupe.
+      await tx.userSongProgress.deleteMany({
+        where: { userId: targetUserId, song: { groupId } },
+      })
+
+      // Évaluations & notes liées à l'utilisateur dans CE groupe :
+      //  - celles qu'il a rédigées (en tant qu'évaluateur) ;
+      //  - les notes le concernant dans les évaluations d'autrui.
+      // (Supprimer une évaluation cascade ses notes/morceaux associés.)
+      await tx.rehearsalEvaluation.deleteMany({
+        where: { evaluatorId: targetUserId, rehearsal: { groupId } },
+      })
+      await tx.rehearsalMemberRating.deleteMany({
+        where: { ratedUserId: targetUserId, evaluation: { rehearsal: { groupId } } },
+      })
+      await tx.concertEvaluation.deleteMany({
+        where: { evaluatorId: targetUserId, concert: { groupId } },
+      })
+      await tx.concertMemberRating.deleteMany({
+        where: { ratedUserId: targetUserId, evaluation: { concert: { groupId } } },
       })
 
       // Devoirs où l'utilisateur est l'élève concerné (on conserve ceux qu'il aurait

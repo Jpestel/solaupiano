@@ -17,9 +17,10 @@ export default async function AidePage() {
   ])
 
   const isLoggedIn = !!session
-  // Visiteur non connecté : on lui montre tout (comme un chef) pour découvrir l'app
-  const isCreateur = !isLoggedIn || session.user.userPlan === 'CREATEUR'
-  const planLabel = !isLoggedIn ? 'Visiteur' : isCreateur ? "Chef d'orchestre" : 'Musicien'
+  // Un seul type de compte : tout compte peut tout faire. On garde `isCreateur`
+  // (toujours vrai) pour ne pas réécrire les ~38 sections déjà conditionnées dessus.
+  const isCreateur = true
+  const planLabel = !isLoggedIn ? 'Visiteur' : 'Musicien'
   // Helper : tutoriels filtrés par catégorie pour injection inline
   const tf = (key: string) => tutorials.filter(t => t.moduleKey === key)
   const planColor = !isLoggedIn
@@ -38,7 +39,7 @@ export default async function AidePage() {
             <p className="text-gray-500 mt-1">Tout ce qu&apos;il faut savoir pour utiliser Sol au piano.</p>
           </div>
           <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold flex-shrink-0 ${planColor}`}>
-            {!isLoggedIn ? '👀' : isCreateur ? '🎼' : '🎵'} {planLabel}
+            {!isLoggedIn ? '👀' : '🎵'} {planLabel}
           </span>
         </div>
 
@@ -140,38 +141,16 @@ export default async function AidePage() {
               <p>Votre profil récapitule votre <strong>rôle dans chacun de vos groupes</strong> : 👑 Chef d&apos;orchestre, ⭐ Co-chef ou 🎵 Membre. Dans une école, les libellés deviennent <strong>Professeur</strong>, <strong>Co-prof</strong> et <strong>Élève</strong>.</p>
             </HelpCard>
 
-            <HelpCard title="Plan utilisateur">
-              <p>Votre plan personnel détermine ce que vous pouvez faire sur la plateforme :</p>
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <PlanBadgeCard
-                  icon="🎵"
-                  name="Musicien"
-                  color="blue"
-                  features={[
-                    'Rejoindre des groupes existants',
-                    'Participer aux répétitions',
-                    'Consulter le répertoire',
-                    'Voir et imprimer les setlists',
-                    'Consulter les grilles d\'accords',
-                  ]}
-                  active={isLoggedIn && !isCreateur}
-                />
-                <PlanBadgeCard
-                  icon="🎼"
-                  name="Chef d'orchestre"
-                  color="indigo"
-                  features={[
-                    'Tout ce que fait le Musicien',
-                    'Créer et gérer des groupes',
-                    'Inviter des membres',
-                    'Planifier répétitions & concerts',
-                    'Gérer le répertoire et les setlists',
-                    'Créer et éditer les grilles d\'accords',
-                    'Créer et éditer les tablatures',
-                  ]}
-                  active={isLoggedIn && isCreateur}
-                />
-              </div>
+            <HelpCard title="Votre compte">
+              <p>Il n&apos;y a <strong>qu&apos;un seul type de compte</strong> : le vôtre sait tout faire. Vous n&apos;avez aucun choix à poser à l&apos;inscription — vous décidez au fil de l&apos;eau, depuis votre espace.</p>
+              <ul className="mt-3 space-y-1.5">
+                <li>🎵 <strong>Jouer en solo</strong> — votre répertoire, vos accords, vos outils.</li>
+                <li>👥 <strong>Rejoindre des groupes</strong> — sur invitation ou par candidature à un groupe public.</li>
+                <li>🎼 <strong>Créer et gérer</strong> votre propre groupe (1 en gratuit, davantage avec un plan payant).</li>
+                <li>🎓 <strong>Enseigner</strong> — ouvrir une classe, suivre vos élèves et leurs devoirs.</li>
+                <li>🎒 <strong>Apprendre</strong> — rejoindre la classe de votre professeur.</li>
+              </ul>
+              <Tip>Le nombre de groupes/classes gérables et l&apos;espace de stockage dépendent de votre <strong>plan</strong> (Gratuit, Pro, Premium) — voir la page Tarifs.</Tip>
             </HelpCard>
           </div>
         </section>
@@ -182,7 +161,7 @@ export default async function AidePage() {
           <div className="space-y-4">
 
             {isCreateur && (
-              <HelpCard title="Créer un groupe" badge={{ label: "Chef d'orchestre", color: "indigo" }}>
+              <HelpCard title="Créer un groupe">
                 <ol className="space-y-2 mt-1">
                   <Step n={1}>Accédez à <strong>Mes groupes</strong> puis cliquez sur <strong>+ Créer un groupe</strong>.</Step>
                   <Step n={2}>Donnez un nom à votre groupe et choisissez sa visibilité :

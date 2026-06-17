@@ -122,7 +122,7 @@ export default async function TarifsPage() {
             Choisissez votre <span className="text-indigo-600">plan</span>
           </h1>
           <p className="mt-3 text-gray-500 text-sm sm:text-lg leading-relaxed">
-            Musicien ou chef d&apos;orchestre, gratuit ou payant — commencez gratuitement, évoluez quand vous en avez besoin.
+            Un seul compte qui fait tout. Les plans changent seulement les limites (groupes, stockage) — commencez gratuitement, évoluez quand vous en avez besoin.
           </p>
         </div>
       </div>
@@ -131,31 +131,9 @@ export default async function TarifsPage() {
 
         {/* ── Plan cards ── */}
         <section>
-          <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-${Math.min(groupPlans.length + 1, 4)} gap-4`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-${Math.min(groupPlans.length, 4)} gap-4`}>
 
-            {/* Musicien (user role — always static) */}
-            <PlanCard
-              emoji="🎵"
-              title="Musicien"
-              badge="Gratuit · Toujours"
-              badgeColor="gray"
-              description="Je rejoins les groupes dont je fais partie. Je n'ai pas besoin de créer un groupe."
-              price="Gratuit"
-              features={[
-                { ok: true,  label: 'Rejoindre des groupes' },
-                { ok: true,  label: 'Répétitions, répertoire, concerts' },
-                { ok: true,  label: 'Suivi des présences' },
-                { ok: true,  label: 'Consulter les ressources du groupe' },
-                { ok: false, label: 'Créer un groupe' },
-                { ok: false, label: 'Uploader des fichiers' },
-              ]}
-              modulesData={planModules('MUSICIEN')}
-              cta="S'inscrire comme Musicien"
-              href="/inscription?role=MUSICIEN"
-              variant="default"
-            />
-
-            {/* One card per active group plan — fully dynamic */}
+            {/* Un compte unique : une carte par plan (les limites varient, pas le type de compte). */}
             {groupPlans.map((plan, idx) => {
               const isFree = plan.priceMonthly === null
               const isHighlighted = idx === firstPaidIdx
@@ -169,15 +147,15 @@ export default async function TarifsPage() {
                 <PlanCard
                   key={plan.id}
                   emoji={planIcon(plan)}
-                  title={`Chef ${plan.label}`}
+                  title={plan.label}
                   badge={isFree ? 'Gratuit · Limité' : plan.label === 'Pro' ? 'Tout débloqué' : plan.description ?? plan.label}
                   badgeColor={isFree ? 'gray' : color === 'purple' ? 'purple' : 'indigo'}
-                  description={plan.description ?? `Plan ${plan.label} pour les chefs d'orchestre.`}
+                  description={plan.description ?? `Plan ${plan.label}.`}
                   price={isFree ? 'Gratuit' : `${fmtPrice(plan.priceMonthly)} / mois`}
                   features={buildCardFeatures(plan, isFree)}
                   modulesData={planModules(plan.key)}
                   cta={isFree ? 'Démarrer gratuitement' : `Démarrer avec ${plan.label}`}
-                  href="/inscription?role=CREATEUR"
+                  href="/inscription"
                   variant={variant as 'default' | 'indigo' | 'purple'}
                   highlight={isHighlighted}
                   planColor={color}
@@ -203,16 +181,12 @@ export default async function TarifsPage() {
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[35%]">Fonctionnalité</th>
-                    {/* Musicien column — static */}
-                    <th className="text-center px-2 py-3 font-semibold text-gray-500 text-xs">
-                      🎵 Musicien<span className="block font-normal text-gray-400">Gratuit</span>
-                    </th>
-                    {/* One column per active group plan */}
+                    {/* Une colonne par plan */}
                     {groupPlans.map((plan) => {
                       const c = COLOR_MAP[plan.color] ?? COLOR_MAP.gray
                       return (
                         <th key={plan.id} className={`text-center px-2 py-3 font-semibold text-xs ${c.text}`}>
-                          {planIcon(plan)} Chef {plan.label}
+                          {planIcon(plan)} {plan.label}
                           <span className="block font-normal text-gray-400">{fmtPriceLabel(plan.priceMonthly)}</span>
                         </th>
                       )
@@ -224,12 +198,12 @@ export default async function TarifsPage() {
                     <CompRow
                       key={row.label}
                       label={row.label}
-                      values={[row.musicien, ...groupPlans.map(p => row.get(p))]}
+                      values={[...groupPlans.map(p => row.get(p))]}
                     />
                   ))}
                   {/* ─── Outils & modules ─── */}
                   <tr>
-                    <td colSpan={groupPlans.length + 2} className="px-4 pt-3 pb-1.5 bg-indigo-50 border-t-2 border-indigo-100">
+                    <td colSpan={groupPlans.length + 1} className="px-4 pt-3 pb-1.5 bg-indigo-50 border-t-2 border-indigo-100">
                       <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">🛠 Outils &amp; modules</span>
                     </td>
                   </tr>
@@ -237,7 +211,7 @@ export default async function TarifsPage() {
                     <CompRow
                       key={m.key}
                       label={`${m.icon} ${m.label}`}
-                      values={['✓', ...groupPlans.map(p => isModEnabled(p.key, m.key) ? '✓' : '—')]}
+                      values={[...groupPlans.map(p => isModEnabled(p.key, m.key) ? '✓' : '—')]}
                     />
                   ))}
                 </tbody>
@@ -253,11 +227,11 @@ export default async function TarifsPage() {
           </div>
           <div className="space-y-3">
             <FaqItem
-              q="Quelle différence entre Musicien et Chef gratuit ?"
-              a="Un Musicien peut uniquement rejoindre des groupes existants. Un Chef d'orchestre (même gratuit) peut créer et gérer son propre groupe. Dans les deux cas c'est gratuit, mais les usages sont différents."
+              q="Y a-t-il plusieurs types de compte ?"
+              a="Non. Il n'existe qu'un seul type de compte, qui sait tout faire : jouer en solo, rejoindre des groupes, créer et gérer son propre groupe, enseigner ou suivre des cours. Les plans (Gratuit, Pro, Premium) ne changent que les limites — nombre de groupes/classes gérables et espace de stockage."
             />
             <FaqItem
-              q="Le plan Chef gratuit est-il vraiment limité ?"
+              q="Le plan gratuit est-il vraiment limité ?"
               a={freeDesc
                 ? `Oui. Sans abonnement payant, un groupe est limité (${freeDesc}). C'est suffisant pour tester la plateforme, mais vite limité pour une utilisation réelle.`
                 : "Le plan gratuit vous permet de tester la plateforme avec votre groupe. Passez à un plan payant pour débloquer toutes les fonctionnalités."}
