@@ -64,7 +64,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -174,7 +174,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
 
         {/* Bottom navigation bar */}
         {!isImage && numPages > 0 && (
-          <div className="flex items-center justify-between px-4 py-2.5 bg-gray-800 border-t border-gray-700 flex-shrink-0">
+          <div className="flex items-center justify-center gap-4 sm:gap-8 px-4 py-2.5 bg-gray-800 border-t border-gray-700 flex-shrink-0">
             {/* Prev */}
             <button
               onClick={() => goTo(currentPage - 1)}
