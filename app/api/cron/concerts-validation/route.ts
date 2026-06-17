@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendConcertValidationReminder, sendConcertCancelled } from '@/lib/email'
 import { parseRequired, confirmDeadline } from '@/lib/concert-status'
+import { getEmailSchedule, isScheduledHour } from '@/lib/email-schedules'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,8 +17,14 @@ export async function POST(req: NextRequest) {
   }
 
   const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
+  const force = req.nextUrl.searchParams.get('force') === 'true'
   const now = new Date()
-  const REMIND_WINDOW_DAYS = 3 // rappel envoyé dans les 3 jours avant la deadline
+
+  // Planification configurable du RAPPEL (l'annulation auto reste toujours active).
+  const sched = await getEmailSchedule('concert_validation_reminder')
+  if (!force && sched && !isScheduledHour(now, sched)) return NextResponse.json({ ok: true, skipped: 'not-the-hour' })
+  const remindEnabled = force || !sched || sched.enabled
+  const REMIND_WINDOW_DAYS = sched?.days ?? 3 // rappel envoyé dans les N jours avant la deadline
 
   const concerts = await prisma.concert.findMany({
     where: { status: 'PENDING', group: { archivedAt: null } },
@@ -67,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     // Approche de la deadline → rappel aux obligatoires non confirmés (une fois)
     const remindFrom = new Date(deadline); remindFrom.setDate(remindFrom.getDate() - REMIND_WINDOW_DAYS)
-    if (now >= remindFrom && !c.validationReminderSentAt) {
+    if (remindEnabled && now >= remindFrom && !c.validationReminderSentAt) {
       const toRemind = allMembers.filter((m) => required.includes(m.userId) && statusByUser.get(m.userId) !== 'PRESENT')
       if (toRemind.length > 0) {
         const deadlineStr = deadline.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })

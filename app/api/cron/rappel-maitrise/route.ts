@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendMasteryReminderEmail } from '@/lib/email'
+import { getEmailSchedule, computeEventWindow, isScheduledHour } from '@/lib/email-schedules'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,11 +17,16 @@ export async function POST(req: NextRequest) {
 
   const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
   const force = req.nextUrl.searchParams.get('force') === 'true'
-
   const now = new Date()
-  // Répétitions de « demain » : entre +6h et +30h (veille au soir).
-  const targetStart = new Date(now.getTime() + 6 * 60 * 60 * 1000)
-  const targetEnd = new Date(now.getTime() + 30 * 60 * 60 * 1000)
+
+  // Planification configurable (admin) : jours, avant/après, heure, on/off.
+  const sched = await getEmailSchedule('mastery_reminder')
+  if (!force && sched && !sched.enabled) return NextResponse.json({ ok: true, skipped: 'disabled' })
+  if (!force && sched && !isScheduledHour(now, sched)) return NextResponse.json({ ok: true, skipped: 'not-the-hour' })
+
+  const win = sched ? computeEventWindow(now, sched) : { start: new Date(now.getTime() + 6 * 36e5), end: new Date(now.getTime() + 30 * 36e5) }
+  const targetStart = win.start
+  const targetEnd = win.end
 
   const rehearsals = await prisma.rehearsal.findMany({
     where: {

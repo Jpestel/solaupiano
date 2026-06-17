@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ph } from '@/lib/placeholders'
 
 interface Variable { key: string; description: string }
+interface Schedule { enabled: boolean; days: number; direction: 'BEFORE' | 'AFTER'; time: string }
 interface Template {
   key: string
   name: string
@@ -16,18 +17,21 @@ interface Template {
   outro: string
   variables: Variable[]
   customized: boolean
+  schedule: Schedule | null
 }
 
 export function EmailsManager({ templates: initial }: { templates: Template[] }) {
   const [templates, setTemplates] = useState<Template[]>(initial)
   const [editKey, setEditKey] = useState<string | null>(null)
   const [form, setForm] = useState({ subject: '', intro: '', outro: '' })
+  const [sched, setSched] = useState<Schedule | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
   const openEdit = (tpl: Template) => {
     setEditKey(tpl.key)
     setForm({ subject: tpl.subject, intro: tpl.intro, outro: tpl.outro })
+    setSched(tpl.schedule ? { ...tpl.schedule } : null)
     setSaved(false)
   }
 
@@ -41,10 +45,18 @@ export function EmailsManager({ templates: initial }: { templates: Template[] })
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
+    // Planification (mails événementiels)
+    if (sched) {
+      await fetch(`/api/admin/email-schedules/${editKey}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sched),
+      })
+    }
     setSaving(false)
     if (res.ok) {
       setTemplates(prev => prev.map(t => t.key === editKey
-        ? { ...t, ...form, customized: true }
+        ? { ...t, ...form, schedule: sched, customized: true }
         : t
       ))
       setSaved(true)
@@ -124,6 +136,43 @@ export function EmailsManager({ templates: initial }: { templates: Template[] })
                 </svg>
               </button>
             </div>
+
+            {/* Planification (mails événementiels) */}
+            {sched && (
+              <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide flex items-center gap-1.5">⏰ Planification de l&apos;envoi</p>
+                  <label className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-800 cursor-pointer">
+                    <input type="checkbox" checked={sched.enabled} onChange={(e) => setSched({ ...sched, enabled: e.target.checked })} className="rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
+                    Activé
+                  </label>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap text-sm text-amber-900">
+                  <span>Envoyer</span>
+                  <input
+                    type="number" min={0} max={60} value={sched.days}
+                    onChange={(e) => setSched({ ...sched, days: Math.max(0, Number(e.target.value) || 0) })}
+                    className="w-16 rounded-lg border border-amber-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  />
+                  <span>jour(s)</span>
+                  <select
+                    value={sched.direction}
+                    onChange={(e) => setSched({ ...sched, direction: e.target.value as 'BEFORE' | 'AFTER' })}
+                    className="rounded-lg border border-amber-300 px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  >
+                    <option value="BEFORE">avant</option>
+                    <option value="AFTER">après</option>
+                  </select>
+                  <span>l&apos;événement, à</span>
+                  <input
+                    type="time" value={sched.time}
+                    onChange={(e) => setSched({ ...sched, time: e.target.value })}
+                    className="rounded-lg border border-amber-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  />
+                </div>
+                <p className="text-[10px] text-amber-600 mt-2">L&apos;événement = la répétition ou le concert concerné. Le mail part une fois, à l&apos;heure choisie.</p>
+              </div>
+            )}
 
             {/* Variables disponibles */}
             {editing.variables.length > 0 && (

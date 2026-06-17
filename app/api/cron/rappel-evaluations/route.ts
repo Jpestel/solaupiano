@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEvaluationReminder, sendConcertEvaluationReminder } from '@/lib/email'
+import { getEmailSchedule, isScheduledHour } from '@/lib/email-schedules'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,10 +22,16 @@ export async function POST(req: NextRequest) {
 
   const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
   const force = req.nextUrl.searchParams.get('force') === 'true'
-
   const now = new Date()
+
+  // Planification configurable (admin) : nombre de jours de rattrapage + heure + on/off.
+  const sched = await getEmailSchedule('evaluation_reminder')
+  if (!force && sched && !sched.enabled) return NextResponse.json({ ok: true, skipped: 'disabled' })
+  if (!force && sched && !isScheduledHour(now, sched)) return NextResponse.json({ ok: true, skipped: 'not-the-hour' })
+
+  const lookbackDays = force ? 60 : (sched?.days ?? 3)
   const startToday = new Date(now); startToday.setHours(0, 0, 0, 0)
-  const windowStart = new Date(startToday.getTime() - (force ? 60 : 3) * 24 * 60 * 60 * 1000)
+  const windowStart = new Date(startToday.getTime() - lookbackDays * 24 * 60 * 60 * 1000)
 
   // Répétitions récentes (on filtre la fin en JS car endTime est une chaîne)
   const rehearsals = await prisma.rehearsal.findMany({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendRehearsalAutoReminderEmail } from '@/lib/email'
+import { getEmailSchedule, computeEventWindow, isScheduledHour } from '@/lib/email-schedules'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,11 +15,16 @@ export async function POST(req: NextRequest) {
 
   const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
   const force = req.nextUrl.searchParams.get('force') === 'true'
-
-  // Target: rehearsals happening in exactly 5 days (window: today+4d23h to today+5d23h)
   const now = new Date()
-  const targetStart = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000)
-  const targetEnd = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000)
+
+  // Planification configurable (admin) : jours, avant/après, heure, on/off.
+  const sched = await getEmailSchedule('rehearsal_auto_reminder')
+  if (!force && sched && !sched.enabled) return NextResponse.json({ ok: true, skipped: 'disabled' })
+  if (!force && sched && !isScheduledHour(now, sched)) return NextResponse.json({ ok: true, skipped: 'not-the-hour' })
+
+  const win = sched ? computeEventWindow(now, sched) : { start: new Date(now.getTime() + 4 * 864e5), end: new Date(now.getTime() + 6 * 864e5) }
+  const targetStart = win.start
+  const targetEnd = win.end
 
   // In force mode, fetch all future rehearsals (for testing)
   const rehearsals = await prisma.rehearsal.findMany({

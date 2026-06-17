@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { EMAIL_TEMPLATES } from '@/lib/email-templates'
+import { getScheduleDef, parseSchedule } from '@/lib/email-schedules'
 import { EmailsManager } from './EmailsManager'
 
 export const dynamic = 'force-dynamic'
@@ -11,23 +12,28 @@ export default async function AdminEmailsPage() {
   const session = await getServerSession(authOptions)
   if (!session || session.user.siteRole !== 'ADMIN') redirect('/tableau-de-bord')
 
-  // Charger les overrides DB
+  // Charger les overrides DB (textes + planifications)
   const settings = await prisma.siteSetting.findMany({
-    where: { key: { startsWith: 'email_tpl_' } },
+    where: { OR: [{ key: { startsWith: 'email_tpl_' } }, { key: { startsWith: 'email_sched_' } }] },
   })
   const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]))
 
-  const templates = EMAIL_TEMPLATES.map(tpl => ({
-    ...tpl,
-    subject: settingsMap[`email_tpl_${tpl.key}_subject`] ?? tpl.defaultSubject,
-    intro:   settingsMap[`email_tpl_${tpl.key}_intro`]   ?? tpl.defaultIntro,
-    outro:   settingsMap[`email_tpl_${tpl.key}_outro`]   ?? tpl.defaultOutro,
-    customized: !!(
-      settingsMap[`email_tpl_${tpl.key}_subject`] ||
-      settingsMap[`email_tpl_${tpl.key}_intro`]   ||
-      settingsMap[`email_tpl_${tpl.key}_outro`]
-    ),
-  }))
+  const templates = EMAIL_TEMPLATES.map(tpl => {
+    const sdef = getScheduleDef(tpl.key)
+    return {
+      ...tpl,
+      subject: settingsMap[`email_tpl_${tpl.key}_subject`] ?? tpl.defaultSubject,
+      intro:   settingsMap[`email_tpl_${tpl.key}_intro`]   ?? tpl.defaultIntro,
+      outro:   settingsMap[`email_tpl_${tpl.key}_outro`]   ?? tpl.defaultOutro,
+      customized: !!(
+        settingsMap[`email_tpl_${tpl.key}_subject`] ||
+        settingsMap[`email_tpl_${tpl.key}_intro`]   ||
+        settingsMap[`email_tpl_${tpl.key}_outro`]
+      ),
+      // Planification (uniquement pour les mails événementiels)
+      schedule: sdef ? parseSchedule(settingsMap[`email_sched_${tpl.key}`], sdef.default) : null,
+    }
+  })
 
   const customizedCount = templates.filter(t => t.customized).length
 
