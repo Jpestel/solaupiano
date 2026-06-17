@@ -253,9 +253,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2 mb-2">
         {([
           {
-            href: 'repetitions', label: 'Répétitions', icon: '🎵',
+            href: 'repetitions',
+            label: (group as any).type === 'SCHOOL' ? 'Cours' : 'Répétitions', icon: '🎵',
             iconBg: 'bg-blue-100',   textColor: 'text-blue-700',   border: 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/60',
-            chefDesc: 'Planifier & gérer', memberDesc: 'Voir le planning',
+            chefDesc: (group as any).type === 'SCHOOL' ? 'Planifier les cours' : 'Planifier & gérer',
+            memberDesc: (group as any).type === 'SCHOOL' ? 'Voir mes cours' : 'Voir le planning',
           },
           {
             href: 'concerts',    label: 'Concerts',    icon: '🎭',
