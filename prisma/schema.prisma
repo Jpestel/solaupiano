@@ -368,6 +368,7 @@ model Group {
   storageQuotaOverrideGb Int?   // Admin per-group storage override (independent quota)
   peerRatingVisibility   PeerRatingVisibility @default(PRIVATE) // visibilité des notes entre musiciens
   archivedAt             DateTime? // groupe archivé (masqué aux membres, conservé)
+  inviteToken      String?   @unique // jeton du lien d'invitation partageable (email/SMS/WhatsApp)
   founder          User?     @relation("GroupFounder", fields: [createdBy], references: [id], onDelete: SetNull)
 
   members          GroupMember[]

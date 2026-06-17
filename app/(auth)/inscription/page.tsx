@@ -80,7 +80,9 @@ export default function InscriptionPage() {
       return
     }
 
-    router.push('/connexion?registered=1')
+    // Conserve une éventuelle destination (ex. lien d'invitation /rejoindre/...) à travers la connexion.
+    const cb = new URLSearchParams(window.location.search).get('callbackUrl')
+    router.push(`/connexion?registered=1${cb ? `&callbackUrl=${encodeURIComponent(cb)}` : ''}`)
   }
 
   return (
