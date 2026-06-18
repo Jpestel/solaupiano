@@ -184,6 +184,19 @@
   font-weight: 700;
 }
 
+.concert-map-popup-eventdate {
+  margin: 8px 0 0;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: capitalize;
+  letter-spacing: -0.01em;
+}
+
+.concert-map-popup-eventdate strong {
+  font-weight: 900;
+}
+
 .concert-map-popup-link {
   display: inline-flex;
   margin-top: 10px;

@@ -11,12 +11,14 @@ export default function PersonnalisationPage() {
   const [colorTheme, setColorTheme] = useState('indigo')
   const [concertPopup, setConcertPopup] = useState<ConcertPopupSettings>({
     concertPopupKicker: DEFAULT_SETTINGS.concertPopupKicker,
+    concertPopupDatePrefix: DEFAULT_SETTINGS.concertPopupDatePrefix,
     concertPopupTimePrefix: DEFAULT_SETTINGS.concertPopupTimePrefix,
     concertPopupMissingTimeText: DEFAULT_SETTINGS.concertPopupMissingTimeText,
     concertPopupButtonLabel: DEFAULT_SETTINGS.concertPopupButtonLabel,
     concertPopupBackgroundColor: DEFAULT_SETTINGS.concertPopupBackgroundColor,
     concertPopupTitleColor: DEFAULT_SETTINGS.concertPopupTitleColor,
     concertPopupTextColor: DEFAULT_SETTINGS.concertPopupTextColor,
+    concertPopupDateColor: DEFAULT_SETTINGS.concertPopupDateColor,
     concertPopupAccentColor: DEFAULT_SETTINGS.concertPopupAccentColor,
     concertPopupButtonBgColor: DEFAULT_SETTINGS.concertPopupButtonBgColor,
     concertPopupButtonTextColor: DEFAULT_SETTINGS.concertPopupButtonTextColor,
@@ -37,12 +39,14 @@ export default function PersonnalisationPage() {
           setColorTheme(d.colorTheme)
           setConcertPopup({
             concertPopupKicker: d.concertPopupKicker,
+            concertPopupDatePrefix: d.concertPopupDatePrefix,
             concertPopupTimePrefix: d.concertPopupTimePrefix,
             concertPopupMissingTimeText: d.concertPopupMissingTimeText,
             concertPopupButtonLabel: d.concertPopupButtonLabel,
             concertPopupBackgroundColor: d.concertPopupBackgroundColor,
             concertPopupTitleColor: d.concertPopupTitleColor,
             concertPopupTextColor: d.concertPopupTextColor,
+            concertPopupDateColor: d.concertPopupDateColor,
             concertPopupAccentColor: d.concertPopupAccentColor,
             concertPopupButtonBgColor: d.concertPopupButtonBgColor,
             concertPopupButtonTextColor: d.concertPopupButtonTextColor,
@@ -156,6 +160,11 @@ export default function PersonnalisationPage() {
                   onChange={(value) => setPopupField('concertPopupKicker', value)}
                 />
                 <TextField
+                  label="Préfixe de la date"
+                  value={concertPopup.concertPopupDatePrefix}
+                  onChange={(value) => setPopupField('concertPopupDatePrefix', value)}
+                />
+                <TextField
                   label="Préfixe de l'heure"
                   value={concertPopup.concertPopupTimePrefix}
                   onChange={(value) => setPopupField('concertPopupTimePrefix', value)}
@@ -178,6 +187,7 @@ export default function PersonnalisationPage() {
                   <ColorField label="Fond" value={concertPopup.concertPopupBackgroundColor} onChange={(value) => setPopupField('concertPopupBackgroundColor', value)} />
                   <ColorField label="Titre" value={concertPopup.concertPopupTitleColor} onChange={(value) => setPopupField('concertPopupTitleColor', value)} />
                   <ColorField label="Texte adresse" value={concertPopup.concertPopupTextColor} onChange={(value) => setPopupField('concertPopupTextColor', value)} />
+                  <ColorField label="Date" value={concertPopup.concertPopupDateColor} onChange={(value) => setPopupField('concertPopupDateColor', value)} />
                   <ColorField label="Texte heure" value={concertPopup.concertPopupAccentColor} onChange={(value) => setPopupField('concertPopupAccentColor', value)} />
                   <ColorField label="Fond bouton" value={concertPopup.concertPopupButtonBgColor} onChange={(value) => setPopupField('concertPopupButtonBgColor', value)} />
                   <ColorField label="Texte bouton" value={concertPopup.concertPopupButtonTextColor} onChange={(value) => setPopupField('concertPopupButtonTextColor', value)} />
@@ -193,6 +203,9 @@ export default function PersonnalisationPage() {
               >
                 <p className="font-extrabold" style={{ color: concertPopup.concertPopupTitleColor }}>Voodoo Dust</p>
                 <p className="mt-5 text-sm font-bold" style={{ color: concertPopup.concertPopupTitleColor }}>{concertPopup.concertPopupKicker}</p>
+                <p className="mt-3 text-base font-extrabold capitalize leading-snug" style={{ color: concertPopup.concertPopupDateColor }}>
+                  {`${concertPopup.concertPopupDatePrefix.trim() ? `${concertPopup.concertPopupDatePrefix.trim()} ` : ''}samedi 5 juillet 2026`}
+                </p>
                 <p className="mt-5 text-sm leading-relaxed" style={{ color: concertPopup.concertPopupTextColor }}>
                   Bar cocktail Eden of Persephone, Quai Southampton, 76600 Le Havre
                 </p>

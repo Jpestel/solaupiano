@@ -5,12 +5,14 @@ export const SITE_ICONS = ['🎶', '🎵', '🎼', '🎸', '🎺', '🥁', '🎻
 
 export interface ConcertPopupSettings {
   concertPopupKicker: string
+  concertPopupDatePrefix: string
   concertPopupTimePrefix: string
   concertPopupMissingTimeText: string
   concertPopupButtonLabel: string
   concertPopupBackgroundColor: string
   concertPopupTitleColor: string
   concertPopupTextColor: string
+  concertPopupDateColor: string
   concertPopupAccentColor: string
   concertPopupButtonBgColor: string
   concertPopupButtonTextColor: string
@@ -25,12 +27,14 @@ export const DEFAULT_SETTINGS = {
   siteIcon: '🎶',
   colorTheme: 'indigo' as ThemeId,
   concertPopupKicker: 'en concert ici',
+  concertPopupDatePrefix: 'le',
   concertPopupTimePrefix: 'à partir de',
   concertPopupMissingTimeText: 'Heure à confirmer, cliquez sur en savoir plus pour contacter le groupe',
   concertPopupButtonLabel: 'En savoir plus',
   concertPopupBackgroundColor: '#ffffff',
   concertPopupTitleColor: '#111827',
   concertPopupTextColor: '#6b7280',
+  concertPopupDateColor: '#111827',
   concertPopupAccentColor: '#7c3aed',
   concertPopupButtonBgColor: '#4f46e5',
   concertPopupButtonTextColor: '#ffffff',
@@ -44,12 +48,14 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       siteIcon: map.siteIcon ?? DEFAULT_SETTINGS.siteIcon,
       colorTheme: (map.colorTheme as ThemeId) ?? DEFAULT_SETTINGS.colorTheme,
       concertPopupKicker: map.concertPopupKicker ?? DEFAULT_SETTINGS.concertPopupKicker,
+      concertPopupDatePrefix: map.concertPopupDatePrefix ?? DEFAULT_SETTINGS.concertPopupDatePrefix,
       concertPopupTimePrefix: map.concertPopupTimePrefix ?? DEFAULT_SETTINGS.concertPopupTimePrefix,
       concertPopupMissingTimeText: map.concertPopupMissingTimeText ?? DEFAULT_SETTINGS.concertPopupMissingTimeText,
       concertPopupButtonLabel: map.concertPopupButtonLabel ?? DEFAULT_SETTINGS.concertPopupButtonLabel,
       concertPopupBackgroundColor: map.concertPopupBackgroundColor ?? DEFAULT_SETTINGS.concertPopupBackgroundColor,
       concertPopupTitleColor: map.concertPopupTitleColor ?? DEFAULT_SETTINGS.concertPopupTitleColor,
       concertPopupTextColor: map.concertPopupTextColor ?? DEFAULT_SETTINGS.concertPopupTextColor,
+      concertPopupDateColor: map.concertPopupDateColor ?? DEFAULT_SETTINGS.concertPopupDateColor,
       concertPopupAccentColor: map.concertPopupAccentColor ?? DEFAULT_SETTINGS.concertPopupAccentColor,
       concertPopupButtonBgColor: map.concertPopupButtonBgColor ?? DEFAULT_SETTINGS.concertPopupButtonBgColor,
       concertPopupButtonTextColor: map.concertPopupButtonTextColor ?? DEFAULT_SETTINGS.concertPopupButtonTextColor,

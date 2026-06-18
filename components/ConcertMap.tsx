@@ -36,6 +36,15 @@ function dateLabel(iso: string) {
   })
 }
 
+function fullDateLabel(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
 function fullAddress(c: MapConcert) {
   return [
     c.location,
@@ -64,6 +73,8 @@ function initials(value: string) {
 
 function popupHtml(point: MapPoint, settings: PopupSettings) {
   const contactHref = `/concerts/${encodeURIComponent(String(point.id))}/contact`
+  const datePrefix = settings.concertPopupDatePrefix.trim()
+  const dateHtml = `${datePrefix ? `${escapeHtml(datePrefix)} ` : ''}<strong>${escapeHtml(fullDateLabel(point.date))}</strong>`
   const timeHtml = point.startTime
     ? `${escapeHtml(settings.concertPopupTimePrefix)} <strong>${escapeHtml(point.startTime)}</strong>`
     : escapeHtml(settings.concertPopupMissingTimeText)
@@ -77,6 +88,7 @@ function popupHtml(point: MapPoint, settings: PopupSettings) {
         <p class="concert-map-popup-title" style="color:${escapeHtml(settings.concertPopupTitleColor)};">${escapeHtml(point.groupName)}</p>
       </div>
       <p class="concert-map-popup-kicker" style="color:${escapeHtml(settings.concertPopupTitleColor)};">${escapeHtml(settings.concertPopupKicker)}</p>
+      <p class="concert-map-popup-eventdate" style="color:${escapeHtml(settings.concertPopupDateColor)};">${dateHtml}</p>
       <p class="concert-map-popup-address" style="color:${escapeHtml(settings.concertPopupTextColor)};">${escapeHtml(fullAddress(point))}</p>
       <p class="concert-map-popup-date" style="color:${escapeHtml(settings.concertPopupAccentColor)};">${timeHtml}</p>
       <a class="concert-map-popup-link" href="${contactHref}" style="background:${escapeHtml(settings.concertPopupButtonBgColor)};color:${escapeHtml(settings.concertPopupButtonTextColor)} !important;">${escapeHtml(settings.concertPopupButtonLabel)}</a>
