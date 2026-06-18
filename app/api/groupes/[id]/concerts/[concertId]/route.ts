@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
 import { recomputeConcertStatus } from '@/lib/concert-status'
+import { geocodeConcertAddress } from '@/lib/geocode'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string; concertId: string } }) {
   const session = await getServerSession(authOptions)
@@ -31,6 +32,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { name, date, location, address, postalCode, city, startTime, soundcheckTime, arrivalTime, arrivalInfo, guestsPerPerson, contactName, contactPhone, notes, setlistId, isPublic, requiredUserIds, confirmDaysBefore } = body
   const strOrNull = (v: unknown) => (typeof v === 'string' && v.trim()) ? v.trim() : null
 
+  const locationFieldsChanged = location !== undefined || address !== undefined || postalCode !== undefined || city !== undefined
+  let geocoded: Awaited<ReturnType<typeof geocodeConcertAddress>> | undefined
+
+  if (locationFieldsChanged) {
+    const current = await prisma.concert.findUnique({
+      where: { id: concertId },
+      select: { location: true, address: true, postalCode: true, city: true },
+    })
+    if (!current) return NextResponse.json({ error: 'Concert introuvable.' }, { status: 404 })
+    geocoded = await geocodeConcertAddress({
+      location: typeof location === 'string' ? location : current.location,
+      address: address !== undefined ? strOrNull(address) : current.address,
+      postalCode: postalCode !== undefined ? strOrNull(postalCode) : current.postalCode,
+      city: city !== undefined ? strOrNull(city) : current.city,
+    })
+  }
+
   const concert = await prisma.concert.update({
     where: { id: concertId },
     data: {
@@ -42,6 +60,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(address !== undefined && { address: strOrNull(address) }),
       ...(postalCode !== undefined && { postalCode: strOrNull(postalCode) }),
       ...(city !== undefined && { city: strOrNull(city) }),
+      ...(locationFieldsChanged && {
+        latitude: geocoded?.latitude ?? null,
+        longitude: geocoded?.longitude ?? null,
+        geocodedAddress: geocoded?.label ?? null,
+      }),
       ...(startTime !== undefined && { startTime: strOrNull(startTime) }),
       ...(soundcheckTime !== undefined && { soundcheckTime: strOrNull(soundcheckTime) }),
       ...(arrivalTime !== undefined && { arrivalTime: strOrNull(arrivalTime) }),

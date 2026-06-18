@@ -790,6 +790,9 @@ model Concert {
   address    String?  // adresse (rue)
   postalCode String?  // code postal
   city       String?  // ville
+  latitude   Float?
+  longitude  Float?
+  geocodedAddress String? @db.Text
   startTime       String? // heure de début / passage (HH:MM)
   soundcheckTime  String? // heure des balances (HH:MM)
   arrivalTime     String? // arrivée souhaitée (HH:MM)

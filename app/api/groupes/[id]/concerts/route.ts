@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
 import { sendConcertNotification } from '@/lib/email'
+import { geocodeConcertAddress } from '@/lib/geocode'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -116,6 +117,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Adresse, code postal et ville sont requis.' }, { status: 400 })
   }
 
+  const geocoded = await geocodeConcertAddress({ location, address, postalCode, city })
+
   const concert = await prisma.concert.create({
     data: {
       groupId,
@@ -125,6 +128,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       address: address.trim(),
       postalCode: postalCode.trim(),
       city: city.trim(),
+      latitude: geocoded?.latitude ?? null,
+      longitude: geocoded?.longitude ?? null,
+      geocodedAddress: geocoded?.label ?? null,
       startTime: startTime?.trim() || null,
       soundcheckTime: soundcheckTime?.trim() || null,
       arrivalTime: arrivalTime?.trim() || null,

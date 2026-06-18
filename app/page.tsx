@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { PublicJoinButton } from './PublicJoinButton'
 import { PublicNav } from './PublicNav'
-import { HomeCarousel } from '@/components/HomeCarousel'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
 import { PublicConcerts } from '@/components/PublicConcerts'
+import { ConcertMap } from '@/components/ConcertMap'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -22,7 +22,7 @@ export default async function PublicHomePage() {
 
   const now = new Date()
 
-  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups, homeSlides] = await Promise.all([
+  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups] = await Promise.all([
     prisma.concert.findMany({
       where: { date: { gte: now }, isPublic: true },
       orderBy: { date: 'asc' },
@@ -61,11 +61,6 @@ export default async function PublicHomePage() {
       where: { user: { siteRole: { not: 'ADMIN' } } },
       _count: { instrumentId: true },
     }),
-    prisma.homeSlide.findMany({
-      where: { published: true },
-      orderBy: { sortOrder: 'asc' },
-      select: { id: true, title: true, subtitle: true, imageUrl: true, linkUrl: true },
-    }),
   ])
 
   // Groupes visibles sur l'accueil = publics + privés (les masqués sont exclus par la requête)
@@ -80,6 +75,8 @@ export default async function PublicHomePage() {
     address: c.address,
     postalCode: c.postalCode,
     city: c.city,
+    latitude: c.latitude,
+    longitude: c.longitude,
     groupName: c.group.name,
     groupSlug: c.group.groupPage?.published && c.group.groupPage?.slug ? c.group.groupPage.slug : null,
   }))
@@ -142,108 +139,112 @@ export default async function PublicHomePage() {
         </div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
-              {isLoggedIn
-                ? `👋 Bonjour ${firstName ?? ''}`.trim() + ' — content de vous revoir'
-                : '🎵 La plateforme des musiciens — du solo à l’orchestre'}
-            </span>
-            <h1 className="mt-4 text-3xl sm:text-5xl font-bold leading-tight">
-              Jouez, répétez,{' '}
-              <span className="text-amber-300">progressez</span>
-            </h1>
-            <p className="mt-4 text-white/80 text-base sm:text-lg leading-relaxed">
-              Que vous jouiez seul, en groupe, que vous donniez des cours ou que vous en suiviez :
-              gérez votre répertoire et vos accords, organisez vos répétitions et vos concerts,
-              suivez la progression de chacun. Le tout au même endroit.
-            </p>
-            {isLoggedIn ? (
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Link
-                  href="/tableau-de-bord"
-                  className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-gray-100 transition-colors shadow-lg shadow-black/10"
-                >
-                  Aller à mon tableau de bord →
-                </Link>
-                <Link
-                  href="/groupes"
-                  className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/25 backdrop-blur transition-colors"
-                >
-                  Mes groupes
-                </Link>
-              </div>
-            ) : (
-            <>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link
-                href="/inscription"
-                className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-gray-100 transition-colors shadow-lg shadow-black/10"
-              >
-                Créer mon compte gratuitement
-              </Link>
-              <Link
-                href="/tarifs"
-                className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/25 backdrop-blur transition-colors"
-              >
-                Voir les tarifs →
-              </Link>
-              <Link
-                href="/connexion"
-                className="text-sm font-medium text-white/80 hover:text-white transition-colors"
-              >
-                Déjà inscrit ? →
-              </Link>
-            </div>
-            <p className="mt-3 text-xs text-white/60">✓ Gratuit, sans carte bancaire · ✓ Prêt en 2 minutes</p>
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.9fr)] gap-8 lg:gap-10 items-start">
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+                {isLoggedIn
+                  ? `👋 Bonjour ${firstName ?? ''}`.trim() + ' — content de vous revoir'
+                  : '🎵 La plateforme des musiciens — du solo à l’orchestre'}
+              </span>
+              <h1 className="mt-4 text-3xl sm:text-5xl font-bold leading-tight">
+                Jouez, répétez,{' '}
+                <span className="text-amber-300">progressez</span>
+              </h1>
+              <p className="mt-4 text-white/80 text-base sm:text-lg leading-relaxed">
+                Que vous jouiez seul, en groupe, que vous donniez des cours ou que vous en suiviez :
+                gérez votre répertoire et vos accords, organisez vos répétitions et vos concerts,
+                suivez la progression de chacun. Le tout au même endroit.
+              </p>
+              {isLoggedIn ? (
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <Link
+                    href="/tableau-de-bord"
+                    className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-gray-100 transition-colors shadow-lg shadow-black/10"
+                  >
+                    Aller à mon tableau de bord →
+                  </Link>
+                  <Link
+                    href="/groupes"
+                    className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/25 backdrop-blur transition-colors"
+                  >
+                    Mes groupes
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <Link
+                      href="/inscription"
+                      className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-gray-100 transition-colors shadow-lg shadow-black/10"
+                    >
+                      Créer mon compte gratuitement
+                    </Link>
+                    <Link
+                      href="/tarifs"
+                      className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/25 backdrop-blur transition-colors"
+                    >
+                      Voir les tarifs →
+                    </Link>
+                    <Link
+                      href="/connexion"
+                      className="text-sm font-medium text-white/80 hover:text-white transition-colors"
+                    >
+                      Déjà inscrit ? →
+                    </Link>
+                  </div>
+                  <p className="mt-3 text-xs text-white/60">✓ Gratuit, sans carte bancaire · ✓ Prêt en 2 minutes</p>
 
-            {/* Un seul compte, toutes les casquettes : pas besoin de choisir un « type » */}
-            <div className="mt-8">
-              <p className="text-sm font-semibold text-white/90 mb-1">Un seul compte, et vous pouvez…</p>
-              <p className="text-xs text-white/60 mb-3">Inutile de choisir maintenant : votre compte sait tout faire, vous décidez au fil de l&apos;eau.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
-                <Link
-                  href="/inscription"
-                  className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
-                >
-                  <div className="flex items-center gap-2 text-white font-semibold">
-                    <span className="text-xl">🎵</span> Jouer, seul ou en groupe
+                  {/* Un seul compte, toutes les casquettes : pas besoin de choisir un « type » */}
+                  <div className="mt-8">
+                    <p className="text-sm font-semibold text-white/90 mb-1">Un seul compte, et vous pouvez…</p>
+                    <p className="text-xs text-white/60 mb-3">Inutile de choisir maintenant : votre compte sait tout faire, vous décidez au fil de l&apos;eau.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+                      <Link
+                        href="/inscription"
+                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-white font-semibold">
+                          <span className="text-xl">🎵</span> Jouer, seul ou en groupe
+                        </div>
+                        <p className="mt-1 text-sm text-white/70">Votre répertoire et vos accords ; rejoignez un groupe sur invitation ou candidatez.</p>
+                      </Link>
+                      <Link
+                        href="/inscription"
+                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-white font-semibold">
+                          <span className="text-xl">🎼</span> Créer & gérer un groupe
+                        </div>
+                        <p className="mt-1 text-sm text-white/70">Organisez répétitions et concerts, recrutez les musiciens qui manquent.</p>
+                      </Link>
+                      <Link
+                        href="/inscription"
+                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-white font-semibold">
+                          <span className="text-xl">🎓</span> Enseigner
+                        </div>
+                        <p className="mt-1 text-sm text-white/70">Ouvrez une classe, suivez vos élèves, leurs devoirs et leur progression — en privé.</p>
+                      </Link>
+                      <Link
+                        href="/inscription"
+                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-white font-semibold">
+                          <span className="text-xl">🎒</span> Apprendre
+                        </div>
+                        <p className="mt-1 text-sm text-white/70">Rejoignez la classe de votre professeur, accédez à vos morceaux et à votre suivi.</p>
+                      </Link>
+                    </div>
+                    <Link href="/inscription" className="mt-4 inline-block text-sm font-semibold text-amber-300 hover:text-amber-200 transition-colors">
+                      Créer mon compte gratuitement →
+                    </Link>
                   </div>
-                  <p className="mt-1 text-sm text-white/70">Votre répertoire et vos accords ; rejoignez un groupe sur invitation ou candidatez.</p>
-                </Link>
-                <Link
-                  href="/inscription"
-                  className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
-                >
-                  <div className="flex items-center gap-2 text-white font-semibold">
-                    <span className="text-xl">🎼</span> Créer & gérer un groupe
-                  </div>
-                  <p className="mt-1 text-sm text-white/70">Organisez répétitions et concerts, recrutez les musiciens qui manquent.</p>
-                </Link>
-                <Link
-                  href="/inscription"
-                  className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
-                >
-                  <div className="flex items-center gap-2 text-white font-semibold">
-                    <span className="text-xl">🎓</span> Enseigner
-                  </div>
-                  <p className="mt-1 text-sm text-white/70">Ouvrez une classe, suivez vos élèves, leurs devoirs et leur progression — en privé.</p>
-                </Link>
-                <Link
-                  href="/inscription"
-                  className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
-                >
-                  <div className="flex items-center gap-2 text-white font-semibold">
-                    <span className="text-xl">🎒</span> Apprendre
-                  </div>
-                  <p className="mt-1 text-sm text-white/70">Rejoignez la classe de votre professeur, accédez à vos morceaux et à votre suivi.</p>
-                </Link>
-              </div>
-              <Link href="/inscription" className="mt-4 inline-block text-sm font-semibold text-amber-300 hover:text-amber-200 transition-colors">
-                Créer mon compte gratuitement →
-              </Link>
+                </>
+              )}
             </div>
-            </>
-            )}
+
+            <ConcertMap concerts={concertsForList} />
           </div>
 
           {/* Compteurs */}
@@ -261,11 +262,43 @@ export default async function PublicHomePage() {
         </div>
       </div>
 
-      {/* Aperçu (carrousel) */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
-        <h2 className="text-center text-xl font-bold text-gray-900 mb-1">Découvrez la plateforme</h2>
-        <p className="text-center text-sm text-gray-500 mb-6">Un aperçu de ce que vous pourrez faire, en solo, en groupe ou en cours.</p>
-        <HomeCarousel dbSlides={homeSlides} />
+      {/* Concerts à venir */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-sm">🎭</span>
+              Concerts à venir
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Les prochaines dates publiques des groupes et musiciens inscrits.
+            </p>
+          </div>
+          {concerts.length > 0 && (
+            <span className="text-xs font-medium text-gray-400">
+              {concerts.length} événement{concerts.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+
+        <PublicConcerts concerts={concertsForList} />
+
+        <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 px-5 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-indigo-900">Votre groupe a un concert ?</p>
+            <p className="text-xs text-indigo-600 mt-0.5">
+              {isLoggedIn
+                ? 'Ajoutez vos concerts et passez-les en « Public » pour les rendre visibles ici.'
+                : 'Inscrivez-vous et ajoutez vos événements pour les rendre visibles ici.'}
+            </p>
+          </div>
+          <Link
+            href={isLoggedIn ? '/groupes' : '/inscription'}
+            className="flex-shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
+          >
+            {isLoggedIn ? 'Mes groupes' : 'S’inscrire'}
+          </Link>
+        </div>
       </div>
 
       {/* Fonctionnalités */}
@@ -331,102 +364,68 @@ export default async function PublicHomePage() {
         </div>
       )}
 
-      {/* Main content */}
+      {/* Groupes inscrits */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-sm">🔍</span>
+          Groupes inscrits
+        </h2>
 
-          {/* Concerts — 2/3 */}
-          <div className="lg:col-span-2">
-            <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center text-sm">🎭</span>
-              Concerts à venir
-              <span className="text-xs font-normal text-gray-400 ml-1">{concerts.length > 0 ? `${concerts.length} événement${concerts.length > 1 ? 's' : ''}` : ''}</span>
-            </h2>
-
-            <PublicConcerts concerts={concertsForList} />
-
-            <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 px-5 py-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-indigo-900">Votre groupe a un concert ?</p>
-                <p className="text-xs text-indigo-600 mt-0.5">
-                  {isLoggedIn
-                    ? 'Ajoutez vos concerts et passez-les en « Public » pour les rendre visibles ici.'
-                    : 'Inscrivez-vous et ajoutez vos événements pour les rendre visibles ici.'}
-                </p>
-              </div>
-              <Link
-                href={isLoggedIn ? '/groupes' : '/inscription'}
-                className="flex-shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
-              >
-                {isLoggedIn ? 'Mes groupes' : 'S’inscrire'}
-              </Link>
-            </div>
+        {discoverGroups.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-200 px-5 py-10 text-center bg-white">
+            <p className="text-3xl mb-3">🎸</p>
+            <p className="text-sm text-gray-500">Aucun groupe à afficher pour l&apos;instant.</p>
           </div>
-
-          {/* Groupes inscrits — 1/3 */}
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-sm">🔍</span>
-              Groupes inscrits
-            </h2>
-
-            {discoverGroups.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-200 px-5 py-10 text-center bg-white">
-                <p className="text-3xl mb-3">🎸</p>
-                <p className="text-sm text-gray-500">Aucun groupe à afficher pour l&apos;instant.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {discoverGroups.map((group) => {
-                  const instruments = parseLookingFor(group.lookingFor)
-                  return (
-                    <div key={group.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
-                          {group.name.charAt(0)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="font-semibold text-gray-900 text-sm leading-tight">{group.name}</p>
-                            {!group.isPublic && (
-                              <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">🔒 Privé</span>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            {group._count.members} membre{group._count.members > 1 ? 's' : ''}
-                            {group.style ? ` · ${group.style}` : ''}
-                          </p>
-                          {group.description && (
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{group.description}</p>
-                          )}
-                        </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {discoverGroups.map((group) => {
+              const instruments = parseLookingFor(group.lookingFor)
+              return (
+                <div key={group.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
+                      {group.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-semibold text-gray-900 text-sm leading-tight">{group.name}</p>
+                        {!group.isPublic && (
+                          <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">🔒 Privé</span>
+                        )}
                       </div>
-
-                      {instruments.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          <span className="text-xs text-amber-600 font-medium self-center">Cherche :</span>
-                          {instruments.map((inst) => (
-                            <span key={inst} className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
-                              {inst}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {group.isPublic ? (
-                        <PublicJoinButton groupId={group.id} groupName={group.name} />
-                      ) : (
-                        <p className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2 text-center text-xs text-gray-500">
-                          🔒 Sur invitation du chef uniquement
-                        </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {group._count.members} membre{group._count.members > 1 ? 's' : ''}
+                        {group.style ? ` · ${group.style}` : ''}
+                      </p>
+                      {group.description && (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{group.description}</p>
                       )}
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                  </div>
+
+                  {instruments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="text-xs text-amber-600 font-medium self-center">Cherche :</span>
+                      {instruments.map((inst) => (
+                        <span key={inst} className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          {inst}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {group.isPublic ? (
+                    <PublicJoinButton groupId={group.id} groupName={group.name} />
+                  ) : (
+                    <p className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2 text-center text-xs text-gray-500">
+                      🔒 Sur invitation du chef uniquement
+                    </p>
+                  )}
+                </div>
+              )
+            })}
           </div>
-        </div>
+        )}
       </div>
 
       {/* Petites annonces CTA */}
