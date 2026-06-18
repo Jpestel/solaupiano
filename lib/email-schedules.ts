@@ -11,6 +11,9 @@ export interface EmailSchedule {
   days: number
   direction: ScheduleDirection
   time: string // « HH:MM »
+  // Optionnel : pour les rappels récurrents, intervalle de relance en jours
+  // (ex. 2 = on relance tous les 2 jours tant que la condition tient).
+  repeatDays?: number
 }
 
 export interface SchedulableEmailDef {
@@ -25,6 +28,7 @@ export const SCHEDULABLE_EMAILS: SchedulableEmailDef[] = [
   { key: 'mastery_reminder',            name: 'Relance niveau de maîtrise',          eventType: 'rehearsal', default: { enabled: true, days: 1, direction: 'BEFORE', time: '18:00' } },
   { key: 'evaluation_reminder',         name: "Rappel d'évaluation",                 eventType: 'rehearsal', default: { enabled: true, days: 1, direction: 'AFTER',  time: '09:00' } },
   { key: 'concert_validation_reminder', name: 'Confirmation de présence (concert)',  eventType: 'concert',   default: { enabled: true, days: 3, direction: 'BEFORE', time: '08:00' } },
+  { key: 'concert_time_reminder',       name: "Relance heure de concert manquante",  eventType: 'concert',   default: { enabled: true, days: 10, direction: 'BEFORE', time: '09:00', repeatDays: 2 } },
 ]
 
 export function getScheduleDef(key: string): SchedulableEmailDef | undefined {
@@ -35,11 +39,14 @@ export function parseSchedule(value: string | null | undefined, fallback: EmailS
   if (!value) return fallback
   try {
     const o = JSON.parse(value)
+    const rawRepeat = Number.isFinite(o.repeatDays) ? Math.max(1, Math.floor(Number(o.repeatDays))) : fallback.repeatDays
     return {
       enabled: typeof o.enabled === 'boolean' ? o.enabled : fallback.enabled,
       days: Number.isFinite(o.days) ? Math.max(0, Math.floor(Number(o.days))) : fallback.days,
       direction: o.direction === 'AFTER' ? 'AFTER' : 'BEFORE',
       time: typeof o.time === 'string' && /^\d{2}:\d{2}$/.test(o.time) ? o.time : fallback.time,
+      // On ne conserve repeatDays que si le mail le supporte (présent dans le fallback).
+      ...(fallback.repeatDays !== undefined ? { repeatDays: rawRepeat } : {}),
     }
   } catch {
     return fallback

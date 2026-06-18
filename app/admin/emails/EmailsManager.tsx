@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { ph } from '@/lib/placeholders'
 
 interface Variable { key: string; description: string }
-interface Schedule { enabled: boolean; days: number; direction: 'BEFORE' | 'AFTER'; time: string }
+interface Schedule { enabled: boolean; days: number; direction: 'BEFORE' | 'AFTER'; time: string; repeatDays?: number }
 interface Template {
   key: string
   name: string
@@ -169,8 +169,23 @@ export function EmailsManager({ templates: initial }: { templates: Template[] })
                     onChange={(e) => setSched({ ...sched, time: e.target.value })}
                     className="rounded-lg border border-amber-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                   />
+                  {sched.repeatDays !== undefined && (
+                    <>
+                      <span>, puis relance tous les</span>
+                      <input
+                        type="number" min={1} max={30} value={sched.repeatDays}
+                        onChange={(e) => setSched({ ...sched, repeatDays: Math.max(1, Number(e.target.value) || 1) })}
+                        className="w-16 rounded-lg border border-amber-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      />
+                      <span>jour(s)</span>
+                    </>
+                  )}
                 </div>
-                <p className="text-[10px] text-amber-600 mt-2">L&apos;événement = la répétition ou le concert concerné. Le mail part une fois, à l&apos;heure choisie.</p>
+                <p className="text-[10px] text-amber-600 mt-2">
+                  {sched.repeatDays !== undefined
+                    ? "L'événement = le concert concerné. La 1re relance part quand la date est à « jours » d'écart, puis l'envoi se répète à l'intervalle choisi tant que la condition tient (heure non renseignée et date non atteinte)."
+                    : "L'événement = la répétition ou le concert concerné. Le mail part une fois, à l'heure choisie."}
+                </p>
               </div>
             )}
 

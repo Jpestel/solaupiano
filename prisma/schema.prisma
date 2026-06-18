@@ -169,6 +169,7 @@ model User {
   weeklyDigestOptOut          Boolean   @default(false)
   rehearsalReminderOptOut     Boolean   @default(false)
   evaluationReminderOptOut    Boolean   @default(false)
+  concertTimeReminderOptOut   Boolean   @default(false)
   adminLoginAlertEnabled      Boolean   @default(true)  // envoie une alerte admin quand ce compte se connecte
   helpBubblesOptOut           Boolean   @default(false) // masque les bulles d'aide contextuelles
 
@@ -805,6 +806,8 @@ model Concert {
   confirmDaysBefore      Int?     // délai de réponse : X jours avant la date (deadline = date - X)
   status                 String   @default("CONFIRMED") // PENDING | CONFIRMED | CANCELLED
   validationReminderSentAt DateTime?
+  // Dernière relance « heure de début manquante » envoyée au(x) chef(s) (cadence récurrente).
+  timeReminderSentAt     DateTime?
   cancelledAt            DateTime?
   notes     String?  @db.Text
   setlistId Int?

@@ -177,6 +177,40 @@ export async function sendConcertValidationReminder(
 }
 
 // ─── Concert annulé faute de confirmation ────────────────────────────────────
+// ─── Relance « heure de début manquante » au(x) chef(s) ───────────────────────
+export async function sendConcertTimeReminder(
+  chiefs: { email: string; name: string }[],
+  groupName: string,
+  groupId: number,
+  concert: { id: number; name: string; date: Date; location: string },
+  baseUrl: string
+) {
+  const dateStr = new Date(concert.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const tpl = await getEmailTemplate('concert_time_reminder')
+  const editUrl = `${baseUrl}/groupes/${groupId}/concerts/${concert.id}`
+  await Promise.all(
+    chiefs.map(({ email, name }) => {
+      const { subject, introHtml, outroHtml } = tpl.render({ memberName: name, groupName, concertName: concert.name, date: dateStr })
+      return resend.emails.send({
+        from: 'Sol au piano <noreply@solaupiano.fr>',
+        to: email,
+        subject,
+        html: emailWrapper(`
+          ${introHtml}
+          ${dataBox(`
+            <p style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #b45309;">🎭 ${concert.name}</p>
+            <p style="margin: 0 0 4px; font-size: 13px; color: #b45309; text-transform: capitalize;">${dateStr}</p>
+            <p style="margin: 0 0 4px; font-size: 13px; color: #b45309;">📍 ${concert.location}</p>
+            <p style="margin: 6px 0 0; font-size: 13px; color: #b91c1c; font-weight: 700;">⏰ Heure de début : à renseigner</p>
+          `)}
+          ${ctaButton(editUrl, "Renseigner l'heure du concert")}
+          ${outroHtml}
+        `),
+      })
+    })
+  )
+}
+
 export async function sendConcertCancelled(
   members: { email: string; name: string }[],
   groupName: string,

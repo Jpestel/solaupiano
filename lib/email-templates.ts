@@ -103,6 +103,20 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ],
   },
   {
+    key: 'concert_time_reminder',
+    name: 'Concert — relance heure de début manquante (chef)',
+    description: "Envoyé au(x) chef(s) d'un groupe quand un concert public approche sans heure de début renseignée. Première relance ~10 jours avant, puis tous les 2 jours tant que l'heure n'est pas saisie et que la date n'est pas passée.",
+    defaultSubject: "⏰ Renseignez l'heure du concert {{concertName}}",
+    defaultIntro: "Bonjour {{memberName}},\n\nLe concert « {{concertName}} » de {{groupName}} est prévu le {{date}}, mais aucune heure de début n'est encore renseignée. Sur la carte publique et la fiche concert, l'horaire s'affiche « à confirmer » tant qu'il n'est pas saisi.\n\nMerci de mettre à jour la fiche du concert pour indiquer l'heure de début (et, si besoin, l'heure des balances et l'arrivée souhaitée).",
+    defaultOutro: "Vous recevrez cette relance tous les 2 jours jusqu'à ce que l'heure soit renseignée ou que la date du concert soit atteinte.",
+    variables: [
+      { key: 'memberName', description: 'Prénom du chef' },
+      { key: 'groupName', description: 'Nom du groupe' },
+      { key: 'concertName', description: 'Nom du concert' },
+      { key: 'date', description: 'Date du concert' },
+    ],
+  },
+  {
     key: 'concert_cancelled',
     name: 'Concert annulé (faute de confirmation)',
     description: "Envoyé à tous les membres conviés quand un concert est annulé car tous les musiciens requis n'ont pas confirmé à temps.",

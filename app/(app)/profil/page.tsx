@@ -33,6 +33,7 @@ interface ProfileData {
   weeklyDigestOptOut: boolean
   rehearsalReminderOptOut: boolean
   evaluationReminderOptOut: boolean
+  concertTimeReminderOptOut: boolean
   helpBubblesOptOut: boolean
   instruments: { instrument: Instrument }[]
   stats: {
@@ -102,6 +103,8 @@ export default function ProfilPage() {
   const [rehearsalReminderOptOut, setRehearsalReminderOptOut] = useState(false)
   const [reminderSaving, setReminderSaving] = useState(false)
   const [evaluationReminderOptOut, setEvaluationReminderOptOut] = useState(false)
+  const [concertTimeReminderOptOut, setConcertTimeReminderOptOut] = useState(false)
+  const [concertTimeReminderSaving, setConcertTimeReminderSaving] = useState(false)
   const [helpBubblesOptOut, setHelpBubblesOptOut] = useState(false)
   const [helpBubblesSaving, setHelpBubblesSaving] = useState(false)
   const [imageConsents, setImageConsents] = useState<{ groupId: number; groupName: string; consent: boolean | null }[]>([])
@@ -136,6 +139,7 @@ export default function ProfilPage() {
       setNewsletterSubscribed((p as { newsletterSubscribed?: boolean }).newsletterSubscribed ?? false)
       setRehearsalReminderOptOut(p.rehearsalReminderOptOut ?? false)
       setEvaluationReminderOptOut(p.evaluationReminderOptOut ?? false)
+      setConcertTimeReminderOptOut(p.concertTimeReminderOptOut ?? false)
       setHelpBubblesOptOut(p.helpBubblesOptOut ?? false)
     }
     if (instrRes.ok) setInstruments(await instrRes.json())
@@ -215,6 +219,17 @@ export default function ProfilPage() {
       body: JSON.stringify({ name, instrumentIds: selectedIds, evaluationReminderOptOut: newValue }),
     })
     setEvalReminderSaving(false)
+  }
+
+  const handleConcertTimeReminderToggle = async (newValue: boolean) => {
+    setConcertTimeReminderOptOut(newValue)
+    setConcertTimeReminderSaving(true)
+    await fetch('/api/profil', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, instrumentIds: selectedIds, concertTimeReminderOptOut: newValue }),
+    })
+    setConcertTimeReminderSaving(false)
   }
 
   const handleHelpBubblesToggle = async (newValue: boolean) => {
@@ -840,6 +855,30 @@ export default function ProfilPage() {
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       !evaluationReminderOptOut ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="border-t border-gray-100 pt-4 flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">Relance « heure de concert manquante » (chef)</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Si vous êtes chef d&apos;un groupe : relance à l&apos;approche d&apos;un concert dont l&apos;heure de début n&apos;est pas renseignée, puis tous les 2 jours jusqu&apos;à ce que vous la saisissiez.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!concertTimeReminderOptOut}
+                  onClick={() => handleConcertTimeReminderToggle(!concertTimeReminderOptOut)}
+                  disabled={concertTimeReminderSaving}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
+                    !concertTimeReminderOptOut ? 'bg-indigo-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      !concertTimeReminderOptOut ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
                 </button>
