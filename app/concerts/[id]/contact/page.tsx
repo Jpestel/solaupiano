@@ -61,7 +61,7 @@ export default async function ConcertContactPage({ params }: { params: { id: str
           <p className="mt-4 text-white/85">{address}</p>
           <p className="mt-2 font-bold text-amber-200">
             {formatDate(concert.date)}
-            {concert.startTime ? `, à partir de ${concert.startTime}` : ', heure à confirmer'}
+            {concert.startTime ? `, à partir de ${concert.startTime}` : ' · Heure à confirmer, contactez le groupe via le formulaire'}
           </p>
         </div>
 

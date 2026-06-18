@@ -51,14 +51,16 @@ function escapeHtml(value: string) {
 
 function popupHtml(point: MapPoint) {
   const contactHref = `/concerts/${encodeURIComponent(String(point.id))}/contact`
-  const time = point.startTime || 'heure à confirmer'
+  const timeHtml = point.startTime
+    ? `à partir de <strong>${escapeHtml(point.startTime)}</strong>`
+    : 'Heure à confirmer, cliquez sur en savoir plus pour contacter le groupe'
 
   return `
     <div class="concert-map-popup">
       <p class="concert-map-popup-title">${escapeHtml(point.groupName)}</p>
       <p class="concert-map-popup-kicker">en concert ici</p>
       <p class="concert-map-popup-address">${escapeHtml(fullAddress(point))}</p>
-      <p class="concert-map-popup-date">à partir de <strong>${escapeHtml(time)}</strong></p>
+      <p class="concert-map-popup-date">${timeHtml}</p>
       <a class="concert-map-popup-link" href="${contactHref}">En savoir plus</a>
     </div>
   `
@@ -156,7 +158,6 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
           html: `
             <span class="concert-map-pin">
               <span class="concert-map-pin-dot"></span>
-              <span class="concert-map-pin-label">${tooltipHtml(point)}</span>
             </span>
           `,
           iconSize: [34, 34],
@@ -236,7 +237,7 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
               )}
             </div>
             <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
-              {selected.startTime ? `${dateLabel(selected.date)} · ${selected.startTime}` : dateLabel(selected.date)}
+              {selected.startTime ? `${dateLabel(selected.date)} · ${selected.startTime}` : 'Heure à confirmer'}
             </span>
           </div>
           <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">{fullAddress(selected)}</p>

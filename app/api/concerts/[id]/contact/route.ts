@@ -102,7 +102,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px;margin:20px 0;">
               <p style="margin:0 0 4px;font-size:14px;color:#111827;"><strong>${escapeHtml(concert.group.name)}</strong> en concert ici</p>
               <p style="margin:0 0 4px;font-size:13px;color:#4b5563;">${escapeHtml(address)}</p>
-              <p style="margin:0;font-size:13px;color:#7c2d12;">${escapeHtml(formatDate(concert.date))}${concert.startTime ? `, à partir de ${escapeHtml(concert.startTime)}` : ', heure à confirmer'}</p>
+              <p style="margin:0;font-size:13px;color:#7c2d12;">${escapeHtml(formatDate(concert.date))}${concert.startTime ? `, à partir de ${escapeHtml(concert.startTime)}` : ' · Heure à confirmer, cliquez sur en savoir plus pour contacter le groupe'}</p>
             </div>
 
             <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin:20px 0;">
