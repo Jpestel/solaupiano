@@ -2,26 +2,15 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
-import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
 import { PublicJoinButton } from './PublicJoinButton'
 import { PublicNav } from './PublicNav'
 import { HomeCarousel } from '@/components/HomeCarousel'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
+import { PublicConcerts } from '@/components/PublicConcerts'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
   try { return JSON.parse(raw) } catch { return [] }
-}
-
-function DateBox({ date, color = 'indigo' }: { date: Date; color?: 'indigo' | 'purple' }) {
-  const bg = color === 'purple' ? 'bg-purple-600' : 'bg-indigo-600'
-  return (
-    <div className={`flex-shrink-0 w-11 h-11 rounded-xl ${bg} flex flex-col items-center justify-center text-white`}>
-      <span className="text-[10px] font-medium uppercase leading-none">{format(date, 'MMM', { locale: fr })}</span>
-      <span className="text-base font-bold leading-tight">{format(date, 'd', { locale: fr })}</span>
-    </div>
-  )
 }
 
 export default async function PublicHomePage() {
@@ -37,7 +26,7 @@ export default async function PublicHomePage() {
     prisma.concert.findMany({
       where: { date: { gte: now }, isPublic: true },
       orderBy: { date: 'asc' },
-      take: 15,
+      take: 100,
       include: { group: { select: { name: true, groupPage: { select: { slug: true, published: true } } } } },
     }),
     prisma.group.findMany({
@@ -81,6 +70,19 @@ export default async function PublicHomePage() {
 
   // Groupes visibles sur l'accueil = publics + privés (les masqués sont exclus par la requête)
   const discoverGroups = groupsLooking
+
+  // Concerts sérialisés pour le composant client (regroupement Mois / Groupe)
+  const concertsForList = concerts.map((c) => ({
+    id: c.id,
+    name: c.name,
+    date: c.date.toISOString(),
+    location: c.location,
+    address: c.address,
+    postalCode: c.postalCode,
+    city: c.city,
+    groupName: c.group.name,
+    groupSlug: c.group.groupPage?.published && c.group.groupPage?.slug ? c.group.groupPage.slug : null,
+  }))
 
   // Communauté : instruments les plus représentés + styles des groupes
   const topInstruments = [...instrumentsUsed]
@@ -341,43 +343,7 @@ export default async function PublicHomePage() {
               <span className="text-xs font-normal text-gray-400 ml-1">{concerts.length > 0 ? `${concerts.length} événement${concerts.length > 1 ? 's' : ''}` : ''}</span>
             </h2>
 
-            {concerts.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-200 px-6 py-12 text-center bg-white">
-                <p className="text-3xl mb-3">🎭</p>
-                <p className="text-sm text-gray-500">Aucun concert annoncé pour l&apos;instant.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {concerts.map((concert) => (
-                  <div
-                    key={concert.id}
-                    className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3"
-                  >
-                    <DateBox date={concert.date} color="purple" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-gray-900 text-sm">{concert.name}</p>
-                      {concert.group.groupPage?.published && concert.group.groupPage?.slug ? (
-                        <Link href={`/${concert.group.groupPage.slug}`} className="text-xs text-indigo-600 hover:underline mt-0.5 inline-block">
-                          {concert.group.name} →
-                        </Link>
-                      ) : (
-                        <p className="text-xs text-gray-500 mt-0.5">{concert.group.name}</p>
-                      )}
-                      <div className="text-xs text-gray-400 mt-0.5 leading-snug">
-                        <p className="text-gray-500">📍 {concert.location}</p>
-                        {concert.address && <p>{concert.address}</p>}
-                        {(concert.postalCode || concert.city) && (
-                          <p>{[concert.postalCode, concert.city].filter(Boolean).join(' ')}</p>
-                        )}
-                      </div>
-                    </div>
-                    <p className="flex-shrink-0 text-xs text-purple-600 font-medium capitalize hidden sm:block">
-                      {format(concert.date, 'EEEE d MMMM', { locale: fr })}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <PublicConcerts concerts={concertsForList} />
 
             <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 px-5 py-4 flex items-center justify-between gap-4">
               <div>
