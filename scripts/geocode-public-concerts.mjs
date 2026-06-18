@@ -10,6 +10,22 @@ function addressParts(concert) {
   ].map((part) => part?.trim()).filter(Boolean)
 }
 
+function compact(parts) {
+  return parts.map((part) => part?.trim()).filter(Boolean).join(', ')
+}
+
+function addressQueries(concert) {
+  const postalCity = compact([concert.postalCode, concert.city])
+  const candidates = [
+    addressParts(concert).join(', '),
+    compact([concert.address, postalCity]),
+    compact([concert.location, postalCity]),
+    postalCity,
+    compact([concert.city]),
+  ]
+  return [...new Set(candidates.flatMap((query) => query ? [query, `${query}, France`] : []))]
+}
+
 async function searchAddress(query) {
   if (!query) return null
 
@@ -39,8 +55,12 @@ async function searchAddress(query) {
 }
 
 async function geocode(concert) {
-  const query = addressParts(concert).join(', ')
-  return await searchAddress(query) ?? await searchAddress(`${query}, France`)
+  for (const query of addressQueries(concert)) {
+    const result = await searchAddress(query)
+    if (result) return result
+    await wait(1100)
+  }
+  return null
 }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))

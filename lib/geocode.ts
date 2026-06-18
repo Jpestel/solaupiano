@@ -24,16 +24,39 @@ export function concertAddressKey(input: {
   return concertAddressParts(input).join(', ')
 }
 
+function compact(parts: Array<string | null | undefined>) {
+  return parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(', ')
+}
+
+function concertAddressQueries(input: {
+  location?: string | null
+  address?: string | null
+  postalCode?: string | null
+  city?: string | null
+}) {
+  const postalCity = compact([input.postalCode, input.city])
+  const candidates = [
+    compact([input.location, input.address, postalCity]),
+    compact([input.address, postalCity]),
+    compact([input.location, postalCity]),
+    postalCity,
+    compact([input.city]),
+  ]
+  const withFrance = candidates.flatMap((query) => query ? [query, `${query}, France`] : [])
+  return Array.from(new Set(withFrance))
+}
+
 export async function geocodeConcertAddress(input: {
   location?: string | null
   address?: string | null
   postalCode?: string | null
   city?: string | null
 }): Promise<GeocodeResult | null> {
-  const baseQuery = concertAddressKey(input)
-  if (!baseQuery) return null
-
-  const queries = [baseQuery, `${baseQuery}, France`]
+  const queries = concertAddressQueries(input)
+  if (queries.length === 0) return null
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 4500)
