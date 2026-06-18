@@ -14,7 +14,6 @@ export interface MapConcert {
   city: string | null
   groupName: string
   groupSlug: string | null
-  contactSlug?: string | null
   startTime: string | null
   latitude: number | null
   longitude: number | null
@@ -51,9 +50,7 @@ function escapeHtml(value: string) {
 }
 
 function popupHtml(point: MapPoint) {
-  const contactHref = point.contactSlug
-    ? `/${encodeURIComponent(point.contactSlug)}?concert=${encodeURIComponent(String(point.id))}#contact`
-    : null
+  const contactHref = `/concerts/${encodeURIComponent(String(point.id))}/contact`
   const time = point.startTime || 'heure à confirmer'
 
   return `
@@ -62,7 +59,7 @@ function popupHtml(point: MapPoint) {
       <p class="concert-map-popup-kicker">en concert ici</p>
       <p class="concert-map-popup-address">${escapeHtml(fullAddress(point))}</p>
       <p class="concert-map-popup-date">à partir de <strong>${escapeHtml(time)}</strong></p>
-      ${contactHref ? `<a class="concert-map-popup-link" href="${contactHref}">En savoir plus</a>` : ''}
+      <a class="concert-map-popup-link" href="${contactHref}">En savoir plus</a>
     </div>
   `
 }
@@ -243,14 +240,12 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
             </span>
           </div>
           <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">{fullAddress(selected)}</p>
-          {selected.contactSlug && (
-            <Link
-              href={`/${selected.contactSlug}?concert=${selected.id}#contact`}
-              className="mt-3 inline-flex text-xs font-bold text-indigo-600 hover:underline"
-            >
-              En savoir plus
-            </Link>
-          )}
+          <Link
+            href={`/concerts/${selected.id}/contact`}
+            className="mt-3 inline-flex text-xs font-bold text-indigo-600 hover:underline"
+          >
+            En savoir plus
+          </Link>
         </div>
       )}
     </div>

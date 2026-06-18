@@ -27,7 +27,7 @@ export default async function PublicHomePage() {
       where: { date: { gte: now }, isPublic: true },
       orderBy: { date: 'asc' },
       take: 100,
-      include: { group: { select: { name: true, groupPage: { select: { slug: true, published: true, showContact: true } } } } },
+      include: { group: { select: { name: true, groupPage: { select: { slug: true, published: true } } } } },
     }),
     prisma.group.findMany({
       where: { isHidden: false, archivedAt: null },
@@ -80,7 +80,6 @@ export default async function PublicHomePage() {
     startTime: c.startTime,
     groupName: c.group.name,
     groupSlug: c.group.groupPage?.published && c.group.groupPage?.slug ? c.group.groupPage.slug : null,
-    contactSlug: c.group.groupPage?.published && c.group.groupPage?.showContact && c.group.groupPage?.slug ? c.group.groupPage.slug : null,
   }))
 
   // Communauté : instruments les plus représentés + styles des groupes
