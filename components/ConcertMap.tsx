@@ -75,7 +75,7 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
       </div>
 
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/15 bg-[#142f5d]">
-        <svg viewBox="0 0 100 75" className="absolute inset-0 h-full w-full" role="img" aria-label="Carte interactive des concerts publics">
+        <svg viewBox="0 0 100 75" className="pointer-events-none absolute inset-0 h-full w-full" role="img" aria-label="Carte interactive des concerts publics">
           <defs>
             <linearGradient id="sea" x1="0" x2="1" y1="0" y2="1">
               <stop offset="0%" stopColor="#1d4f8f" />
@@ -111,45 +111,57 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
           })}
         </svg>
 
-        {points.map((point) => (
-          <button
-            key={point.id}
-            type="button"
-            onClick={() => setSelectedId(point.id)}
-            className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-200"
-            style={{ left: `${point.pos.x}%`, top: `${point.pos.y}%` }}
-            aria-label={`Afficher ${point.name}`}
-            title={`${point.name} - ${point.city ?? point.location}`}
-          />
-        ))}
+        {points.length > 0 && (
+          <p className="absolute left-3 top-3 z-10 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur">
+            Cliquez sur un point
+          </p>
+        )}
+
+        {points.map((point) => {
+          const active = point.id === selected?.id
+          return (
+            <button
+              key={point.id}
+              type="button"
+              onClick={() => setSelectedId(point.id)}
+              className={`group absolute z-10 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-200 ${active ? 'scale-110' : ''}`}
+              style={{ left: `${point.pos.x}%`, top: `${point.pos.y}%` }}
+              aria-label={`Afficher ${point.name}`}
+              title={`${point.name} - ${point.city ?? point.location}`}
+            >
+              <span className={`absolute inset-1 rounded-full ${active ? 'bg-amber-200/35' : 'bg-amber-300/25'} animate-pulse`} />
+              <span className={`absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-lg ${active ? 'bg-amber-200' : 'bg-amber-400 group-hover:bg-amber-200'}`} />
+            </button>
+          )
+        })}
 
         {points.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
             <p className="text-sm font-medium text-white/75">Ajoutez des concerts publics avec une adresse complète pour les voir apparaître sur la carte.</p>
           </div>
         )}
-      </div>
 
-      {selected && (
-        <div className="mt-3 rounded-2xl border border-white/15 bg-white px-4 py-3 text-gray-900">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold">{selected.name}</p>
-              {selected.groupSlug ? (
-                <Link href={`/${selected.groupSlug}`} className="text-xs font-medium text-indigo-600 hover:underline">
-                  {selected.groupName}
-                </Link>
-              ) : (
-                <p className="text-xs text-gray-500">{selected.groupName}</p>
-              )}
+        {selected && (
+          <div className="absolute bottom-3 left-3 right-3 z-20 rounded-2xl border border-white/30 bg-white px-4 py-3 text-gray-900 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold">{selected.name}</p>
+                {selected.groupSlug ? (
+                  <Link href={`/${selected.groupSlug}`} className="text-xs font-medium text-indigo-600 hover:underline">
+                    {selected.groupName}
+                  </Link>
+                ) : (
+                  <p className="text-xs text-gray-500">{selected.groupName}</p>
+                )}
+              </div>
+              <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
+                {dateLabel(selected.date)}
+              </span>
             </div>
-            <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
-              {dateLabel(selected.date)}
-            </span>
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">{fullAddress(selected)}</p>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-gray-500">{fullAddress(selected)}</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
