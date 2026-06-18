@@ -1,6 +1,5 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -27,7 +26,10 @@ function DateBox({ date, color = 'indigo' }: { date: Date; color?: 'indigo' | 'p
 
 export default async function PublicHomePage() {
   const session = await getServerSession(authOptions)
-  if (session) redirect('/tableau-de-bord')
+  // La page d'accueil est désormais accessible à tous ; on l'adapte selon que la
+  // personne est connectée ou non (CTA, nav…).
+  const isLoggedIn = !!session
+  const firstName = session?.user?.name?.split(' ')[0] ?? null
 
   const now = new Date()
 
@@ -123,7 +125,7 @@ export default async function PublicHomePage() {
               <span className="text-[10px] text-indigo-400 italic font-normal">du solo à l&apos;orchestre</span>
             </div>
           </div>
-          <PublicNav />
+          <PublicNav isLoggedIn={isLoggedIn} />
         </div>
       </header>
 
@@ -140,7 +142,9 @@ export default async function PublicHomePage() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
-              🎵 La plateforme des musiciens — du solo à l&apos;orchestre
+              {isLoggedIn
+                ? `👋 Bonjour ${firstName ?? ''}`.trim() + ' — content de vous revoir'
+                : '🎵 La plateforme des musiciens — du solo à l’orchestre'}
             </span>
             <h1 className="mt-4 text-3xl sm:text-5xl font-bold leading-tight">
               Jouez, répétez,{' '}
@@ -151,6 +155,23 @@ export default async function PublicHomePage() {
               gérez votre répertoire et vos accords, organisez vos répétitions et vos concerts,
               suivez la progression de chacun. Le tout au même endroit.
             </p>
+            {isLoggedIn ? (
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/tableau-de-bord"
+                  className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-gray-100 transition-colors shadow-lg shadow-black/10"
+                >
+                  Aller à mon tableau de bord →
+                </Link>
+                <Link
+                  href="/groupes"
+                  className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/25 backdrop-blur transition-colors"
+                >
+                  Mes groupes
+                </Link>
+              </div>
+            ) : (
+            <>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 href="/inscription"
@@ -219,6 +240,8 @@ export default async function PublicHomePage() {
                 Créer mon compte gratuitement →
               </Link>
             </div>
+            </>
+            )}
           </div>
 
           {/* Compteurs */}
@@ -340,7 +363,13 @@ export default async function PublicHomePage() {
                       ) : (
                         <p className="text-xs text-gray-500 mt-0.5">{concert.group.name}</p>
                       )}
-                      <p className="text-xs text-gray-400 mt-0.5">{concert.location}</p>
+                      <div className="text-xs text-gray-400 mt-0.5 leading-snug">
+                        <p className="text-gray-500">📍 {concert.location}</p>
+                        {concert.address && <p>{concert.address}</p>}
+                        {(concert.postalCode || concert.city) && (
+                          <p>{[concert.postalCode, concert.city].filter(Boolean).join(' ')}</p>
+                        )}
+                      </div>
                     </div>
                     <p className="flex-shrink-0 text-xs text-purple-600 font-medium capitalize hidden sm:block">
                       {format(concert.date, 'EEEE d MMMM', { locale: fr })}
@@ -353,13 +382,17 @@ export default async function PublicHomePage() {
             <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 px-5 py-4 flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-indigo-900">Votre groupe a un concert ?</p>
-                <p className="text-xs text-indigo-600 mt-0.5">Inscrivez-vous et ajoutez vos événements pour les rendre visibles ici.</p>
+                <p className="text-xs text-indigo-600 mt-0.5">
+                  {isLoggedIn
+                    ? 'Ajoutez vos concerts et passez-les en « Public » pour les rendre visibles ici.'
+                    : 'Inscrivez-vous et ajoutez vos événements pour les rendre visibles ici.'}
+                </p>
               </div>
               <Link
-                href="/inscription"
+                href={isLoggedIn ? '/groupes' : '/inscription'}
                 className="flex-shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
               >
-                S&apos;inscrire
+                {isLoggedIn ? 'Mes groupes' : 'S’inscrire'}
               </Link>
             </div>
           </div>

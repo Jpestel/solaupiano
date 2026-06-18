@@ -10,7 +10,7 @@ const LINKS = [
   { href: '/aide', label: 'Aide' },
 ]
 
-export function PublicNav() {
+export function PublicNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -22,18 +22,26 @@ export function PublicNav() {
             {l.label}
           </Link>
         ))}
-        <Link href="/connexion" className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors">
-          Se connecter
-        </Link>
-        <Link href="/inscription" className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
-          S&apos;inscrire
-        </Link>
+        {isLoggedIn ? (
+          <Link href="/tableau-de-bord" className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
+            Mon espace →
+          </Link>
+        ) : (
+          <>
+            <Link href="/connexion" className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors">
+              Se connecter
+            </Link>
+            <Link href="/inscription" className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
+              S&apos;inscrire
+            </Link>
+          </>
+        )}
       </nav>
 
-      {/* Mobile : inscription rapide + burger */}
+      {/* Mobile : accès rapide + burger */}
       <div className="flex sm:hidden items-center gap-2">
-        <Link href="/inscription" className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white">
-          S&apos;inscrire
+        <Link href={isLoggedIn ? '/tableau-de-bord' : '/inscription'} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white">
+          {isLoggedIn ? 'Mon espace' : 'S’inscrire'}
         </Link>
         <button
           onClick={() => setOpen((v) => !v)}
@@ -70,13 +78,23 @@ export function PublicNav() {
               </Link>
             ))}
             <div className="my-1.5 border-t border-gray-100" />
-            <Link
-              href="/connexion"
-              onClick={() => setOpen(false)}
-              className="block px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
-            >
-              Se connecter
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/tableau-de-bord"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
+              >
+                Mon espace →
+              </Link>
+            ) : (
+              <Link
+                href="/connexion"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
+              >
+                Se connecter
+              </Link>
+            )}
           </div>
         </>
       )}

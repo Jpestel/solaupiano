@@ -55,7 +55,7 @@ export default async function GroupPublicPage({ params }: { params: { slug: stri
             where: { date: { gte: new Date() }, isPublic: true },
             orderBy: { date: 'asc' },
             take: 5,
-            select: { id: true, name: true, date: true, location: true },
+            select: { id: true, name: true, date: true, location: true, address: true, postalCode: true, city: true },
           },
         },
       },
@@ -175,7 +175,11 @@ export default async function GroupPublicPage({ params }: { params: { slug: stri
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-gray-900">{c.name}</p>
                     <p className="text-sm capitalize" style={{ color: p }}>{formatDate(c.date.toISOString())}</p>
-                    <p className="text-sm text-gray-500">{c.location}</p>
+                    <p className="text-sm text-gray-500">📍 {c.location}</p>
+                    {c.address && <p className="text-sm text-gray-400">{c.address}</p>}
+                    {(c.postalCode || c.city) && (
+                      <p className="text-sm text-gray-400">{[c.postalCode, c.city].filter(Boolean).join(' ')}</p>
+                    )}
                   </div>
                 </div>
               ))}
