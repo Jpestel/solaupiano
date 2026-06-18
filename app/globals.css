@@ -120,11 +120,19 @@
 
 .concert-map-leaflet-popup .leaflet-popup-content-wrapper {
   border-radius: 1rem;
+  background: transparent;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+  padding: 0;
 }
 
 .concert-map-leaflet-popup .leaflet-popup-content {
-  margin: 12px 14px;
+  margin: 0;
+}
+
+.concert-map-popup {
+  border-radius: 1rem;
+  padding: 18px 20px;
+  min-width: 220px;
 }
 
 .concert-map-popup-title {

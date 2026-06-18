@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import type * as Leaflet from 'leaflet'
+import type { ConcertPopupSettings } from '@/lib/site-settings'
 
 export interface MapConcert {
   id: number
@@ -23,6 +24,8 @@ interface MapPoint extends MapConcert {
   latitude: number
   longitude: number
 }
+
+type PopupSettings = ConcertPopupSettings
 
 function dateLabel(iso: string) {
   return new Date(iso).toLocaleDateString('fr-FR', {
@@ -49,19 +52,19 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#039;')
 }
 
-function popupHtml(point: MapPoint) {
+function popupHtml(point: MapPoint, settings: PopupSettings) {
   const contactHref = `/concerts/${encodeURIComponent(String(point.id))}/contact`
   const timeHtml = point.startTime
-    ? `à partir de <strong>${escapeHtml(point.startTime)}</strong>`
-    : 'Heure à confirmer, cliquez sur en savoir plus pour contacter le groupe'
+    ? `${escapeHtml(settings.concertPopupTimePrefix)} <strong>${escapeHtml(point.startTime)}</strong>`
+    : escapeHtml(settings.concertPopupMissingTimeText)
 
   return `
-    <div class="concert-map-popup">
-      <p class="concert-map-popup-title">${escapeHtml(point.groupName)}</p>
-      <p class="concert-map-popup-kicker">en concert ici</p>
-      <p class="concert-map-popup-address">${escapeHtml(fullAddress(point))}</p>
-      <p class="concert-map-popup-date">${timeHtml}</p>
-      <a class="concert-map-popup-link" href="${contactHref}">En savoir plus</a>
+    <div class="concert-map-popup" style="background:${escapeHtml(settings.concertPopupBackgroundColor)};">
+      <p class="concert-map-popup-title" style="color:${escapeHtml(settings.concertPopupTitleColor)};">${escapeHtml(point.groupName)}</p>
+      <p class="concert-map-popup-kicker" style="color:${escapeHtml(settings.concertPopupTitleColor)};">${escapeHtml(settings.concertPopupKicker)}</p>
+      <p class="concert-map-popup-address" style="color:${escapeHtml(settings.concertPopupTextColor)};">${escapeHtml(fullAddress(point))}</p>
+      <p class="concert-map-popup-date" style="color:${escapeHtml(settings.concertPopupAccentColor)};">${timeHtml}</p>
+      <a class="concert-map-popup-link" href="${contactHref}" style="background:${escapeHtml(settings.concertPopupButtonBgColor)};color:${escapeHtml(settings.concertPopupButtonTextColor)} !important;">${escapeHtml(settings.concertPopupButtonLabel)}</a>
     </div>
   `
 }
@@ -75,7 +78,7 @@ function tooltipHtml(point: MapPoint) {
   `
 }
 
-export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
+export function ConcertMap({ concerts, popupSettings }: { concerts: MapConcert[]; popupSettings: PopupSettings }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<Leaflet.Map | null>(null)
   const layerRef = useRef<Leaflet.LayerGroup | null>(null)
@@ -173,7 +176,7 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
         opacity: 1,
         sticky: true,
       })
-      marker.bindPopup(popupHtml(point), {
+      marker.bindPopup(popupHtml(point, popupSettings), {
         className: 'concert-map-leaflet-popup',
         maxWidth: 260,
       })
@@ -189,7 +192,7 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
     } else {
       map.fitBounds(bounds, { padding: [34, 34], maxZoom: 11 })
     }
-  }, [mapReady, points])
+  }, [mapReady, points, popupSettings])
 
   return (
     <div className="rounded-3xl border border-white/15 bg-white/10 p-4 shadow-2xl shadow-black/10 backdrop-blur">

@@ -7,6 +7,7 @@ import { PublicNav } from './PublicNav'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
 import { PublicConcerts } from '@/components/PublicConcerts'
 import { ConcertMap } from '@/components/ConcertMap'
+import { getSiteSettings } from '@/lib/site-settings'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -22,7 +23,7 @@ export default async function PublicHomePage() {
 
   const now = new Date()
 
-  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups] = await Promise.all([
+  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups, siteSettings] = await Promise.all([
     prisma.concert.findMany({
       where: { date: { gte: now }, isPublic: true },
       orderBy: { date: 'asc' },
@@ -61,6 +62,7 @@ export default async function PublicHomePage() {
       where: { user: { siteRole: { not: 'ADMIN' } } },
       _count: { instrumentId: true },
     }),
+    getSiteSettings(),
   ])
 
   // Groupes visibles sur l'accueil = publics + privés (les masqués sont exclus par la requête)
@@ -245,7 +247,7 @@ export default async function PublicHomePage() {
               )}
             </div>
 
-            <ConcertMap concerts={concertsForList} />
+            <ConcertMap concerts={concertsForList} popupSettings={siteSettings} />
           </div>
 
           {/* Compteurs */}

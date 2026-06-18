@@ -16,7 +16,26 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   if (!await requireAdmin()) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   const body = await req.json()
-  const { siteIcon, colorTheme } = body
-  await updateSiteSettings({ ...(siteIcon && { siteIcon }), ...(colorTheme && { colorTheme }) })
+  const allowedKeys = [
+    'siteIcon',
+    'colorTheme',
+    'concertPopupKicker',
+    'concertPopupTimePrefix',
+    'concertPopupMissingTimeText',
+    'concertPopupButtonLabel',
+    'concertPopupBackgroundColor',
+    'concertPopupTitleColor',
+    'concertPopupTextColor',
+    'concertPopupAccentColor',
+    'concertPopupButtonBgColor',
+    'concertPopupButtonTextColor',
+  ] as const
+  const updates = Object.fromEntries(
+    allowedKeys
+      .filter((key) => typeof body[key] === 'string')
+      .map((key) => [key, body[key].trim()])
+      .filter(([, value]) => value)
+  )
+  await updateSiteSettings(updates)
   return NextResponse.json(await getSiteSettings())
 }
