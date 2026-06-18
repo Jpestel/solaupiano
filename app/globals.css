@@ -167,6 +167,13 @@
   font-weight: 800;
 }
 
+.concert-map-popup-kicker {
+  margin: 2px 0 0;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .concert-map-popup-group,
 .concert-map-popup-date,
 .concert-map-popup-address {
@@ -178,4 +185,16 @@
 .concert-map-popup-date {
   color: #7c3aed;
   font-weight: 700;
+}
+
+.concert-map-popup-link {
+  display: inline-flex;
+  margin-top: 10px;
+  border-radius: 9999px;
+  background: #4f46e5;
+  color: #fff !important;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 12px;
+  text-decoration: none !important;
 }

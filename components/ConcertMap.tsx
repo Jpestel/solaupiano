@@ -14,6 +14,7 @@ export interface MapConcert {
   city: string | null
   groupName: string
   groupSlug: string | null
+  startTime: string | null
   latitude: number | null
   longitude: number | null
 }
@@ -49,12 +50,18 @@ function escapeHtml(value: string) {
 }
 
 function popupHtml(point: MapPoint) {
+  const contactHref = point.groupSlug
+    ? `/${encodeURIComponent(point.groupSlug)}?concert=${encodeURIComponent(String(point.id))}#contact`
+    : null
+  const time = point.startTime || 'heure à confirmer'
+
   return `
     <div class="concert-map-popup">
-      <p class="concert-map-popup-title">${escapeHtml(point.name)}</p>
-      <p class="concert-map-popup-group">${escapeHtml(point.groupName)}</p>
-      <p class="concert-map-popup-date">${escapeHtml(dateLabel(point.date))}</p>
+      <p class="concert-map-popup-title">${escapeHtml(point.groupName)}</p>
+      <p class="concert-map-popup-kicker">en concert ici</p>
       <p class="concert-map-popup-address">${escapeHtml(fullAddress(point))}</p>
+      <p class="concert-map-popup-date">à partir de <strong>${escapeHtml(time)}</strong></p>
+      ${contactHref ? `<a class="concert-map-popup-link" href="${contactHref}">En savoir plus</a>` : ''}
     </div>
   `
 }
@@ -231,10 +238,18 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
               )}
             </div>
             <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
-              {dateLabel(selected.date)}
+              {selected.startTime ? `${dateLabel(selected.date)} · ${selected.startTime}` : dateLabel(selected.date)}
             </span>
           </div>
           <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">{fullAddress(selected)}</p>
+          {selected.groupSlug && (
+            <Link
+              href={`/${selected.groupSlug}?concert=${selected.id}#contact`}
+              className="mt-3 inline-flex text-xs font-bold text-indigo-600 hover:underline"
+            >
+              En savoir plus
+            </Link>
+          )}
         </div>
       )}
     </div>

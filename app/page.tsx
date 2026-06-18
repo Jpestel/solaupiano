@@ -77,6 +77,7 @@ export default async function PublicHomePage() {
     city: c.city,
     latitude: c.latitude,
     longitude: c.longitude,
+    startTime: c.startTime,
     groupName: c.group.name,
     groupSlug: c.group.groupPage?.published && c.group.groupPage?.slug ? c.group.groupPage.slug : null,
   }))

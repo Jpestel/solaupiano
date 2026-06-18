@@ -7,12 +7,44 @@ interface Props {
   slug: string
   primaryColor: string
   title?: string | null
+  concert?: {
+    id: number
+    name: string
+    date: string
+    location: string
+    address: string | null
+    postalCode: string | null
+    city: string | null
+    startTime: string | null
+  } | null
 }
 
-export function ContactForm({ slug, primaryColor, title }: Props) {
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function fullAddress(concert: NonNullable<Props['concert']>) {
+  return [
+    concert.location,
+    concert.address,
+    [concert.postalCode, concert.city].filter(Boolean).join(' '),
+  ].filter(Boolean).join(', ')
+}
+
+function defaultMessage(concert?: Props['concert']) {
+  if (!concert) return ''
+  return `Bonjour,\n\nJe souhaite avoir des informations concernant le concert "${concert.name}" (${formatDate(concert.date)}${concert.startTime ? ` à partir de ${concert.startTime}` : ''}, ${fullAddress(concert)}).\n\n`
+}
+
+export function ContactForm({ slug, primaryColor, title, concert }: Props) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(() => defaultMessage(concert))
   const [hp, setHp] = useState('') // honeypot
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
@@ -26,7 +58,7 @@ export function ContactForm({ slug, primaryColor, title }: Props) {
     const res = await fetch(`/api/groupe-page/${slug}/contact`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, message, _hp: hp }),
+      body: JSON.stringify({ name, email, message, concertId: concert?.id ?? null, _hp: hp }),
     })
 
     setSending(false)
@@ -56,6 +88,15 @@ export function ContactForm({ slug, primaryColor, title }: Props) {
     <form onSubmit={handleSubmit} className="space-y-4 max-w-xl mx-auto">
       <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">{title || 'Nous contacter'}</h2>
       {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {concert && (
+        <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-950">
+          <p className="font-semibold">Question sur le concert : {concert.name}</p>
+          <p className="mt-1 text-indigo-700">
+            {fullAddress(concert)}
+            {concert.startTime ? ` · à partir de ${concert.startTime}` : ''}
+          </p>
+        </div>
+      )}
       {/* Honeypot */}
       <input
         type="text"

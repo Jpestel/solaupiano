@@ -38,7 +38,13 @@ function SocialIcon({ href, icon, label }: { href: string; icon: string; label: 
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function GroupPublicPage({ params }: { params: { slug: string } }) {
+export default async function GroupPublicPage({
+  params,
+  searchParams,
+}: {
+  params: { slug: string }
+  searchParams?: { concert?: string }
+}) {
   const page = await prisma.groupPage.findUnique({
     where: { slug: params.slug },
     include: {
@@ -55,7 +61,7 @@ export default async function GroupPublicPage({ params }: { params: { slug: stri
             where: { date: { gte: new Date() }, isPublic: true },
             orderBy: { date: 'asc' },
             take: 5,
-            select: { id: true, name: true, date: true, location: true, address: true, postalCode: true, city: true },
+            select: { id: true, name: true, date: true, location: true, address: true, postalCode: true, city: true, startTime: true },
           },
         },
       },
@@ -80,6 +86,22 @@ export default async function GroupPublicPage({ params }: { params: { slug: stri
   const a = page.accentColor
   const bg = page.bgColor
   const tc = page.textColor
+  const requestedConcertId = searchParams?.concert ? Number(searchParams.concert) : NaN
+  let contactConcert = Number.isFinite(requestedConcertId)
+    ? page.group.concerts.find(c => c.id === requestedConcertId) ?? null
+    : null
+
+  if (Number.isFinite(requestedConcertId) && !contactConcert) {
+    contactConcert = await prisma.concert.findFirst({
+      where: {
+        id: requestedConcertId,
+        groupId: page.group.id,
+        date: { gte: new Date() },
+        isPublic: true,
+      },
+      select: { id: true, name: true, date: true, location: true, address: true, postalCode: true, city: true, startTime: true },
+    })
+  }
 
   return (
     <div style={{ backgroundColor: bg, color: tc, minHeight: '100vh' }}>
@@ -190,8 +212,22 @@ export default async function GroupPublicPage({ params }: { params: { slug: stri
 
       {/* ── CONTACT ────────────────────────────────────────────────────────── */}
       {page.showContact && (
-        <section className="max-w-3xl mx-auto px-6 py-16" style={{ borderTop: `1px solid ${hex(tc, 0.08)}` }}>
-          <ContactForm slug={params.slug} primaryColor={p} title={page.contactTitle} />
+        <section id="contact" className="max-w-3xl mx-auto px-6 py-16 scroll-mt-20" style={{ borderTop: `1px solid ${hex(tc, 0.08)}` }}>
+          <ContactForm
+            slug={params.slug}
+            primaryColor={p}
+            title={page.contactTitle}
+            concert={contactConcert ? {
+              id: contactConcert.id,
+              name: contactConcert.name,
+              date: contactConcert.date.toISOString(),
+              location: contactConcert.location,
+              address: contactConcert.address,
+              postalCode: contactConcert.postalCode,
+              city: contactConcert.city,
+              startTime: contactConcert.startTime,
+            } : null}
+          />
         </section>
       )}
 
