@@ -9,6 +9,7 @@ import { PublicConcerts } from '@/components/PublicConcerts'
 import { ConcertMap } from '@/components/ConcertMap'
 import { Reveal } from '@/components/Reveal'
 import { getSiteSettings } from '@/lib/site-settings'
+import { parseHomeZones } from '@/lib/home-zones'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -24,7 +25,7 @@ export default async function PublicHomePage() {
 
   const now = new Date()
 
-  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups, siteSettings] = await Promise.all([
+  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups, siteSettings, homeZonesRow] = await Promise.all([
     prisma.concert.findMany({
       where: { date: { gte: now }, isPublic: true, group: { isTest: false } },
       orderBy: { date: 'asc' },
@@ -65,7 +66,11 @@ export default async function PublicHomePage() {
       _count: { instrumentId: true },
     }),
     getSiteSettings(),
+    prisma.siteSetting.findUnique({ where: { key: 'home_zones' } }),
   ])
+
+  // Ordre + visibilité des zones de l'accueil (réglés depuis l'admin).
+  const homeZones = parseHomeZones(homeZonesRow?.value)
 
   // Groupes visibles sur l'accueil = publics + privés (les masqués sont exclus par la requête)
   const discoverGroups = groupsLooking
@@ -268,8 +273,13 @@ export default async function PublicHomePage() {
         </div>
       </div>
 
-      {/* Concerts à venir */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
+      {/* Zones réordonnables / masquables depuis l'admin (Personnalisation → Accueil) */}
+      {homeZones.filter((z) => z.visible).map((z) => {
+        switch (z.key) {
+
+      // ── Concerts à venir ──
+      case 'concerts': return (
+      <div key={z.key} className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <Reveal className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -306,9 +316,11 @@ export default async function PublicHomePage() {
           </Link>
         </div>
       </div>
+      )
 
-      {/* Fonctionnalités */}
-      <div className="bg-white border-b border-gray-100">
+      // ── Fonctionnalités ──
+      case 'features': return (
+      <div key={z.key} className="bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
           <Reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f) => (
@@ -323,10 +335,13 @@ export default async function PublicHomePage() {
           </Reveal>
         </div>
       </div>
+      )
 
-      {/* Communauté : styles & instruments */}
-      {(styles.length > 0 || topInstruments.length > 0) && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+      // ── Communauté : styles & instruments (masquée si vide) ──
+      case 'community':
+        if (!(styles.length > 0 || topInstruments.length > 0)) return null
+        return (
+        <div key={z.key} className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
           {styles.length > 0 && (
             <div>
               <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -368,10 +383,11 @@ export default async function PublicHomePage() {
             </div>
           )}
         </div>
-      )}
+      )
 
-      {/* Groupes inscrits */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      // ── Groupes inscrits ──
+      case 'groups': return (
+      <div key={z.key} className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <span className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-sm">🔍</span>
           Groupes inscrits
@@ -452,9 +468,11 @@ export default async function PublicHomePage() {
           </div>
         )}
       </div>
+      )
 
-      {/* Petites annonces CTA */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
+      // ── Petites annonces ──
+      case 'annonces': return (
+      <div key={z.key} className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
         <Reveal className="rounded-2xl bg-white border border-gray-200 px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-2xl flex-shrink-0">📢</div>
@@ -471,9 +489,11 @@ export default async function PublicHomePage() {
           </Link>
         </Reveal>
       </div>
+      )
 
-      {/* Newsletter */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
+      // ── Newsletter ──
+      case 'newsletter': return (
+      <div key={z.key} className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
         <Reveal className="rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white px-6 py-7 sm:flex items-center justify-between gap-6">
           <div className="mb-4 sm:mb-0">
             <h2 className="text-lg font-bold flex items-center gap-2">📬 Restez informé·e</h2>
@@ -482,6 +502,11 @@ export default async function PublicHomePage() {
           <NewsletterSignup variant="dark" />
         </Reveal>
       </div>
+      )
+
+      default: return null
+        }
+      })}
 
       {/* Footer */}
       <footer className="mt-4 border-t border-gray-200 bg-white">

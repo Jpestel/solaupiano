@@ -16,6 +16,11 @@ import {
   type PopupLineStyle,
 } from '@/lib/site-settings'
 import { themeList } from '@/lib/themes'
+import { HOME_ZONES, defaultHomeZones, type HomeZone } from '@/lib/home-zones'
+
+const HOME_ZONE_LABELS: Record<string, { label: string; description: string }> = Object.fromEntries(
+  HOME_ZONES.map((z) => [z.key, { label: z.label, description: z.description }])
+)
 
 // Valeurs d'exemple pour l'aperçu (remplacent les jetons).
 const PREVIEW_SAMPLE: Record<string, string> = {
@@ -47,9 +52,23 @@ export default function PersonnalisationPage() {
   const [concertPopup, setConcertPopup] = useState<ConcertPopupSettings>({ ...DEFAULT_SETTINGS } as ConcertPopupSettings)
   const [lines, setLines] = useState<PopupLine[]>(defaultPopupLines(DEFAULT_SETTINGS))
   const [focusedLine, setFocusedLine] = useState(0)
+  const [homeZones, setHomeZones] = useState<HomeZone[]>(defaultHomeZones())
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const inputRefs = useRef<Array<HTMLInputElement | null>>([])
+
+  const moveZone = (index: number, dir: -1 | 1) => {
+    setHomeZones((prev) => {
+      const target = index + dir
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
+  const toggleZone = (index: number) => {
+    setHomeZones((prev) => prev.map((z, i) => (i === index ? { ...z, visible: !z.visible } : z)))
+  }
 
   const setPopupField = (key: keyof ConcertPopupSettings, value: string) => {
     setConcertPopup((prev) => ({ ...prev, [key]: value }))
@@ -67,6 +86,9 @@ export default function PersonnalisationPage() {
           setLines(parsed && parsed.length > 0 ? parsed : defaultPopupLines(d))
         }
       })
+    fetch('/api/admin/home-zones')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.zones) setHomeZones(d.zones) })
   }, [])
 
   // --- Gestion des lignes ---
@@ -112,11 +134,18 @@ export default function PersonnalisationPage() {
   const handleSave = async () => {
     setSaving(true)
     setSuccess(false)
-    await fetch('/api/admin/personnalisation', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteIcon, colorTheme, ...concertPopup, concertPopupLines: JSON.stringify(lines) }),
-    })
+    await Promise.all([
+      fetch('/api/admin/personnalisation', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteIcon, colorTheme, ...concertPopup, concertPopupLines: JSON.stringify(lines) }),
+      }),
+      fetch('/api/admin/home-zones', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ zones: homeZones }),
+      }),
+    ])
     setSaving(false)
     setSuccess(true)
     setTimeout(() => {
@@ -203,6 +232,60 @@ export default function PersonnalisationPage() {
                 Badge
               </span>
             </div>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="Disposition de l'accueil" />
+          <p className="text-sm text-gray-500 mb-4">
+            Ordonnez les sections de la page d&apos;accueil (de haut en bas) et masquez celles que vous ne voulez pas afficher.
+            Le bandeau d&apos;en-tête (hero) et le pied de page restent fixes.
+          </p>
+          <div className="space-y-2">
+            {homeZones.map((zone, index) => {
+              const meta = HOME_ZONE_LABELS[zone.key] ?? { label: zone.key, description: '' }
+              return (
+                <div
+                  key={zone.key}
+                  className={`flex items-center gap-3 rounded-xl border p-3 ${zone.visible ? 'border-gray-200 bg-white' : 'border-gray-200 bg-gray-50'}`}
+                >
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => moveZone(index, -1)}
+                      disabled={index === 0}
+                      className="px-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                      aria-label="Monter"
+                    >▲</button>
+                    <button
+                      type="button"
+                      onClick={() => moveZone(index, 1)}
+                      disabled={index === homeZones.length - 1}
+                      className="px-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                      aria-label="Descendre"
+                    >▼</button>
+                  </div>
+                  <span className="w-6 text-center text-xs font-bold text-gray-400">{index + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-sm font-semibold ${zone.visible ? 'text-gray-900' : 'text-gray-400'}`}>{meta.label}</p>
+                    <p className="text-xs text-gray-400 truncate">{meta.description}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={zone.visible}
+                    onClick={() => toggleZone(index)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 ${zone.visible ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                    title={zone.visible ? 'Visible' : 'Masquée'}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${zone.visible ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                  <span className={`w-16 text-right text-xs font-medium ${zone.visible ? 'text-indigo-600' : 'text-gray-400'}`}>
+                    {zone.visible ? 'Visible' : 'Masquée'}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </Card>
 
