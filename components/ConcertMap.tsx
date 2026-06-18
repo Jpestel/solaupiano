@@ -14,6 +14,7 @@ export interface MapConcert {
   city: string | null
   groupName: string
   groupSlug: string | null
+  contactSlug?: string | null
   startTime: string | null
   latitude: number | null
   longitude: number | null
@@ -50,8 +51,8 @@ function escapeHtml(value: string) {
 }
 
 function popupHtml(point: MapPoint) {
-  const contactHref = point.groupSlug
-    ? `/${encodeURIComponent(point.groupSlug)}?concert=${encodeURIComponent(String(point.id))}#contact`
+  const contactHref = point.contactSlug
+    ? `/${encodeURIComponent(point.contactSlug)}?concert=${encodeURIComponent(String(point.id))}#contact`
     : null
   const time = point.startTime || 'heure à confirmer'
 
@@ -242,9 +243,9 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
             </span>
           </div>
           <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">{fullAddress(selected)}</p>
-          {selected.groupSlug && (
+          {selected.contactSlug && (
             <Link
-              href={`/${selected.groupSlug}?concert=${selected.id}#contact`}
+              href={`/${selected.contactSlug}?concert=${selected.id}#contact`}
               className="mt-3 inline-flex text-xs font-bold text-indigo-600 hover:underline"
             >
               En savoir plus
