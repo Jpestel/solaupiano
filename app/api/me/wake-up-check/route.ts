@@ -9,6 +9,12 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
+  // L'admin du site n'est pas un participant : pas de nudges « Bon retour »
+  // (présence, progression, sondages, tchat) — notamment pour les groupes de test.
+  if (session.user.siteRole === 'ADMIN') {
+    return NextResponse.json({ missingPresences: [], nextRehearsal: null, groupsLatestMessage: [], pendingPolls: [] })
+  }
+
   const userId = Number(session.user.id)
   const now    = new Date()
 
