@@ -38,6 +38,7 @@ export default async function PublicHomePage() {
         name: true,
         description: true,
         style: true,
+        coverUrl: true,
         isPublic: true,
         lookingFor: true,
         lookingForSince: true,
@@ -385,47 +386,66 @@ export default async function PublicHomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {discoverGroups.map((group) => {
               const instruments = parseLookingFor(group.lookingFor)
+              const hasCover = Boolean(group.coverUrl)
               return (
-                <div key={group.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-indigo-200">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
-                      {group.name.charAt(0)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-semibold text-gray-900 text-sm leading-tight">{group.name}</p>
-                        {!group.isPublic && (
-                          <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">🔒 Privé</span>
+                <div
+                  key={group.id}
+                  className={`group relative overflow-hidden rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                    hasCover ? 'border-transparent min-h-[210px] flex flex-col justify-end' : 'border-gray-200 bg-white hover:border-indigo-200'
+                  }`}
+                >
+                  {hasCover && (
+                    <>
+                      {/* Photo du groupe en fond plein */}
+                      <img src={group.coverUrl!} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      {/* Dégradé pour la lisibilité du texte */}
+                      <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/10" />
+                    </>
+                  )}
+
+                  <div className="relative p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      {!hasCover && (
+                        <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
+                          {group.name.charAt(0)}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className={`font-semibold text-sm leading-tight ${hasCover ? 'text-white' : 'text-gray-900'}`}>{group.name}</p>
+                          {!group.isPublic && (
+                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${hasCover ? 'bg-white/20 text-white backdrop-blur' : 'bg-gray-100 text-gray-500'}`}>🔒 Privé</span>
+                          )}
+                        </div>
+                        <p className={`text-xs mt-0.5 ${hasCover ? 'text-white/80' : 'text-gray-400'}`}>
+                          {group._count.members} membre{group._count.members > 1 ? 's' : ''}
+                          {group.style ? ` · ${group.style}` : ''}
+                        </p>
+                        {group.description && (
+                          <p className={`text-xs mt-1 line-clamp-2 ${hasCover ? 'text-white/85' : 'text-gray-500'}`}>{group.description}</p>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {group._count.members} membre{group._count.members > 1 ? 's' : ''}
-                        {group.style ? ` · ${group.style}` : ''}
+                    </div>
+
+                    {instruments.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className={`text-xs font-medium self-center ${hasCover ? 'text-amber-200' : 'text-amber-600'}`}>Cherche :</span>
+                        {instruments.map((inst) => (
+                          <span key={inst} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${hasCover ? 'bg-white/15 border-white/25 text-white backdrop-blur' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                            {inst}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {group.isPublic ? (
+                      <PublicJoinButton groupId={group.id} groupName={group.name} />
+                    ) : (
+                      <p className={`rounded-lg border px-3 py-2 text-center text-xs ${hasCover ? 'bg-white/15 border-white/20 text-white/90 backdrop-blur' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
+                        🔒 Sur invitation du chef uniquement
                       </p>
-                      {group.description && (
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{group.description}</p>
-                      )}
-                    </div>
+                    )}
                   </div>
-
-                  {instruments.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className="text-xs text-amber-600 font-medium self-center">Cherche :</span>
-                      {instruments.map((inst) => (
-                        <span key={inst} className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
-                          {inst}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {group.isPublic ? (
-                    <PublicJoinButton groupId={group.id} groupName={group.name} />
-                  ) : (
-                    <p className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2 text-center text-xs text-gray-500">
-                      🔒 Sur invitation du chef uniquement
-                    </p>
-                  )}
                 </div>
               )
             })}
