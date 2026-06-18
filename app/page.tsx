@@ -28,7 +28,7 @@ export default async function PublicHomePage() {
       where: { date: { gte: now }, isPublic: true },
       orderBy: { date: 'asc' },
       take: 100,
-      include: { group: { select: { name: true, groupPage: { select: { slug: true, published: true } } } } },
+      include: { group: { select: { name: true, coverUrl: true, groupPage: { select: { slug: true, published: true } } } } },
     }),
     prisma.group.findMany({
       where: { isHidden: false, archivedAt: null },
@@ -81,6 +81,7 @@ export default async function PublicHomePage() {
     longitude: c.longitude,
     startTime: c.startTime,
     groupName: c.group.name,
+    groupCoverUrl: c.group.coverUrl,
     groupSlug: c.group.groupPage?.published && c.group.groupPage?.slug ? c.group.groupPage.slug : null,
   }))
 

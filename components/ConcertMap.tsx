@@ -15,6 +15,7 @@ export interface MapConcert {
   city: string | null
   groupName: string
   groupSlug: string | null
+  groupCoverUrl: string | null
   startTime: string | null
   latitude: number | null
   longitude: number | null
@@ -52,6 +53,15 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#039;')
 }
 
+function initials(value: string) {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('') || '♪'
+}
+
 function popupHtml(point: MapPoint, settings: PopupSettings) {
   const contactHref = `/concerts/${encodeURIComponent(String(point.id))}/contact`
   const timeHtml = point.startTime
@@ -60,7 +70,12 @@ function popupHtml(point: MapPoint, settings: PopupSettings) {
 
   return `
     <div class="concert-map-popup" style="background:${escapeHtml(settings.concertPopupBackgroundColor)};">
-      <p class="concert-map-popup-title" style="color:${escapeHtml(settings.concertPopupTitleColor)};">${escapeHtml(point.groupName)}</p>
+      <div class="concert-map-popup-heading">
+        ${point.groupCoverUrl
+          ? `<img class="concert-map-popup-avatar" src="${escapeHtml(point.groupCoverUrl)}" alt="" />`
+          : `<span class="concert-map-popup-avatar concert-map-popup-avatar-fallback" style="background:${escapeHtml(settings.concertPopupButtonBgColor)};color:${escapeHtml(settings.concertPopupButtonTextColor)};">${escapeHtml(initials(point.groupName))}</span>`}
+        <p class="concert-map-popup-title" style="color:${escapeHtml(settings.concertPopupTitleColor)};">${escapeHtml(point.groupName)}</p>
+      </div>
       <p class="concert-map-popup-kicker" style="color:${escapeHtml(settings.concertPopupTitleColor)};">${escapeHtml(settings.concertPopupKicker)}</p>
       <p class="concert-map-popup-address" style="color:${escapeHtml(settings.concertPopupTextColor)};">${escapeHtml(fullAddress(point))}</p>
       <p class="concert-map-popup-date" style="color:${escapeHtml(settings.concertPopupAccentColor)};">${timeHtml}</p>
@@ -236,7 +251,16 @@ export function ConcertMap({ concerts, popupSettings }: { concerts: MapConcert[]
                   {selected.groupName}
                 </Link>
               ) : (
-                <p className="text-xs text-gray-500">{selected.groupName}</p>
+                <div className="mt-1 flex items-center gap-2">
+                  {selected.groupCoverUrl ? (
+                    <img src={selected.groupCoverUrl} alt="" className="h-5 w-5 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">
+                      {initials(selected.groupName)}
+                    </span>
+                  )}
+                  <p className="text-xs text-gray-500">{selected.groupName}</p>
+                </div>
               )}
             </div>
             <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
