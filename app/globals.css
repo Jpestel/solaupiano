@@ -173,7 +173,8 @@
 
 .concert-map-popup-group,
 .concert-map-popup-date,
-.concert-map-popup-address {
+.concert-map-popup-address,
+.concert-map-popup-line {
   margin: 4px 0 0;
   color: #6b7280;
   font-size: 12px;

@@ -1,30 +1,55 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { DEFAULT_SETTINGS, SITE_ICONS, type ConcertPopupSettings } from '@/lib/site-settings'
+import {
+  DEFAULT_SETTINGS,
+  SITE_ICONS,
+  POPUP_TOKENS,
+  POPUP_LINE_STYLES,
+  POPUP_LINE_STYLE_LABELS,
+  defaultPopupLines,
+  parsePopupLines,
+  type ConcertPopupSettings,
+  type PopupLine,
+  type PopupLineStyle,
+} from '@/lib/site-settings'
 import { themeList } from '@/lib/themes'
+
+// Valeurs d'exemple pour l'aperçu (remplacent les jetons).
+const PREVIEW_SAMPLE: Record<string, string> = {
+  nom_groupe: 'Voodoo Dust',
+  date: 'samedi 5 juillet 2026',
+  date_courte: 'sam. 5 juil.',
+  heure: '20h30',
+  adresse: 'Bar cocktail Eden of Persephone, Quai Southampton, 76600 Le Havre',
+  lieu: 'Bar cocktail Eden of Persephone',
+  ville: 'Le Havre',
+}
+
+function renderPreview(text: string) {
+  return text.replace(/\{(\w+)\}/g, (_, key) => PREVIEW_SAMPLE[key] ?? '')
+}
+
+const STYLE_PREVIEW: Record<PopupLineStyle, { colorKey: keyof ConcertPopupSettings; className: string }> = {
+  title: { colorKey: 'concertPopupTitleColor', className: 'text-lg font-extrabold leading-tight' },
+  kicker: { colorKey: 'concertPopupTitleColor', className: 'text-sm font-bold' },
+  date: { colorKey: 'concertPopupDateColor', className: 'text-base font-extrabold capitalize leading-snug' },
+  address: { colorKey: 'concertPopupTextColor', className: 'text-sm leading-relaxed' },
+  time: { colorKey: 'concertPopupAccentColor', className: 'text-sm font-extrabold leading-relaxed' },
+  normal: { colorKey: 'concertPopupTextColor', className: 'text-sm leading-relaxed' },
+}
 
 export default function PersonnalisationPage() {
   const [siteIcon, setSiteIcon] = useState('🎶')
   const [colorTheme, setColorTheme] = useState('indigo')
-  const [concertPopup, setConcertPopup] = useState<ConcertPopupSettings>({
-    concertPopupKicker: DEFAULT_SETTINGS.concertPopupKicker,
-    concertPopupDatePrefix: DEFAULT_SETTINGS.concertPopupDatePrefix,
-    concertPopupTimePrefix: DEFAULT_SETTINGS.concertPopupTimePrefix,
-    concertPopupMissingTimeText: DEFAULT_SETTINGS.concertPopupMissingTimeText,
-    concertPopupButtonLabel: DEFAULT_SETTINGS.concertPopupButtonLabel,
-    concertPopupBackgroundColor: DEFAULT_SETTINGS.concertPopupBackgroundColor,
-    concertPopupTitleColor: DEFAULT_SETTINGS.concertPopupTitleColor,
-    concertPopupTextColor: DEFAULT_SETTINGS.concertPopupTextColor,
-    concertPopupDateColor: DEFAULT_SETTINGS.concertPopupDateColor,
-    concertPopupAccentColor: DEFAULT_SETTINGS.concertPopupAccentColor,
-    concertPopupButtonBgColor: DEFAULT_SETTINGS.concertPopupButtonBgColor,
-    concertPopupButtonTextColor: DEFAULT_SETTINGS.concertPopupButtonTextColor,
-  })
+  const [concertPopup, setConcertPopup] = useState<ConcertPopupSettings>({ ...DEFAULT_SETTINGS } as ConcertPopupSettings)
+  const [lines, setLines] = useState<PopupLine[]>(defaultPopupLines(DEFAULT_SETTINGS))
+  const [focusedLine, setFocusedLine] = useState(0)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([])
 
   const setPopupField = (key: keyof ConcertPopupSettings, value: string) => {
     setConcertPopup((prev) => ({ ...prev, [key]: value }))
@@ -32,28 +57,57 @@ export default function PersonnalisationPage() {
 
   useEffect(() => {
     fetch('/api/admin/personnalisation')
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d) {
           setSiteIcon(d.siteIcon)
           setColorTheme(d.colorTheme)
-          setConcertPopup({
-            concertPopupKicker: d.concertPopupKicker,
-            concertPopupDatePrefix: d.concertPopupDatePrefix,
-            concertPopupTimePrefix: d.concertPopupTimePrefix,
-            concertPopupMissingTimeText: d.concertPopupMissingTimeText,
-            concertPopupButtonLabel: d.concertPopupButtonLabel,
-            concertPopupBackgroundColor: d.concertPopupBackgroundColor,
-            concertPopupTitleColor: d.concertPopupTitleColor,
-            concertPopupTextColor: d.concertPopupTextColor,
-            concertPopupDateColor: d.concertPopupDateColor,
-            concertPopupAccentColor: d.concertPopupAccentColor,
-            concertPopupButtonBgColor: d.concertPopupButtonBgColor,
-            concertPopupButtonTextColor: d.concertPopupButtonTextColor,
-          })
+          setConcertPopup(d)
+          const parsed = parsePopupLines(d.concertPopupLines)
+          setLines(parsed && parsed.length > 0 ? parsed : defaultPopupLines(d))
         }
       })
   }, [])
+
+  // --- Gestion des lignes ---
+  const updateLine = (index: number, patch: Partial<PopupLine>) => {
+    setLines((prev) => prev.map((line, i) => (i === index ? { ...line, ...patch } : line)))
+  }
+  const addLine = () => {
+    setLines((prev) => [...prev, { text: '', style: 'normal' }])
+    setFocusedLine(lines.length)
+  }
+  const removeLine = (index: number) => {
+    setLines((prev) => prev.filter((_, i) => i !== index))
+  }
+  const moveLine = (index: number, dir: -1 | 1) => {
+    setLines((prev) => {
+      const target = index + dir
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
+  const insertToken = (token: string) => {
+    const index = Math.min(focusedLine, lines.length - 1)
+    if (index < 0) return
+    const input = inputRefs.current[index]
+    const current = lines[index].text
+    if (input && document.activeElement === input) {
+      const start = input.selectionStart ?? current.length
+      const end = input.selectionEnd ?? current.length
+      const next = current.slice(0, start) + token + current.slice(end)
+      updateLine(index, { text: next })
+      requestAnimationFrame(() => {
+        input.focus()
+        const caret = start + token.length
+        input.setSelectionRange(caret, caret)
+      })
+    } else {
+      updateLine(index, { text: current + token })
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -61,11 +115,14 @@ export default function PersonnalisationPage() {
     await fetch('/api/admin/personnalisation', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteIcon, colorTheme, ...concertPopup }),
+      body: JSON.stringify({ siteIcon, colorTheme, ...concertPopup, concertPopupLines: JSON.stringify(lines) }),
     })
     setSaving(false)
     setSuccess(true)
-    setTimeout(() => { setSuccess(false); window.location.reload() }, 1200)
+    setTimeout(() => {
+      setSuccess(false)
+      window.location.reload()
+    }, 1200)
   }
 
   return (
@@ -153,29 +210,94 @@ export default function PersonnalisationPage() {
           <CardHeader title="Popup de la carte des concerts" />
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-5">
+
+              {/* Composition des lignes */}
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Contenu de la popup</p>
+                <p className="text-xs text-gray-500 mb-3">
+                  Composez librement chaque ligne, choisissez son style et insérez des données via les jetons ci-dessous.
+                </p>
+
+                <div className="space-y-2">
+                  {lines.map((line, index) => (
+                    <div key={index} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white p-2">
+                      <div className="flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => moveLine(index, -1)}
+                          disabled={index === 0}
+                          className="px-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          aria-label="Monter"
+                        >▲</button>
+                        <button
+                          type="button"
+                          onClick={() => moveLine(index, 1)}
+                          disabled={index === lines.length - 1}
+                          className="px-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          aria-label="Descendre"
+                        >▼</button>
+                      </div>
+                      <select
+                        value={line.style}
+                        onChange={(e) => updateLine(index, { style: e.target.value as PopupLineStyle })}
+                        className="rounded-lg border border-gray-200 px-2 py-2 text-xs font-medium text-gray-700 focus:border-indigo-500 focus:outline-none"
+                      >
+                        {POPUP_LINE_STYLES.map((style) => (
+                          <option key={style} value={style}>{POPUP_LINE_STYLE_LABELS[style]}</option>
+                        ))}
+                      </select>
+                      <input
+                        ref={(el) => { inputRefs.current[index] = el }}
+                        value={line.text}
+                        onFocus={() => setFocusedLine(index)}
+                        onChange={(e) => updateLine(index, { text: e.target.value })}
+                        placeholder="Texte ou jeton, ex. sera en concert {date}"
+                        className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeLine(index)}
+                        className="px-2 text-gray-400 hover:text-red-600"
+                        aria-label="Supprimer la ligne"
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addLine}
+                  className="mt-2 inline-flex items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-indigo-400 hover:text-indigo-600"
+                >
+                  + Ajouter une ligne
+                </button>
+
+                <div className="mt-3 rounded-xl bg-gray-50 p-3">
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Jetons de données (insérés dans la ligne sélectionnée)</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {POPUP_TOKENS.map((t) => (
+                      <button
+                        key={t.token}
+                        type="button"
+                        onClick={() => insertToken(t.token)}
+                        title={t.label}
+                        className="rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+                      >
+                        {t.token}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField
-                  label="Texte sous le nom du groupe"
-                  value={concertPopup.concertPopupKicker}
-                  onChange={(value) => setPopupField('concertPopupKicker', value)}
-                />
-                <TextField
-                  label="Préfixe de la date"
-                  value={concertPopup.concertPopupDatePrefix}
-                  onChange={(value) => setPopupField('concertPopupDatePrefix', value)}
-                />
-                <TextField
-                  label="Préfixe de l'heure"
-                  value={concertPopup.concertPopupTimePrefix}
-                  onChange={(value) => setPopupField('concertPopupTimePrefix', value)}
-                />
                 <TextField
                   label="Libellé du bouton"
                   value={concertPopup.concertPopupButtonLabel}
                   onChange={(value) => setPopupField('concertPopupButtonLabel', value)}
                 />
                 <TextField
-                  label="Texte si l'heure manque"
+                  label="Texte si l'heure manque (jeton {heure})"
                   value={concertPopup.concertPopupMissingTimeText}
                   onChange={(value) => setPopupField('concertPopupMissingTimeText', value)}
                 />
@@ -185,10 +307,10 @@ export default function PersonnalisationPage() {
                 <p className="text-sm font-semibold text-gray-900 mb-3">Couleurs</p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <ColorField label="Fond" value={concertPopup.concertPopupBackgroundColor} onChange={(value) => setPopupField('concertPopupBackgroundColor', value)} />
-                  <ColorField label="Titre" value={concertPopup.concertPopupTitleColor} onChange={(value) => setPopupField('concertPopupTitleColor', value)} />
-                  <ColorField label="Texte adresse" value={concertPopup.concertPopupTextColor} onChange={(value) => setPopupField('concertPopupTextColor', value)} />
+                  <ColorField label="Titre / Sous-titre" value={concertPopup.concertPopupTitleColor} onChange={(value) => setPopupField('concertPopupTitleColor', value)} />
+                  <ColorField label="Texte adresse / normal" value={concertPopup.concertPopupTextColor} onChange={(value) => setPopupField('concertPopupTextColor', value)} />
                   <ColorField label="Date" value={concertPopup.concertPopupDateColor} onChange={(value) => setPopupField('concertPopupDateColor', value)} />
-                  <ColorField label="Texte heure" value={concertPopup.concertPopupAccentColor} onChange={(value) => setPopupField('concertPopupAccentColor', value)} />
+                  <ColorField label="Heure" value={concertPopup.concertPopupAccentColor} onChange={(value) => setPopupField('concertPopupAccentColor', value)} />
                   <ColorField label="Fond bouton" value={concertPopup.concertPopupButtonBgColor} onChange={(value) => setPopupField('concertPopupButtonBgColor', value)} />
                   <ColorField label="Texte bouton" value={concertPopup.concertPopupButtonTextColor} onChange={(value) => setPopupField('concertPopupButtonTextColor', value)} />
                 </div>
@@ -201,17 +323,24 @@ export default function PersonnalisationPage() {
                 className="rounded-2xl p-5 shadow-xl"
                 style={{ background: concertPopup.concertPopupBackgroundColor }}
               >
-                <p className="font-extrabold" style={{ color: concertPopup.concertPopupTitleColor }}>Voodoo Dust</p>
-                <p className="mt-5 text-sm font-bold" style={{ color: concertPopup.concertPopupTitleColor }}>{concertPopup.concertPopupKicker}</p>
-                <p className="mt-3 text-base font-extrabold capitalize leading-snug" style={{ color: concertPopup.concertPopupDateColor }}>
-                  {`${concertPopup.concertPopupDatePrefix.trim() ? `${concertPopup.concertPopupDatePrefix.trim()} ` : ''}samedi 5 juillet 2026`}
-                </p>
-                <p className="mt-5 text-sm leading-relaxed" style={{ color: concertPopup.concertPopupTextColor }}>
-                  Bar cocktail Eden of Persephone, Quai Southampton, 76600 Le Havre
-                </p>
-                <p className="mt-5 text-sm font-extrabold leading-relaxed" style={{ color: concertPopup.concertPopupAccentColor }}>
-                  {concertPopup.concertPopupMissingTimeText}
-                </p>
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-full text-xs font-black"
+                  style={{ background: concertPopup.concertPopupButtonBgColor, color: concertPopup.concertPopupButtonTextColor }}>
+                  VD
+                </div>
+                {lines.map((line, index) => {
+                  const text = renderPreview(line.text).trim()
+                  if (!text) return null
+                  const meta = STYLE_PREVIEW[line.style] ?? STYLE_PREVIEW.normal
+                  return (
+                    <p
+                      key={index}
+                      className={`mt-3 ${meta.className}`}
+                      style={{ color: concertPopup[meta.colorKey] }}
+                    >
+                      {text}
+                    </p>
+                  )
+                })}
                 <span
                   className="mt-6 inline-flex rounded-full px-5 py-3 text-sm font-extrabold"
                   style={{

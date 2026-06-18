@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import type * as Leaflet from 'leaflet'
-import type { ConcertPopupSettings } from '@/lib/site-settings'
+import { defaultPopupLines, parsePopupLines, type ConcertPopupSettings, type PopupLine, type PopupLineStyle } from '@/lib/site-settings'
 
 export interface MapConcert {
   id: number
@@ -71,26 +71,65 @@ function initials(value: string) {
     .join('') || '♪'
 }
 
+const LINE_STYLE_META: Record<PopupLineStyle, { className: string; colorKey: keyof PopupSettings }> = {
+  title: { className: 'concert-map-popup-title', colorKey: 'concertPopupTitleColor' },
+  kicker: { className: 'concert-map-popup-kicker', colorKey: 'concertPopupTitleColor' },
+  date: { className: 'concert-map-popup-eventdate', colorKey: 'concertPopupDateColor' },
+  address: { className: 'concert-map-popup-address', colorKey: 'concertPopupTextColor' },
+  time: { className: 'concert-map-popup-date', colorKey: 'concertPopupAccentColor' },
+  normal: { className: 'concert-map-popup-line', colorKey: 'concertPopupTextColor' },
+}
+
+// Remplace les jetons {clef} par leur valeur (échappée) et échappe le texte littéral.
+function renderTokens(text: string, ctx: Record<string, string>) {
+  const tokenRe = /\{(\w+)\}/g
+  let out = ''
+  let last = 0
+  let match: RegExpExecArray | null
+  while ((match = tokenRe.exec(text)) !== null) {
+    out += escapeHtml(text.slice(last, match.index))
+    out += escapeHtml(ctx[match[1]] ?? '')
+    last = match.index + match[0].length
+  }
+  out += escapeHtml(text.slice(last))
+  return out
+}
+
+function lineHtml(line: PopupLine, ctx: Record<string, string>, settings: PopupSettings, hasTime: boolean) {
+  // Cas spécial : une ligne qui affiche l'heure mais sans heure connue => texte de repli.
+  const inner = line.text.includes('{heure}') && !hasTime
+    ? escapeHtml(settings.concertPopupMissingTimeText)
+    : renderTokens(line.text, ctx)
+  if (!inner.trim()) return ''
+  const meta = LINE_STYLE_META[line.style] ?? LINE_STYLE_META.normal
+  return `<p class="${meta.className}" style="color:${escapeHtml(settings[meta.colorKey])};">${inner}</p>`
+}
+
 function popupHtml(point: MapPoint, settings: PopupSettings) {
   const contactHref = `/concerts/${encodeURIComponent(String(point.id))}/contact`
-  const datePrefix = settings.concertPopupDatePrefix.trim()
-  const dateHtml = `${datePrefix ? `${escapeHtml(datePrefix)} ` : ''}<strong>${escapeHtml(fullDateLabel(point.date))}</strong>`
-  const timeHtml = point.startTime
-    ? `${escapeHtml(settings.concertPopupTimePrefix)} <strong>${escapeHtml(point.startTime)}</strong>`
-    : escapeHtml(settings.concertPopupMissingTimeText)
+  const hasTime = Boolean(point.startTime)
+  const ctx: Record<string, string> = {
+    nom_groupe: point.groupName,
+    date: fullDateLabel(point.date),
+    date_courte: dateLabel(point.date),
+    heure: point.startTime ?? '',
+    adresse: fullAddress(point),
+    lieu: point.location ?? '',
+    ville: point.city ?? '',
+  }
+
+  const parsed = parsePopupLines(settings.concertPopupLines)
+  const lines = parsed && parsed.length > 0 ? parsed : defaultPopupLines(settings)
+  const bodyHtml = lines.map((line) => lineHtml(line, ctx, settings, hasTime)).join('')
+
+  const avatarHtml = point.groupCoverUrl
+    ? `<img class="concert-map-popup-avatar" src="${escapeHtml(point.groupCoverUrl)}" alt="" />`
+    : `<span class="concert-map-popup-avatar concert-map-popup-avatar-fallback" style="background:${escapeHtml(settings.concertPopupButtonBgColor)};color:${escapeHtml(settings.concertPopupButtonTextColor)};">${escapeHtml(initials(point.groupName))}</span>`
 
   return `
     <div class="concert-map-popup" style="background:${escapeHtml(settings.concertPopupBackgroundColor)};">
-      <div class="concert-map-popup-heading">
-        ${point.groupCoverUrl
-          ? `<img class="concert-map-popup-avatar" src="${escapeHtml(point.groupCoverUrl)}" alt="" />`
-          : `<span class="concert-map-popup-avatar concert-map-popup-avatar-fallback" style="background:${escapeHtml(settings.concertPopupButtonBgColor)};color:${escapeHtml(settings.concertPopupButtonTextColor)};">${escapeHtml(initials(point.groupName))}</span>`}
-        <p class="concert-map-popup-title" style="color:${escapeHtml(settings.concertPopupTitleColor)};">${escapeHtml(point.groupName)}</p>
-      </div>
-      <p class="concert-map-popup-kicker" style="color:${escapeHtml(settings.concertPopupTitleColor)};">${escapeHtml(settings.concertPopupKicker)}</p>
-      <p class="concert-map-popup-eventdate" style="color:${escapeHtml(settings.concertPopupDateColor)};">${dateHtml}</p>
-      <p class="concert-map-popup-address" style="color:${escapeHtml(settings.concertPopupTextColor)};">${escapeHtml(fullAddress(point))}</p>
-      <p class="concert-map-popup-date" style="color:${escapeHtml(settings.concertPopupAccentColor)};">${timeHtml}</p>
+      <div class="concert-map-popup-heading">${avatarHtml}</div>
+      ${bodyHtml}
       <a class="concert-map-popup-link" href="${contactHref}" style="background:${escapeHtml(settings.concertPopupButtonBgColor)};color:${escapeHtml(settings.concertPopupButtonTextColor)} !important;">${escapeHtml(settings.concertPopupButtonLabel)}</a>
     </div>
   `

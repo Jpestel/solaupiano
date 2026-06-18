@@ -16,6 +16,71 @@ export interface ConcertPopupSettings {
   concertPopupAccentColor: string
   concertPopupButtonBgColor: string
   concertPopupButtonTextColor: string
+  // Composition libre de la popup : tableau JSON de lignes { text, style }.
+  // text peut contenir des jetons (voir POPUP_TOKENS). Vide => lignes par défaut.
+  concertPopupLines: string
+}
+
+export type PopupLineStyle = 'title' | 'kicker' | 'date' | 'address' | 'time' | 'normal'
+
+export interface PopupLine {
+  text: string
+  style: PopupLineStyle
+}
+
+export const POPUP_LINE_STYLES: PopupLineStyle[] = ['title', 'kicker', 'date', 'address', 'time', 'normal']
+
+export const POPUP_LINE_STYLE_LABELS: Record<PopupLineStyle, string> = {
+  title: 'Titre',
+  kicker: 'Sous-titre',
+  date: 'Date',
+  address: 'Adresse',
+  time: 'Heure',
+  normal: 'Texte normal',
+}
+
+// Jetons de données insérables dans le texte des lignes.
+export const POPUP_TOKENS: { token: string; label: string }[] = [
+  { token: '{nom_groupe}', label: 'Nom du groupe' },
+  { token: '{date}', label: 'Date (longue)' },
+  { token: '{date_courte}', label: 'Date (courte)' },
+  { token: '{heure}', label: 'Heure' },
+  { token: '{adresse}', label: 'Adresse complète' },
+  { token: '{lieu}', label: 'Lieu / salle' },
+  { token: '{ville}', label: 'Ville' },
+]
+
+// Lignes par défaut, dérivées des anciens réglages texte (rétro-compat).
+export function defaultPopupLines(
+  s: Pick<ConcertPopupSettings, 'concertPopupKicker' | 'concertPopupDatePrefix' | 'concertPopupTimePrefix'>
+): PopupLine[] {
+  const datePrefix = s.concertPopupDatePrefix?.trim()
+  const timePrefix = s.concertPopupTimePrefix?.trim()
+  return [
+    { text: '{nom_groupe}', style: 'title' },
+    { text: s.concertPopupKicker?.trim() || 'en concert ici', style: 'kicker' },
+    { text: `${datePrefix ? `${datePrefix} ` : ''}{date}`, style: 'date' },
+    { text: '{adresse}', style: 'address' },
+    { text: `${timePrefix ? `${timePrefix} ` : ''}{heure}`, style: 'time' },
+  ]
+}
+
+export function parsePopupLines(raw: string | null | undefined): PopupLine[] | null {
+  if (!raw) return null
+  try {
+    const arr = JSON.parse(raw)
+    if (!Array.isArray(arr)) return null
+    const lines = arr
+      .filter((l): l is { text: unknown; style?: unknown } => Boolean(l) && typeof l === 'object')
+      .filter((l) => typeof l.text === 'string')
+      .map((l) => ({
+        text: l.text as string,
+        style: (POPUP_LINE_STYLES.includes(l.style as PopupLineStyle) ? l.style : 'normal') as PopupLineStyle,
+      }))
+    return lines
+  } catch {
+    return null
+  }
 }
 
 export interface SiteSettings extends ConcertPopupSettings {
@@ -38,6 +103,7 @@ export const DEFAULT_SETTINGS = {
   concertPopupAccentColor: '#7c3aed',
   concertPopupButtonBgColor: '#4f46e5',
   concertPopupButtonTextColor: '#ffffff',
+  concertPopupLines: '',
 } satisfies SiteSettings
 
 export async function getSiteSettings(): Promise<SiteSettings> {
@@ -59,6 +125,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       concertPopupAccentColor: map.concertPopupAccentColor ?? DEFAULT_SETTINGS.concertPopupAccentColor,
       concertPopupButtonBgColor: map.concertPopupButtonBgColor ?? DEFAULT_SETTINGS.concertPopupButtonBgColor,
       concertPopupButtonTextColor: map.concertPopupButtonTextColor ?? DEFAULT_SETTINGS.concertPopupButtonTextColor,
+      concertPopupLines: map.concertPopupLines ?? DEFAULT_SETTINGS.concertPopupLines,
     }
   } catch {
     return DEFAULT_SETTINGS
