@@ -47,10 +47,15 @@ export async function POST(req: NextRequest) {
   if (!name?.trim()) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
   if (!chefId) return NextResponse.json({ error: 'Un chef est requis.' }, { status: 400 })
 
+  // Le groupe hérite du statut « de test » de son chef fondateur.
+  const chef = await prisma.user.findUnique({ where: { id: Number(chefId) }, select: { isTest: true } })
+
   const group = await prisma.group.create({
     data: {
       name: name.trim(),
       description: description?.trim() || null,
+      isTest: chef?.isTest ?? false,
+      createdBy: Number(chefId),
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,
       members: {
         create: { userId: Number(chefId), groupRole: 'CHEF' },

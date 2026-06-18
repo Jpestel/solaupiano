@@ -23,6 +23,7 @@ interface Group {
   style?: string | null
   isPublic: boolean
   isHidden: boolean
+  isTest?: boolean
   plan: GroupPlan
   planExpiresAt: string | null
   storageUsedBytes: string // BigInt serialised as string by JSON
@@ -254,37 +255,25 @@ export default function AdminGroupesPage() {
 
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Groupes</h1>
-          <p className="text-gray-500 mt-1">{groups.length} groupe{groups.length > 1 ? 's' : ''}</p>
-        </div>
-        <Button onClick={() => setModalOpen(true)}>+ Créer un groupe</Button>
-      </div>
+  // Les groupes de test sont isolés dans une section à part et hors compteur.
+  const realGroups = groups.filter((g) => !g.isTest)
+  const testGroups = groups.filter((g) => g.isTest)
 
-      {groups.length === 0 ? (
-        <Card>
-          <p className="text-sm text-gray-500 text-center py-8">Aucun groupe créé.</p>
-        </Card>
-      ) : (
-        <Card padding={false}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupe</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Visibilité</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Stockage</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Chef d'orchestre</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Membres / Limite</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groups.map((group: any) => {
+  const GROUP_TABLE_HEAD = (
+    <thead>
+      <tr className="border-b border-gray-100">
+        <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupe</th>
+        <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Visibilité</th>
+        <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
+        <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Stockage</th>
+        <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Chef d&apos;orchestre</th>
+        <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Membres / Limite</th>
+        <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
+      </tr>
+    </thead>
+  )
+
+  const renderGroupRow = (group: any) => {
                   const chef = group.members.find((m: any) => m.groupRole === 'CHEF')
                   const plan: GroupPlan = group.plan || 'FREE'
                   const usedBytes = Number(group.storageUsedBytes || 0)
@@ -457,11 +446,59 @@ export default function AdminGroupesPage() {
                       </td>
                     </tr>
                   )
-                })}
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Groupes</h1>
+          <p className="text-gray-500 mt-1">
+            {realGroups.length} groupe{realGroups.length > 1 ? 's' : ''}
+            {testGroups.length > 0 && <span className="text-amber-600"> · {testGroups.length} de test (hors compteur)</span>}
+          </p>
+        </div>
+        <Button onClick={() => setModalOpen(true)}>+ Créer un groupe</Button>
+      </div>
+
+      {realGroups.length === 0 ? (
+        <Card>
+          <p className="text-sm text-gray-500 text-center py-8">Aucun groupe créé.</p>
+        </Card>
+      ) : (
+        <Card padding={false}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
+              {GROUP_TABLE_HEAD}
+              <tbody>
+                {realGroups.map(renderGroupRow)}
               </tbody>
             </table>
           </div>
         </Card>
+      )}
+
+      {/* 🧪 Groupes de test — isolés, hors compteurs et masqués du site public */}
+      {testGroups.length > 0 && (
+        <div className="mt-8">
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-900">🧪 Groupes de test</h2>
+            <span className="rounded-full bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5">{testGroups.length}</span>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">
+            Rattachés à un compte de test. Exclus des compteurs et masqués du site public (carte des concerts, accueil, pages publiques). Pour les repasser en réel, retirez le statut « de test » du compte fondateur dans <a href="/admin/utilisateurs" className="text-indigo-600 hover:underline">Utilisateurs</a>.
+          </p>
+          <Card padding={false} className="border-amber-200 bg-amber-50/30">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
+                {GROUP_TABLE_HEAD}
+                <tbody>
+                  {testGroups.map(renderGroupRow)}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* 👥 Member limit modal */}

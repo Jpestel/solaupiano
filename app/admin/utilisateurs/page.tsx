@@ -22,6 +22,7 @@ interface User {
   siteRole: string
   accountPlan?: string
   adminLoginAlertEnabled: boolean
+  isTest?: boolean
   createdAt: string
   groups: { group: { id: number; name: string }; groupRole: string }[]
   instruments: { instrument: Instrument }[]
@@ -151,6 +152,22 @@ export default function AdminUtilisateursPage() {
     fetchUsers()
   }
 
+  // Marque/démarque un compte « de test » (se répercute sur ses groupes fondés).
+  const toggleTest = async (user: User) => {
+    const next = !user.isTest
+    if (!confirm(next
+      ? `Marquer ${user.name} comme COMPTE DE TEST ? Ses groupes et leur contenu seront exclus des compteurs et masqués du site public.`
+      : `Repasser ${user.name} en compte réel ? Il sera de nouveau compté et visible publiquement.`)) return
+    setUpdatingId(user.id)
+    await fetch(`/api/admin/utilisateurs/${user.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isTest: next }),
+    })
+    setUpdatingId(null)
+    fetchUsers()
+  }
+
   // Affecte un plan au COMPTE (se répercute sur tous les groupes fondés).
   const changePlan = async (user: User, plan: string) => {
     setUpdatingId(user.id)
@@ -195,12 +212,131 @@ export default function AdminUtilisateursPage() {
   const filtering = q !== '' || groupFilter !== 'all' || roleFilter !== 'all' || instrFilter !== 'all'
   const resetFilters = () => { setSearch(''); setGroupFilter('all'); setRoleFilter('all'); setInstrFilter('all') }
 
+  // Les comptes de test sont isolés dans une section à part et hors compteur.
+  const realUsers = filtered.filter((u) => !u.isTest)
+  const testUsers = filtered.filter((u) => u.isTest)
+  const realTotal = users.filter((u) => !u.isTest).length
+
+  const renderUserRow = (user: User) => {
+    const hasNoGroups = user.groups.length === 0
+    const isAdmin = user.siteRole === 'ADMIN'
+    return (
+      <tr key={user.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+        <td className="px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold flex-shrink-0">
+              {user.avatarUrl
+                ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                : user.name.charAt(0).toUpperCase()
+              }
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 flex items-center gap-1.5">
+                {user.name}
+                {user.isTest && <span className="rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-wide">Test</span>}
+              </p>
+              <p className="text-xs text-gray-500">{user.email}</p>
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <div className="flex flex-wrap gap-1">
+            {user.instruments.length === 0 ? (
+              <span className="text-gray-400 text-xs">—</span>
+            ) : (
+              user.instruments.slice(0, 3).map((ui, i) => (
+                <span key={i} className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">
+                  {ui.instrument.name}
+                </span>
+              ))
+            )}
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <div className="flex flex-wrap gap-1">
+            {user.groups.length === 0 ? (
+              <span className="text-gray-400 text-xs">—</span>
+            ) : (
+              user.groups.slice(0, 2).map((gm) => (
+                <span key={gm.group.id} className="text-xs bg-indigo-50 text-indigo-700 rounded-full px-2 py-0.5">
+                  {gm.group.name}
+                </span>
+              ))
+            )}
+            {user.groups.length > 2 && (
+              <span className="text-xs text-gray-500">+{user.groups.length - 2}</span>
+            )}
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <Badge variant={isAdmin ? 'admin' : 'default'}>
+            {isAdmin ? 'Admin' : 'Utilisateur'}
+          </Badge>
+        </td>
+        <td className="px-6 py-4">
+          {isAdmin ? (
+            <span className="text-xs text-gray-400">—</span>
+          ) : (
+            <select
+              value={user.accountPlan ?? 'FREE'}
+              disabled={updatingId === user.id}
+              onChange={(e) => changePlan(user, e.target.value)}
+              className="text-xs rounded-lg border border-gray-200 px-2 py-1 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              title="Plan du compte (s'applique à tous ses groupes)"
+            >
+              {(Object.keys(PLANS) as string[]).map((k) => (
+                <option key={k} value={k}>{PLANS[k].label}</option>
+              ))}
+            </select>
+          )}
+        </td>
+        <td className="px-6 py-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => openEdit(user)}
+              disabled={updatingId === user.id}
+              className="text-xs font-medium text-gray-600 hover:text-indigo-600 disabled:opacity-50"
+            >
+              Éditer
+            </button>
+            <button
+              onClick={() => toggleRole(user)}
+              disabled={updatingId === user.id}
+              className="text-xs font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
+            >
+              {updatingId === user.id ? '...' : isAdmin ? 'Rétrograder' : 'Promouvoir admin'}
+            </button>
+            {!isAdmin && (
+              <button
+                onClick={() => toggleTest(user)}
+                disabled={updatingId === user.id}
+                className="text-xs font-medium text-amber-600 hover:text-amber-700 disabled:opacity-50"
+              >
+                {user.isTest ? 'Compte réel' : 'Marquer test'}
+              </button>
+            )}
+            {!isAdmin && hasNoGroups && (
+              <button
+                onClick={() => deleteUser(user)}
+                disabled={updatingId === user.id}
+                className="text-xs font-medium text-red-500 hover:text-red-700 disabled:opacity-50"
+              >
+                Supprimer
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Utilisateurs</h1>
         <p className="text-gray-500 mt-1">
-          {filtering ? `${filtered.length} / ${users.length}` : users.length} compte{users.length > 1 ? 's' : ''} {filtering ? 'affichés' : 'enregistrés'}.
+          {filtering ? `${realUsers.length} / ${realTotal}` : realTotal} compte{realTotal > 1 ? 's' : ''} {filtering ? 'affichés' : 'enregistrés'}
+          {testUsers.length > 0 && <span className="text-amber-600"> · {testUsers.length} de test (hors compteur)</span>}.
         </p>
       </div>
 
@@ -248,113 +384,46 @@ export default function AdminUtilisateursPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
+              {realUsers.length === 0 && (
                 <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">Aucun utilisateur ne correspond aux filtres.</td></tr>
               )}
-              {filtered.map((user) => {
-                const hasNoGroups = user.groups.length === 0
-                const isAdmin = user.siteRole === 'ADMIN'
-                return (
-                  <tr key={user.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold flex-shrink-0">
-                          {user.avatarUrl
-                            ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
-                            : user.name.charAt(0).toUpperCase()
-                          }
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{user.name}</p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {user.instruments.length === 0 ? (
-                          <span className="text-gray-400 text-xs">—</span>
-                        ) : (
-                          user.instruments.slice(0, 3).map((ui, i) => (
-                            <span key={i} className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">
-                              {ui.instrument.name}
-                            </span>
-                          ))
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {user.groups.length === 0 ? (
-                          <span className="text-gray-400 text-xs">—</span>
-                        ) : (
-                          user.groups.slice(0, 2).map((gm) => (
-                            <span key={gm.group.id} className="text-xs bg-indigo-50 text-indigo-700 rounded-full px-2 py-0.5">
-                              {gm.group.name}
-                            </span>
-                          ))
-                        )}
-                        {user.groups.length > 2 && (
-                          <span className="text-xs text-gray-500">+{user.groups.length - 2}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge variant={isAdmin ? 'admin' : 'default'}>
-                        {isAdmin ? 'Admin' : 'Utilisateur'}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      {isAdmin ? (
-                        <span className="text-xs text-gray-400">—</span>
-                      ) : (
-                        <select
-                          value={user.accountPlan ?? 'FREE'}
-                          disabled={updatingId === user.id}
-                          onChange={(e) => changePlan(user, e.target.value)}
-                          className="text-xs rounded-lg border border-gray-200 px-2 py-1 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                          title="Plan du compte (s'applique à tous ses groupes)"
-                        >
-                          {(Object.keys(PLANS) as string[]).map((k) => (
-                            <option key={k} value={k}>{PLANS[k].label}</option>
-                          ))}
-                        </select>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <button
-                          onClick={() => openEdit(user)}
-                          disabled={updatingId === user.id}
-                          className="text-xs font-medium text-gray-600 hover:text-indigo-600 disabled:opacity-50"
-                        >
-                          Éditer
-                        </button>
-                        <button
-                          onClick={() => toggleRole(user)}
-                          disabled={updatingId === user.id}
-                          className="text-xs font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
-                        >
-                          {updatingId === user.id ? '...' : isAdmin ? 'Rétrograder' : 'Promouvoir admin'}
-                        </button>
-                        {!isAdmin && hasNoGroups && (
-                          <button
-                            onClick={() => deleteUser(user)}
-                            disabled={updatingId === user.id}
-                            className="text-xs font-medium text-red-500 hover:text-red-700 disabled:opacity-50"
-                          >
-                            Supprimer
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
+              {realUsers.map(renderUserRow)}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {/* Comptes de test — isolés, hors compteurs et masqués du site public */}
+      {testUsers.length > 0 && (
+        <div className="mt-8">
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-900">🧪 Comptes de test</h2>
+            <span className="rounded-full bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5">{testUsers.length}</span>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">
+            Exclus des compteurs et des statistiques, et masqués du site public (concerts, accueil, pages de groupe). Leurs groupes héritent automatiquement de ce statut.
+          </p>
+          <Card padding={false} className="border-amber-200 bg-amber-50/30">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Utilisateur</th>
+                    <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Instruments</th>
+                    <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupes</th>
+                    <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Rôle site</th>
+                    <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
+                    <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {testUsers.map(renderUserRow)}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Edit modal */}
       <Modal isOpen={!!editUser} onClose={() => setEditUser(null)} title="Modifier le compte">

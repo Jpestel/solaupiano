@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     const planRec = await prisma.plan.findUnique({ where: { key: myPlanKey }, select: { maxGroups: true } })
     const maxGroups = Math.max(1, planRec?.maxGroups ?? 1)
     const existingGroupsCount = await prisma.groupMember.count({
-      where: { userId: myId, groupRole: 'CHEF' },
+      where: { userId: myId, groupRole: 'CHEF', group: { isTest: false } },
     })
     if (existingGroupsCount >= maxGroups) {
       return NextResponse.json(
@@ -92,16 +92,19 @@ export async function POST(req: NextRequest) {
   // If chefId provided (admin panel), use it — otherwise the creator becomes CHEF
   const chefUserId = chefId ? Number(chefId) : Number(session.user.id)
 
-  // Le groupe hérite du plan de son FONDATEUR (le plan est porté par le compte).
-  const founderPlanKey = chefUserId === myId
-    ? myPlanKey
-    : ((await prisma.user.findUnique({ where: { id: chefUserId }, select: { accountPlan: true } }))?.accountPlan ?? 'FREE')
+  // Le groupe hérite du plan ET du statut « de test » de son FONDATEUR.
+  const founder = chefUserId === myId
+    ? await prisma.user.findUnique({ where: { id: myId }, select: { accountPlan: true, isTest: true } })
+    : await prisma.user.findUnique({ where: { id: chefUserId }, select: { accountPlan: true, isTest: true } })
+  const founderPlanKey = founder?.accountPlan ?? 'FREE'
+  const founderIsTest = founder?.isTest ?? false
 
   const group = await prisma.group.create({
     data: {
       name: name.trim(),
       type: groupType,
       plan: founderPlanKey,
+      isTest: founderIsTest,
       description: description?.trim() || undefined,
       style: typeof style === 'string' && style.trim() ? style.trim() : undefined,
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,

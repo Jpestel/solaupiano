@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { unlinkPublicFile } from '@/lib/file-cleanup'
 import { setUserPlan } from '@/lib/user-plan'
+import { setUserTestFlag } from '@/lib/test-data'
 
 async function requireAdmin(session: Awaited<ReturnType<typeof getServerSession>>) {
   if (!session) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
@@ -18,8 +19,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (err) return err
 
   const body = await req.json()
-  const { siteRole, name, email, password, instrumentIds, accountPlan, planExpiresAt, adminLoginAlertEnabled } = body
+  const { siteRole, name, email, password, instrumentIds, accountPlan, planExpiresAt, adminLoginAlertEnabled, isTest } = body
   const targetId = Number(params.id)
+
+  // Statut « compte de test » (se répercute sur isTest de tous ses groupes fondés).
+  if (isTest !== undefined) {
+    await setUserTestFlag(targetId, Boolean(isTest))
+  }
 
   // Plan du compte (se répercute sur tous les groupes fondés par l'utilisateur).
   if (accountPlan !== undefined) {
@@ -67,7 +73,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const user = await prisma.user.update({
     where: { id: targetId },
     data,
-    select: { id: true, name: true, email: true, siteRole: true, accountPlan: true, adminLoginAlertEnabled: true },
+    select: { id: true, name: true, email: true, siteRole: true, accountPlan: true, adminLoginAlertEnabled: true, isTest: true },
   })
 
   if (Array.isArray(instrumentIds)) {

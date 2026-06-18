@@ -170,6 +170,9 @@ model User {
   rehearsalReminderOptOut     Boolean   @default(false)
   evaluationReminderOptOut    Boolean   @default(false)
   concertTimeReminderOptOut   Boolean   @default(false)
+  // Compte de test : exclu des compteurs et du site public, isolé dans l'admin.
+  // Se répercute sur isTest de tous les groupes fondés par ce compte.
+  isTest                      Boolean   @default(false)
   adminLoginAlertEnabled      Boolean   @default(true)  // envoie une alerte admin quand ce compte se connecte
   helpBubblesOptOut           Boolean   @default(false) // masque les bulles d'aide contextuelles
 
@@ -355,6 +358,8 @@ model Group {
   coverUrl         String?
   isPublic         Boolean   @default(true)
   isHidden         Boolean   @default(false)
+  // Groupe de test : reflète isTest du fondateur. Exclu des compteurs / du public.
+  isTest           Boolean   @default(false)
   plan             String    @default("FREE")
   planExpiresAt    DateTime?
   storageUsedBytes BigInt    @default(0)

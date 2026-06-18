@@ -3,11 +3,12 @@ import { Card } from '@/components/ui/Card'
 import Link from 'next/link'
 
 export default async function AdminPage() {
+  // Les comptes/groupes de test sont exclus des compteurs.
   const [userCount, groupCount, instrumentCount, rehearsalCount] = await Promise.all([
-    prisma.user.count(),
-    prisma.group.count(),
+    prisma.user.count({ where: { isTest: false } }),
+    prisma.group.count({ where: { isTest: false } }),
     prisma.instrument.count(),
-    prisma.rehearsal.count(),
+    prisma.rehearsal.count({ where: { group: { isTest: false } } }),
   ])
 
   const stats = [

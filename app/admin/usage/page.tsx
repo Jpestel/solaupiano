@@ -10,7 +10,8 @@ export default async function AdminUsagePage({ searchParams }: { searchParams: {
   const daysParam = searchParams.days || '30'
   const days = daysParam === 'all' ? null : Math.max(1, parseInt(daysParam, 10) || 30)
   const since = days ? new Date(Date.now() - days * 86400000) : null
-  const where = since ? { createdAt: { gte: since } } : {}
+  // Exclut les visites des comptes de test des statistiques d'usage.
+  const where = { user: { isTest: false }, ...(since ? { createdAt: { gte: since } } : {}) }
 
   const [total, byModule, byUser, byUserModule, recent] = await Promise.all([
     prisma.moduleVisit.count({ where }),

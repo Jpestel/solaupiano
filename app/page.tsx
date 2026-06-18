@@ -25,13 +25,13 @@ export default async function PublicHomePage() {
 
   const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups, siteSettings] = await Promise.all([
     prisma.concert.findMany({
-      where: { date: { gte: now }, isPublic: true },
+      where: { date: { gte: now }, isPublic: true, group: { isTest: false } },
       orderBy: { date: 'asc' },
       take: 100,
       include: { group: { select: { name: true, coverUrl: true, groupPage: { select: { slug: true, published: true } } } } },
     }),
     prisma.group.findMany({
-      where: { isHidden: false, archivedAt: null },
+      where: { isHidden: false, archivedAt: null, isTest: false },
       select: {
         id: true,
         name: true,
@@ -45,21 +45,21 @@ export default async function PublicHomePage() {
       orderBy: [{ isPublic: 'desc' }, { lookingForSince: 'desc' }, { createdAt: 'desc' }],
       take: 12,
     }),
-    prisma.user.count({ where: { siteRole: { not: 'ADMIN' } } }),
-    prisma.group.count({ where: { archivedAt: null } }),
-    prisma.concert.count({ where: { date: { gte: now } } }),
+    prisma.user.count({ where: { siteRole: { not: 'ADMIN' }, isTest: false } }),
+    prisma.group.count({ where: { archivedAt: null, isTest: false } }),
+    prisma.concert.count({ where: { date: { gte: now }, group: { isTest: false } } }),
     prisma.instrument.findMany({
-      where: { users: { some: { user: { siteRole: { not: 'ADMIN' } } } } },
-      include: { _count: { select: { users: { where: { user: { siteRole: { not: 'ADMIN' } } } } } } },
+      where: { users: { some: { user: { siteRole: { not: 'ADMIN' }, isTest: false } } } },
+      include: { _count: { select: { users: { where: { user: { siteRole: { not: 'ADMIN' }, isTest: false } } } } } },
     }),
     prisma.group.groupBy({
       by: ['style'],
-      where: { archivedAt: null, style: { not: null } },
+      where: { archivedAt: null, style: { not: null }, isTest: false },
       _count: { _all: true },
     }),
     prisma.userInstrument.groupBy({
       by: ['userId'],
-      where: { user: { siteRole: { not: 'ADMIN' } } },
+      where: { user: { siteRole: { not: 'ADMIN' }, isTest: false } },
       _count: { instrumentId: true },
     }),
     getSiteSettings(),

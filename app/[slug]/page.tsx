@@ -53,6 +53,7 @@ export default async function GroupPublicPage({
           id: true,
           name: true,
           archivedAt: true,
+          isTest: true,
           members: {
             where: { groupRole: 'CHEF' },
             select: { userId: true },
@@ -70,6 +71,7 @@ export default async function GroupPublicPage({
 
   if (!page) notFound()
   if (page.group.archivedAt) notFound() // groupe archivé : page publique désactivée
+  if (page.group.isTest) notFound() // groupe de test : masqué du site public
 
   // If draft, only accessible to chefs
   if (!page.published) {
