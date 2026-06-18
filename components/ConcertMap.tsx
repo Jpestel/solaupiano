@@ -145,11 +145,10 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
     const bounds = L.latLngBounds(points.map((point) => [point.latitude, point.longitude]))
 
     points.forEach((point) => {
-      const isSelected = point.id === selected?.id
       const marker = L.marker([point.latitude, point.longitude], {
         icon: L.divIcon({
           className: '',
-          html: `<span class="concert-map-pin${isSelected ? ' is-active' : ''}"><span></span></span>`,
+          html: '<span class="concert-map-pin"><span></span></span>',
           iconSize: [34, 34],
           iconAnchor: [17, 17],
         }),
@@ -172,10 +171,6 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
         marker.openPopup()
       })
       marker.addTo(layer)
-
-      if (isSelected) {
-        marker.openPopup()
-      }
     })
 
     if (points.length === 1) {
@@ -183,7 +178,7 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
     } else {
       map.fitBounds(bounds, { padding: [34, 34], maxZoom: 11 })
     }
-  }, [mapReady, points, selected])
+  }, [mapReady, points])
 
   return (
     <div className="rounded-3xl border border-white/15 bg-white/10 p-4 shadow-2xl shadow-black/10 backdrop-blur">
