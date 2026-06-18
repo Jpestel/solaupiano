@@ -61,7 +61,7 @@ function popupHtml(point: MapPoint) {
 
 function tooltipHtml(point: MapPoint) {
   return `
-    <div>
+    <div class="concert-map-tooltip-content">
       <strong>${escapeHtml(point.name)}</strong>
       <span>${escapeHtml(point.location || point.city || '')}</span>
     </div>
@@ -148,7 +148,12 @@ export function ConcertMap({ concerts }: { concerts: MapConcert[] }) {
       const marker = L.marker([point.latitude, point.longitude], {
         icon: L.divIcon({
           className: '',
-          html: '<span class="concert-map-pin"><span></span></span>',
+          html: `
+            <span class="concert-map-pin">
+              <span class="concert-map-pin-dot"></span>
+              <span class="concert-map-pin-label">${tooltipHtml(point)}</span>
+            </span>
+          `,
           iconSize: [34, 34],
           iconAnchor: [17, 17],
         }),
