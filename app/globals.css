@@ -209,3 +209,43 @@
   padding: 7px 12px;
   text-decoration: none !important;
 }
+
+/* ─── Animations légères de l'accueil ─────────────────────────────────────── */
+
+/* Entrée « fade-up » jouée au chargement (CSS pur, pas de JS). */
+@keyframes spFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.sp-fade-up {
+  opacity: 0;
+  animation: spFadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Flottement doux des emojis décoratifs du hero. */
+@keyframes spFloat {
+  0%, 100% { transform: translateY(0) rotate(var(--sp-rot, 0deg)); }
+  50%      { transform: translateY(-14px) rotate(var(--sp-rot, 0deg)); }
+}
+.sp-float {
+  animation: spFloat 7s ease-in-out infinite;
+}
+
+/* Révélation au scroll (piloté par le composant Reveal via IntersectionObserver). */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Respect des préférences d'accessibilité : on désactive tout mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  .sp-fade-up { opacity: 1; animation: none; }
+  .sp-float { animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}

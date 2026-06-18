@@ -7,6 +7,7 @@ import { PublicNav } from './PublicNav'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
 import { PublicConcerts } from '@/components/PublicConcerts'
 import { ConcertMap } from '@/components/ConcertMap'
+import { Reveal } from '@/components/Reveal'
 import { getSiteSettings } from '@/lib/site-settings'
 
 function parseLookingFor(raw?: string | null): string[] {
@@ -136,31 +137,31 @@ export default async function PublicHomePage() {
       <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white">
         {/* Décor : notes & instruments translucides */}
         <div aria-hidden className="pointer-events-none absolute inset-0 select-none">
-          <span className="absolute -top-4 right-6 text-[140px] opacity-10 rotate-12">🎵</span>
-          <span className="absolute top-20 right-1/3 text-[90px] opacity-10 -rotate-6">🎸</span>
-          <span className="absolute bottom-2 left-1/4 text-[100px] opacity-10">🎹</span>
-          <span className="absolute bottom-8 right-12 text-[80px] opacity-10 rotate-6">🥁</span>
+          <span className="sp-float absolute -top-4 right-6 text-[140px] opacity-10" style={{ '--sp-rot': '12deg', animationDelay: '0s' } as React.CSSProperties}>🎵</span>
+          <span className="sp-float absolute top-20 right-1/3 text-[90px] opacity-10" style={{ '--sp-rot': '-6deg', animationDelay: '1.2s' } as React.CSSProperties}>🎸</span>
+          <span className="sp-float absolute bottom-2 left-1/4 text-[100px] opacity-10" style={{ '--sp-rot': '0deg', animationDelay: '2.1s' } as React.CSSProperties}>🎹</span>
+          <span className="sp-float absolute bottom-8 right-12 text-[80px] opacity-10" style={{ '--sp-rot': '6deg', animationDelay: '0.6s' } as React.CSSProperties}>🥁</span>
         </div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.9fr)] gap-8 lg:gap-10 items-start">
             <div className="min-w-0">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+              <span className="sp-fade-up inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur" style={{ animationDelay: '0.05s' }}>
                 {isLoggedIn
                   ? `👋 Bonjour ${firstName ?? ''}`.trim() + ' — content de vous revoir'
                   : '🎵 La plateforme des musiciens — du solo à l’orchestre'}
               </span>
-              <h1 className="mt-4 text-3xl sm:text-5xl font-bold leading-tight">
+              <h1 className="sp-fade-up mt-4 text-3xl sm:text-5xl font-bold leading-tight" style={{ animationDelay: '0.15s' }}>
                 Jouez, répétez,{' '}
                 <span className="text-amber-300">progressez</span>
               </h1>
-              <p className="mt-4 text-white/80 text-base sm:text-lg leading-relaxed">
+              <p className="sp-fade-up mt-4 text-white/80 text-base sm:text-lg leading-relaxed" style={{ animationDelay: '0.25s' }}>
                 Que vous jouiez seul, en groupe, que vous donniez des cours ou que vous en suiviez :
                 gérez votre répertoire et vos accords, organisez vos répétitions et vos concerts,
                 suivez la progression de chacun. Le tout au même endroit.
               </p>
               {isLoggedIn ? (
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="sp-fade-up mt-6 flex flex-wrap items-center gap-3" style={{ animationDelay: '0.35s' }}>
                   <Link
                     href="/tableau-de-bord"
                     className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-gray-100 transition-colors shadow-lg shadow-black/10"
@@ -176,7 +177,7 @@ export default async function PublicHomePage() {
                 </div>
               ) : (
                 <>
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <div className="sp-fade-up mt-6 flex flex-wrap items-center gap-3" style={{ animationDelay: '0.35s' }}>
                     <Link
                       href="/inscription"
                       className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-gray-100 transition-colors shadow-lg shadow-black/10"
@@ -205,7 +206,7 @@ export default async function PublicHomePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
                       <Link
                         href="/inscription"
-                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-all duration-200 hover:-translate-y-0.5"
                       >
                         <div className="flex items-center gap-2 text-white font-semibold">
                           <span className="text-xl">🎵</span> Jouer, seul ou en groupe
@@ -214,7 +215,7 @@ export default async function PublicHomePage() {
                       </Link>
                       <Link
                         href="/inscription"
-                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-all duration-200 hover:-translate-y-0.5"
                       >
                         <div className="flex items-center gap-2 text-white font-semibold">
                           <span className="text-xl">🎼</span> Créer & gérer un groupe
@@ -223,7 +224,7 @@ export default async function PublicHomePage() {
                       </Link>
                       <Link
                         href="/inscription"
-                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-all duration-200 hover:-translate-y-0.5"
                       >
                         <div className="flex items-center gap-2 text-white font-semibold">
                           <span className="text-xl">🎓</span> Enseigner
@@ -232,7 +233,7 @@ export default async function PublicHomePage() {
                       </Link>
                       <Link
                         href="/inscription"
-                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-colors"
+                        className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-all duration-200 hover:-translate-y-0.5"
                       >
                         <div className="flex items-center gap-2 text-white font-semibold">
                           <span className="text-xl">🎒</span> Apprendre
@@ -253,8 +254,8 @@ export default async function PublicHomePage() {
 
           {/* Compteurs */}
           <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl">
-            {STATS.map((s) => (
-              <div key={s.label} className="rounded-2xl bg-white/10 backdrop-blur px-4 py-3 border border-white/15">
+            {STATS.map((s, i) => (
+              <div key={s.label} className="sp-fade-up rounded-2xl bg-white/10 backdrop-blur px-4 py-3 border border-white/15 transition-all duration-200 hover:bg-white/15 hover:-translate-y-0.5" style={{ animationDelay: `${0.4 + i * 0.1}s` }}>
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{s.icon}</span>
                   <span className="text-2xl sm:text-3xl font-bold leading-none">{s.value}</span>
@@ -268,7 +269,7 @@ export default async function PublicHomePage() {
 
       {/* Concerts à venir */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
-        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <Reveal className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-sm">🎭</span>
@@ -283,7 +284,7 @@ export default async function PublicHomePage() {
               {concerts.length} événement{concerts.length > 1 ? 's' : ''}
             </span>
           )}
-        </div>
+        </Reveal>
 
         <PublicConcerts concerts={concertsForList} />
 
@@ -308,9 +309,9 @@ export default async function PublicHomePage() {
       {/* Fonctionnalités */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f) => (
-              <div key={f.title} className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <div key={f.title} className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-200 hover:shadow-sm">
                 <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl">{f.icon}</span>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">{f.title}</p>
@@ -318,7 +319,7 @@ export default async function PublicHomePage() {
                 </div>
               </div>
             ))}
-          </div>
+          </Reveal>
         </div>
       </div>
 
@@ -385,7 +386,7 @@ export default async function PublicHomePage() {
             {discoverGroups.map((group) => {
               const instruments = parseLookingFor(group.lookingFor)
               return (
-                <div key={group.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+                <div key={group.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-indigo-200">
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
                       {group.name.charAt(0)}
@@ -434,7 +435,7 @@ export default async function PublicHomePage() {
 
       {/* Petites annonces CTA */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
-        <div className="rounded-2xl bg-white border border-gray-200 px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <Reveal className="rounded-2xl bg-white border border-gray-200 px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-2xl flex-shrink-0">📢</div>
             <div>
@@ -448,18 +449,18 @@ export default async function PublicHomePage() {
           >
             Voir les annonces →
           </Link>
-        </div>
+        </Reveal>
       </div>
 
       {/* Newsletter */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
-        <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white px-6 py-7 sm:flex items-center justify-between gap-6">
+        <Reveal className="rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white px-6 py-7 sm:flex items-center justify-between gap-6">
           <div className="mb-4 sm:mb-0">
             <h2 className="text-lg font-bold flex items-center gap-2">📬 Restez informé·e</h2>
             <p className="text-sm text-white/80 mt-1">Nouveautés, astuces et conseils pour les groupes. Sans compte, désinscription en 1 clic.</p>
           </div>
           <NewsletterSignup variant="dark" />
-        </div>
+        </Reveal>
       </div>
 
       {/* Footer */}
