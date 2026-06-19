@@ -27,12 +27,17 @@ function parseLookingFor(raw?: string | null): string[] {
 // Substitue les jetons puis nettoie les séparateurs orphelins (ex. « 4 membres · »).
 function renderLine(text: string, ctx: Record<string, string>) {
   const out = text.replace(/\{(\w+)\}/g, (_, key) => ctx[key] ?? '')
-  return out
+  const cleaned = out
     .replace(/\s*·\s*·\s*/g, ' · ')
     .replace(/^\s*·\s*/, '')
     .replace(/\s*·\s*$/, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
+
+  // Si une ligne personnalisée devient seulement un libellé orphelin
+  // (ex. « Cherche : {cherche} » sans instrument recherché), on la masque.
+  if (/^[A-Za-zÀ-ÿ\s'’_-]+:\s*$/.test(cleaned)) return ''
+  return cleaned
 }
 
 // Style de ligne → classes (et couleur configurable en mode « sans photo »).
