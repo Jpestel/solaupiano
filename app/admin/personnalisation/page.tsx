@@ -55,6 +55,7 @@ export default function PersonnalisationPage() {
   const [homeZones, setHomeZones] = useState<HomeZone[]>(defaultHomeZones())
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const inputRefs = useRef<Array<HTMLInputElement | null>>([])
 
   const moveZone = (index: number, dir: -1 | 1) => {
@@ -134,24 +135,34 @@ export default function PersonnalisationPage() {
   const handleSave = async () => {
     setSaving(true)
     setSuccess(false)
-    await Promise.all([
-      fetch('/api/admin/personnalisation', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteIcon, colorTheme, ...concertPopup, concertPopupLines: JSON.stringify(lines) }),
-      }),
-      fetch('/api/admin/home-zones', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zones: homeZones }),
-      }),
-    ])
-    setSaving(false)
-    setSuccess(true)
-    setTimeout(() => {
-      setSuccess(false)
-      window.location.reload()
-    }, 1200)
+    setSaveError('')
+    try {
+      const [r1, r2] = await Promise.all([
+        fetch('/api/admin/personnalisation', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ siteIcon, colorTheme, ...concertPopup, concertPopupLines: JSON.stringify(lines) }),
+        }),
+        fetch('/api/admin/home-zones', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ zones: homeZones }),
+        }),
+      ])
+      setSaving(false)
+      if (!r1.ok || !r2.ok) {
+        setSaveError("L'enregistrement a échoué. Réessayez ou rechargez la page.")
+        return
+      }
+      setSuccess(true)
+      setTimeout(() => {
+        setSuccess(false)
+        window.location.reload()
+      }, 1200)
+    } catch {
+      setSaving(false)
+      setSaveError("L'enregistrement a échoué (réseau). Réessayez.")
+    }
   }
 
   return (
@@ -443,6 +454,7 @@ export default function PersonnalisationPage() {
             {saving ? 'Enregistrement...' : 'Enregistrer'}
           </Button>
           {success && <span className="text-sm text-green-600 font-medium">✓ Sauvegardé — rechargement...</span>}
+          {saveError && <span className="text-sm text-red-600 font-medium">{saveError}</span>}
         </div>
       </div>
     </div>

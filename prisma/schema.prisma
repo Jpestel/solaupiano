@@ -1058,7 +1058,9 @@ model JoinRequest {
 
 model SiteSetting {
   key   String @id
-  value String
+  // TEXT et non VARCHAR(191) : certaines valeurs sont du JSON > 191 caractères
+  // (home_zones, concertPopupLines…) qui sinon échouent à l'enregistrement sous MySQL.
+  value String @db.Text
 }
 
 model PerfSnapshot {
