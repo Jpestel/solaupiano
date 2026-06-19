@@ -11,9 +11,17 @@ import {
   POPUP_LINE_STYLE_LABELS,
   defaultPopupLines,
   parsePopupLines,
+  GROUP_CARD_TOKENS,
+  GROUP_CARD_LINE_STYLES,
+  GROUP_CARD_LINE_STYLE_LABELS,
+  defaultGroupCardLines,
+  parseGroupCardLines,
   type ConcertPopupSettings,
+  type GroupCardSettings,
   type PopupLine,
   type PopupLineStyle,
+  type GroupCardLine,
+  type GroupCardLineStyle,
 } from '@/lib/site-settings'
 import { themeList } from '@/lib/themes'
 import { HOME_ZONES, defaultHomeZones, type HomeZone } from '@/lib/home-zones'
@@ -37,6 +45,31 @@ function renderPreview(text: string) {
   return text.replace(/\{(\w+)\}/g, (_, key) => PREVIEW_SAMPLE[key] ?? '')
 }
 
+const GROUP_PREVIEW_SAMPLE: Record<string, string> = {
+  nom_groupe: 'Voodoo Dust',
+  membres: '4',
+  style: 'Fusion',
+  cherche: 'guitare, basse',
+  description: 'Compo et covers, ambiance rock psychédélique.',
+}
+
+function renderGroupPreview(text: string) {
+  return text
+    .replace(/\{(\w+)\}/g, (_, key) => GROUP_PREVIEW_SAMPLE[key] ?? '')
+    .replace(/\s*·\s*·\s*/g, ' · ')
+    .replace(/^\s*·\s*/, '')
+    .replace(/\s*·\s*$/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+const GROUP_STYLE_PREVIEW: Record<GroupCardLineStyle, { colorKey: 'groupCardTitleColor' | 'groupCardTextColor' | 'groupCardAccentColor'; className: string }> = {
+  title: { colorKey: 'groupCardTitleColor', className: 'text-sm font-semibold leading-tight' },
+  subtitle: { colorKey: 'groupCardTextColor', className: 'text-xs' },
+  accent: { colorKey: 'groupCardAccentColor', className: 'text-xs font-medium' },
+  normal: { colorKey: 'groupCardTextColor', className: 'text-xs leading-snug' },
+}
+
 const STYLE_PREVIEW: Record<PopupLineStyle, { colorKey: keyof ConcertPopupSettings; className: string }> = {
   title: { colorKey: 'concertPopupTitleColor', className: 'text-lg font-extrabold leading-tight' },
   kicker: { colorKey: 'concertPopupTitleColor', className: 'text-sm font-bold' },
@@ -53,6 +86,55 @@ export default function PersonnalisationPage() {
   const [lines, setLines] = useState<PopupLine[]>(defaultPopupLines(DEFAULT_SETTINGS))
   const [focusedLine, setFocusedLine] = useState(0)
   const [homeZones, setHomeZones] = useState<HomeZone[]>(defaultHomeZones())
+  const [groupCard, setGroupCard] = useState<Omit<GroupCardSettings, 'groupCardLines'>>({
+    groupCardTitleColor: '#111827',
+    groupCardTextColor: '#6b7280',
+    groupCardAccentColor: '#d97706',
+    groupCardPageLabel: 'Voir la page',
+    groupCardContactLabel: 'Contacter',
+    groupCardSectionTitle: 'Groupes inscrits',
+    groupCardSeeAllLabel: 'Voir tous les groupes',
+  })
+  const [groupLines, setGroupLines] = useState<GroupCardLine[]>(defaultGroupCardLines())
+  const [focusedGroupLine, setFocusedGroupLine] = useState(0)
+  const groupInputRefs = useRef<Array<HTMLInputElement | null>>([])
+
+  const setGroupField = (key: keyof Omit<GroupCardSettings, 'groupCardLines'>, value: string) => {
+    setGroupCard((prev) => ({ ...prev, [key]: value }))
+  }
+  const updateGroupLine = (index: number, patch: Partial<GroupCardLine>) => {
+    setGroupLines((prev) => prev.map((line, i) => (i === index ? { ...line, ...patch } : line)))
+  }
+  const addGroupLine = () => {
+    setGroupLines((prev) => [...prev, { text: '', style: 'normal' }])
+    setFocusedGroupLine(groupLines.length)
+  }
+  const removeGroupLine = (index: number) => {
+    setGroupLines((prev) => prev.filter((_, i) => i !== index))
+  }
+  const moveGroupLine = (index: number, dir: -1 | 1) => {
+    setGroupLines((prev) => {
+      const target = index + dir
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
+  const insertGroupToken = (token: string) => {
+    const index = Math.min(focusedGroupLine, groupLines.length - 1)
+    if (index < 0) return
+    const input = groupInputRefs.current[index]
+    const current = groupLines[index].text
+    if (input && document.activeElement === input) {
+      const start = input.selectionStart ?? current.length
+      const end = input.selectionEnd ?? current.length
+      updateGroupLine(index, { text: current.slice(0, start) + token + current.slice(end) })
+      requestAnimationFrame(() => { input.focus(); const c = start + token.length; input.setSelectionRange(c, c) })
+    } else {
+      updateGroupLine(index, { text: current + token })
+    }
+  }
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -85,6 +167,17 @@ export default function PersonnalisationPage() {
           setConcertPopup(d)
           const parsed = parsePopupLines(d.concertPopupLines)
           setLines(parsed && parsed.length > 0 ? parsed : defaultPopupLines(d))
+          setGroupCard({
+            groupCardTitleColor: d.groupCardTitleColor,
+            groupCardTextColor: d.groupCardTextColor,
+            groupCardAccentColor: d.groupCardAccentColor,
+            groupCardPageLabel: d.groupCardPageLabel,
+            groupCardContactLabel: d.groupCardContactLabel,
+            groupCardSectionTitle: d.groupCardSectionTitle,
+            groupCardSeeAllLabel: d.groupCardSeeAllLabel,
+          })
+          const gParsed = parseGroupCardLines(d.groupCardLines)
+          setGroupLines(gParsed && gParsed.length > 0 ? gParsed : defaultGroupCardLines())
         }
       })
     fetch('/api/admin/home-zones')
@@ -141,7 +234,7 @@ export default function PersonnalisationPage() {
         fetch('/api/admin/personnalisation', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ siteIcon, colorTheme, ...concertPopup, concertPopupLines: JSON.stringify(lines) }),
+          body: JSON.stringify({ siteIcon, colorTheme, ...concertPopup, concertPopupLines: JSON.stringify(lines), ...groupCard, groupCardLines: JSON.stringify(groupLines) }),
         }),
         fetch('/api/admin/home-zones', {
           method: 'PUT',
@@ -297,6 +390,100 @@ export default function PersonnalisationPage() {
                 </div>
               )
             })}
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="Cards des groupes (accueil)" />
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="space-y-5">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Contenu de la carte</p>
+                <p className="text-xs text-gray-500 mb-3">
+                  Composez les lignes affichées sur chaque carte de groupe. Les jetons sont remplacés par les données du groupe.
+                  <br />Sur une carte avec photo de fond, le texte passe automatiquement en blanc.
+                </p>
+                <div className="space-y-2">
+                  {groupLines.map((line, index) => (
+                    <div key={index} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white p-2">
+                      <div className="flex flex-col">
+                        <button type="button" onClick={() => moveGroupLine(index, -1)} disabled={index === 0} className="px-1 text-gray-400 hover:text-gray-700 disabled:opacity-30" aria-label="Monter">▲</button>
+                        <button type="button" onClick={() => moveGroupLine(index, 1)} disabled={index === groupLines.length - 1} className="px-1 text-gray-400 hover:text-gray-700 disabled:opacity-30" aria-label="Descendre">▼</button>
+                      </div>
+                      <select
+                        value={line.style}
+                        onChange={(e) => updateGroupLine(index, { style: e.target.value as GroupCardLineStyle })}
+                        className="rounded-lg border border-gray-200 px-2 py-2 text-xs font-medium text-gray-700 focus:border-indigo-500 focus:outline-none"
+                      >
+                        {GROUP_CARD_LINE_STYLES.map((style) => (
+                          <option key={style} value={style}>{GROUP_CARD_LINE_STYLE_LABELS[style]}</option>
+                        ))}
+                      </select>
+                      <input
+                        ref={(el) => { groupInputRefs.current[index] = el }}
+                        value={line.text}
+                        onFocus={() => setFocusedGroupLine(index)}
+                        onChange={(e) => updateGroupLine(index, { text: e.target.value })}
+                        placeholder="Texte ou jeton, ex. {membres} membres · {style}"
+                        className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                      />
+                      <button type="button" onClick={() => removeGroupLine(index)} className="px-2 text-gray-400 hover:text-red-600" aria-label="Supprimer la ligne">✕</button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={addGroupLine} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-indigo-400 hover:text-indigo-600">
+                  + Ajouter une ligne
+                </button>
+                <div className="mt-3 rounded-xl bg-gray-50 p-3">
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Jetons de données (insérés dans la ligne sélectionnée)</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {GROUP_CARD_TOKENS.map((t) => (
+                      <button key={t.token} type="button" onClick={() => insertGroupToken(t.token)} title={t.label} className="rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50">
+                        {t.token}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Titre de la section" value={groupCard.groupCardSectionTitle} onChange={(v) => setGroupField('groupCardSectionTitle', v)} />
+                <TextField label="Libellé « Voir tous »" value={groupCard.groupCardSeeAllLabel} onChange={(v) => setGroupField('groupCardSeeAllLabel', v)} />
+                <TextField label="Libellé bouton « Voir la page »" value={groupCard.groupCardPageLabel} onChange={(v) => setGroupField('groupCardPageLabel', v)} />
+                <TextField label="Libellé bouton « Contacter »" value={groupCard.groupCardContactLabel} onChange={(v) => setGroupField('groupCardContactLabel', v)} />
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-3">Couleurs (cartes sans photo)</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <ColorField label="Titre" value={groupCard.groupCardTitleColor} onChange={(v) => setGroupField('groupCardTitleColor', v)} />
+                  <ColorField label="Texte" value={groupCard.groupCardTextColor} onChange={(v) => setGroupField('groupCardTextColor', v)} />
+                  <ColorField label="Accent" value={groupCard.groupCardAccentColor} onChange={(v) => setGroupField('groupCardAccentColor', v)} />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs text-gray-500 mb-3 font-medium uppercase tracking-wide">Aperçu</p>
+              <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">V</div>
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    {groupLines.map((line, index) => {
+                      const text = renderGroupPreview(line.text)
+                      if (!text) return null
+                      const meta = GROUP_STYLE_PREVIEW[line.style] ?? GROUP_STYLE_PREVIEW.normal
+                      return <p key={index} className={meta.className} style={{ color: groupCard[meta.colorKey] }}>{text}</p>
+                    })}
+                  </div>
+                </div>
+                <span className="block w-full rounded-lg bg-indigo-600 px-3 py-2 text-center text-xs font-semibold text-white">Demander à rejoindre</span>
+                <div className="flex gap-2">
+                  <span className="flex-1 rounded-lg border border-indigo-200 px-3 py-2 text-center text-xs font-semibold text-indigo-700">{groupCard.groupCardPageLabel}</span>
+                  <span className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">{groupCard.groupCardContactLabel}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
 

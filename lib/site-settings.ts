@@ -83,7 +83,70 @@ export function parsePopupLines(raw: string | null | undefined): PopupLine[] | n
   }
 }
 
-export interface SiteSettings extends ConcertPopupSettings {
+// ─── Cards des groupes (accueil) ─────────────────────────────────────────────
+export interface GroupCardSettings {
+  // Composition libre : JSON [{ text, style }] avec jetons (voir GROUP_CARD_TOKENS).
+  groupCardLines: string
+  groupCardTitleColor: string
+  groupCardTextColor: string
+  groupCardAccentColor: string
+  groupCardPageLabel: string
+  groupCardContactLabel: string
+  groupCardSectionTitle: string
+  groupCardSeeAllLabel: string
+}
+
+export type GroupCardLineStyle = 'title' | 'subtitle' | 'accent' | 'normal'
+
+export interface GroupCardLine {
+  text: string
+  style: GroupCardLineStyle
+}
+
+export const GROUP_CARD_LINE_STYLES: GroupCardLineStyle[] = ['title', 'subtitle', 'accent', 'normal']
+
+export const GROUP_CARD_LINE_STYLE_LABELS: Record<GroupCardLineStyle, string> = {
+  title: 'Titre',
+  subtitle: 'Sous-titre',
+  accent: 'Accent',
+  normal: 'Texte normal',
+}
+
+export const GROUP_CARD_TOKENS: { token: string; label: string }[] = [
+  { token: '{nom_groupe}', label: 'Nom du groupe' },
+  { token: '{membres}', label: 'Nombre de membres' },
+  { token: '{style}', label: 'Style musical' },
+  { token: '{cherche}', label: 'Instruments recherchés' },
+  { token: '{description}', label: 'Description' },
+]
+
+export function defaultGroupCardLines(): GroupCardLine[] {
+  return [
+    { text: '{nom_groupe}', style: 'title' },
+    { text: '{membres} membres · {style}', style: 'subtitle' },
+    { text: 'Cherche : {cherche}', style: 'accent' },
+    { text: '{description}', style: 'normal' },
+  ]
+}
+
+export function parseGroupCardLines(raw: string | null | undefined): GroupCardLine[] | null {
+  if (!raw) return null
+  try {
+    const arr = JSON.parse(raw)
+    if (!Array.isArray(arr)) return null
+    return arr
+      .filter((l): l is { text: unknown; style?: unknown } => Boolean(l) && typeof l === 'object')
+      .filter((l) => typeof l.text === 'string')
+      .map((l) => ({
+        text: l.text as string,
+        style: (GROUP_CARD_LINE_STYLES.includes(l.style as GroupCardLineStyle) ? l.style : 'normal') as GroupCardLineStyle,
+      }))
+  } catch {
+    return null
+  }
+}
+
+export interface SiteSettings extends ConcertPopupSettings, GroupCardSettings {
   siteIcon: string
   colorTheme: ThemeId
 }
@@ -104,6 +167,14 @@ export const DEFAULT_SETTINGS = {
   concertPopupButtonBgColor: '#4f46e5',
   concertPopupButtonTextColor: '#ffffff',
   concertPopupLines: '',
+  groupCardLines: '',
+  groupCardTitleColor: '#111827',
+  groupCardTextColor: '#6b7280',
+  groupCardAccentColor: '#d97706',
+  groupCardPageLabel: 'Voir la page',
+  groupCardContactLabel: 'Contacter',
+  groupCardSectionTitle: 'Groupes inscrits',
+  groupCardSeeAllLabel: 'Voir tous les groupes',
 } satisfies SiteSettings
 
 export async function getSiteSettings(): Promise<SiteSettings> {
@@ -126,6 +197,14 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       concertPopupButtonBgColor: map.concertPopupButtonBgColor ?? DEFAULT_SETTINGS.concertPopupButtonBgColor,
       concertPopupButtonTextColor: map.concertPopupButtonTextColor ?? DEFAULT_SETTINGS.concertPopupButtonTextColor,
       concertPopupLines: map.concertPopupLines ?? DEFAULT_SETTINGS.concertPopupLines,
+      groupCardLines: map.groupCardLines ?? DEFAULT_SETTINGS.groupCardLines,
+      groupCardTitleColor: map.groupCardTitleColor ?? DEFAULT_SETTINGS.groupCardTitleColor,
+      groupCardTextColor: map.groupCardTextColor ?? DEFAULT_SETTINGS.groupCardTextColor,
+      groupCardAccentColor: map.groupCardAccentColor ?? DEFAULT_SETTINGS.groupCardAccentColor,
+      groupCardPageLabel: map.groupCardPageLabel ?? DEFAULT_SETTINGS.groupCardPageLabel,
+      groupCardContactLabel: map.groupCardContactLabel ?? DEFAULT_SETTINGS.groupCardContactLabel,
+      groupCardSectionTitle: map.groupCardSectionTitle ?? DEFAULT_SETTINGS.groupCardSectionTitle,
+      groupCardSeeAllLabel: map.groupCardSeeAllLabel ?? DEFAULT_SETTINGS.groupCardSeeAllLabel,
     }
   } catch {
     return DEFAULT_SETTINGS

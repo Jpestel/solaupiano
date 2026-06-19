@@ -2,19 +2,14 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
-import { PublicJoinButton } from './PublicJoinButton'
 import { PublicNav } from './PublicNav'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
 import { PublicConcerts } from '@/components/PublicConcerts'
 import { ConcertMap } from '@/components/ConcertMap'
+import { GroupCard } from '@/components/GroupCard'
 import { Reveal } from '@/components/Reveal'
 import { getSiteSettings } from '@/lib/site-settings'
 import { parseHomeZones } from '@/lib/home-zones'
-
-function parseLookingFor(raw?: string | null): string[] {
-  if (!raw) return []
-  try { return JSON.parse(raw) } catch { return [] }
-}
 
 export default async function PublicHomePage() {
   const session = await getServerSession(authOptions)
@@ -25,7 +20,7 @@ export default async function PublicHomePage() {
 
   const now = new Date()
 
-  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups, siteSettings, homeZonesRow] = await Promise.all([
+  const [concerts, groupsLooking, musicianCount, groupCount, concertUpcomingCount, instrumentsUsed, styleGroups, userInstrumentGroups, siteSettings, homeZonesRow, discoverGroupsTotal] = await Promise.all([
     prisma.concert.findMany({
       where: { date: { gte: now }, isPublic: true, group: { isTest: false } },
       orderBy: { date: 'asc' },
@@ -44,9 +39,10 @@ export default async function PublicHomePage() {
         lookingFor: true,
         lookingForSince: true,
         _count: { select: { members: true } },
+        groupPage: { select: { slug: true, published: true, showContact: true } },
       },
       orderBy: [{ isPublic: 'desc' }, { lookingForSince: 'desc' }, { createdAt: 'desc' }],
-      take: 12,
+      take: 9,
     }),
     prisma.user.count({ where: { siteRole: { not: 'ADMIN' }, isTest: false } }),
     prisma.group.count({ where: { archivedAt: null, isTest: false } }),
@@ -67,6 +63,7 @@ export default async function PublicHomePage() {
     }),
     getSiteSettings(),
     prisma.siteSetting.findUnique({ where: { key: 'home_zones' } }),
+    prisma.group.count({ where: { isHidden: false, archivedAt: null, isTest: false } }),
   ])
 
   // Ordre + visibilité des zones de l'accueil (réglés depuis l'admin).
@@ -388,10 +385,17 @@ export default async function PublicHomePage() {
       // ── Groupes inscrits ──
       case 'groups': return (
       <div key={z.key} className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-sm">🔍</span>
-          Groupes inscrits
-        </h2>
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-sm">🔍</span>
+            {siteSettings.groupCardSectionTitle}
+          </h2>
+          {discoverGroupsTotal > discoverGroups.length && (
+            <Link href="/groupes-inscrits" className="flex-shrink-0 text-sm font-semibold text-indigo-600 hover:text-indigo-500 hover:underline">
+              {siteSettings.groupCardSeeAllLabel} ({discoverGroupsTotal}) →
+            </Link>
+          )}
+        </div>
 
         {discoverGroups.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 px-5 py-10 text-center bg-white">
@@ -399,73 +403,20 @@ export default async function PublicHomePage() {
             <p className="text-sm text-gray-500">Aucun groupe à afficher pour l&apos;instant.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {discoverGroups.map((group) => {
-              const instruments = parseLookingFor(group.lookingFor)
-              const hasCover = Boolean(group.coverUrl)
-              return (
-                <div
-                  key={group.id}
-                  className={`group relative overflow-hidden rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-                    hasCover ? 'border-transparent min-h-[210px] flex flex-col justify-end' : 'border-gray-200 bg-white hover:border-indigo-200'
-                  }`}
-                >
-                  {hasCover && (
-                    <>
-                      {/* Photo du groupe en fond plein */}
-                      <img src={group.coverUrl!} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                      {/* Dégradé pour la lisibilité du texte */}
-                      <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/10" />
-                    </>
-                  )}
-
-                  <div className="relative p-4 space-y-3">
-                    <div className="flex items-start gap-3">
-                      {!hasCover && (
-                        <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
-                          {group.name.charAt(0)}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className={`font-semibold text-sm leading-tight ${hasCover ? 'text-white' : 'text-gray-900'}`}>{group.name}</p>
-                          {!group.isPublic && (
-                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${hasCover ? 'bg-white/20 text-white backdrop-blur' : 'bg-gray-100 text-gray-500'}`}>🔒 Privé</span>
-                          )}
-                        </div>
-                        <p className={`text-xs mt-0.5 ${hasCover ? 'text-white/80' : 'text-gray-400'}`}>
-                          {group._count.members} membre{group._count.members > 1 ? 's' : ''}
-                          {group.style ? ` · ${group.style}` : ''}
-                        </p>
-                        {group.description && (
-                          <p className={`text-xs mt-1 line-clamp-2 ${hasCover ? 'text-white/85' : 'text-gray-500'}`}>{group.description}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {instruments.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className={`text-xs font-medium self-center ${hasCover ? 'text-amber-200' : 'text-amber-600'}`}>Cherche :</span>
-                        {instruments.map((inst) => (
-                          <span key={inst} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${hasCover ? 'bg-white/15 border-white/25 text-white backdrop-blur' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
-                            {inst}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {group.isPublic ? (
-                      <PublicJoinButton groupId={group.id} groupName={group.name} />
-                    ) : (
-                      <p className={`rounded-lg border px-3 py-2 text-center text-xs ${hasCover ? 'bg-white/15 border-white/20 text-white/90 backdrop-blur' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
-                        🔒 Sur invitation du chef uniquement
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {discoverGroups.map((group) => (
+                <GroupCard key={group.id} group={group} settings={siteSettings} />
+              ))}
+            </div>
+            {discoverGroupsTotal > discoverGroups.length && (
+              <div className="mt-5 text-center">
+                <Link href="/groupes-inscrits" className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-white px-5 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 transition-colors">
+                  {siteSettings.groupCardSeeAllLabel} ({discoverGroupsTotal}) →
+                </Link>
+              </div>
+            )}
+          </>
         )}
       </div>
       )

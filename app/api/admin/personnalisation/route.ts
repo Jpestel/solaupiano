@@ -32,6 +32,14 @@ export async function PUT(req: NextRequest) {
     'concertPopupButtonBgColor',
     'concertPopupButtonTextColor',
     'concertPopupLines',
+    'groupCardLines',
+    'groupCardTitleColor',
+    'groupCardTextColor',
+    'groupCardAccentColor',
+    'groupCardPageLabel',
+    'groupCardContactLabel',
+    'groupCardSectionTitle',
+    'groupCardSeeAllLabel',
   ] as const
   const updates = Object.fromEntries(
     allowedKeys
