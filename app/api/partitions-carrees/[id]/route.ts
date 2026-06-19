@@ -7,26 +7,47 @@ export const dynamic = 'force-dynamic'
 
 const MODULE_KEY = 'feature_partitions_carrees'
 
-function normalizeCells(value: unknown, total: number) {
-  const base = Array.isArray(value) ? value : []
-  const cells = base.map((cell) => {
-    const c = cell && typeof cell === 'object' ? cell as Record<string, unknown> : {}
-    return {
-      section: String(c.section ?? '').slice(0, 12),
-      chord: String(c.chord ?? '').slice(0, 80),
-      melody: String(c.melody ?? '').slice(0, 160),
-      rhythm: String(c.rhythm ?? '').slice(0, 120),
-      lyric: String(c.lyric ?? '').slice(0, 160),
-      note: String(c.note ?? '').slice(0, 240),
-      // Nombre de côtés tracés (1 à 4) = nombre de mesures du carré.
-      sides: Math.max(1, Math.min(4, Math.round(Number(c.sides)) || 4)),
-    }
-  })
+// Le « cells » stocke désormais une grille de points libre :
+// { rows, cols, h[], v[], labels[] }. h/v = segments tracés à la main entre 2 points
+// voisins (clé "r:c"). labels = annotations (accord, section…) posées sur un point.
+function clampInt(n: unknown, lo: number, hi: number, dflt: number) {
+  const x = Math.round(Number(n))
+  return Number.isFinite(x) ? Math.max(lo, Math.min(hi, x)) : dflt
+}
 
-  while (cells.length < total) {
-    cells.push({ section: '', chord: '', melody: '', rhythm: '', lyric: '', note: '', sides: 4 })
+function normalizeCanvas(value: unknown) {
+  const v = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+  const rows = clampInt(v.rows, 2, 16, 5)
+  const cols = clampInt(v.cols, 2, 48, 17)
+
+  const edges = (arr: unknown, rMax: number, cMax: number) => {
+    const set = new Set<string>()
+    if (Array.isArray(arr)) {
+      for (const k of arr) {
+        if (typeof k !== 'string') continue
+        const [r, c] = k.split(':').map(Number)
+        if (Number.isInteger(r) && Number.isInteger(c) && r >= 0 && r <= rMax && c >= 0 && c <= cMax) set.add(`${r}:${c}`)
+      }
+    }
+    return Array.from(set)
   }
-  return cells.slice(0, total)
+
+  const h = edges(v.h, rows - 1, cols - 2) // horizontal : (r,c)→(r,c+1)
+  const vv = edges(v.v, rows - 2, cols - 1) // vertical : (r,c)→(r+1,c)
+
+  const labels = Array.isArray(v.labels)
+    ? v.labels.slice(0, 300).map((l, i) => {
+        const o = l && typeof l === 'object' ? (l as Record<string, unknown>) : {}
+        return {
+          id: typeof o.id === 'string' ? o.id.slice(0, 40) : `l${i}`,
+          r: clampInt(o.r, 0, rows - 1, 0),
+          c: clampInt(o.c, 0, cols - 1, 0),
+          text: String(o.text ?? '').slice(0, 40),
+        }
+      }).filter((l) => l.text)
+    : []
+
+  return { rows, cols, h, v: vv, labels }
 }
 
 async function scoreContext(scoreId: number) {
@@ -88,12 +109,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (body.notes !== undefined) updateData.notes = String(body.notes ?? '').trim() || null
   if (body.songId !== undefined) updateData.songId = body.songId ? Number(body.songId) : null
 
-  const nextTotal = body.totalSquares !== undefined
-    ? Math.max(4, Math.min(128, Number(body.totalSquares) || result.score.totalSquares))
-    : result.score.totalSquares
-  if (body.totalSquares !== undefined) updateData.totalSquares = nextTotal
-  if (body.cells !== undefined || body.totalSquares !== undefined) {
-    updateData.cells = normalizeCells(body.cells ?? result.score.cells, nextTotal)
+  if (body.totalSquares !== undefined) {
+    updateData.totalSquares = Math.max(4, Math.min(128, Number(body.totalSquares) || result.score.totalSquares))
+  }
+  if (body.cells !== undefined) {
+    updateData.cells = normalizeCanvas(body.cells)
   }
 
   const updated = await prisma.squareScore.update({

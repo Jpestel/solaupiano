@@ -7,16 +7,9 @@ export const dynamic = 'force-dynamic'
 
 const MODULE_KEY = 'feature_partitions_carrees'
 
-function emptyCells(total: number) {
-  return Array.from({ length: total }, (_, index) => ({
-    section: index === 0 ? 'A' : '',
-    chord: '',
-    melody: '',
-    rhythm: '',
-    lyric: '',
-    note: '',
-    sides: 4,
-  }))
+// Grille de points vierge (l'utilisateur relie les points lui-même).
+function emptyCanvas() {
+  return { rows: 5, cols: 17, h: [] as string[], v: [] as string[], labels: [] as { id: string; r: number; c: number; text: string }[] }
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -101,7 +94,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       squaresPerRow,
       totalSquares,
       beatsPerSquare,
-      cells: emptyCells(totalSquares),
+      cells: emptyCanvas(),
       notes: String(body.notes ?? '').trim() || null,
     },
   })
