@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { signOut } from 'next-auth/react'
 import { Sidebar } from '@/components/Sidebar'
 import HelpBubbleLayer from '@/components/HelpBubbleLayer'
 import { SettingsProvider, useSettings } from '@/components/SettingsProvider'
@@ -60,6 +61,18 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
               <span className="text-[10px] text-indigo-400 italic font-normal">du solo à l&apos;orchestre</span>
             </div>
           </div>
+
+          {/* Déconnexion rapide (mobile) */}
+          <button
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="ml-auto flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors active:scale-95"
+            aria-label="Se déconnecter"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span className="text-sm font-medium">Quitter</span>
+          </button>
         </header>
 
         <main className="flex-1 overflow-auto">
