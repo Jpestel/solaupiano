@@ -5,6 +5,7 @@ export interface GroupModuleDef { href: string; label: string }
 export const GROUP_MODULES: GroupModuleDef[] = [
   { href: 'repetitions',          label: 'Cours / Répétitions' },
   { href: 'concerts',             label: 'Concerts' },
+  { href: 'taches',               label: 'Tâches à préparer' },
   { href: 'morceaux',             label: 'Répertoire' },
   { href: 'setlists',             label: 'Setlists' },
   { href: 'grilles',              label: "Grilles d'accords" },

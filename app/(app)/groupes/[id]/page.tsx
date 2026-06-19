@@ -275,6 +275,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             chefDesc: 'Organiser les dates', memberDesc: 'Voir les dates',
           },
           {
+            href: 'taches', label: 'Tâches', icon: '✅',
+            iconBg: 'bg-amber-100', textColor: 'text-amber-700', border: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/60',
+            chefDesc: 'Préparer les dates', memberDesc: 'Mes tâches à faire',
+          },
+          {
             href: 'morceaux',    label: 'Répertoire',  icon: '🎼',
             iconBg: 'bg-indigo-100', textColor: 'text-indigo-700', border: 'border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/60',
             chefDesc: 'Gérer les morceaux', memberDesc: 'Voir les morceaux',
