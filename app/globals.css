@@ -249,3 +249,64 @@
   .sp-float { animation: none; }
   .reveal { opacity: 1; transform: none; transition: none; }
 }
+
+/* ─── Tuiles de modules « bombées » (relief + brillance) ─────────────────────── */
+.module-tile {
+  isolation: isolate; /* contexte d'empilement : la brillance reste sous le contenu */
+  background-image: linear-gradient(180deg, #ffffff 0%, #eef1f6 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),      /* liseré clair en haut (volume) */
+    inset 0 -2px 5px rgba(15, 23, 42, 0.05),       /* ombre interne en bas */
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 6px 14px rgba(15, 23, 42, 0.07);             /* ombre portée = relief */
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, background-image 0.2s ease;
+}
+.module-tile:hover {
+  transform: translateY(-3px);
+  background-image: linear-gradient(180deg, #ffffff 0%, #e7ebf3 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -3px 7px rgba(15, 23, 42, 0.07),
+    0 10px 24px rgba(15, 23, 42, 0.14);
+}
+.module-tile:active { transform: translateY(-1px); }
+
+/* Couche de brillance interne (clippée), pour ne pas masquer le badge en coin. */
+.module-tile-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.module-tile-sheen::before {            /* reflet permanent en haut (effet verre) */
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 55%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+}
+.module-tile-sheen::after {             /* éclat diagonal qui balaie au survol */
+  content: "";
+  position: absolute;
+  top: -60%;
+  left: -130%;
+  width: 55%;
+  height: 220%;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
+  transform: skewX(-18deg);
+  transition: left 0.6s ease;
+}
+.module-tile:hover .module-tile-sheen::after { left: 140%; }
+
+/* L'icône aussi prend un léger relief. */
+.module-tile-icon {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 2px 4px rgba(15, 23, 42, 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .module-tile { transition: none; }
+  .module-tile:hover { transform: none; }
+  .module-tile-sheen::after { transition: none; }
+}

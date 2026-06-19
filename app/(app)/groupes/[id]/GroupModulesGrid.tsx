@@ -134,18 +134,19 @@ export function GroupModulesGrid({
             <Link
               href={`/groupes/${groupId}/${link.href}`}
               data-bubble={`mod-${link.href}`}
-              className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all duration-150 group hover:shadow-md hover:-translate-y-0.5 ${canReorder ? 'pl-9' : ''} ${link.border}`}
+              className={`module-tile relative flex items-center gap-2.5 rounded-xl border px-3 py-2.5 group ${canReorder ? 'pl-9' : ''} ${link.border}`}
             >
-              <div className={`w-8 h-8 rounded-lg ${link.iconBg} flex items-center justify-center text-base flex-shrink-0 transition-transform group-hover:scale-110`}>
+              <span className="module-tile-sheen" aria-hidden />
+              <div className={`module-tile-icon relative z-10 w-8 h-8 rounded-lg ${link.iconBg} flex items-center justify-center text-base flex-shrink-0 transition-transform group-hover:scale-110`}>
                 {link.icon}
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="relative z-10 min-w-0 flex-1">
                 <p className={`text-sm font-semibold ${link.textColor} leading-tight`}>{link.label}</p>
                 <p className="text-[11px] text-gray-400 leading-tight mt-0.5 truncate">
                   {isChef ? link.chefDesc : link.memberDesc}
                 </p>
               </div>
-              <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full transition-all ${link.iconBg} ${link.textColor} opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5`}>
+              <span className={`relative z-10 flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full transition-all ${link.iconBg} ${link.textColor} opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5`}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
