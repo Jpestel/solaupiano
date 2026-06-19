@@ -278,6 +278,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
             chefDesc: 'Organiser les dates', memberDesc: 'Voir les dates',
           },
           {
+            href: 'taches', label: 'Tâches', icon: '✅',
+            iconBg: 'bg-amber-100', textColor: 'text-amber-700', border: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/60',
+            chefDesc: 'Préparer les dates', memberDesc: 'Mes tâches à faire',
+          },
+          {
             href: 'morceaux',    label: 'Répertoire',  icon: '🎼',
             iconBg: 'bg-indigo-100', textColor: 'text-indigo-700', border: 'border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/60',
             chefDesc: 'Gérer les morceaux', memberDesc: 'Voir les morceaux',
@@ -343,6 +348,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
             // École : un élève ne voit que les modules autorisés par le prof.
             if (isStudentView && !studentMods.includes(link.href)) return false
             if (link.href === 'concerts')        return planFeatures.concerts
+            if (link.href === 'taches')          return showTasksModule
             if (link.href === 'setlists')        return planFeatures.setlists
             if (link.href === 'grilles')         return planFeatures.grilles
             if (link.href === 'fiche-technique') return planFeatures.ficheTechnique
@@ -457,7 +463,6 @@ export default async function GroupePage({ params }: { params: { id: string } })
         currentUserId={userId}
         currentUserRole={effectiveRole}
         savedCardOrder={membership?.cardOrder ?? null}
-        showTasks={showTasksModule}
         createdBy={group.createdBy ?? null}
         chefPermissions={group.chefPermissions ?? null}
         memberLimit={adminPower ? null : effectiveMemberLimit}
