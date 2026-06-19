@@ -12,6 +12,9 @@ interface Song { id: number; title: string; artist?: string; tempo?: number | nu
 interface SquareScore {
   id: number
   title: string
+  pulsation?: string | null
+  measureDescription?: string | null
+  debit?: string | null
   tempo?: string | null
   keySignature?: string | null
   timeSignature: string
@@ -44,6 +47,9 @@ export default function PartitionsCarreesPage({ params }: { params: { id: string
   const [locked, setLocked] = useState(false)
   const [form, setForm] = useState({
     title: '',
+    pulsation: '',
+    measureDescription: '',
+    debit: 'binaire',
     tempo: '',
     keySignature: '',
     timeSignature: '4/4',
@@ -87,6 +93,9 @@ export default function PartitionsCarreesPage({ params }: { params: { id: string
 
   const resetForm = () => setForm({
     title: '',
+    pulsation: '',
+    measureDescription: '',
+    debit: 'binaire',
     tempo: '',
     keySignature: '',
     timeSignature: '4/4',
@@ -159,8 +168,8 @@ export default function PartitionsCarreesPage({ params }: { params: { id: string
 
       <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Partitions carrées</h1>
-          <p className="text-gray-500 text-sm mt-1">Créez des partitions pédagogiques sous forme de carrés lisibles par tout le groupe.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Méthode carrée</h1>
+          <p className="text-gray-500 text-sm mt-1">Relevez la structure d’un morceau avec PMD, carrés de mesures et abréviations de parties.</p>
         </div>
         {chefCan('create') && <Button onClick={() => setModalOpen(true)}>+ Nouvelle partition</Button>}
       </div>
@@ -202,7 +211,9 @@ export default function PartitionsCarreesPage({ params }: { params: { id: string
                 <span className="text-2xl">▦</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                {score.tempo && <span className="rounded-full bg-lime-50 border border-lime-100 px-2.5 py-1 text-xs font-medium text-lime-700">♩ {score.tempo}</span>}
+                {(score.pulsation || score.tempo) && <span className="rounded-full bg-lime-50 border border-lime-100 px-2.5 py-1 text-xs font-medium text-lime-700">P : {score.pulsation || `♩ = ${score.tempo}`}</span>}
+                {(score.measureDescription || score.timeSignature) && <span className="rounded-full bg-sky-50 border border-sky-100 px-2.5 py-1 text-xs font-medium text-sky-700">M : {score.measureDescription || score.timeSignature}</span>}
+                {score.debit && <span className="rounded-full bg-violet-50 border border-violet-100 px-2.5 py-1 text-xs font-medium text-violet-700">D : {score.debit}</span>}
                 {score.keySignature && <span className="rounded-full bg-amber-50 border border-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">🎵 {score.keySignature}</span>}
                 <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{score.timeSignature}</span>
                 <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{score.totalSquares} carrés</span>
@@ -234,6 +245,28 @@ export default function PartitionsCarreesPage({ params }: { params: { id: string
             <label className="form-label">Titre <span className="text-red-500">*</span></label>
             <input type="text" required autoFocus value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="form-input" placeholder="Ex. Intro + refrain - version carrée" />
           </div>
+          <div className="rounded-lg border border-lime-200 bg-lime-50 p-3">
+            <p className="text-sm font-semibold text-lime-900">Travail préparatoire : PMD</p>
+            <p className="text-xs text-lime-800 mt-1">Pulsation, Mesure, Débit : ces trois repères structurent le relevé avant de tracer les carrés.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="form-label">P = Pulsation</label>
+              <input type="text" value={form.pulsation} onChange={(e) => setForm({ ...form, pulsation: e.target.value })} className="form-input" placeholder="noire = 90" />
+            </div>
+            <div>
+              <label className="form-label">M = Mesure</label>
+              <input type="text" value={form.measureDescription} onChange={(e) => setForm({ ...form, measureDescription: e.target.value })} className="form-input" placeholder="4 temps" />
+            </div>
+            <div>
+              <label className="form-label">D = Débit</label>
+              <select value={form.debit} onChange={(e) => setForm({ ...form, debit: e.target.value })} className="form-input">
+                <option value="binaire">binaire</option>
+                <option value="ternaire">ternaire</option>
+                <option value="mixte">mixte</option>
+              </select>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="form-label">Tempo</label>
@@ -264,7 +297,7 @@ export default function PartitionsCarreesPage({ params }: { params: { id: string
               </select>
             </div>
             <div>
-              <label className="form-label">Temps/carré</label>
+              <label className="form-label">Temps par mesure</label>
               <select value={form.beatsPerSquare} onChange={(e) => setForm({ ...form, beatsPerSquare: Number(e.target.value) })} className="form-input">
                 {BEATS_PER_SQUARE.map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
@@ -279,6 +312,9 @@ export default function PartitionsCarreesPage({ params }: { params: { id: string
               </select>
             </div>
           )}
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+            Abréviations usuelles : I = intro, C = couplet, PR = pré-refrain, R = refrain, P = pont, It = interlude, S = solo, O = outro.
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => { setModalOpen(false); resetForm(); setError('') }}>Annuler</Button>
             <Button type="submit" disabled={saving} className="bg-lime-600 hover:bg-lime-500">{saving ? 'Création...' : 'Créer et éditer'}</Button>

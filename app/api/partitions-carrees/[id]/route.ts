@@ -75,6 +75,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!title) return NextResponse.json({ error: 'Le titre est requis.' }, { status: 400 })
     updateData.title = title
   }
+  if (body.pulsation !== undefined) updateData.pulsation = String(body.pulsation ?? '').trim() || null
+  if (body.measureDescription !== undefined) updateData.measureDescription = String(body.measureDescription ?? '').trim() || null
+  if (body.debit !== undefined) updateData.debit = String(body.debit ?? '').trim() || null
   if (body.tempo !== undefined) updateData.tempo = String(body.tempo ?? '').trim() || null
   if (body.keySignature !== undefined) updateData.keySignature = String(body.keySignature ?? '').trim() || null
   if (body.timeSignature !== undefined) updateData.timeSignature = String(body.timeSignature ?? '4/4')

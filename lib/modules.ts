@@ -58,8 +58,8 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: 'feature_partitions_carrees',
-    label: 'Partitions carrées',
-    description: "Création de partitions pédagogiques en carrés : mesures, accords, mélodie, rythme, paroles et repères de structure.",
+    label: 'Méthode carrée',
+    description: "Relevé de structure d'un morceau avec PMD, carrés de mesures et abréviations de parties.",
     href: '/groupes/[id]/partitions-carrees',
     icon: '▦',
     category: 'feature',

@@ -18,6 +18,9 @@ interface SquareScore {
   groupId: number
   songId?: number | null
   title: string
+  pulsation?: string | null
+  measureDescription?: string | null
+  debit?: string | null
   tempo?: string | null
   keySignature?: string | null
   timeSignature: string
@@ -119,6 +122,9 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
       body: JSON.stringify({
         title: score.title,
         tempo: score.tempo,
+        pulsation: score.pulsation,
+        measureDescription: score.measureDescription,
+        debit: score.debit,
         keySignature: score.keySignature,
         timeSignature: score.timeSignature,
         squaresPerRow: score.squaresPerRow,
@@ -168,7 +174,7 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Partition carrée</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Chaque carré peut contenir un accord, une mélodie, un rythme, des paroles et une consigne.
+            Relevé de structure : PMD en haut de feuille, puis carrés dont chaque côté représente une mesure.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -201,9 +207,10 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
               {score.song && <p className="text-sm text-gray-500 mt-1">Morceau : {score.song.title}</p>}
             </div>
             <div className="text-right text-sm text-gray-600 space-y-1 flex-shrink-0">
-              {score.tempo && <p>♩ {score.tempo}</p>}
+              {(score.pulsation || score.tempo) && <p>P : {score.pulsation || `♩ = ${score.tempo}`}</p>}
+              {(score.measureDescription || score.timeSignature) && <p>M : {score.measureDescription || score.timeSignature}</p>}
+              {score.debit && <p>D : {score.debit}</p>}
               {score.keySignature && <p>{score.keySignature}</p>}
-              <p>{score.timeSignature}</p>
             </div>
           </div>
 
@@ -218,7 +225,7 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                       key={index}
                       type="button"
                       onClick={() => setSelectedIndex(index)}
-                      className={`square-cell relative min-h-[132px] rounded-lg border bg-white p-2 text-left transition-colors ${active ? 'border-lime-500 ring-2 ring-lime-100' : 'border-gray-300 hover:border-lime-300'}`}
+                      className={`square-cell relative aspect-square min-h-[150px] rounded-lg border bg-white p-2 text-left transition-colors ${active ? 'border-lime-500 ring-2 ring-lime-100' : 'border-gray-300 hover:border-lime-300'}`}
                     >
                       <span className="absolute left-2 top-1 text-[10px] font-semibold text-gray-300">{index + 1}</span>
                       {cell.section && (
@@ -226,11 +233,18 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                           {cell.section}
                         </span>
                       )}
-                      <div className="mt-5 min-h-[28px] text-center text-2xl font-extrabold text-gray-950">{cell.chord || '·'}</div>
-                      <div className="mt-2 min-h-[24px] text-center text-sm font-semibold text-indigo-700 whitespace-pre-wrap">{cell.melody}</div>
-                      <div className="mt-1 min-h-[18px] text-center text-xs text-gray-500 whitespace-pre-wrap">{cell.rhythm}</div>
-                      <div className="mt-2 min-h-[18px] text-center text-xs italic text-gray-700 whitespace-pre-wrap">{cell.lyric}</div>
-                      {cell.note && <div className="mt-2 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-800 whitespace-pre-wrap">{cell.note}</div>}
+                      <span className="absolute left-1/2 top-1 -translate-x-1/2 text-[10px] font-bold text-lime-700">1</span>
+                      <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-lime-700">2</span>
+                      <span className="absolute left-1/2 bottom-1 -translate-x-1/2 text-[10px] font-bold text-lime-700">3</span>
+                      <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-lime-700">4</span>
+                      <div className="absolute inset-5 rounded border-2 border-gray-800" />
+                      <div className="relative z-10 flex h-full flex-col items-center justify-center px-5 text-center">
+                        <div className="text-2xl font-extrabold text-gray-950">{cell.chord || '·'}</div>
+                        <div className="mt-2 text-sm font-semibold text-indigo-700 whitespace-pre-wrap">{cell.melody}</div>
+                        <div className="mt-1 text-xs text-gray-500 whitespace-pre-wrap">{cell.rhythm}</div>
+                        <div className="mt-2 text-xs italic text-gray-700 whitespace-pre-wrap">{cell.lyric}</div>
+                        {cell.note && <div className="mt-2 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-800 whitespace-pre-wrap">{cell.note}</div>}
+                      </div>
                     </button>
                   )
                 })}
@@ -248,7 +262,27 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
         <aside className="no-print space-y-4">
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-gray-900 mb-3">Réglages</h2>
+            <div className="mb-3 rounded-lg border border-lime-200 bg-lime-50 p-3 text-xs text-lime-900">
+              <strong>PMD</strong> : Pulsation, Mesure, Débit. Dans le relevé, chaque côté du carré représente une mesure ; les chiffres donnent l’ordre de tracé.
+            </div>
             <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="form-label">Pulsation</span>
+                <input disabled={!canEdit} value={score.pulsation ?? ''} onChange={(e) => patchScore({ pulsation: e.target.value })} className="form-input" placeholder="noire = 90" />
+              </label>
+              <label className="block">
+                <span className="form-label">Mesure</span>
+                <input disabled={!canEdit} value={score.measureDescription ?? ''} onChange={(e) => patchScore({ measureDescription: e.target.value })} className="form-input" placeholder="4 temps" />
+              </label>
+              <label className="block">
+                <span className="form-label">Débit</span>
+                <select disabled={!canEdit} value={score.debit ?? ''} onChange={(e) => patchScore({ debit: e.target.value })} className="form-input">
+                  <option value="">—</option>
+                  <option value="binaire">binaire</option>
+                  <option value="ternaire">ternaire</option>
+                  <option value="mixte">mixte</option>
+                </select>
+              </label>
               <label className="block">
                 <span className="form-label">Tempo</span>
                 <input disabled={!canEdit} value={score.tempo ?? ''} onChange={(e) => patchScore({ tempo: e.target.value })} className="form-input" />
@@ -272,16 +306,19 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                 <input disabled={!canEdit} type="number" min={4} max={128} value={score.totalSquares} onChange={(e) => resizeCells(Number(e.target.value))} className="form-input" />
               </label>
               <label className="block">
-                <span className="form-label">Temps/carré</span>
+                <span className="form-label">Temps par mesure</span>
                 <input disabled={!canEdit} type="number" min={1} max={8} value={score.beatsPerSquare} onChange={(e) => patchScore({ beatsPerSquare: Number(e.target.value) })} className="form-input" />
               </label>
+            </div>
+            <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+              Abréviations : I intro, C couplet, PR pré-refrain, R refrain, P pont, It interlude, S solo, O outro.
             </div>
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-900">Carré {selectedIndex + 1}</h2>
-              <span className="text-xs text-gray-400">{score.beatsPerSquare} temps</span>
+              <span className="text-xs text-gray-400">4 mesures · {score.beatsPerSquare} temps/mesure</span>
             </div>
             <div className="space-y-3">
               <label className="block">
