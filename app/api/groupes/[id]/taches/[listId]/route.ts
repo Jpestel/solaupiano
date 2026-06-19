@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { groupContext } from '@/lib/group-access'
+import { groupContext, groupHasModuleAccess } from '@/lib/group-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +9,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const groupId = Number(params.id)
   const ctx = await groupContext(groupId)
   if (!ctx) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  if (!(await groupHasModuleAccess(ctx, groupId, 'feature_tasks'))) {
+    return NextResponse.json({ error: 'MODULE_LOCKED' }, { status: 403 })
+  }
   if (!ctx.isChef) return NextResponse.json({ error: 'Réservé au chef du groupe.' }, { status: 403 })
 
   const list = await prisma.taskList.findFirst({ where: { id: Number(params.listId), groupId } })
@@ -30,6 +33,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const groupId = Number(params.id)
   const ctx = await groupContext(groupId)
   if (!ctx) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  if (!(await groupHasModuleAccess(ctx, groupId, 'feature_tasks'))) {
+    return NextResponse.json({ error: 'MODULE_LOCKED' }, { status: 403 })
+  }
   if (!ctx.isChef) return NextResponse.json({ error: 'Réservé au chef du groupe.' }, { status: 403 })
 
   const list = await prisma.taskList.findFirst({ where: { id: Number(params.listId), groupId } })

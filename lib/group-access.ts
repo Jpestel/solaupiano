@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from './auth'
 import { prisma } from './prisma'
+import { isModuleEnabledForGroup } from './module-access'
 
 export interface GroupContext {
   userId: number
@@ -19,4 +20,9 @@ export async function groupContext(groupId: number): Promise<GroupContext | null
   })
   if (!isAdmin && !membership) return null
   return { userId, isAdmin, isChef: isAdmin || membership?.groupRole === 'CHEF' }
+}
+
+export async function groupHasModuleAccess(ctx: GroupContext, groupId: number, moduleKey: string): Promise<boolean> {
+  if (ctx.isAdmin) return true
+  return isModuleEnabledForGroup(groupId, moduleKey)
 }

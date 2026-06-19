@@ -62,6 +62,7 @@ interface Props {
   currentUserId: number
   currentUserRole: string
   savedCardOrder: string | null
+  showTasks?: boolean
   createdBy?: number | null
   chefPermissions?: unknown
   memberLimit?: number | null
@@ -97,13 +98,13 @@ function SortableCard({ id, children, spanFull }: { id: string; children: React.
 export function GroupCards({
   groupId, groupType, showRoster = true, rehearsal, concert, members, showInvite,
   isChef, canManage, isAdmin, currentUserId, currentUserRole, savedCardOrder,
-  createdBy, chefPermissions, memberLimit,
+  showTasks = true, createdBy, chefPermissions, memberLimit,
 }: Props) {
   const isSchool = groupType === 'SCHOOL'
   // Un membre simple qui ne voit pas le trombinoscope (ex. élève en école) doit
   // tout de même pouvoir quitter : on lui propose une carte « Quitter » dédiée.
   const showLeaveOnly = !showRoster && !isChef
-  const defaultOrder = ['rehearsal', 'concert', 'tasks', ...(showRoster ? ['members'] : []), ...(showInvite ? ['invite'] : []), ...(showLeaveOnly ? ['leave'] : [])]
+  const defaultOrder = ['rehearsal', 'concert', ...(showRoster ? ['members'] : []), ...(showInvite ? ['invite'] : []), ...(showLeaveOnly ? ['leave'] : []), ...(showTasks ? ['tasks'] : [])]
 
   const LS_KEY = `group-card-order-${groupId}`
 

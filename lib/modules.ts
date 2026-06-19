@@ -49,6 +49,14 @@ export const MODULES: ModuleDef[] = [
     category: 'feature',
   },
   {
+    key: 'feature_tasks',
+    label: 'Tâches de groupe',
+    description: "Listes de tâches à préparer avant une répétition, un concert ou une autre date, avec assignation aux membres et envoi par e-mail.",
+    href: '/groupes/[id]/taches',
+    icon: '✅',
+    category: 'feature',
+  },
+  {
     key: 'tool_cachet',
     label: 'Simulateur cachet GUSO',
     description: "Estimez le coût employeur et le net artiste pour un cachet de spectacle vivant.",

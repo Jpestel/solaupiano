@@ -18,6 +18,7 @@ import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
 import { getGroupStorageInfo } from '@/lib/storage'
 import { TchatBadge } from '@/components/ui/TchatBadge'
 import ImageConsentBanner from '@/components/ImageConsentBanner'
+import { isModuleEnabledForGroup } from '@/lib/module-access'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -151,6 +152,8 @@ export default async function GroupePage({ params }: { params: { id: string } })
   // École : les élèves (non-chefs) ne voient que les modules autorisés par le prof.
   const isStudentView = (group as any).type === 'SCHOOL' && !isChef
   const studentMods = parseStudentModules((group as any).studentModules)
+  const tasksModuleEnabled = isAdminUser || await isModuleEnabledForGroup(groupId, 'feature_tasks')
+  const showTasksModule = tasksModuleEnabled && (!isStudentView || studentMods.includes('taches'))
 
   // Auto-assign founder if missing (done in GET API, but also compute here)
   const isFounder = adminPower || group.createdBy === userId
@@ -273,11 +276,6 @@ export default async function GroupePage({ params }: { params: { id: string } })
             href: 'concerts',    label: 'Concerts',    icon: '🎭',
             iconBg: 'bg-purple-100', textColor: 'text-purple-700', border: 'border-purple-200 hover:border-purple-400 hover:bg-purple-50/60',
             chefDesc: 'Organiser les dates', memberDesc: 'Voir les dates',
-          },
-          {
-            href: 'taches', label: 'Tâches', icon: '✅',
-            iconBg: 'bg-amber-100', textColor: 'text-amber-700', border: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/60',
-            chefDesc: 'Préparer les dates', memberDesc: 'Mes tâches à faire',
           },
           {
             href: 'morceaux',    label: 'Répertoire',  icon: '🎼',
@@ -459,6 +457,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
         currentUserId={userId}
         currentUserRole={effectiveRole}
         savedCardOrder={membership?.cardOrder ?? null}
+        showTasks={showTasksModule}
         createdBy={group.createdBy ?? null}
         chefPermissions={group.chefPermissions ?? null}
         memberLimit={adminPower ? null : effectiveMemberLimit}

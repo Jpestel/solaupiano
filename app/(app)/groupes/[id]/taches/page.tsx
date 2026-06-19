@@ -58,6 +58,11 @@ export default function TachesPage({ params }: { params: { id: string } }) {
       setMembers(d.members)
       setRehearsals(d.rehearsals)
       setConcerts(d.concerts)
+    } else {
+      const d = await tRes.json().catch(() => ({}))
+      setError(d.error === 'MODULE_LOCKED'
+        ? "Le module Tâches n'est pas disponible avec le plan actuel de ce groupe."
+        : (d.error || 'Impossible de charger les tâches.'))
     }
     if (gRes.ok) { const g = await gRes.json(); setGroupName(g.name) }
     setLoading(false)
@@ -134,6 +139,23 @@ export default function TachesPage({ params }: { params: { id: string } }) {
   }
 
   if (loading) return <div className="text-gray-500">Chargement…</div>
+
+  if (error && lists.length === 0 && !isChef) {
+    return (
+      <div>
+        <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
+          <Link href="/groupes" className="hover:text-indigo-600">Mes groupes</Link>
+          <span>/</span>
+          <Link href={`/groupes/${groupId}`} className="hover:text-indigo-600">{groupName || 'Groupe'}</Link>
+          <span>/</span>
+          <span className="text-gray-700 font-medium">Tâches</span>
+        </div>
+        <Card>
+          <p className="text-sm text-gray-500 text-center py-8">{error}</p>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div>

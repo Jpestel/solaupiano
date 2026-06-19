@@ -1,5 +1,29 @@
 import { prisma } from './prisma'
 
+export async function isModuleEnabledForPlan(planKey: string, moduleKey: string): Promise<boolean> {
+  const record = await prisma.moduleAccess.findUnique({
+    where: { moduleKey_planKey: { moduleKey, planKey } },
+    select: { enabled: true },
+  })
+  return record?.enabled ?? true
+}
+
+export async function isModuleEnabledForGroup(groupId: number, moduleKey: string): Promise<boolean> {
+  const groupOverride = await prisma.moduleGroupOverride.findUnique({
+    where: { moduleKey_groupId: { moduleKey, groupId } },
+    select: { allowed: true },
+  })
+  if (groupOverride !== null) return groupOverride.allowed
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { plan: true },
+  })
+  if (!group) return false
+
+  return isModuleEnabledForPlan(group.plan, moduleKey)
+}
+
 /**
  * Check if a user has access to a module.
  *
