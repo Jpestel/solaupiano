@@ -7,6 +7,7 @@ import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { DismissibleHelp } from './DismissibleHelp'
 
 interface Song { id: number; title: string; artist?: string; tempo?: number | null }
 interface SquareScore {
@@ -172,6 +173,16 @@ export default function PartitionsCarreesPage({ params }: { params: { id: string
           <p className="text-gray-500 text-sm mt-1">Relevez la structure d’un morceau avec PMD, carrés de mesures et abréviations de parties.</p>
         </div>
         {chefCan('create') && <Button onClick={() => setModalOpen(true)}>+ Nouvelle partition</Button>}
+      </div>
+
+      <div className="mb-6">
+        <DismissibleHelp storageKey="square-score-list-help" title="Comment fonctionne la méthode carrée ?">
+          <div className="space-y-2">
+            <p>Commencez par le PMD : <strong>Pulsation</strong> (tempo ressenti), <strong>Mesure</strong> (nombre de temps), puis <strong>Débit</strong> (binaire, ternaire ou mixte).</p>
+            <p>Ensuite, vous tracez des carrés : <strong>chaque côté représente une mesure</strong>. Un carré complet représente donc généralement 4 mesures en 4/4.</p>
+            <p>Pour rendre la structure lisible, indiquez les parties avec des abréviations : <strong>I</strong> intro, <strong>C</strong> couplet, <strong>PR</strong> pré-refrain, <strong>R</strong> refrain, <strong>P</strong> pont, <strong>It</strong> interlude, <strong>S</strong> solo, <strong>O</strong> outro.</p>
+          </div>
+        </DismissibleHelp>
       </div>
 
       {locked ? (

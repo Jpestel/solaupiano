@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
+import { DismissibleHelp } from '../DismissibleHelp'
 
 interface SquareCell {
   section: string
@@ -189,6 +190,16 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
 
       {error && <div className="no-print rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-4">{error}</div>}
       {saved && <div className="no-print rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 mb-4">Partition enregistrée.</div>}
+
+      <div className="mb-5">
+        <DismissibleHelp storageKey="square-score-editor-help" title="Mode d’emploi rapide">
+          <div className="space-y-2">
+            <p>Renseignez d’abord le <strong>PMD</strong> : pulsation, mesure et débit. C’est le calibrage du temps avant le relevé.</p>
+            <p>Cliquez ensuite sur un carré : les numéros <strong>1, 2, 3, 4</strong> indiquent l’ordre des côtés. Chaque côté correspond à une mesure.</p>
+            <p>Dans le panneau de droite, utilisez <strong>Section</strong> pour noter I, C, PR, R, P, It, S ou O. Les champs accord, rythme, paroles et consigne sont optionnels : ils servent à enrichir le relevé si besoin.</p>
+          </div>
+        </DismissibleHelp>
+      </div>
 
       <div className="print-full grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-5">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
