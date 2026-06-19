@@ -9,7 +9,26 @@ const MODULE_KEY = 'feature_partitions_carrees'
 
 // Grille de points vierge (l'utilisateur relie les points lui-même).
 function emptyCanvas() {
-  return { rows: 5, cols: 17, h: [] as string[], v: [] as string[], labels: [] as { id: string; r: number; c: number; text: string }[] }
+  return {
+    rows: 5,
+    cols: 17,
+    h: [] as string[],
+    v: [] as string[],
+    labels: [] as { id: string; r: number; c: number; text: string }[],
+    sheetRows: [{
+      id: 'sr-0',
+      section: 'Int',
+      time: "0' 00''",
+      cue: '',
+      squares: 4,
+      ghostSquares: 0,
+      chords: ['F#m', 'D', 'A', 'E/G#'],
+      repeatStart: true,
+      repeatEnd: true,
+      highlight: false,
+      note: '',
+    }],
+  }
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {

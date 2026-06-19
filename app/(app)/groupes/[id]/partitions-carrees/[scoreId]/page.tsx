@@ -6,7 +6,20 @@ import { Button } from '@/components/ui/Button'
 import { DismissibleHelp } from '../DismissibleHelp'
 
 interface Label { id: string; r: number; c: number; text: string }
-interface Canvas { rows: number; cols: number; h: string[]; v: string[]; labels: Label[] }
+interface SheetRow {
+  id: string
+  section: string
+  time: string
+  cue: string
+  squares: number
+  ghostSquares: number
+  chords: string[]
+  repeatStart: boolean
+  repeatEnd: boolean
+  highlight: boolean
+  note: string
+}
+interface Canvas { rows: number; cols: number; h: string[]; v: string[]; labels: Label[]; sheetRows: SheetRow[] }
 
 interface SquareScore {
   id: number
@@ -32,6 +45,21 @@ const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '5/4', '12/8']
 const STEP = 36
 const M = 26
 
+const SECTION_PRESETS = ['Int', 'C1', 'R1', 'C2', 'R2', 'Solo', 'P', 'Break', 'R3', 'Outro']
+const emptySheetRow = (i = 0): SheetRow => ({
+  id: `sr-${Date.now()}-${i}`,
+  section: i === 0 ? 'Int' : '',
+  time: i === 0 ? "0' 00''" : '',
+  cue: '',
+  squares: 4,
+  ghostSquares: 0,
+  chords: ['F#m', 'D', 'A', 'E/G#'],
+  repeatStart: true,
+  repeatEnd: true,
+  highlight: false,
+  note: '',
+})
+
 function legacyCellText(cell: unknown) {
   const c = cell && typeof cell === 'object' ? (cell as Record<string, unknown>) : {}
   return [
@@ -56,7 +84,7 @@ function normalizeCanvas(value: unknown, beatsPerMeasure = 4): Canvas {
       c: (i % perRow) * beats,
       text: legacyCellText(cell),
     })).filter((l) => l.text)
-    return { rows, cols, h: [], v: [], labels }
+    return { rows, cols, h: [], v: [], labels, sheetRows: [emptySheetRow(0)] }
   }
 
   const v = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
@@ -69,7 +97,26 @@ function normalizeCanvas(value: unknown, beatsPerMeasure = 4): Canvas {
         return { id: typeof o.id === 'string' ? o.id : `l${i}`, r: Math.round(Number(o.r)) || 0, c: Math.round(Number(o.c)) || 0, text: String(o.text ?? '') }
       }).filter((l) => l.text)
     : []
-  return { rows, cols, h: arr(v.h), v: arr(v.v), labels }
+  const sheetRows = Array.isArray(v.sheetRows)
+    ? (v.sheetRows as unknown[]).slice(0, 80).map((row, i) => {
+        const o = row && typeof row === 'object' ? (row as Record<string, unknown>) : {}
+        const chords = Array.isArray(o.chords) ? o.chords.map((c) => String(c ?? '').slice(0, 24)) : []
+        return {
+          id: typeof o.id === 'string' ? o.id : `sr-${i}`,
+          section: String(o.section ?? '').slice(0, 12),
+          time: String(o.time ?? '').slice(0, 16),
+          cue: String(o.cue ?? '').slice(0, 80),
+          squares: Math.max(0, Math.min(12, Math.round(Number(o.squares)) || 0)),
+          ghostSquares: Math.max(0, Math.min(12, Math.round(Number(o.ghostSquares)) || 0)),
+          chords: chords.length ? chords : [''],
+          repeatStart: Boolean(o.repeatStart),
+          repeatEnd: Boolean(o.repeatEnd),
+          highlight: Boolean(o.highlight),
+          note: String(o.note ?? '').slice(0, 80),
+        }
+      })
+    : []
+  return { rows, cols, h: arr(v.h), v: arr(v.v), labels, sheetRows: sheetRows.length ? sheetRows : [emptySheetRow(0)] }
 }
 
 export default function PartitionCarreeEditor({ params }: { params: { id: string; scoreId: string } }) {
@@ -141,6 +188,57 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
     updateLabel(placingId, { r, c }); setPlacingId(null)
   }
 
+  const updateSheetRow = (id: string, patch: Partial<SheetRow>) => {
+    if (!score) return
+    patchCanvas({ sheetRows: score.cells.sheetRows.map((row) => (row.id === id ? { ...row, ...patch } : row)) })
+  }
+
+  const addSheetRow = (afterId?: string) => {
+    if (!score || !canEdit) return
+    const next = emptySheetRow(score.cells.sheetRows.length)
+    const rows = score.cells.sheetRows
+    if (!afterId) return patchCanvas({ sheetRows: [...rows, next] })
+    const index = rows.findIndex((row) => row.id === afterId)
+    patchCanvas({ sheetRows: [...rows.slice(0, index + 1), next, ...rows.slice(index + 1)] })
+  }
+
+  const removeSheetRow = (id: string) => {
+    if (!score || !canEdit) return
+    const rows = score.cells.sheetRows.filter((row) => row.id !== id)
+    patchCanvas({ sheetRows: rows.length ? rows : [emptySheetRow(0)] })
+  }
+
+  const moveSheetRow = (id: string, dir: -1 | 1) => {
+    if (!score || !canEdit) return
+    const rows = [...score.cells.sheetRows]
+    const index = rows.findIndex((row) => row.id === id)
+    const next = index + dir
+    if (index < 0 || next < 0 || next >= rows.length) return
+    ;[rows[index], rows[next]] = [rows[next], rows[index]]
+    patchCanvas({ sheetRows: rows })
+  }
+
+  const updateChord = (rowId: string, index: number, value: string) => {
+    const row = score?.cells.sheetRows.find((r) => r.id === rowId)
+    if (!row) return
+    const chords = [...row.chords]
+    chords[index] = value
+    updateSheetRow(rowId, { chords })
+  }
+
+  const addChord = (rowId: string) => {
+    const row = score?.cells.sheetRows.find((r) => r.id === rowId)
+    if (!row) return
+    updateSheetRow(rowId, { chords: [...row.chords, ''] })
+  }
+
+  const removeChord = (rowId: string, index: number) => {
+    const row = score?.cells.sheetRows.find((r) => r.id === rowId)
+    if (!row) return
+    const chords = row.chords.filter((_, i) => i !== index)
+    updateSheetRow(rowId, { chords: chords.length ? chords : [''] })
+  }
+
   const save = async () => {
     if (!score || !canEdit) return
     setSaving(true); setError('')
@@ -177,6 +275,7 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
           body { background: white !important; }
           .no-print { display: none !important; }
           .print-full { grid-template-columns: 1fr !important; }
+          .square-sheet { box-shadow: none !important; border: 0 !important; padding: 0 !important; }
         }
       `}</style>
 
@@ -213,9 +312,126 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
           <div className="space-y-2">
             <p>Renseignez le <strong>PMD</strong> (Pulsation, Mesure, Débit) dans les réglages, puis <strong>reliez les points</strong> sur la grille pour dessiner vos carrés.</p>
             <p>Chaque trait entre deux points = <strong>1 temps</strong> ; un côté de carré = une <strong>mesure</strong>. Une mesure impaire se trace simplement avec un côté plus court.</p>
-            <p>Cliquez <strong>« Annotation »</strong> pour poser une lettre (section I, C, R, P…) ou un accord à l’endroit voulu.</p>
+            <p>Pour un rendu comme une feuille de structure, utilisez les <strong>lignes</strong> ci-dessous : section à gauche, carrés de mesures, accords, reprises, break, paroles ou consignes.</p>
           </div>
         </DismissibleHelp>
+      </div>
+
+      <div className="square-sheet mb-5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 pb-3">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Feuille méthode carrée</h2>
+            <p className="text-xs text-gray-500 no-print">Créez une ligne par partie du morceau, comme sur une feuille de relevé : Int, couplet, refrain, solo, break...</p>
+          </div>
+          {canEdit && (
+            <button type="button" onClick={() => addSheetRow()} className="no-print rounded-lg bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:bg-gray-800">
+              + Ligne
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {canvas.sheetRows.map((row, rowIndex) => (
+            <div key={row.id} className="rounded-lg border border-gray-100 bg-white p-3 print:border-0 print:p-0">
+              {canEdit && (
+                <div className="no-print mb-3 grid grid-cols-2 gap-2 md:grid-cols-6">
+                  <label className="block">
+                    <span className="form-label">Section</span>
+                    <input list="square-section-presets" value={row.section} onChange={(e) => updateSheetRow(row.id, { section: e.target.value })} className="form-input" placeholder="R1" />
+                  </label>
+                  <label className="block">
+                    <span className="form-label">Temps</span>
+                    <input value={row.time} onChange={(e) => updateSheetRow(row.id, { time: e.target.value })} className="form-input" placeholder="1' 24''" />
+                  </label>
+                  <label className="block md:col-span-2">
+                    <span className="form-label">Indication au-dessus</span>
+                    <input value={row.cue} onChange={(e) => updateSheetRow(row.id, { cue: e.target.value })} className="form-input" placeholder="You were a child..." />
+                  </label>
+                  <label className="block">
+                    <span className="form-label">Carrés</span>
+                    <input type="number" min={0} max={12} value={row.squares} onChange={(e) => updateSheetRow(row.id, { squares: Math.max(0, Math.min(12, Number(e.target.value) || 0)) })} className="form-input" />
+                  </label>
+                  <label className="block">
+                    <span className="form-label">Pointillés</span>
+                    <input type="number" min={0} max={12} value={row.ghostSquares} onChange={(e) => updateSheetRow(row.id, { ghostSquares: Math.max(0, Math.min(12, Number(e.target.value) || 0)) })} className="form-input" />
+                  </label>
+                  <label className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700">
+                    <input type="checkbox" checked={row.repeatStart} onChange={(e) => updateSheetRow(row.id, { repeatStart: e.target.checked })} />
+                    Reprise début
+                  </label>
+                  <label className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700">
+                    <input type="checkbox" checked={row.repeatEnd} onChange={(e) => updateSheetRow(row.id, { repeatEnd: e.target.checked })} />
+                    Reprise fin
+                  </label>
+                  <label className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700">
+                    <input type="checkbox" checked={row.highlight} onChange={(e) => updateSheetRow(row.id, { highlight: e.target.checked })} />
+                    Surligner
+                  </label>
+                  <label className="block md:col-span-2">
+                    <span className="form-label">Note courte</span>
+                    <input value={row.note} onChange={(e) => updateSheetRow(row.id, { note: e.target.value })} className="form-input" placeholder="Break, drums, stop..." />
+                  </label>
+                  <div className="flex items-end gap-2">
+                    <button type="button" onClick={() => moveSheetRow(row.id, -1)} disabled={rowIndex === 0} className="rounded-lg border border-gray-300 px-2 py-2 text-xs disabled:opacity-40">↑</button>
+                    <button type="button" onClick={() => moveSheetRow(row.id, 1)} disabled={rowIndex === canvas.sheetRows.length - 1} className="rounded-lg border border-gray-300 px-2 py-2 text-xs disabled:opacity-40">↓</button>
+                    <button type="button" onClick={() => addSheetRow(row.id)} className="rounded-lg border border-lime-300 px-2 py-2 text-xs font-semibold text-lime-700">+</button>
+                    <button type="button" onClick={() => removeSheetRow(row.id)} className="rounded-lg border border-red-200 px-2 py-2 text-xs font-semibold text-red-600">✕</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-[76px_minmax(150px,310px)_minmax(320px,1fr)] items-end gap-3 overflow-x-auto">
+                <div className="min-w-[76px]">
+                  {row.time && <div className="mb-2 w-fit border-b-2 border-gray-900 px-1 pb-0.5 text-lg font-semibold leading-none text-gray-900">{row.time}</div>}
+                  <div className="font-[Comic_Sans_MS,cursive] text-4xl font-black leading-none text-gray-950">{row.section || '—'}</div>
+                </div>
+
+                <div className="flex min-h-[54px] items-end gap-2">
+                  {Array.from({ length: row.squares }).map((_, i) => (
+                    <div key={`sq-${row.id}-${i}`} className="grid h-12 w-12 shrink-0 grid-cols-4 grid-rows-4 border-[3px] border-gray-950 bg-white p-1">
+                      {Array.from({ length: 16 }).map((__, d) => <span key={d} className="m-auto h-1 w-1 rounded-full bg-gray-900" />)}
+                    </div>
+                  ))}
+                  {Array.from({ length: row.ghostSquares }).map((_, i) => (
+                    <div key={`ghost-${row.id}-${i}`} className="grid h-12 w-12 shrink-0 grid-cols-4 grid-rows-4 p-1">
+                      {Array.from({ length: 16 }).map((__, d) => <span key={d} className="m-auto h-1 w-1 rounded-full bg-gray-900" />)}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="min-w-[320px]">
+                  {row.cue && <div className="mb-1 pl-1 font-[Comic_Sans_MS,cursive] text-lg italic text-gray-900">{row.cue}</div>}
+                  <div className={`relative flex min-h-[54px] border-y-2 border-gray-800 ${row.highlight ? 'bg-yellow-100' : 'bg-white'}`}>
+                    {row.repeatStart && <div className="flex w-4 shrink-0 items-center justify-center border-l-2 border-r border-gray-800 text-3xl leading-none">:</div>}
+                    {row.note ? (
+                      <div className="flex min-w-[130px] items-center justify-center border-r-2 border-gray-800 px-4 text-lg font-semibold text-gray-800">{row.note}</div>
+                    ) : null}
+                    {row.chords.map((chord, i) => (
+                      <div key={`${row.id}-chord-${i}`} className="group relative flex min-w-[100px] flex-1 items-center justify-center border-r-2 border-gray-700 px-3">
+                        {canEdit ? (
+                          <input value={chord} onChange={(e) => updateChord(row.id, i, e.target.value)} className="w-full border-0 bg-transparent p-0 text-center font-[Comic_Sans_MS,cursive] text-3xl font-bold text-gray-950 focus:ring-0" placeholder="%" />
+                        ) : (
+                          <span className="font-[Comic_Sans_MS,cursive] text-3xl font-bold text-gray-950">{chord}</span>
+                        )}
+                        {canEdit && row.chords.length > 1 && (
+                          <button type="button" onClick={() => removeChord(row.id, i)} className="no-print absolute right-1 top-1 hidden rounded bg-white/80 px-1 text-xs text-red-500 shadow group-hover:block">×</button>
+                        )}
+                      </div>
+                    ))}
+                    {row.repeatEnd && <div className="flex w-4 shrink-0 items-center justify-center border-r-2 border-gray-800 text-3xl leading-none">:</div>}
+                    {canEdit && (
+                      <button type="button" onClick={() => addChord(row.id)} className="no-print ml-2 self-center rounded-lg border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-600">+ accord</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <datalist id="square-section-presets">
+          {SECTION_PRESETS.map((s) => <option key={s} value={s} />)}
+        </datalist>
       </div>
 
       <div className="print-full grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-5">

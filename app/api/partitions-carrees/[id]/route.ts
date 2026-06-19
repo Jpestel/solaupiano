@@ -7,9 +7,8 @@ export const dynamic = 'force-dynamic'
 
 const MODULE_KEY = 'feature_partitions_carrees'
 
-// Le « cells » stocke désormais une grille de points libre :
-// { rows, cols, h[], v[], labels[] }. h/v = segments tracés à la main entre 2 points
-// voisins (clé "r:c"). labels = annotations (accord, section…) posées sur un point.
+// Le « cells » stocke la grille libre + la feuille structurée :
+// { rows, cols, h[], v[], labels[], sheetRows[] }.
 function clampInt(n: unknown, lo: number, hi: number, dflt: number) {
   const x = Math.round(Number(n))
   return Number.isFinite(x) ? Math.max(lo, Math.min(hi, x)) : dflt
@@ -47,7 +46,41 @@ function normalizeCanvas(value: unknown) {
       }).filter((l) => l.text)
     : []
 
-  return { rows, cols, h, v: vv, labels }
+  const sheetRows = Array.isArray(v.sheetRows)
+    ? v.sheetRows.slice(0, 80).map((row, i) => {
+        const o = row && typeof row === 'object' ? (row as Record<string, unknown>) : {}
+        const chords = Array.isArray(o.chords)
+          ? o.chords.slice(0, 24).map((chord) => String(chord ?? '').slice(0, 24))
+          : ['']
+        return {
+          id: typeof o.id === 'string' ? o.id.slice(0, 40) : `sr-${i}`,
+          section: String(o.section ?? '').slice(0, 12),
+          time: String(o.time ?? '').slice(0, 16),
+          cue: String(o.cue ?? '').slice(0, 80),
+          squares: clampInt(o.squares, 0, 12, 4),
+          ghostSquares: clampInt(o.ghostSquares, 0, 12, 0),
+          chords: chords.length ? chords : [''],
+          repeatStart: Boolean(o.repeatStart),
+          repeatEnd: Boolean(o.repeatEnd),
+          highlight: Boolean(o.highlight),
+          note: String(o.note ?? '').slice(0, 80),
+        }
+      })
+    : []
+
+  return { rows, cols, h, v: vv, labels, sheetRows: sheetRows.length ? sheetRows : [{
+    id: 'sr-0',
+    section: 'Int',
+    time: "0' 00''",
+    cue: '',
+    squares: 4,
+    ghostSquares: 0,
+    chords: ['F#m', 'D', 'A', 'E/G#'],
+    repeatStart: true,
+    repeatEnd: true,
+    highlight: false,
+    note: '',
+  }] }
 }
 
 async function scoreContext(scoreId: number) {
