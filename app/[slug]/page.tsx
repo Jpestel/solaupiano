@@ -107,6 +107,12 @@ export default async function GroupPublicPage({
 
   return (
     <div style={{ backgroundColor: bg, color: tc, minHeight: '100vh' }}>
+      <a
+        href="/"
+        className="fixed left-3 top-3 z-50 inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-black/10 backdrop-blur transition-colors hover:bg-white sm:left-4 sm:top-4"
+      >
+        ← Retour vers Sol au Piano
+      </a>
 
       {/* Draft banner */}
       {!page.published && (

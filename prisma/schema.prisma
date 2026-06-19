@@ -354,6 +354,7 @@ model Group {
   name        String
   type        GroupType @default(BAND) // groupe de musique ou classe / école
   studentModules String? @db.Text // école : JSON des modules visibles par les élèves (null = défaut)
+  moduleOrder String? @db.Text // JSON : ordre des modules affichés sur la page de gestion du groupe
   description String?   @db.Text
   style       String?  // genre / style musical (null = non renseigné)
   coverUrl         String?

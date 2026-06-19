@@ -16,9 +16,9 @@ import { GroupCoverUpload } from './GroupCoverUpload'
 import { PermissionsSettings } from './PermissionsSettings'
 import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
 import { getGroupStorageInfo } from '@/lib/storage'
-import { TchatBadge } from '@/components/ui/TchatBadge'
 import ImageConsentBanner from '@/components/ImageConsentBanner'
 import { isModuleEnabledForGroup } from '@/lib/module-access'
+import { GroupModulesGrid, type GroupModuleLink } from './GroupModulesGrid'
 
 function parseLookingFor(raw?: string | null): string[] {
   if (!raw) return []
@@ -154,6 +154,109 @@ export default async function GroupePage({ params }: { params: { id: string } })
   const studentMods = parseStudentModules((group as any).studentModules)
   const tasksModuleEnabled = isAdminUser || await isModuleEnabledForGroup(groupId, 'feature_tasks')
   const showTasksModule = tasksModuleEnabled && (!isStudentView || studentMods.includes('taches'))
+  const canReorderModules = isChef && coChefCanDo(
+    { createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null },
+    userId,
+    adminPower,
+    'modules',
+    'reorder'
+  )
+  const moduleLinks: GroupModuleLink[] = [
+    {
+      href: 'repetitions',
+      label: (group as any).type === 'SCHOOL' ? 'Cours' : 'Répétitions', icon: '🎵',
+      iconBg: 'bg-blue-100',   textColor: 'text-blue-700',   border: 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/60',
+      chefDesc: (group as any).type === 'SCHOOL' ? 'Planifier les cours' : 'Planifier & gérer',
+      memberDesc: (group as any).type === 'SCHOOL' ? 'Voir mes cours' : 'Voir le planning',
+    },
+    {
+      href: 'concerts',    label: 'Concerts',    icon: '🎭',
+      iconBg: 'bg-purple-100', textColor: 'text-purple-700', border: 'border-purple-200 hover:border-purple-400 hover:bg-purple-50/60',
+      chefDesc: 'Organiser les dates', memberDesc: 'Voir les dates',
+    },
+    {
+      href: 'taches', label: 'Tâches', icon: '✅',
+      iconBg: 'bg-amber-100', textColor: 'text-amber-700', border: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/60',
+      chefDesc: 'Préparer les dates', memberDesc: 'Mes tâches à faire',
+    },
+    {
+      href: 'morceaux',    label: 'Répertoire',  icon: '🎼',
+      iconBg: 'bg-indigo-100', textColor: 'text-indigo-700', border: 'border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/60',
+      chefDesc: 'Gérer les morceaux', memberDesc: 'Voir les morceaux',
+    },
+    {
+      href: 'setlists',    label: 'Setlists',    icon: '🎶',
+      iconBg: 'bg-green-100',  textColor: 'text-green-700',  border: 'border-green-200 hover:border-green-400 hover:bg-green-50/60',
+      chefDesc: 'Créer les setlists', memberDesc: 'Voir les setlists',
+    },
+    {
+      href: 'grilles',     label: 'Grilles',     icon: '🎸',
+      iconBg: 'bg-orange-100', textColor: 'text-orange-700', border: 'border-orange-200 hover:border-orange-400 hover:bg-orange-50/60',
+      chefDesc: 'Créer les grilles', memberDesc: 'Voir les grilles',
+    },
+    {
+      href: 'fiche-technique', label: 'Fiche tech.', icon: '📋',
+      iconBg: 'bg-rose-100',   textColor: 'text-rose-700',   border: 'border-rose-200 hover:border-rose-400 hover:bg-rose-50/60',
+      chefDesc: 'Créer la fiche', memberDesc: 'Voir la fiche',
+    },
+    {
+      href: 'ma-page', label: 'Ma page', icon: '🌐',
+      iconBg: 'bg-teal-100', textColor: 'text-teal-700', border: 'border-teal-200 hover:border-teal-400 hover:bg-teal-50/60',
+      chefDesc: 'Créer la page web', memberDesc: 'Voir la page',
+    },
+    {
+      href: 'tchat', label: 'Tchat', icon: '💬',
+      iconBg: 'bg-pink-100', textColor: 'text-pink-700', border: 'border-pink-200 hover:border-pink-400 hover:bg-pink-50/60',
+      chefDesc: 'Messagerie du groupe', memberDesc: 'Messagerie du groupe',
+    },
+    {
+      href: 'ressources-partagees', label: 'Ressources', icon: '📒',
+      iconBg: 'bg-cyan-100', textColor: 'text-cyan-700', border: 'border-cyan-200 hover:border-cyan-400 hover:bg-cyan-50/60',
+      chefDesc: 'Liens, contacts, fichiers', memberDesc: 'Liens, contacts, fichiers',
+    },
+    {
+      href: 'disponibilites', label: 'Disponibilités', icon: '🗓',
+      iconBg: 'bg-amber-100', textColor: 'text-amber-700', border: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/60',
+      chefDesc: 'Voir qui est dispo', memberDesc: 'Mes indisponibilités',
+    },
+    {
+      href: 'sondages', label: 'Sondages', icon: '📊',
+      iconBg: 'bg-violet-100', textColor: 'text-violet-700', border: 'border-violet-200 hover:border-violet-400 hover:bg-violet-50/60',
+      chefDesc: 'Créer des sondages de dates', memberDesc: 'Répondre aux sondages',
+    },
+    {
+      href: 'comptabilite', label: 'Comptabilité', icon: '💶',
+      iconBg: 'bg-emerald-100', textColor: 'text-emerald-700', border: 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/60',
+      chefDesc: 'Dépenses & remboursements', memberDesc: 'Mes parts à payer',
+    },
+    {
+      href: 'galerie', label: 'Galerie', icon: '📸',
+      iconBg: 'bg-fuchsia-100', textColor: 'text-fuchsia-700', border: 'border-fuchsia-200 hover:border-fuchsia-400 hover:bg-fuchsia-50/60',
+      chefDesc: 'Photos répèts & concerts', memberDesc: 'Partager vos photos',
+    },
+    {
+      href: 'social', label: 'Réseaux', icon: '📣',
+      iconBg: 'bg-sky-100', textColor: 'text-sky-700', border: 'border-sky-200 hover:border-sky-400 hover:bg-sky-50/60',
+      chefDesc: 'Créer des posts à partager', memberDesc: 'Créer des posts à partager',
+    },
+  ].filter((link) => {
+    // École : un élève ne voit que les modules autorisés par le prof.
+    if (isStudentView && !studentMods.includes(link.href)) return false
+    if (link.href === 'concerts')        return planFeatures.concerts
+    if (link.href === 'taches')          return showTasksModule
+    if (link.href === 'setlists')        return planFeatures.setlists
+    if (link.href === 'grilles')         return planFeatures.grilles
+    if (link.href === 'fiche-technique') return planFeatures.ficheTechnique
+    if (link.href === 'ma-page')         return planFeatures.maPage
+    if (link.href === 'comptabilite')    return planFeatures.accounting
+    if (link.href === 'tchat')           return planFeatures.chat
+    if (link.href === 'ressources-partagees') return planFeatures.sharedResources
+    if (link.href === 'disponibilites')  return planFeatures.unavailabilities
+    if (link.href === 'sondages')        return planFeatures.polls
+    if (link.href === 'galerie')         return planFeatures.galerie
+    if (link.href === 'social')          return planFeatures.social && canSocial
+    return true
+  })
 
   // Auto-assign founder if missing (done in GET API, but also compute here)
   const isFounder = adminPower || group.createdBy === userId
@@ -263,132 +366,13 @@ export default async function GroupePage({ params }: { params: { id: string } })
       )}
 
       {/* Navigation sections */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2 mb-2">
-        {([
-          {
-            href: 'repetitions',
-            label: (group as any).type === 'SCHOOL' ? 'Cours' : 'Répétitions', icon: '🎵',
-            iconBg: 'bg-blue-100',   textColor: 'text-blue-700',   border: 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/60',
-            chefDesc: (group as any).type === 'SCHOOL' ? 'Planifier les cours' : 'Planifier & gérer',
-            memberDesc: (group as any).type === 'SCHOOL' ? 'Voir mes cours' : 'Voir le planning',
-          },
-          {
-            href: 'concerts',    label: 'Concerts',    icon: '🎭',
-            iconBg: 'bg-purple-100', textColor: 'text-purple-700', border: 'border-purple-200 hover:border-purple-400 hover:bg-purple-50/60',
-            chefDesc: 'Organiser les dates', memberDesc: 'Voir les dates',
-          },
-          {
-            href: 'taches', label: 'Tâches', icon: '✅',
-            iconBg: 'bg-amber-100', textColor: 'text-amber-700', border: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/60',
-            chefDesc: 'Préparer les dates', memberDesc: 'Mes tâches à faire',
-          },
-          {
-            href: 'morceaux',    label: 'Répertoire',  icon: '🎼',
-            iconBg: 'bg-indigo-100', textColor: 'text-indigo-700', border: 'border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/60',
-            chefDesc: 'Gérer les morceaux', memberDesc: 'Voir les morceaux',
-          },
-          {
-            href: 'setlists',    label: 'Setlists',    icon: '🎶',
-            iconBg: 'bg-green-100',  textColor: 'text-green-700',  border: 'border-green-200 hover:border-green-400 hover:bg-green-50/60',
-            chefDesc: 'Créer les setlists', memberDesc: 'Voir les setlists',
-          },
-          {
-            href: 'grilles',     label: 'Grilles',     icon: '🎸',
-            iconBg: 'bg-orange-100', textColor: 'text-orange-700', border: 'border-orange-200 hover:border-orange-400 hover:bg-orange-50/60',
-            chefDesc: 'Créer les grilles', memberDesc: 'Voir les grilles',
-          },
-          {
-            href: 'fiche-technique', label: 'Fiche tech.', icon: '📋',
-            iconBg: 'bg-rose-100',   textColor: 'text-rose-700',   border: 'border-rose-200 hover:border-rose-400 hover:bg-rose-50/60',
-            chefDesc: 'Créer la fiche', memberDesc: 'Voir la fiche',
-          },
-          {
-            href: 'ma-page', label: 'Ma page', icon: '🌐',
-            iconBg: 'bg-teal-100', textColor: 'text-teal-700', border: 'border-teal-200 hover:border-teal-400 hover:bg-teal-50/60',
-            chefDesc: 'Créer la page web', memberDesc: 'Voir la page',
-          },
-          {
-            href: 'tchat', label: 'Tchat', icon: '💬',
-            iconBg: 'bg-pink-100', textColor: 'text-pink-700', border: 'border-pink-200 hover:border-pink-400 hover:bg-pink-50/60',
-            chefDesc: 'Messagerie du groupe', memberDesc: 'Messagerie du groupe',
-          },
-          {
-            href: 'ressources-partagees', label: 'Ressources', icon: '📒',
-            iconBg: 'bg-cyan-100', textColor: 'text-cyan-700', border: 'border-cyan-200 hover:border-cyan-400 hover:bg-cyan-50/60',
-            chefDesc: 'Liens, contacts, fichiers', memberDesc: 'Liens, contacts, fichiers',
-          },
-          {
-            href: 'disponibilites', label: 'Disponibilités', icon: '🗓',
-            iconBg: 'bg-amber-100', textColor: 'text-amber-700', border: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/60',
-            chefDesc: 'Voir qui est dispo', memberDesc: 'Mes indisponibilités',
-          },
-          {
-            href: 'sondages', label: 'Sondages', icon: '📊',
-            iconBg: 'bg-violet-100', textColor: 'text-violet-700', border: 'border-violet-200 hover:border-violet-400 hover:bg-violet-50/60',
-            chefDesc: 'Créer des sondages de dates', memberDesc: 'Répondre aux sondages',
-          },
-          {
-            href: 'comptabilite', label: 'Comptabilité', icon: '💶',
-            iconBg: 'bg-emerald-100', textColor: 'text-emerald-700', border: 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/60',
-            chefDesc: 'Dépenses & remboursements', memberDesc: 'Mes parts à payer',
-          },
-          {
-            href: 'galerie', label: 'Galerie', icon: '📸',
-            iconBg: 'bg-fuchsia-100', textColor: 'text-fuchsia-700', border: 'border-fuchsia-200 hover:border-fuchsia-400 hover:bg-fuchsia-50/60',
-            chefDesc: 'Photos répèts & concerts', memberDesc: 'Partager vos photos',
-          },
-          {
-            href: 'social', label: 'Réseaux', icon: '📣',
-            iconBg: 'bg-sky-100', textColor: 'text-sky-700', border: 'border-sky-200 hover:border-sky-400 hover:bg-sky-50/60',
-            chefDesc: 'Créer des posts à partager', memberDesc: 'Créer des posts à partager',
-          },
-        ] as const)
-          // Masque les fonctionnalités non incluses dans le plan du groupe
-          .filter((link) => {
-            // École : un élève ne voit que les modules autorisés par le prof.
-            if (isStudentView && !studentMods.includes(link.href)) return false
-            if (link.href === 'concerts')        return planFeatures.concerts
-            if (link.href === 'taches')          return showTasksModule
-            if (link.href === 'setlists')        return planFeatures.setlists
-            if (link.href === 'grilles')         return planFeatures.grilles
-            if (link.href === 'fiche-technique') return planFeatures.ficheTechnique
-            if (link.href === 'ma-page')         return planFeatures.maPage
-            if (link.href === 'comptabilite')    return planFeatures.accounting
-            if (link.href === 'tchat')           return planFeatures.chat
-            if (link.href === 'ressources-partagees') return planFeatures.sharedResources
-            if (link.href === 'disponibilites')  return planFeatures.unavailabilities
-            if (link.href === 'sondages')        return planFeatures.polls
-            if (link.href === 'galerie')         return planFeatures.galerie
-            if (link.href === 'social')          return planFeatures.social && canSocial
-            return true
-          })
-          .map((link) => (
-          <Link
-            key={link.href}
-            href={`/groupes/${groupId}/${link.href}`}
-            data-bubble={`mod-${link.href}`}
-            className={`relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 transition-all duration-150 group hover:shadow-md hover:-translate-y-0.5 ${link.border}`}
-          >
-            <div className={`w-8 h-8 rounded-lg ${link.iconBg} flex items-center justify-center text-base flex-shrink-0 transition-transform group-hover:scale-110`}>
-              {link.icon}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className={`text-sm font-semibold ${link.textColor} leading-tight`}>{link.label}</p>
-              <p className="text-[11px] text-gray-400 leading-tight mt-0.5 truncate">
-                {isChef ? link.chefDesc : link.memberDesc}
-              </p>
-            </div>
-            <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full transition-all ${link.iconBg} ${link.textColor} opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5`}>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-              </svg>
-            </span>
-            {link.href === 'tchat' && (
-              <TchatBadge groupId={String(groupId)} />
-            )}
-          </Link>
-        ))}
-      </div>
+      <GroupModulesGrid
+        groupId={groupId}
+        links={moduleLinks}
+        isChef={isChef}
+        canReorder={canReorderModules}
+        initialOrder={group.moduleOrder ?? null}
+      />
 
       {/* Stats link — chef only, shown even if locked (to upsell) */}
       {isChef && (

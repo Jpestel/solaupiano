@@ -25,6 +25,10 @@ export type SocialPermissions = {
   post: boolean
 }
 
+export type ModulesPermissions = {
+  reorder: boolean
+}
+
 export type ChefPermissions = {
   repetitions: StandardPermissions
   repertoire: StandardPermissions
@@ -36,6 +40,7 @@ export type ChefPermissions = {
   stats: StatsPermissions
   estimations: EstimationPermissions
   social: SocialPermissions
+  modules: ModulesPermissions
 }
 
 export const DEFAULT_PERMISSIONS: ChefPermissions = {
@@ -49,6 +54,7 @@ export const DEFAULT_PERMISSIONS: ChefPermissions = {
   stats:       { view: true },
   estimations: { create: true, save: true, update: true, delete: true },
   social:      { post: true },
+  modules:     { reorder: true },
 }
 
 /** Merge saved JSON over defaults (unknown fields are ignored, missing fields get defaults). */
@@ -99,6 +105,7 @@ export const MODULE_LABELS: Record<keyof ChefPermissions, string> = {
   stats:       'Statistiques',
   estimations: 'Estimation de cachet',
   social:      'Réseaux sociaux',
+  modules:     'Modules',
 }
 
 export const MODULE_ICONS: Record<keyof ChefPermissions, string> = {
@@ -112,6 +119,7 @@ export const MODULE_ICONS: Record<keyof ChefPermissions, string> = {
   stats:       '📊',
   estimations: '💰',
   social:      '📣',
+  modules:     '🧩',
 }
 
 export const ACTION_LABELS: Record<string, string> = {
@@ -124,4 +132,5 @@ export const ACTION_LABELS: Record<string, string> = {
   promote: 'Promouvoir',
   view:    'Consulter',
   post:    'Publier',
+  reorder: 'Réordonner',
 }
