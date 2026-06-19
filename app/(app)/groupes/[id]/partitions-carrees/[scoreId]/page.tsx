@@ -380,7 +380,7 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                 </div>
               )}
 
-              <div className="grid grid-cols-[76px_minmax(150px,310px)_minmax(320px,1fr)] items-end gap-3 overflow-x-auto">
+              <div className="grid grid-cols-[76px_minmax(150px,260px)_minmax(520px,1fr)] items-end gap-3 overflow-x-auto">
                 <div className="min-w-[76px]">
                   {row.time && <div className="mb-2 w-fit border-b-2 border-gray-900 px-1 pb-0.5 text-lg font-semibold leading-none text-gray-900">{row.time}</div>}
                   <div className="font-[Comic_Sans_MS,cursive] text-4xl font-black leading-none text-gray-950">{row.section || '—'}</div>
@@ -399,25 +399,27 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                   ))}
                 </div>
 
-                <div className="min-w-[320px]">
+                <div className="min-w-[520px]">
                   {row.cue && <div className="mb-1 pl-1 font-[Comic_Sans_MS,cursive] text-lg italic text-gray-900">{row.cue}</div>}
                   <div className={`relative flex min-h-[54px] border-y-2 border-gray-800 ${row.highlight ? 'bg-yellow-100' : 'bg-white'}`}>
                     {row.repeatStart && <div className="flex w-4 shrink-0 items-center justify-center border-l-2 border-r border-gray-800 text-3xl leading-none">:</div>}
                     {row.note ? (
                       <div className="flex min-w-[130px] items-center justify-center border-r-2 border-gray-800 px-4 text-lg font-semibold text-gray-800">{row.note}</div>
                     ) : null}
-                    {row.chords.map((chord, i) => (
-                      <div key={`${row.id}-chord-${i}`} className="group relative flex min-w-[100px] flex-1 items-center justify-center border-r-2 border-gray-700 px-3">
-                        {canEdit ? (
-                          <input value={chord} onChange={(e) => updateChord(row.id, i, e.target.value)} className="w-full border-0 bg-transparent p-0 text-center font-[Comic_Sans_MS,cursive] text-3xl font-bold text-gray-950 focus:ring-0" placeholder="%" />
-                        ) : (
-                          <span className="font-[Comic_Sans_MS,cursive] text-3xl font-bold text-gray-950">{chord}</span>
-                        )}
-                        {canEdit && row.chords.length > 1 && (
-                          <button type="button" onClick={() => removeChord(row.id, i)} className="no-print absolute right-1 top-1 hidden rounded bg-white/80 px-1 text-xs text-red-500 shadow group-hover:block">×</button>
-                        )}
-                      </div>
-                    ))}
+                    <div className="grid min-w-0 flex-1 grid-cols-4">
+                      {row.chords.map((chord, i) => (
+                        <div key={`${row.id}-chord-${i}`} className="group relative flex min-w-0 items-center justify-center border-r-2 border-gray-700 px-2">
+                          {canEdit ? (
+                            <input value={chord} onChange={(e) => updateChord(row.id, i, e.target.value)} className="w-full min-w-0 border-0 bg-transparent p-0 text-center font-[Comic_Sans_MS,cursive] text-2xl font-bold text-gray-950 focus:ring-0 md:text-3xl" placeholder="%" />
+                          ) : (
+                            <span className="truncate font-[Comic_Sans_MS,cursive] text-2xl font-bold text-gray-950 md:text-3xl">{chord}</span>
+                          )}
+                          {canEdit && row.chords.length > 1 && (
+                            <button type="button" onClick={() => removeChord(row.id, i)} className="no-print absolute right-1 top-1 hidden rounded bg-white/80 px-1 text-xs text-red-500 shadow group-hover:block">×</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                     {row.repeatEnd && <div className="flex w-4 shrink-0 items-center justify-center border-r-2 border-gray-800 text-3xl leading-none">:</div>}
                     {canEdit && (
                       <button type="button" onClick={() => addChord(row.id)} className="no-print ml-2 self-center rounded-lg border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-600">+ accord</button>
