@@ -18,11 +18,13 @@ function normalizeCells(value: unknown, total: number) {
       rhythm: String(c.rhythm ?? '').slice(0, 120),
       lyric: String(c.lyric ?? '').slice(0, 160),
       note: String(c.note ?? '').slice(0, 240),
+      // Nombre de côtés tracés (1 à 4) = nombre de mesures du carré.
+      sides: Math.max(1, Math.min(4, Math.round(Number(c.sides)) || 4)),
     }
   })
 
   while (cells.length < total) {
-    cells.push({ section: '', chord: '', melody: '', rhythm: '', lyric: '', note: '' })
+    cells.push({ section: '', chord: '', melody: '', rhythm: '', lyric: '', note: '', sides: 4 })
   }
   return cells.slice(0, total)
 }

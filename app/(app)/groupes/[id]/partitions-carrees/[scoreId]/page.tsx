@@ -12,6 +12,8 @@ interface SquareCell {
   rhythm: string
   lyric: string
   note: string
+  // Nombre de côtés tracés (1 à 4) = nombre de mesures du carré.
+  sides: number
 }
 
 interface SquareScore {
@@ -34,7 +36,7 @@ interface SquareScore {
   song?: { id: number; title: string } | null
 }
 
-const EMPTY_CELL: SquareCell = { section: '', chord: '', melody: '', rhythm: '', lyric: '', note: '' }
+const EMPTY_CELL: SquareCell = { section: '', chord: '', melody: '', rhythm: '', lyric: '', note: '', sides: 4 }
 const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '5/4', '12/8']
 
 function normalizeCells(cells: unknown, total: number): SquareCell[] {
@@ -48,6 +50,7 @@ function normalizeCells(cells: unknown, total: number): SquareCell[] {
       rhythm: c.rhythm ?? '',
       lyric: c.lyric ?? '',
       note: c.note ?? '',
+      sides: Math.max(1, Math.min(4, Math.round(Number(c.sides)) || 4)),
     }
   })
   while (normalized.length < total) normalized.push({ ...EMPTY_CELL })
@@ -244,11 +247,17 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                           {cell.section}
                         </span>
                       )}
-                      <span className="absolute left-1/2 top-1 -translate-x-1/2 text-[10px] font-bold text-lime-700">1</span>
-                      <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-lime-700">2</span>
-                      <span className="absolute left-1/2 bottom-1 -translate-x-1/2 text-[10px] font-bold text-lime-700">3</span>
-                      <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-lime-700">4</span>
-                      <div className="absolute inset-5 rounded border-2 border-gray-800" />
+                      {/* Carré : on ne trace que `cell.sides` côtés (1=haut, 2=droite, 3=bas, 4=gauche). */}
+                      <div className="absolute inset-5">
+                        {cell.sides >= 1 && <span className="absolute inset-x-0 top-0 h-[2px] bg-gray-800" />}
+                        {cell.sides >= 2 && <span className="absolute inset-y-0 right-0 w-[2px] bg-gray-800" />}
+                        {cell.sides >= 3 && <span className="absolute inset-x-0 bottom-0 h-[2px] bg-gray-800" />}
+                        {cell.sides >= 4 && <span className="absolute inset-y-0 left-0 w-[2px] bg-gray-800" />}
+                      </div>
+                      {cell.sides >= 1 && <span className="absolute left-1/2 top-1 -translate-x-1/2 text-[10px] font-bold text-lime-700">1</span>}
+                      {cell.sides >= 2 && <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-lime-700">2</span>}
+                      {cell.sides >= 3 && <span className="absolute left-1/2 bottom-1 -translate-x-1/2 text-[10px] font-bold text-lime-700">3</span>}
+                      {cell.sides >= 4 && <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-lime-700">4</span>}
                       <div className="relative z-10 flex h-full flex-col items-center justify-center px-5 text-center">
                         <div className="text-2xl font-extrabold text-gray-950">{cell.chord || '·'}</div>
                         <div className="mt-2 text-sm font-semibold text-indigo-700 whitespace-pre-wrap">{cell.melody}</div>
@@ -329,9 +338,26 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-900">Carré {selectedIndex + 1}</h2>
-              <span className="text-xs text-gray-400">4 mesures · {score.beatsPerSquare} temps/mesure</span>
+              <span className="text-xs text-gray-400">{selected.sides} mesure{selected.sides > 1 ? 's' : ''} · {score.beatsPerSquare} temps/mesure</span>
             </div>
             <div className="space-y-3">
+              <div>
+                <span className="form-label">Nombre de côtés (mesures)</span>
+                <div className="mt-1 flex gap-2">
+                  {[1, 2, 3, 4].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      disabled={!canEdit}
+                      onClick={() => patchCell(selectedIndex, { sides: n })}
+                      className={`flex-1 rounded-lg border px-0 py-2 text-sm font-bold transition-colors disabled:opacity-50 ${selected.sides === n ? 'border-lime-500 bg-lime-50 text-lime-700 ring-2 ring-lime-100' : 'border-gray-300 text-gray-600 hover:border-lime-300'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-[11px] text-gray-400">1 = un côté (1 mesure) … 4 = carré complet. Ordre de tracé : haut → droite → bas → gauche.</p>
+              </div>
               <label className="block">
                 <span className="form-label">Section</span>
                 <input disabled={!canEdit} value={selected.section} onChange={(e) => patchCell(selectedIndex, { section: e.target.value })} className="form-input" placeholder="A, B, Pont..." />

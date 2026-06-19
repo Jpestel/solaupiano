@@ -15,6 +15,7 @@ function emptyCells(total: number) {
     rhythm: '',
     lyric: '',
     note: '',
+    sides: 4,
   }))
 }
 
