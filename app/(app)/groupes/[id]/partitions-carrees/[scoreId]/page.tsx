@@ -198,7 +198,7 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
         <DismissibleHelp storageKey="square-score-editor-help" title="Mode d’emploi rapide">
           <div className="space-y-2">
             <p>Renseignez d’abord le <strong>PMD</strong> : pulsation, mesure et débit. C’est le calibrage du temps avant le relevé.</p>
-            <p>Cliquez ensuite sur un carré : les numéros <strong>1, 2, 3, 4</strong> indiquent l’ordre des côtés. Chaque côté correspond à une mesure.</p>
+            <p>Cliquez sur un carré et choisissez son <strong>nombre de côtés (1 à 4)</strong> : chaque côté = une mesure, tracée dans l’ordre <strong>gauche → bas → droite → haut</strong>. Les points forment la trame (chaque point relié au suivant = 1 temps).</p>
             <p>Dans le panneau de droite, utilisez <strong>Section</strong> pour noter I, C, PR, R, P, It, S ou O. Les champs accord, rythme, paroles et consigne sont optionnels : ils servent à enrichir le relevé si besoin.</p>
           </div>
         </DismissibleHelp>
@@ -247,17 +247,28 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                           {cell.section}
                         </span>
                       )}
-                      {/* Carré : on ne trace que `cell.sides` côtés (1=haut, 2=droite, 3=bas, 4=gauche). */}
-                      <div className="absolute inset-5">
-                        {cell.sides >= 1 && <span className="absolute inset-x-0 top-0 h-[2px] bg-gray-800" />}
-                        {cell.sides >= 2 && <span className="absolute inset-y-0 right-0 w-[2px] bg-gray-800" />}
-                        {cell.sides >= 3 && <span className="absolute inset-x-0 bottom-0 h-[2px] bg-gray-800" />}
-                        {cell.sides >= 4 && <span className="absolute inset-y-0 left-0 w-[2px] bg-gray-800" />}
+                      {/* Trame de points de la feuille « méthode carrée » (chaque point = 1 temps). */}
+                      <div
+                        className="absolute inset-6"
+                        style={{
+                          backgroundImage: 'radial-gradient(circle, #94a3b8 1px, transparent 1.7px)',
+                          backgroundSize: `calc(100% / ${Math.max(1, Math.min(8, score.beatsPerSquare || 4))}) calc(100% / ${Math.max(1, Math.min(8, score.beatsPerSquare || 4))})`,
+                          backgroundPosition: 'top left',
+                        }}
+                      />
+                      {/* Côtés du carré, tracés dans l'ordre 1=gauche, 2=bas, 3=droite, 4=haut (1 côté = 1 mesure). */}
+                      <div className="absolute inset-6">
+                        {cell.sides >= 1 && <span className="absolute inset-y-0 left-0 w-[2px] bg-gray-900" />}
+                        {cell.sides >= 2 && <span className="absolute inset-x-0 bottom-0 h-[2px] bg-gray-900" />}
+                        {cell.sides >= 3 && <span className="absolute inset-y-0 right-0 w-[2px] bg-gray-900" />}
+                        {cell.sides >= 4 && <span className="absolute inset-x-0 top-0 h-[2px] bg-gray-900" />}
+                        {/* Gros point de départ (bas-gauche), comme sur la feuille. */}
+                        <span className="absolute -left-[3px] -bottom-[3px] h-2 w-2 rounded-full bg-gray-900" />
                       </div>
-                      {cell.sides >= 1 && <span className="absolute left-1/2 top-1 -translate-x-1/2 text-[10px] font-bold text-lime-700">1</span>}
-                      {cell.sides >= 2 && <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-lime-700">2</span>}
-                      {cell.sides >= 3 && <span className="absolute left-1/2 bottom-1 -translate-x-1/2 text-[10px] font-bold text-lime-700">3</span>}
-                      {cell.sides >= 4 && <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-lime-700">4</span>}
+                      {cell.sides >= 1 && <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[11px] font-extrabold text-lime-700">1</span>}
+                      {cell.sides >= 2 && <span className="absolute left-1/2 bottom-0.5 -translate-x-1/2 text-[11px] font-extrabold text-lime-700">2</span>}
+                      {cell.sides >= 3 && <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[11px] font-extrabold text-lime-700">3</span>}
+                      {cell.sides >= 4 && <span className="absolute left-1/2 top-0.5 -translate-x-1/2 text-[11px] font-extrabold text-lime-700">4</span>}
                       <div className="relative z-10 flex h-full flex-col items-center justify-center px-5 text-center">
                         <div className="text-2xl font-extrabold text-gray-950">{cell.chord || '·'}</div>
                         <div className="mt-2 text-sm font-semibold text-indigo-700 whitespace-pre-wrap">{cell.melody}</div>
@@ -356,7 +367,7 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                     </button>
                   ))}
                 </div>
-                <p className="mt-1 text-[11px] text-gray-400">1 = un côté (1 mesure) … 4 = carré complet. Ordre de tracé : haut → droite → bas → gauche.</p>
+                <p className="mt-1 text-[11px] text-gray-400">1 = un côté (1 mesure) … 4 = carré complet. Ordre de tracé : gauche → bas → droite → haut.</p>
               </div>
               <label className="block">
                 <span className="form-label">Section</span>
