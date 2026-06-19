@@ -153,7 +153,9 @@ export default async function GroupePage({ params }: { params: { id: string } })
   const isStudentView = (group as any).type === 'SCHOOL' && !isChef
   const studentMods = parseStudentModules((group as any).studentModules)
   const tasksModuleEnabled = isAdminUser || await isModuleEnabledForGroup(groupId, 'feature_tasks')
+  const squareScoresModuleEnabled = isAdminUser || await isModuleEnabledForGroup(groupId, 'feature_partitions_carrees')
   const showTasksModule = tasksModuleEnabled && (!isStudentView || studentMods.includes('taches'))
+  const showSquareScoresModule = squareScoresModuleEnabled && (!isStudentView || studentMods.includes('partitions-carrees'))
   const canReorderModules = isChef && coChefCanDo(
     { createdBy: group.createdBy ?? null, chefPermissions: group.chefPermissions ?? null },
     userId,
@@ -193,6 +195,11 @@ export default async function GroupePage({ params }: { params: { id: string } })
       href: 'grilles',     label: 'Grilles',     icon: '🎸',
       iconBg: 'bg-orange-100', textColor: 'text-orange-700', border: 'border-orange-200 hover:border-orange-400 hover:bg-orange-50/60',
       chefDesc: 'Créer les grilles', memberDesc: 'Voir les grilles',
+    },
+    {
+      href: 'partitions-carrees', label: 'Partitions carrées', icon: '▦',
+      iconBg: 'bg-lime-100', textColor: 'text-lime-700', border: 'border-lime-200 hover:border-lime-400 hover:bg-lime-50/60',
+      chefDesc: 'Écrire en méthode carrée', memberDesc: 'Lire les partitions',
     },
     {
       href: 'fiche-technique', label: 'Fiche tech.', icon: '📋',
@@ -246,6 +253,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
     if (link.href === 'taches')          return showTasksModule
     if (link.href === 'setlists')        return planFeatures.setlists
     if (link.href === 'grilles')         return planFeatures.grilles
+    if (link.href === 'partitions-carrees') return showSquareScoresModule
     if (link.href === 'fiche-technique') return planFeatures.ficheTechnique
     if (link.href === 'ma-page')         return planFeatures.maPage
     if (link.href === 'comptabilite')    return planFeatures.accounting

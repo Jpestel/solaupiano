@@ -36,6 +36,7 @@ export type ChefPermissions = {
   setlists: StandardPermissions
   concerts: StandardPermissions
   grilles: StandardPermissions
+  partitionsCarrees: StandardPermissions
   membres: MembresPermissions
   stats: StatsPermissions
   estimations: EstimationPermissions
@@ -50,6 +51,7 @@ export const DEFAULT_PERMISSIONS: ChefPermissions = {
   setlists:    { create: true, update: true, delete: true },
   concerts:    { create: true, update: true, delete: true },
   grilles:     { create: true, update: true, delete: true },
+  partitionsCarrees: { create: true, update: true, delete: true },
   membres:     { add: true,    remove: true, promote: true },
   stats:       { view: true },
   estimations: { create: true, save: true, update: true, delete: true },
@@ -101,6 +103,7 @@ export const MODULE_LABELS: Record<keyof ChefPermissions, string> = {
   setlists:    'Setlists',
   concerts:    'Concerts',
   grilles:     "Grilles d'accords",
+  partitionsCarrees: 'Partitions carrées',
   membres:     'Membres',
   stats:       'Statistiques',
   estimations: 'Estimation de cachet',
@@ -115,6 +118,7 @@ export const MODULE_ICONS: Record<keyof ChefPermissions, string> = {
   setlists:    '🎶',
   concerts:    '🎭',
   grilles:     '🎸',
+  partitionsCarrees: '▦',
   membres:     '👥',
   stats:       '📊',
   estimations: '💰',

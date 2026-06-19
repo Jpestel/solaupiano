@@ -9,6 +9,7 @@ export const GROUP_MODULES: GroupModuleDef[] = [
   { href: 'morceaux',             label: 'Répertoire' },
   { href: 'setlists',             label: 'Setlists' },
   { href: 'grilles',              label: "Grilles d'accords" },
+  { href: 'partitions-carrees',   label: 'Partitions carrées' },
   { href: 'fiche-technique',      label: 'Fiche technique' },
   { href: 'ma-page',              label: 'Ma page (web)' },
   { href: 'tchat',                label: 'Tchat' },

@@ -11,6 +11,7 @@ const ALLOWED_MODULES = new Set([
   'morceaux',
   'setlists',
   'grilles',
+  'partitions-carrees',
   'fiche-technique',
   'ma-page',
   'tchat',

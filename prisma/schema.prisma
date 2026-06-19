@@ -387,6 +387,7 @@ model Group {
   songs            Song[]
   setlists         Setlist[]
   chordCharts      ChordChart[]
+  squareScores     SquareScore[]
   joinRequests     JoinRequest[]
   techRider        TechRider?
   groupPage        GroupPage?
@@ -951,6 +952,7 @@ model Song {
   assignments      Assignment[]
   setlists         SetlistSong[]
   chordCharts      ChordChart[]
+  squareScores      SquareScore[]
   lyrics           SongLyrics?
   tab              SongTab?
   sequences        SongSequence[]
@@ -1032,6 +1034,26 @@ model ChordChart {
 
   group Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
   song  Song?  @relation(fields: [songId], references: [id], onDelete: SetNull)
+}
+
+model SquareScore {
+  id             Int      @id @default(autoincrement())
+  groupId        Int
+  songId         Int?
+  title          String
+  tempo          String?
+  keySignature   String?
+  timeSignature  String   @default("4/4")
+  squaresPerRow  Int      @default(4)
+  totalSquares   Int      @default(32)
+  beatsPerSquare Int      @default(4)
+  cells          Json
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  song  Song? @relation(fields: [songId], references: [id], onDelete: SetNull)
 }
 
 model GroupMemberHistory {

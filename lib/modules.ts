@@ -57,6 +57,14 @@ export const MODULES: ModuleDef[] = [
     category: 'feature',
   },
   {
+    key: 'feature_partitions_carrees',
+    label: 'Partitions carrées',
+    description: "Création de partitions pédagogiques en carrés : mesures, accords, mélodie, rythme, paroles et repères de structure.",
+    href: '/groupes/[id]/partitions-carrees',
+    icon: '▦',
+    category: 'feature',
+  },
+  {
     key: 'tool_cachet',
     label: 'Simulateur cachet GUSO',
     description: "Estimez le coût employeur et le net artiste pour un cachet de spectacle vivant.",
