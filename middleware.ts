@@ -57,6 +57,14 @@ export default withAuth(
         if (pathname.startsWith('/api/concerts/') && pathname.endsWith('/contact')) return true
         // Lien d'invitation : la page gère elle-même connecté / non connecté.
         if (pathname.startsWith('/rejoindre/')) return true
+        // Pages publiques de groupe : /[slug] (un seul segment). La page elle-même
+        // renvoie 404 si le groupe n'existe pas / page non publiée / archivé / test.
+        // On exclut les routes applicatives à segment unique (qui restent protégées).
+        const APP_SINGLE_SEGMENT = new Set([
+          'tableau-de-bord', 'profil', 'calendrier', 'assistance', 'groupes', 'outils', 'admin',
+        ])
+        const segments = pathname.split('/').filter(Boolean)
+        if (req.method === 'GET' && segments.length === 1 && !APP_SINGLE_SEGMENT.has(segments[0])) return true
         return !!token
       },
     },

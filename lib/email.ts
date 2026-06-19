@@ -4,6 +4,15 @@ import { signPresence, signConcertPresence } from './presence-token'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 // ─── Wrapper HTML commun ──────────────────────────────────────────────────────
 
 const SITE_URL = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
@@ -177,6 +186,41 @@ export async function sendConcertValidationReminder(
 }
 
 // ─── Concert annulé faute de confirmation ────────────────────────────────────
+// ─── Liste de tâches à préparer (avant une date) ─────────────────────────────
+export async function sendTaskListEmail(
+  member: { email: string; name: string },
+  groupName: string,
+  groupId: number,
+  list: { title: string; dueDate: Date },
+  tasks: { label: string; details: string | null; done: boolean }[],
+  baseUrl: string
+) {
+  const dateStr = new Date(list.dueDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const tpl = await getEmailTemplate('task_list')
+  const { subject, introHtml, outroHtml } = tpl.render({ memberName: member.name, groupName, listTitle: list.title, date: dateStr })
+  const tasksHtml = tasks.map((t) => `
+    <p style="margin: 0 0 8px; font-size: 14px; color: #111827;">
+      ${t.done ? '✅' : '⬜'} <strong>${escapeHtml(t.label)}</strong>
+      ${t.details ? `<br><span style="font-size: 12px; color: #6b7280;">${escapeHtml(t.details)}</span>` : ''}
+    </p>`).join('')
+
+  return resend.emails.send({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to: member.email,
+    subject,
+    html: emailWrapper(`
+      ${introHtml}
+      ${dataBox(`
+        <p style="margin: 0 0 10px; font-size: 15px; font-weight: 700; color: #111827;">📋 ${escapeHtml(list.title)}</p>
+        <p style="margin: 0 0 12px; font-size: 13px; color: #b45309; text-transform: capitalize;">⏳ avant le ${dateStr}</p>
+        ${tasksHtml}
+      `)}
+      ${ctaButton(`${baseUrl}/groupes/${groupId}/taches`, 'Voir mes tâches')}
+      ${outroHtml}
+    `),
+  })
+}
+
 // ─── Relance « heure de début manquante » au(x) chef(s) ───────────────────────
 export async function sendConcertTimeReminder(
   chiefs: { email: string; name: string }[],

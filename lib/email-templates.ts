@@ -103,6 +103,20 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ],
   },
   {
+    key: 'task_list',
+    name: 'Tâches à préparer (avant une date)',
+    description: "Envoyé à un membre avec la liste des tâches qui lui sont confiées avant une répétition ou un concert. Permet de prévenir ceux qui ne se connectent pas.",
+    defaultSubject: '✅ À préparer pour {{listTitle}} — {{groupName}}',
+    defaultIntro: 'Bonjour {{memberName}},\n\n{{groupName}} a besoin de toi avant le {{date}}. Voici les tâches qui te sont confiées pour « {{listTitle}} » :',
+    defaultOutro: 'Merci de t\'en occuper avant la date ! Tu peux cocher les tâches faites directement sur Sol au piano.',
+    variables: [
+      { key: 'memberName', description: 'Prénom du membre' },
+      { key: 'groupName', description: 'Nom du groupe' },
+      { key: 'listTitle', description: 'Titre de la liste' },
+      { key: 'date', description: 'Date cible (échéance)' },
+    ],
+  },
+  {
     key: 'concert_time_reminder',
     name: 'Concert — relance heure de début manquante (chef)',
     description: "Envoyé au(x) chef(s) d'un groupe quand un concert public approche sans heure de début renseignée. Première relance ~10 jours avant, puis tous les 2 jours tant que l'heure n'est pas saisie et que la date n'est pas passée.",

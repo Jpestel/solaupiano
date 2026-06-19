@@ -103,7 +103,7 @@ export function GroupCards({
   // Un membre simple qui ne voit pas le trombinoscope (ex. élève en école) doit
   // tout de même pouvoir quitter : on lui propose une carte « Quitter » dédiée.
   const showLeaveOnly = !showRoster && !isChef
-  const defaultOrder = ['rehearsal', 'concert', ...(showRoster ? ['members'] : []), ...(showInvite ? ['invite'] : []), ...(showLeaveOnly ? ['leave'] : [])]
+  const defaultOrder = ['rehearsal', 'concert', 'tasks', ...(showRoster ? ['members'] : []), ...(showInvite ? ['invite'] : []), ...(showLeaveOnly ? ['leave'] : [])]
 
   const LS_KEY = `group-card-order-${groupId}`
 
@@ -217,6 +217,32 @@ export function GroupCards({
             chefPermissions={chefPermissions}
             memberLimit={memberLimit}
           />
+        </Card>
+      ),
+    },
+
+    tasks: {
+      spanFull: false,
+      node: (
+        <Card className="rounded-none border-0">
+          <CardHeader
+            title="Tâches à préparer"
+            action={
+              <Link href={`/groupes/${groupId}/taches`} className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">
+                Ouvrir
+              </Link>
+            }
+          />
+          <Link
+            href={`/groupes/${groupId}/taches`}
+            className="block rounded-xl bg-amber-50 border border-amber-100 p-4 hover:border-amber-300 transition-colors"
+          >
+            <p className="font-medium text-gray-900">Avant une date importante</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Assignez sono, pieds de micro, batterie ou logistique à un ou plusieurs membres.
+            </p>
+            <p className="text-xs font-medium text-amber-700 mt-3">Créer, cocher et envoyer par e-mail →</p>
+          </Link>
         </Card>
       ),
     },

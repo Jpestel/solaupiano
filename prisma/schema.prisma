@@ -218,6 +218,7 @@ model User {
   blogLikes                BlogLike[]
   socialPosts              SocialPost[]
   helpBubbleDismissals     HelpBubbleDismissal[]
+  taskAssignments          TaskAssignee[]
 }
 
 // ─── Blog ────────────────────────────────────────────────────────────────────
@@ -399,6 +400,7 @@ model Group {
   galleryPhotos    GalleryPhoto[]
   galleryCategories GalleryCategory[]
   socialPosts      SocialPost[]
+  taskLists        TaskList[]
 }
 
 // Catalogue de liens de ressources (audios, vidéos, tutos, partitions…)
@@ -1451,4 +1453,51 @@ model MasteryReminderLog {
   sentAt      DateTime @default(now())
 
   @@id([rehearsalId, userId])
+}
+
+// ─── Module « Tâches avant une date » ────────────────────────────────────────
+// Listes de tâches à réaliser avant une date (répétition / concert / autre),
+// assignées à un ou plusieurs membres, et envoyables par e-mail.
+model TaskList {
+  id          Int      @id @default(autoincrement())
+  groupId     Int
+  title       String
+  dueDate     DateTime // date avant laquelle les tâches doivent être faites
+  eventType   String   @default("other") // rehearsal | concert | other
+  rehearsalId Int?     // référence indicative (pas de FK : la date est la source de vérité)
+  concertId   Int?
+  createdBy   Int?
+  createdAt   DateTime @default(now())
+
+  group Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@index([groupId])
+}
+
+model Task {
+  id         Int       @id @default(autoincrement())
+  taskListId Int
+  label      String
+  details    String?   @db.Text
+  done       Boolean   @default(false)
+  doneAt     DateTime?
+  doneBy     Int?
+  createdAt  DateTime  @default(now())
+
+  list      TaskList       @relation(fields: [taskListId], references: [id], onDelete: Cascade)
+  assignees TaskAssignee[]
+
+  @@index([taskListId])
+}
+
+model TaskAssignee {
+  taskId Int
+  userId Int
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([userId])
 }
