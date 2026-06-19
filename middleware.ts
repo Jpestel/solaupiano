@@ -48,6 +48,7 @@ export default withAuth(
         const pathname = req.nextUrl.pathname
         // Public pages accessible without login
         if (pathname === '/') return true
+        if (pathname === '/groupes-inscrits') return true
         if (pathname === '/aide' || pathname.startsWith('/aide/')) return true
         if (pathname === '/tarifs') return true
         if (pathname === '/annonces' || pathname.startsWith('/annonces/')) return true
