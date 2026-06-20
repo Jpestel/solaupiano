@@ -287,6 +287,14 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
   const height = M * 2 + (canvas.rows - 1) * STEP
   const px = (c: number) => M + c * STEP
   const py = (r: number) => M + r * STEP
+  const activeChordPicker = openChordPicker
+    ? (() => {
+        const [rowId, index] = openChordPicker.split(':')
+        const chordIndex = Number(index)
+        const row = canvas.sheetRows.find((r) => r.id === rowId)
+        return row && Number.isInteger(chordIndex) ? { row, index: chordIndex } : null
+      })()
+    : null
 
   return (
     <div className="print:bg-white">
@@ -326,6 +334,44 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
 
       {error && <div className="no-print rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-4">{error}</div>}
       {saved && <div className="no-print rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 mb-4">Partition enregistrée.</div>}
+
+      {activeChordPicker && (
+        <div className="no-print fixed inset-0 z-50 flex items-start justify-center bg-gray-950/20 px-4 py-16" onClick={() => setOpenChordPicker(null)}>
+          <div className="max-h-[calc(100vh-8rem)] w-full max-w-3xl overflow-auto rounded-xl border border-gray-300 bg-white p-5 text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between gap-3 border-b border-gray-200 pb-3">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wide text-gray-500">Choisir un accord</p>
+                <p className="text-sm text-gray-400">Ou tapez librement dans la case de la grille.</p>
+              </div>
+              <button type="button" onClick={() => setOpenChordPicker(null)} className="rounded-lg px-3 py-2 text-lg text-gray-500 hover:bg-gray-100">×</button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Raccourcis</p>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                  <button type="button" onClick={() => pickChord(activeChordPicker.row.id, activeChordPicker.index, '')} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:border-lime-400 hover:bg-lime-50">Vide</button>
+                  <button type="button" onClick={() => pickChord(activeChordPicker.row.id, activeChordPicker.index, '%')} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:border-lime-400 hover:bg-lime-50">%</button>
+                </div>
+              </div>
+              {CHORD_PICKER_ROWS.map((quality) => (
+                <div key={quality.label}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{quality.label}</p>
+                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-9">
+                    {CHORD_ROOTS.map((root) => {
+                      const value = `${root}${quality.suffix}`
+                      return (
+                        <button key={`${quality.label}-${root}`} type="button" onClick={() => pickChord(activeChordPicker.row.id, activeChordPicker.index, value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold text-gray-800 hover:border-lime-400 hover:bg-lime-50">
+                          {value}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mb-5 no-print">
         <DismissibleHelp storageKey="square-score-editor-help" title="Mode d’emploi rapide">
@@ -446,41 +492,6 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                                 className="no-print w-full min-w-0 rounded border border-gray-300 bg-white/90 px-1 py-0.5 text-center text-xs font-semibold text-gray-800"
                                 placeholder="Taper : F#m7, E/G#..."
                               />
-                              {openChordPicker === `${row.id}:${i}` && (
-                                <div className="no-print absolute left-1/2 top-full z-30 mt-2 w-[420px] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-gray-300 bg-white p-3 text-left shadow-2xl">
-                                  <div className="mb-2 flex items-center justify-between gap-3 border-b border-gray-200 pb-2">
-                                    <div>
-                                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Choisir un accord</p>
-                                      <p className="text-xs text-gray-400">Ou tapez librement dans la case.</p>
-                                    </div>
-                                    <button type="button" onClick={() => setOpenChordPicker(null)} className="rounded-lg px-2 py-1 text-sm text-gray-500 hover:bg-gray-100">×</button>
-                                  </div>
-                                  <div className="space-y-3">
-                                    <div>
-                                      <p className="mb-1 text-xs font-semibold text-gray-500">Raccourcis</p>
-                                      <div className="grid grid-cols-4 gap-1">
-                                        <button type="button" onClick={() => pickChord(row.id, i, '')} className="rounded border border-gray-200 px-2 py-1.5 text-sm font-semibold text-gray-700 hover:border-lime-400 hover:bg-lime-50">Vide</button>
-                                        <button type="button" onClick={() => pickChord(row.id, i, '%')} className="rounded border border-gray-200 px-2 py-1.5 text-sm font-semibold text-gray-700 hover:border-lime-400 hover:bg-lime-50">%</button>
-                                      </div>
-                                    </div>
-                                    {CHORD_PICKER_ROWS.map((quality) => (
-                                      <div key={quality.label}>
-                                        <p className="mb-1 text-xs font-semibold text-gray-500">{quality.label}</p>
-                                        <div className="grid grid-cols-6 gap-1">
-                                          {CHORD_ROOTS.map((root) => {
-                                            const value = `${root}${quality.suffix}`
-                                            return (
-                                              <button key={`${quality.label}-${root}`} type="button" onClick={() => pickChord(row.id, i, value)} className="rounded border border-gray-200 px-2 py-1.5 text-sm font-bold text-gray-800 hover:border-lime-400 hover:bg-lime-50">
-                                                {value}
-                                              </button>
-                                            )
-                                          })}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                               <span className="hidden truncate font-[Comic_Sans_MS,cursive] text-3xl font-bold text-gray-950 print:block">{chord}</span>
                             </>
                           ) : (
