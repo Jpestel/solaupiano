@@ -66,10 +66,12 @@ export default async function AidePage() {
           {[
             { href: '#profil', label: '👤 Mon profil' },
             { href: '#groupes', label: '👥 Mes groupes' },
+            { href: '#modules-groupe', label: '🧩 Modules' },
             { href: '#repetitions', label: '🎵 Répétitions' },
             { href: '#devoirs', label: '📒 Devoirs / École' },
             { href: '#disponibilites', label: '🗓 Disponibilités' },
             { href: '#sondages', label: '📊 Sondages' },
+            { href: '#taches', label: '✅ Tâches' },
             { href: '#concerts', label: '🎭 Concerts' },
             { href: '#evaluation', label: '⭐ Auto-évaluation' },
             { href: '#plan-scene', label: '🗺️ Plan de scène' },
@@ -83,6 +85,7 @@ export default async function AidePage() {
             { href: '#repertoire', label: '🎼 Répertoire' },
             { href: '#setlists', label: '🎶 Setlists' },
             { href: '#grilles', label: '🎸 Grilles' },
+            { href: '#partitions-carrees', label: '▦ Méthode carrée' },
             { href: '#paroles', label: '🎤 Paroles' },
             { href: '#tablatures', label: '🎸 Tablatures' },
             { href: '#sequences', label: '🎚 Séquences' },
@@ -93,6 +96,7 @@ export default async function AidePage() {
             { href: '#metronome', label: '🥁 Métronome' },
             { href: '#portee', label: '🎼 Portée' },
             { href: '#lecteur-partition', label: '🎼 Lecteur partition' },
+            { href: '#wav-mp3', label: '🎧 WAV→MP3' },
             { href: '#video-audio', label: '🎬 Vidéo→MP3' },
             { href: '#images-pdf', label: '🖼️ Photos→PDF' },
             { href: '#cachet-guso', label: '💶 Cachet GUSO' },
@@ -100,6 +104,7 @@ export default async function AidePage() {
             { href: '#annonces', label: '📢 Annonces' },
             { href: '#blog', label: '📰 Blog' },
             { href: '#plans', label: '📦 Plans' },
+            { href: '#testeur', label: '🧪 Compte testeur' },
             { href: '#assistance', label: '🆘 Assistance' },
             { href: '#faq', label: '❓ FAQ' },
           ].map((item) => (
@@ -139,6 +144,11 @@ export default async function AidePage() {
 
             <HelpCard title="Mes rôles">
               <p>Votre profil récapitule votre <strong>rôle dans chacun de vos groupes</strong> : 👑 Chef d&apos;orchestre, ⭐ Co-chef ou 🎵 Membre. Dans une école, les libellés deviennent <strong>Professeur</strong>, <strong>Co-prof</strong> et <strong>Élève</strong>.</p>
+            </HelpCard>
+
+            <HelpCard title="Alertes de connexion">
+              <p>Pour l&apos;audit, l&apos;administration peut recevoir un e-mail lorsqu&apos;un membre se connecte. Cette alerte est réglable <strong>compte par compte</strong> depuis <strong>Admin → Utilisateurs</strong>.</p>
+              <Note>Les comptes administrateurs sont ignorés par cet audit afin d&apos;éviter les notifications inutiles.</Note>
             </HelpCard>
 
             <HelpCard title="Votre compte">
@@ -245,6 +255,17 @@ export default async function AidePage() {
                 </div>
               </div>
               <Note>Un groupe peut avoir <strong>plusieurs chefs</strong>. Le fondateur peut nommer des co-chefs depuis le panneau membres, puis configurer leurs permissions depuis la section dédiée en bas de la page du groupe. Dans une école, ces co-chefs sont affichés comme <strong>co-profs</strong> : pratique pour un associé ou un autre professeur qui gère les cours avec vous. Les modules contrôlables sont : Répétitions, Répertoire, Ressources, Setlists, Concerts, Grilles d&apos;accords, Membres, Statistiques, Réseaux sociaux et <strong>Estimation de cachet</strong>.</Note>
+            </HelpCard>
+
+            <HelpCard title="Modules du groupe" badge={{ label: "Plan + permissions", color: "violet" }}>
+              <p id="modules-groupe">La page d&apos;un groupe affiche ses fonctionnalités sous forme de <strong>cartes modules</strong> : Répétitions, Concerts, Répertoire, Tchat, Tâches, Méthode carrée, outils, etc.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Un module apparaît seulement s&apos;il est <strong>inclus dans le plan</strong> du groupe.</li>
+                <li>Le chef peut <strong>réorganiser l&apos;ordre des modules</strong> pour placer ses favoris en premier.</li>
+                <li>Les co-chefs ou co-profs peuvent gérer certains modules uniquement si le fondateur leur a donné la permission.</li>
+                <li>Dans une école, le professeur choisit aussi quels modules sont visibles par les <strong>élèves</strong>.</li>
+              </ul>
+              <Tip>Si un module n&apos;apparaît pas, vérifiez d&apos;abord le plan associé au groupe, puis les permissions du membre ou de l&apos;élève.</Tip>
             </HelpCard>
           </div>
         </section>
@@ -372,6 +393,34 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── TÂCHES DE GROUPE ─── */}
+        <section id="taches">
+          <SectionTitle icon="✅" title="Tâches de groupe" color="green" tutorials={tf('feature_taches')} />
+          <div className="space-y-4">
+            {isCreateur && (
+              <HelpCard title="Créer une liste de tâches" badge={{ label: 'Chef seulement', color: 'indigo' }}>
+                <p>Le module <strong>Tâches de groupe</strong> sert à préparer concrètement une répétition, un concert ou toute autre date : récupérer la sono, amener deux pieds de micro, charger la batterie, imprimer les setlists, etc.</p>
+                <ol className="space-y-2 mt-3">
+                  <Step n={1}>Ouvrez la carte <strong>✅ Tâches</strong> sur la page du groupe.</Step>
+                  <Step n={2}>Choisissez une <strong>date à venir</strong> : répétition, concert ou date personnalisée.</Step>
+                  <Step n={3}>Ajoutez les tâches, une note si besoin, puis assignez un ou plusieurs membres.</Step>
+                  <Step n={4}>Envoyez la liste par e-mail pour prévenir les membres concernés.</Step>
+                </ol>
+                <Tip>Les co-chefs ou co-profs peuvent intervenir si le chef leur a donné la permission sur ce module.</Tip>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Ce que voit un membre">
+              <p>Chaque membre retrouve les tâches qui lui sont assignées, avec la date liée et les consignes. Il peut indiquer quand une tâche est faite, ce qui donne au chef une vision claire de la préparation.</p>
+              <Note>Si un membre ne se connecte pas souvent, l&apos;envoi par e-mail permet tout de même de lui transmettre sa liste de choses à faire.</Note>
+            </HelpCard>
+
+            <HelpCard title="Activation par plan">
+              <p>Comme les autres modules, <strong>Tâches de groupe</strong> peut être inclus ou non dans un plan depuis l&apos;administration. S&apos;il est désactivé pour le plan du groupe, la carte n&apos;apparaît pas dans les modules.</p>
+            </HelpCard>
+          </div>
+        </section>
+
         {/* ─── CONCERTS ─── */}
         <section id="concerts">
           <SectionTitle icon="🎭" title="Concerts" color="purple" tutorials={tf('feature_concerts')} />
@@ -391,6 +440,17 @@ export default async function AidePage() {
             <HelpCard title="Voir les concerts à venir">
               <p>La page <strong>Concerts</strong> affiche tous les concerts (le <strong>nom du groupe en concert</strong> y figure), triés par date. Si une setlist est associée, vous pouvez la consulter et l&apos;imprimer directement.</p>
               <Tip>Le tableau de bord affiche aussi le prochain concert de chacun de vos groupes, avec un accès rapide.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Carte publique des concerts">
+              <p>Les concerts publics et géolocalisés peuvent apparaître sur la <strong>carte de la page d&apos;accueil</strong>. Elle permet aux visiteurs de repérer les dates à venir autour d&apos;eux.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Au survol d&apos;un point, un petit encart affiche le lieu du concert.</li>
+                <li>Au clic, la fiche affiche : le <strong>nom du groupe</strong> avec son image, l&apos;adresse, puis l&apos;heure de début.</li>
+                <li>Si l&apos;heure n&apos;est pas renseignée, le message indique : <strong>Heure à confirmer, cliquez sur en savoir plus pour contacter le groupe</strong>.</li>
+                <li>Le lien <strong>En savoir plus</strong> ouvre un formulaire de contact relié au mail du chef du groupe.</li>
+              </ul>
+              <Tip>Pour apparaître sur la carte, le concert doit avoir une adresse exploitable et être destiné à être visible publiquement.</Tip>
             </HelpCard>
 
             <HelpCard title="Présence & auto-évaluation">
@@ -997,6 +1057,57 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── MÉTHODE CARRÉE ─── */}
+        <section id="partitions-carrees">
+          <SectionTitle icon="▦" title="Partitions carrées / Méthode carrée" color="violet" tutorials={tf('feature_partitions_carrees')} />
+          <div className="space-y-4">
+            {isCreateur && (
+              <HelpCard title="Créer une partition carrée" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <p>Le module <strong>Méthode carrée</strong> permet de relever la structure d&apos;un morceau sous forme de lignes : intro, couplet, refrain, solo, break, pont, etc.</p>
+                <ol className="space-y-2 mt-3">
+                  <Step n={1}>Depuis votre groupe, ouvrez la carte <strong>▦ Méthode carrée</strong>.</Step>
+                  <Step n={2}>Créez un nouveau morceau : par défaut, il démarre <strong>vide</strong>, sans éléments pré-saisis.</Step>
+                  <Step n={3}>Ajoutez vos lignes, indiquez les parties, le temps, les repères et les carrés de mesures.</Step>
+                  <Step n={4}>Saisissez les accords dans les cases prévues : jusqu&apos;à <strong>4 accords tiennent sur une ligne</strong>.</Step>
+                </ol>
+                <Note>Ce module est activable ou non par plan depuis l&apos;administration, comme les autres modules de groupe.</Note>
+              </HelpCard>
+            )}
+
+            <HelpCard title="Tracer les carrés et les repères">
+              <p>La partie gauche utilise une trame de points fidèle à la logique de la méthode : chaque segment représente un temps ou une portion de mesure.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Cliquez <strong>entre deux points voisins</strong> pour tracer un segment.</li>
+                <li>Cliquez de nouveau au même endroit pour l&apos;effacer.</li>
+                <li>Vous pouvez donc dessiner manuellement les carrés, liaisons, breaks ou formes particulières du morceau.</li>
+              </ul>
+              <Tip>Ce tracé manuel est utile quand l&apos;arrangement ne rentre pas dans un modèle automatique simple.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Choisir ou taper un accord">
+              <p>Dans une case d&apos;accord, vous avez deux façons de travailler :</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>Cliquer dans la case</strong> ouvre une popup carrée avec les accords rangés par familles : majeurs, mineurs et 7èmes.</li>
+                <li>Vous choisissez l&apos;accord dans la grille : il est placé directement dans la case.</li>
+                <li>Pour les slash chords, enrichissements ou altérations particulières (<code className="bg-gray-100 rounded px-1">E/G#</code>, <code className="bg-gray-100 rounded px-1">Cmaj9</code>, <code className="bg-gray-100 rounded px-1">F#sus4</code>…), tapez simplement au clavier dans la case.</li>
+              </ul>
+              <Note>Il n&apos;y a pas de choix “Autre” à sélectionner : soit vous pickez un accord courant, soit vous tapez librement.</Note>
+            </HelpCard>
+
+            <HelpCard title="Annotations utiles">
+              <p>Chaque ligne peut recevoir des informations pratiques pour la lecture collective :</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>Partie</strong> : Int, C1, R1, C2, Solo, Break, R3…</li>
+                <li><strong>Temps</strong> : repère de début ou durée.</li>
+                <li><strong>Reprises</strong> : début et fin de reprise.</li>
+                <li><strong>Surlignage</strong> : pour mettre en évidence un refrain, un passage important ou une section à travailler.</li>
+                <li><strong>Notes</strong> : indications libres comme “drums”, “stop”, “break”, “piano seul”.</li>
+              </ul>
+              <Tip>La méthode carrée sert surtout à donner une vision rapide de la structure du morceau : gardez les libellés courts et lisibles.</Tip>
+            </HelpCard>
+          </div>
+        </section>
+
         {/* ─── PAROLES ─── */}
         <section id="paroles">
           <SectionTitle icon="🎤" title="Paroles" color="rose" tutorials={tf('feature_paroles')} />
@@ -1240,6 +1351,16 @@ export default async function AidePage() {
                 <li><strong>Click G / Backing D</strong> : clic dans le canal gauche, playback dans le canal droit, avec <strong>volumes indépendants</strong> et coupure possible du clic</li>
               </ul>
               <p className="mt-2">Les fichiers MIDI sont lus par un synthé du navigateur (pré-écoute des notes).</p>
+              <Tip>Si vous avez exporté depuis Jamzone avec le clic à gauche et les instruments à droite, choisissez <strong>Click G / Backing D</strong>.</Tip>
+            </HelpCard>
+            <HelpCard title="Importer un MP3 depuis un téléphone">
+              <p>Sur mobile, certains navigateurs masquent parfois un MP3 fraîchement téléchargé dans le sélecteur audio classique.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Essayez d&apos;abord <strong>Choisir un audio</strong>.</li>
+                <li>Si le fichier n&apos;apparaît pas, utilisez le bouton <strong>Mon MP3 n&apos;apparaît pas</strong>.</li>
+                <li>Vérifiez aussi que le fichier est bien dans <strong>Téléchargements</strong> ou dans l&apos;app <strong>Fichiers</strong> du téléphone.</li>
+              </ul>
+              <Note>Une séquence importée est ensuite stockée dans le groupe et compte dans son quota. Les fichiers créés avec l&apos;outil WAV→MP3 ne sont pas enregistrés automatiquement tant que vous ne les importez pas dans un module.</Note>
             </HelpCard>
             <HelpCard title="Travailler un passage à la maison">
               <p>Le lecteur intègre tout pour répéter efficacement chez soi :</p>
@@ -1667,6 +1788,47 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── WAV → MP3 ─── */}
+        <section id="wav-mp3">
+          <SectionTitle icon="🎧" title="WAV → MP3" color="green" tutorials={tf('tool_wav2mp3')} />
+          <div className="space-y-4">
+            <HelpCard title="Réduire la taille d'un fichier WAV">
+              <p>Outil <strong>🎧 WAV → MP3</strong> : déposez un fichier WAV lourd et récupérez une version <strong>MP3</strong> beaucoup plus légère, pratique pour les séquences et les répétitions à la maison.</p>
+              <ul className="mt-2 space-y-1">
+                <li><strong>100 % dans le navigateur</strong> : le fichier n&apos;est pas envoyé sur le serveur.</li>
+                <li>Aucun quota de stockage n&apos;est consommé tant que vous ne réimportez pas le MP3 dans un groupe.</li>
+                <li>L&apos;outil affiche la taille, la durée, le format audio et une pré-écoute du résultat.</li>
+              </ul>
+            </HelpCard>
+
+            <HelpCard title="Choisir la qualité MP3">
+              <p>Plus le débit est élevé, plus le fichier est lourd, mais plus la qualité est conservée :</p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {[
+                  { label: '128 kb/s', desc: 'Très léger, suffisant pour travailler une idée ou un clic.' },
+                  { label: '192 kb/s', desc: 'Bon équilibre pour une backing track de répétition.' },
+                  { label: '320 kb/s', desc: 'Qualité haute, fichier plus lourd.' },
+                ].map((q) => (
+                  <div key={q.label} className="rounded-lg border border-green-100 bg-green-50 px-3 py-2">
+                    <p className="text-sm font-bold text-green-700">{q.label}</p>
+                    <p className="text-xs text-gray-600 mt-0.5">{q.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <Tip>Pour importer ensuite dans <strong>🎚 Séquences</strong>, 192 kb/s est généralement le bon compromis.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Télécharger puis importer">
+              <ol className="space-y-2 mt-1">
+                <Step n={1}>Convertissez le WAV, puis cliquez sur <strong>Télécharger le MP3</strong>.</Step>
+                <Step n={2}>Ouvrez le morceau concerné dans le <strong>Répertoire</strong>, puis <strong>Séquences</strong>.</Step>
+                <Step n={3}>Importez le MP3 téléchargé. Sur téléphone, utilisez <strong>Mon MP3 n&apos;apparaît pas</strong> si le fichier n&apos;est pas visible dans le sélecteur audio.</Step>
+              </ol>
+              <Note>Sur un compte testeur, la conversion peut être essayée, mais le MP3 n&apos;est pas enregistré automatiquement dans les données de démonstration.</Note>
+            </HelpCard>
+          </div>
+        </section>
+
         {/* ─── VIDÉO → MP3 / WAV ─── */}
         <section id="video-audio">
           <SectionTitle icon="🎬" title="Vidéo → MP3 / WAV" color="indigo" tutorials={[]} />
@@ -1676,8 +1838,9 @@ export default async function AidePage() {
               <ul className="mt-2 space-y-1">
                 <li><strong>100 % dans le navigateur</strong> : aucun fichier n&apos;est envoyé sur Internet</li>
                 <li>Idéal pour transformer une vidéo en backing track à importer dans <strong>🎚 Séquences</strong></li>
+                <li>Exemple légitime : extraire l&apos;audio d&apos;une vidéo de répétition ou de concert que vous avez filmée ou que vous êtes autorisé à utiliser.</li>
               </ul>
-              <Note>À n&apos;utiliser que pour des vidéos dont vous détenez les droits.</Note>
+              <Note>À n&apos;utiliser que pour des vidéos dont vous détenez les droits ou l&apos;autorisation. La case de confirmation rappelle que l&apos;outil ne doit pas servir à contourner les règles d&apos;une plateforme ou le droit d&apos;auteur.</Note>
             </HelpCard>
           </div>
         </section>
@@ -1994,6 +2157,27 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── COMPTE TESTEUR ─── */}
+        <section id="testeur">
+          <SectionTitle icon="🧪" title="Compte testeur" color="gray" />
+          <div className="space-y-4">
+            <HelpCard title="Tester sans abîmer les données">
+              <p>Un compte testeur peut être utilisé pour découvrir l&apos;application dans plusieurs situations : <strong>membre musicien</strong>, <strong>chef d&apos;orchestre</strong>, <strong>professeur</strong> ou <strong>élève</strong>.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Les données de démonstration permettent de voir les groupes, morceaux, tâches, séquences, grilles, plans de scène et modules principaux.</li>
+                <li>Les actions destructives ou sensibles sont bloquées : suppression, édition critique, réinitialisation de données importantes.</li>
+                <li>Le mot de passe du compte peut être modifié depuis l&apos;administration si besoin.</li>
+              </ul>
+              <Note>L&apos;objectif est de laisser les visiteurs tester librement sans rendre le compte inutilisable pour les suivants.</Note>
+            </HelpCard>
+
+            <HelpCard title="Outils et stockage en mode test">
+              <p>Les outils de conversion comme <strong>WAV → MP3</strong> ou <strong>Vidéo → MP3</strong> peuvent être essayés, mais le fichier obtenu reste local tant qu&apos;il n&apos;est pas explicitement importé dans un module autorisé.</p>
+              <Tip>Sur les modules de démonstration, un message prévient le testeur lorsque l&apos;action ne sera pas enregistrée ou lorsqu&apos;elle est volontairement bloquée.</Tip>
+            </HelpCard>
+          </div>
+        </section>
+
         {/* ─── ASSISTANCE ─── */}
         <section id="assistance">
           <SectionTitle icon="🆘" title="Assistance & support" color="rose" />
@@ -2104,6 +2288,15 @@ export default async function AidePage() {
             </FaqItem>
             <FaqItem question="Comment créer une grille personnalisée par musicien ?">
               Utilisez le bouton <strong>Dupliquer</strong> (visible sur chaque carte de la liste des grilles). Vous obtenez une copie complète que vous pouvez renommer et annoter librement — par exemple une version &quot;Pianiste&quot;, une version &quot;Chanteur&quot;, etc. Chaque copie est totalement indépendante.
+            </FaqItem>
+            <FaqItem question="Quelle différence entre Grilles et Méthode carrée ?">
+              Les <strong>Grilles</strong> servent surtout à écrire une suite d&apos;accords mesure par mesure. La <strong>Méthode carrée</strong> sert à relever la structure complète d&apos;un morceau avec carrés, parties, reprises, repères et annotations de forme.
+            </FaqItem>
+            <FaqItem question="Pourquoi le module Tâches n'apparaît-il pas dans mon groupe ?">
+              Le module <strong>Tâches de groupe</strong> doit être inclus dans le plan du groupe. Vérifiez aussi les permissions : un membre ou co-chef ne voit pas toujours les mêmes actions que le chef fondateur.
+            </FaqItem>
+            <FaqItem question="Le WAV → MP3 envoie-t-il mon fichier sur le serveur ?">
+              Non. La conversion se fait dans votre navigateur. Le fichier MP3 obtenu reste local tant que vous ne l&apos;importez pas ensuite dans un module du groupe, par exemple dans <strong>Séquences</strong>.
             </FaqItem>
             <FaqItem question="Les membres peuvent-ils voir les paroles sans être chef ?">
               Oui. Tous les membres du groupe ont accès à la lecture des paroles (onglet Aperçu) et au mode scène. Seul le chef peut saisir, modifier ou supprimer les paroles.
