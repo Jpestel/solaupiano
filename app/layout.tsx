@@ -31,6 +31,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="fr">
+      <head>
+        <link rel="icon" href="/favicon.ico?v=4" sizes="any" />
+        <link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml" />
+        <link rel="alternate icon" href="/favicon-32x32.png?v=4" type="image/png" sizes="32x32" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4" sizes="180x180" />
+        <link rel="manifest" href="/site.webmanifest?v=4" />
+      </head>
       <body className="bg-gray-50 text-gray-900 antialiased">
         {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
         <PlaceholderInit values={phOverrides} />
