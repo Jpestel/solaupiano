@@ -47,10 +47,10 @@ const M = 26
 
 const SECTION_PRESETS = ['Int', 'C1', 'R1', 'C2', 'R2', 'Solo', 'P', 'Break', 'R3', 'Outro']
 const CHORD_ROOTS = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B']
-const COMMON_CHORDS = [
-  '',
-  '%',
-  ...CHORD_ROOTS.flatMap((root) => [root, `${root}m`, `${root}7`]),
+const CHORD_PICKER_ROWS = [
+  { label: 'Majeurs', suffix: '' },
+  { label: 'Mineurs', suffix: 'm' },
+  { label: '7e', suffix: '7' },
 ]
 const ALTERED_CHORD_SUGGESTIONS = CHORD_ROOTS.flatMap((root) => [
   `${root}maj7`,
@@ -142,7 +142,7 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [placingId, setPlacingId] = useState<string | null>(null)
-  const [customChordCell, setCustomChordCell] = useState<string | null>(null)
+  const [openChordPicker, setOpenChordPicker] = useState<string | null>(null)
 
   const loadScore = async () => {
     const res = await fetch(`/api/partitions-carrees/${scoreId}`)
@@ -242,13 +242,8 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
   }
 
   const pickChord = (rowId: string, index: number, value: string) => {
-    const cellKey = `${rowId}:${index}`
-    if (value === '__custom__') {
-      setCustomChordCell(cellKey)
-      return
-    }
-    if (customChordCell === cellKey) setCustomChordCell(null)
     updateChord(rowId, index, value)
+    setOpenChordPicker(null)
   }
 
   const addChord = (rowId: string) => {
@@ -436,22 +431,55 @@ export default function PartitionCarreeEditor({ params }: { params: { id: string
                         <div key={`${row.id}-chord-${i}`} className="group relative flex min-w-0 flex-col items-center justify-center gap-1 border-r-2 border-gray-700 px-2 py-1">
                           {canEdit ? (
                             <>
-                              <select value={COMMON_CHORDS.includes(chord) && customChordCell !== `${row.id}:${i}` ? chord : '__custom__'} onChange={(e) => pickChord(row.id, i, e.target.value)} className="no-print w-full min-w-0 border-0 bg-transparent p-0 text-center font-[Comic_Sans_MS,cursive] text-2xl font-bold text-gray-950 focus:ring-0 md:text-3xl" aria-label="Choisir un accord">
-                                <option value="">—</option>
-                                <option value="%">%</option>
-                                <optgroup label="Majeurs">
-                                  {CHORD_ROOTS.map((root) => <option key={`maj-${root}`} value={root}>{root}</option>)}
-                                </optgroup>
-                                <optgroup label="Mineurs">
-                                  {CHORD_ROOTS.map((root) => <option key={`min-${root}`} value={`${root}m`}>{root}m</option>)}
-                                </optgroup>
-                                <optgroup label="7e">
-                                  {CHORD_ROOTS.map((root) => <option key={`7-${root}`} value={`${root}7`}>{root}7</option>)}
-                                </optgroup>
-                                <option value="__custom__">Autre / altération…</option>
-                              </select>
-                              {(!COMMON_CHORDS.includes(chord) || customChordCell === `${row.id}:${i}`) && (
-                                <input list="square-altered-chords" value={chord} onChange={(e) => updateChord(row.id, i, e.target.value)} className="no-print w-full min-w-0 rounded border border-gray-300 bg-white/90 px-1 py-0.5 text-center text-xs font-semibold text-gray-800" placeholder="F#m7, E/G#, Cadd9..." />
+                              <button
+                                type="button"
+                                onClick={() => setOpenChordPicker(openChordPicker === `${row.id}:${i}` ? null : `${row.id}:${i}`)}
+                                className="no-print w-full min-w-0 truncate rounded bg-transparent px-1 py-0 text-center font-[Comic_Sans_MS,cursive] text-2xl font-bold text-gray-950 hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-lime-400 md:text-3xl"
+                                aria-label="Ouvrir la palette d'accords"
+                              >
+                                {chord || '—'}
+                              </button>
+                              <input
+                                list="square-altered-chords"
+                                value={chord}
+                                onChange={(e) => updateChord(row.id, i, e.target.value)}
+                                className="no-print w-full min-w-0 rounded border border-gray-300 bg-white/90 px-1 py-0.5 text-center text-xs font-semibold text-gray-800"
+                                placeholder="Taper : F#m7, E/G#..."
+                              />
+                              {openChordPicker === `${row.id}:${i}` && (
+                                <div className="no-print absolute left-1/2 top-full z-30 mt-2 w-[420px] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-gray-300 bg-white p-3 text-left shadow-2xl">
+                                  <div className="mb-2 flex items-center justify-between gap-3 border-b border-gray-200 pb-2">
+                                    <div>
+                                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Choisir un accord</p>
+                                      <p className="text-xs text-gray-400">Ou tapez librement dans la case.</p>
+                                    </div>
+                                    <button type="button" onClick={() => setOpenChordPicker(null)} className="rounded-lg px-2 py-1 text-sm text-gray-500 hover:bg-gray-100">×</button>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <div>
+                                      <p className="mb-1 text-xs font-semibold text-gray-500">Raccourcis</p>
+                                      <div className="grid grid-cols-4 gap-1">
+                                        <button type="button" onClick={() => pickChord(row.id, i, '')} className="rounded border border-gray-200 px-2 py-1.5 text-sm font-semibold text-gray-700 hover:border-lime-400 hover:bg-lime-50">Vide</button>
+                                        <button type="button" onClick={() => pickChord(row.id, i, '%')} className="rounded border border-gray-200 px-2 py-1.5 text-sm font-semibold text-gray-700 hover:border-lime-400 hover:bg-lime-50">%</button>
+                                      </div>
+                                    </div>
+                                    {CHORD_PICKER_ROWS.map((quality) => (
+                                      <div key={quality.label}>
+                                        <p className="mb-1 text-xs font-semibold text-gray-500">{quality.label}</p>
+                                        <div className="grid grid-cols-6 gap-1">
+                                          {CHORD_ROOTS.map((root) => {
+                                            const value = `${root}${quality.suffix}`
+                                            return (
+                                              <button key={`${quality.label}-${root}`} type="button" onClick={() => pickChord(row.id, i, value)} className="rounded border border-gray-200 px-2 py-1.5 text-sm font-bold text-gray-800 hover:border-lime-400 hover:bg-lime-50">
+                                                {value}
+                                              </button>
+                                            )
+                                          })}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               )}
                               <span className="hidden truncate font-[Comic_Sans_MS,cursive] text-3xl font-bold text-gray-950 print:block">{chord}</span>
                             </>
