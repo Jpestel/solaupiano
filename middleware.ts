@@ -73,6 +73,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!connexion|inscription|mot-de-passe-oublie|reinitialiser-mot-de-passe|verifier-email|mentions-legales|tarifs|aide|annonces|presence|api/auth|api/inscription|api/instruments|api/settings|api/cron|_next/static|_next/image|favicon.ico|icon.svg).*)',
+    '/((?!connexion|inscription|mot-de-passe-oublie|reinitialiser-mot-de-passe|verifier-email|mentions-legales|tarifs|aide|annonces|presence|api/auth|api/inscription|api/instruments|api/settings|api/cron|_next/static|_next/image|favicon.ico|favicon.svg|favicon-.*\\.png|apple-touch-icon\\.png|icon-.*\\.png|site\\.webmanifest|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|txt|xml|webmanifest)$).*)',
   ],
 }
