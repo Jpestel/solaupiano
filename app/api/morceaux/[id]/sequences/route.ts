@@ -10,9 +10,42 @@ import path from 'path'
 
 export const dynamic = 'force-dynamic'
 
+const MAX_SEQUENCE_UPLOAD_BYTES = 1024 * 1024 * 1024
+const ALLOWED_AUDIO_EXTENSIONS = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'])
+const ALLOWED_MIDI_EXTENSIONS = new Set(['mid', 'midi'])
+const ALLOWED_MIME_TYPES = new Set([
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'audio/x-wav',
+  'audio/ogg',
+  'audio/mp4',
+  'audio/x-m4a',
+  'audio/aac',
+  'audio/flac',
+  'audio/midi',
+  'audio/x-midi',
+  'application/octet-stream',
+])
+
 function detectKind(filename: string): 'AUDIO' | 'MIDI' {
   const ext = filename.split('.').pop()?.toLowerCase()
   return ext === 'mid' || ext === 'midi' ? 'MIDI' : 'AUDIO'
+}
+
+function validateSequenceFile(filename: string, mimeType?: string | null) {
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  const mime = (mimeType || '').toLowerCase()
+  const knownExtension = ALLOWED_AUDIO_EXTENSIONS.has(ext) || ALLOWED_MIDI_EXTENSIONS.has(ext)
+  const knownMime = mime.startsWith('audio/') || ALLOWED_MIME_TYPES.has(mime)
+
+  if (!knownExtension && !knownMime) {
+    return 'Format non supporté. Importez un MP3, WAV, OGG, M4A, AAC, FLAC, MID ou MIDI.'
+  }
+  if (mime === 'application/octet-stream' && !knownExtension) {
+    return 'Format non reconnu. Sur téléphone, vérifiez que le fichier porte bien une extension audio comme .mp3.'
+  }
+  return null
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -91,17 +124,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     const uploadDir = process.env.UPLOAD_DIR || './public/uploads'
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
+    const remainingBytes = Math.max(0, storageInfo.limitBytes - storageInfo.usedBytes)
+    const maxFileSize = Math.min(Math.max(remainingBytes, 1), MAX_SEQUENCE_UPLOAD_BYTES)
 
     const form = formidable({
       uploadDir,
       keepExtensions: true,
-      maxFileSize: 100 * 1024 * 1024,
+      maxFileSize,
       // Nom de fichier ASCII sans espaces (URL fiable) — le titre lisible est stocké en base
       filename: (name, ext) => `${Date.now()}-seq${(ext || '').toLowerCase()}`,
     })
 
     const contentType = req.headers.get('content-type') || ''
     const contentLength = req.headers.get('content-length') || '0'
+    const declaredBytes = Number(contentLength || 0)
+    if (declaredBytes > storageInfo.limitBytes - storageInfo.usedBytes) {
+      return NextResponse.json({ error: `Quota de stockage dépassé (${storageInfo.limitGb} Go).`, code: 'STORAGE_QUOTA_EXCEEDED' }, { status: 413 })
+    }
+
     const arrayBuffer = await req.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const { Readable } = require('stream')
@@ -119,6 +159,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const originalName = uploadedFile.originalFilename || 'séquence'
+    const validationError = validateSequenceFile(originalName, uploadedFile.mimetype)
+    if (validationError) {
+      fs.unlinkSync(uploadedFile.filepath)
+      return NextResponse.json({ error: validationError }, { status: 400 })
+    }
+
     const kind = detectKind(originalName)
 
     const titleField = Array.isArray(fields.title) ? fields.title[0] : fields.title
@@ -155,6 +201,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(sequence, { status: 201 })
   } catch (error) {
     console.error('Sequence upload error:', error)
-    return NextResponse.json({ error: 'Erreur lors du téléversement.' }, { status: 500 })
+    const message = error instanceof Error && /maxFileSize|maxTotalFileSize|options\.max/i.test(error.message)
+      ? 'Fichier trop volumineux pour le quota disponible du groupe.'
+      : 'Erreur lors du téléversement.'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -11,6 +11,36 @@ interface SeqItem extends Sequence {
   createdBy?: { id: number; name: string } | null
 }
 
+const ACCEPTED_SEQUENCE_FILES = [
+  '.mp3',
+  'audio/mpeg',
+  'audio/mp3',
+  '.wav',
+  'audio/wav',
+  'audio/x-wav',
+  '.ogg',
+  'audio/ogg',
+  '.m4a',
+  'audio/mp4',
+  'audio/x-m4a',
+  '.aac',
+  'audio/aac',
+  '.flac',
+  'audio/flac',
+  '.mid',
+  '.midi',
+  'audio/midi',
+  'audio/x-midi',
+].join(',')
+
+const ALLOWED_SEQUENCE_EXTENSIONS = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'mid', 'midi']
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} o`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
 export default function SequencesPage({ params }: { params: { id: string; songId: string } }) {
   const { data: session } = useSession()
   const groupId = params.id
@@ -31,6 +61,7 @@ export default function SequencesPage({ params }: { params: { id: string; songId
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const fallbackFileInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     if (!session) return
@@ -76,6 +107,22 @@ export default function SequencesPage({ params }: { params: { id: string; songId
     setTitle(''); setFile(null); setChannelMode('STEREO')
     if (fileInputRef.current) fileInputRef.current.value = ''
     load()
+  }
+
+  const chooseFile = (selected: File | null) => {
+    setError('')
+    setFile(null)
+    if (!selected) return
+
+    const ext = selected.name.split('.').pop()?.toLowerCase() || ''
+    const isAllowed = ALLOWED_SEQUENCE_EXTENSIONS.includes(ext) || selected.type.startsWith('audio/')
+    if (!isAllowed) {
+      setError('Format non reconnu. Choisissez un MP3, WAV, OGG, M4A, AAC, FLAC, MID ou MIDI.')
+      return
+    }
+
+    setFile(selected)
+    if (!title.trim()) setTitle(selected.name.replace(/\.[^.]+$/, ''))
   }
 
   const handleDelete = async (id: number) => {
@@ -185,10 +232,30 @@ export default function SequencesPage({ params }: { params: { id: string; songId
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Fichier (MP3, WAV, OGG… ou .mid / .midi)</label>
-                <input ref={fileInputRef} type="file" accept="audio/*,.mid,.midi"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="w-full text-sm" />
-                <p className="text-xs text-gray-400 mt-1">Le fichier est décompté du quota de stockage du groupe. Les .mid sont lus via un synthé navigateur (pré-écoute).</p>
+                <input ref={fileInputRef} type="file" accept={ACCEPTED_SEQUENCE_FILES}
+                  onChange={(e) => chooseFile(e.target.files?.[0] || null)}
+                  className="hidden" />
+                <input ref={fallbackFileInputRef} type="file"
+                  onChange={(e) => chooseFile(e.target.files?.[0] || null)}
+                  className="hidden" />
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => fileInputRef.current?.click()}
+                    className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
+                    Choisir un audio
+                  </button>
+                  <button type="button" onClick={() => fallbackFileInputRef.current?.click()}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50">
+                    Mon MP3 n'apparaît pas
+                  </button>
+                </div>
+                {file && (
+                  <p className="mt-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+                    Fichier sélectionné : {file.name} · {formatBytes(file.size)}
+                  </p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">
+                  Le fichier est décompté du quota de stockage du groupe. Sur téléphone, utilisez “Mon MP3 n'apparaît pas” si le fichier téléchargé est masqué par le sélecteur audio.
+                </p>
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <button type="submit" disabled={uploading || !file}
