@@ -70,14 +70,14 @@ function normalizeCanvas(value: unknown) {
 
   return { rows, cols, h, v: vv, labels, sheetRows: sheetRows.length ? sheetRows : [{
     id: 'sr-0',
-    section: 'Int',
-    time: "0' 00''",
+    section: '',
+    time: '',
     cue: '',
     squares: 4,
     ghostSquares: 0,
-    chords: ['F#m', 'D', 'A', 'E/G#'],
-    repeatStart: true,
-    repeatEnd: true,
+    chords: ['', '', '', ''],
+    repeatStart: false,
+    repeatEnd: false,
     highlight: false,
     note: '',
   }] }
