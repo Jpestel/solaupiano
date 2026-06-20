@@ -18,6 +18,7 @@ const TOOL_LABELS: Record<string, string> = {
   kilometrique: 'Estimation cachet',
   'images-pdf': 'Photos → PDF',
   'video-audio': 'Vidéo → MP3/WAV',
+  'wav-mp3': 'WAV → MP3',
 }
 
 const SECTION_LABELS: Record<string, string> = {

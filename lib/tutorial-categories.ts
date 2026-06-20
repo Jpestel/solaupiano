@@ -29,6 +29,7 @@ export const TUTORIAL_CATEGORIES: TutorialCategory[] = [
   { key: 'tool_portee',             label: 'Portée musicale',     icon: '🎼', group: 'Outils' },
   { key: 'tool_cachet',             label: 'Simulateur cachet GUSO', icon: '💶', group: 'Outils' },
   { key: 'tool_kilometrique',       label: 'Estimation de cachet',   icon: '🎭', group: 'Outils' },
+  { key: 'tool_wav2mp3',            label: 'WAV → MP3',          icon: '🎧', group: 'Outils' },
 ]
 
 export function getCategoryDef(key: string): TutorialCategory | undefined {

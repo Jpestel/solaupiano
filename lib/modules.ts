@@ -97,6 +97,14 @@ export const MODULES: ModuleDef[] = [
     category: 'outil',
   },
   {
+    key: 'tool_wav2mp3',
+    label: 'WAV → MP3',
+    description: "Compresse un fichier WAV en MP3 pour réduire fortement sa taille avant partage ou import. Conversion locale dans le navigateur — rien n'est envoyé au serveur.",
+    href: '/outils/wav-mp3',
+    icon: '🎧',
+    category: 'outil',
+  },
+  {
     key: 'tool_partition',
     label: 'Lecteur de partition',
     description: "Affiche une vraie partition à partir d'un fichier MusicXML (.musicxml, .mxl — export MuseScore/Free-scores) et la joue avec un curseur qui suit les notes (lecture, vitesse, transposition, zoom). 100% navigateur.",

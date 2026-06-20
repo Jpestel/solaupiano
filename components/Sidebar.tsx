@@ -116,6 +116,16 @@ const navItems = [
     ),
   },
   {
+    href: '/outils/wav-mp3',
+    label: 'WAV → MP3',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l11-2v13M9 19a3 3 0 11-6 0 3 3 0 016 0zm11-3a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5h4M4 8h4M4 11h3" />
+      </svg>
+    ),
+  },
+  {
     href: '/outils/partition',
     label: 'Lecteur partition',
     icon: (
