@@ -2,8 +2,59 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendAdminLoginNotification } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
+
+const PLAN_LABELS: Record<string, string> = { MUSICIEN: 'Musicien', CREATEUR: "Chef d'orchestre" }
+const ACTIVITY_ALERT_COOLDOWN_MS = 12 * 60 * 60 * 1000
+
+async function auditMemberActivity(userId: number, now: Date) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        name: true,
+        email: true,
+        siteRole: true,
+        userPlan: true,
+        adminLoginAlertEnabled: true,
+        adminLastActivityAlertAt: true,
+        groups: { select: { group: { select: { name: true } } } },
+      },
+    })
+
+    if (!user || user.siteRole === 'ADMIN') return
+
+    await prisma.user.update({ where: { id: userId }, data: { lastActiveAt: now } })
+
+    if (!user.email || !user.adminLoginAlertEnabled) return
+
+    const lastAlertAt = user.adminLastActivityAlertAt?.getTime() ?? 0
+    if (now.getTime() - lastAlertAt < ACTIVITY_ALERT_COOLDOWN_MS) return
+
+    const admins = await prisma.user.findMany({ where: { siteRole: 'ADMIN' }, select: { email: true } })
+    const adminEmails = admins.map((a) => a.email).filter((email): email is string => !!email)
+    if (!adminEmails.length) return
+
+    await sendAdminLoginNotification(
+      adminEmails,
+      {
+        name: user.name || user.email,
+        email: user.email,
+        role: user.siteRole,
+        plan: PLAN_LABELS[user.userPlan] || user.userPlan,
+        groups: user.groups.map((g) => g.group.name),
+      },
+      now,
+      process.env.NEXTAUTH_URL || 'https://solaupiano.fr',
+    )
+
+    await prisma.user.update({ where: { id: userId }, data: { adminLastActivityAlertAt: now } })
+  } catch (error) {
+    console.error('admin activity notification', error)
+  }
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -17,6 +68,7 @@ export async function GET() {
 
   const userId = Number(session.user.id)
   const now    = new Date()
+  await auditMemberActivity(userId, now)
 
   // ── Groupes de l'utilisateur ──────────────────────────────────────────────
   const memberships = await prisma.groupMember.findMany({

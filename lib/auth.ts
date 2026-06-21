@@ -89,7 +89,10 @@ export const authOptions: NextAuthOptions = {
       if (!user?.id) return
       const uid = Number(user.id)
       const when = new Date()
-      await prisma.user.update({ where: { id: uid }, data: { lastLoginAt: when } })
+      await prisma.user.update({
+        where: { id: uid },
+        data: { lastLoginAt: when, lastActiveAt: when },
+      })
 
       // Audit : prévenir l'admin (jamais bloquant pour la connexion)
       try {
@@ -117,6 +120,7 @@ export const authOptions: NextAuthOptions = {
               when,
               process.env.NEXTAUTH_URL || 'https://solaupiano.fr',
             )
+            await prisma.user.update({ where: { id: uid }, data: { adminLastActivityAlertAt: when } })
           }
         }
       } catch (e) {

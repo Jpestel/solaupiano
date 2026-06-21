@@ -118,13 +118,13 @@ export function WakeUpOverlay() {
     }
   }
 
-  // ── Déclencheur au login (flag posé par la page connexion) ─────────────────
+  // ── Déclencheur au login ou au retour avec une session encore active ───────
   useEffect(() => {
     const pending = sessionStorage.getItem('wakeup_pending')
     if (pending) {
       sessionStorage.removeItem('wakeup_pending')
-      checkAndShow()
     }
+    checkAndShow()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
