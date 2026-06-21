@@ -105,6 +105,14 @@ export const MODULES: ModuleDef[] = [
     category: 'outil',
   },
   {
+    key: 'tool_transposition',
+    label: 'Transposition',
+    description: "Transpose automatiquement une grille d'accords, un texte ou un PDF texte, avec création possible d'une copie de grille.",
+    href: '/outils/transposition',
+    icon: '🎼',
+    category: 'outil',
+  },
+  {
     key: 'tool_partition',
     label: 'Lecteur de partition',
     description: "Affiche une vraie partition à partir d'un fichier MusicXML (.musicxml, .mxl — export MuseScore/Free-scores) et la joue avec un curseur qui suit les notes (lecture, vitesse, transposition, zoom). 100% navigateur.",

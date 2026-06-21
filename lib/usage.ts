@@ -19,6 +19,7 @@ const TOOL_LABELS: Record<string, string> = {
   'images-pdf': 'Photos → PDF',
   'video-audio': 'Vidéo → MP3/WAV',
   'wav-mp3': 'WAV → MP3',
+  transposition: 'Transposition',
 }
 
 const SECTION_LABELS: Record<string, string> = {

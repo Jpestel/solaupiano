@@ -612,6 +612,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
             🖨️ Imprimer
           </button>
+          <Link
+            href={`/outils/transposition?chartId=${chart.id}&groupId=${groupId}`}
+            className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+          >
+            🎼 Transposer
+          </Link>
           {canEditGrid && (
             <button onClick={openSettings}
               className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">

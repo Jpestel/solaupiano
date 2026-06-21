@@ -89,6 +89,15 @@ const navItems = [
     ),
   },
   {
+    href: '/outils/transposition',
+    label: 'Transposition',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h10M7 7l3-3M7 7l3 3m7 7H7m10 0l-3-3m3 3l-3 3" />
+      </svg>
+    ),
+  },
+  {
     href: '/outils/cachet',
     label: 'Cachet GUSO',
     icon: (
