@@ -111,3 +111,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   return NextResponse.json({ ok: true, sent: delivered.length })
 }
+
+// Supprime uniquement un brouillon. Une newsletter envoyée reste conservée pour l'historique.
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  if (!(await requireAdmin())) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
+  const id = Number(params.id)
+  if (!Number.isInteger(id)) return NextResponse.json({ error: 'Newsletter introuvable.' }, { status: 404 })
+
+  const newsletter = await prisma.newsletter.findUnique({
+    where: { id },
+    select: { id: true, status: true },
+  })
+  if (!newsletter) return NextResponse.json({ error: 'Newsletter introuvable.' }, { status: 404 })
+  if (newsletter.status !== 'DRAFT') {
+    return NextResponse.json({ error: 'Seuls les brouillons peuvent être supprimés.' }, { status: 400 })
+  }
+
+  await prisma.newsletter.delete({ where: { id } })
+  return NextResponse.json({ ok: true })
+}

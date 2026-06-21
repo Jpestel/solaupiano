@@ -117,6 +117,21 @@ export default function AdminNewsletterPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const deleteDraft = async (n: Newsletter) => {
+    if (n.status !== 'DRAFT') return
+    if (!confirm(`Supprimer le brouillon "${n.subject}" ?`)) return
+    const res = await fetch(`/api/admin/newsletter/${n.id}`, { method: 'DELETE' })
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) { setMsg(d.error || 'Impossible de supprimer ce brouillon.'); return }
+    if (subject === n.subject && content === n.content) {
+      setSubject('')
+      setContent('')
+      setPreview(false)
+    }
+    setMsg('✓ Brouillon supprimé.')
+    load()
+  }
+
   const load = async () => {
     const res = await fetch('/api/admin/newsletter')
     if (res.ok) {
@@ -213,6 +228,11 @@ export default function AdminNewsletterPage() {
                     {n.status === 'SENT' && (
                       <button onClick={() => openDetail(n)} className="text-xs font-medium rounded-lg border border-gray-300 px-2.5 py-1 text-gray-700 hover:bg-gray-100">
                         {detailId === n.id ? 'Fermer' : 'Destinataires'}
+                      </button>
+                    )}
+                    {n.status === 'DRAFT' && (
+                      <button onClick={() => deleteDraft(n)} className="text-xs font-medium rounded-lg border border-red-200 px-2.5 py-1 text-red-600 hover:bg-red-50">
+                        Supprimer
                       </button>
                     )}
                   </div>
