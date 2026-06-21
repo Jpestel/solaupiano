@@ -103,6 +103,8 @@ export default function HelpBubbleLayer() {
   const [placing, setPlacing] = useState(false)
   const [editor, setEditor] = useState<Partial<Bubble> | null>(null)
   const [hidden, setHidden] = useState(false) // préférence perso : masquer TOUTES les bulles
+  const [isMobile, setIsMobile] = useState(false)
+  const [mobileHelpOpen, setMobileHelpOpen] = useState(false)
   const [positions, setPositions] = useState<Record<number, { left: number; top: number }>>({})
   const overlayRef = useRef<HTMLDivElement>(null)
 
@@ -117,6 +119,14 @@ export default function HelpBubbleLayer() {
   const [repSelected, setRepSelected] = useState<number[]>([])
   const [repMsg, setRepMsg] = useState('')
 
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
   // Recalcule la position px des bulles ancrées (relativement à la couche).
   const resolveAnchors = useCallback(() => {
     const overlay = overlayRef.current
@@ -129,13 +139,16 @@ export default function HelpBubbleLayer() {
       try { el = document.querySelector(b.anchorSelector) } catch { el = null }
       if (!el) continue
       const r = el.getBoundingClientRect()
+      const smartCorner = !editMode
       next[b.id] = {
-        left: r.left - orr.left + (b.anchorDx ?? 0.5) * r.width,
-        top: r.top - orr.top + (b.anchorDy ?? 0.5) * r.height,
+        // En lecture, on évite de poser la bulle au milieu des icônes/modules :
+        // un marqueur discret au coin supérieur droit reste lisible sans gêner.
+        left: smartCorner ? r.right - orr.left - 14 : r.left - orr.left + (b.anchorDx ?? 0.5) * r.width,
+        top: smartCorner ? r.top - orr.top + 14 : r.top - orr.top + (b.anchorDy ?? 0.5) * r.height,
       }
     }
     setPositions(next)
-  }, [bubbles])
+  }, [bubbles, editMode])
 
   useEffect(() => {
     resolveAnchors()
@@ -180,7 +193,7 @@ export default function HelpBubbleLayer() {
   useEffect(() => { load() }, [load])
 
   // Fermeture du popover quand on change de page
-  useEffect(() => { setOpenId(null); setPlacing(false); setEditor(null) }, [pathname])
+  useEffect(() => { setOpenId(null); setMobileHelpOpen(false); setPlacing(false); setEditor(null) }, [pathname])
 
   const toggleEdit = () => {
     setEditMode((v) => {
@@ -338,6 +351,9 @@ export default function HelpBubbleLayer() {
 
   if (!session) return null
 
+  const visibleBubbles = (editMode || !hidden) ? bubbles : []
+  const mobileBubbles = hidden ? [] : bubbles
+
   return (
     <>
       {/* Couche des bulles, superposée au contenu de la page */}
@@ -347,7 +363,8 @@ export default function HelpBubbleLayer() {
         className="absolute inset-0 z-20"
         style={{ pointerEvents: placing ? 'auto' : 'none', cursor: placing ? 'crosshair' : 'default' }}
       >
-        {(editMode || !hidden) && bubbles.map((b) => {
+        {visibleBubbles.map((b) => {
+          if (isMobile && !editMode) return null
           const c = COLORS[b.color] || COLORS.indigo
           const isOpen = openId === b.id
           const pos = positions[b.id]
@@ -357,18 +374,18 @@ export default function HelpBubbleLayer() {
           const leftFrac = pos ? (pos.left / overlayW) * 100 : b.xPct
           return (
             <div key={b.id} className="absolute" style={{ left, top, pointerEvents: 'auto', transform: 'translate(-50%, -50%)' }}>
-              {/* Marqueur pulsant */}
+              {/* Marqueur discret */}
               <button
                 onClick={() => { if (!editMode) setOpenId((id) => (id === b.id ? null : b.id)) }}
                 onPointerDown={(e) => onDotPointerDown(e, b)}
                 onPointerMove={(e) => onDotPointerMove(e, b)}
                 onPointerUp={(e) => onDotPointerUp(e, b)}
                 title={editMode ? (b.anchorSelector ? 'Ancrée · glisser pour déplacer · cliquer pour éditer' : 'NON ancrée (position libre) · glisser sur un élément ou « Ancrer ici »') : b.title}
-                className={`relative flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full text-white shadow-lg transition-opacity ${c.dot} ${editMode ? `cursor-move ring-2 ${b.anchorSelector ? 'ring-white' : 'ring-amber-400'}` : 'cursor-pointer opacity-75 hover:opacity-100'}`}
+                className={`relative flex items-center justify-center rounded-full text-white shadow-md transition-all ${c.dot} ${editMode ? `h-8 w-8 cursor-move ring-2 ${b.anchorSelector ? 'ring-white' : 'ring-amber-400'}` : 'h-6 w-6 cursor-pointer ring-2 ring-white/90 hover:scale-105 hover:shadow-lg'}`}
                 style={{ touchAction: 'none' }}
               >
-                {!editMode && <span className={`absolute inset-0 rounded-full ${c.ring} opacity-50 animate-ping`} />}
-                <span className="relative text-[11px] sm:text-sm leading-none">{b.emoji}</span>
+                {editMode && <span className={`absolute inset-0 rounded-full ${c.ring} opacity-40 animate-ping`} />}
+                <span className="relative text-[11px] leading-none">{editMode ? b.emoji : '?'}</span>
               </button>
 
               {/* Popover (lecture) — ancrage horizontal selon la position pour rester visible */}
@@ -399,6 +416,60 @@ export default function HelpBubbleLayer() {
           )
         })}
       </div>
+
+      {/* Mobile : pas de pastilles dispersées, une feuille d'aide lisible */}
+      {!editMode && mobileBubbles.length > 0 && (
+        <>
+          <button
+            onClick={() => setMobileHelpOpen(true)}
+            className="fixed bottom-20 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 active:scale-95 md:hidden"
+            style={{ pointerEvents: 'auto' }}
+          >
+            💡 Aide
+            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">{mobileBubbles.length}</span>
+          </button>
+
+          {mobileHelpOpen && (
+            <div className="fixed inset-0 z-50 flex items-end bg-black/35 md:hidden" onClick={() => setMobileHelpOpen(false)}>
+              <div className="max-h-[80vh] w-full overflow-hidden rounded-t-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                  <div>
+                    <p className="text-base font-bold text-gray-900">Aide sur cette page</p>
+                    <p className="text-xs text-gray-500">Conseils et informations disponibles ici.</p>
+                  </div>
+                  <button onClick={() => setMobileHelpOpen(false)} className="rounded-full bg-gray-100 px-3 py-1 text-lg leading-none text-gray-500">×</button>
+                </div>
+                <div className="max-h-[58vh] overflow-y-auto px-4 py-3">
+                  <div className="space-y-3">
+                    {mobileBubbles.map((b) => {
+                      const c = COLORS[b.color] || COLORS.indigo
+                      return (
+                        <article key={b.id} className={`rounded-2xl border bg-white p-3 shadow-sm ${c.accent}`}>
+                          <div className="flex items-start gap-3">
+                            <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base text-white ${c.dot}`}>{b.emoji}</span>
+                            <div className="min-w-0 flex-1">
+                              {b.title && <h3 className={`text-sm font-bold ${c.text}`}>{b.title}</h3>}
+                              {b.content && <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{b.content}</p>}
+                              <button onClick={() => dismissOne(b.id)} className="mt-2 text-xs font-semibold text-gray-400 hover:text-gray-600">
+                                Ne plus afficher cette info
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className="border-t border-gray-100 px-4 py-3">
+                  <button onClick={() => setHiddenPref(true)} className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-600">
+                    Masquer toutes les astuces
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Barre d'outils admin (fixe) */}
       {isAdmin && (
