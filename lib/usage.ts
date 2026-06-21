@@ -36,6 +36,8 @@ const SECTION_LABELS: Record<string, string> = {
   tchat: 'Tchat',
   stats: 'Statistiques',
   galerie: 'Galerie',
+  taches: 'Tâches de groupe',
+  'partitions-carrees': 'Méthode carrée',
 }
 
 export function resolveModule(path: string): { key: string; label: string } | null {

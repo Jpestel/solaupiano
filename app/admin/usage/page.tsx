@@ -13,9 +13,10 @@ export default async function AdminUsagePage({ searchParams }: { searchParams: {
   // Exclut les visites des comptes de test des statistiques d'usage.
   const where = { user: { isTest: false }, ...(since ? { createdAt: { gte: since } } : {}) }
 
-  const [total, byModule, byUser, byUserModule, recent] = await Promise.all([
+  const [total, byModule, byModuleUser, byUser, byUserModule, recent] = await Promise.all([
     prisma.moduleVisit.count({ where }),
     prisma.moduleVisit.groupBy({ by: ['moduleLabel'], where, _count: { _all: true }, orderBy: { _count: { moduleLabel: 'desc' } } }),
+    prisma.moduleVisit.groupBy({ by: ['moduleLabel', 'userId'], where, _count: { _all: true } }),
     prisma.moduleVisit.groupBy({ by: ['userId'], where, _count: { _all: true }, _max: { createdAt: true }, orderBy: { _count: { userId: 'desc' } } }),
     prisma.moduleVisit.groupBy({ by: ['userId', 'moduleLabel'], where, _count: { _all: true } }),
     prisma.moduleVisit.findMany({ where, orderBy: { createdAt: 'desc' }, take: 40, select: { id: true, moduleLabel: true, createdAt: true, user: { select: { name: true } } } }),
@@ -34,8 +35,26 @@ export default async function AdminUsagePage({ searchParams }: { searchParams: {
     if (!cur || c > cur.count) topModuleByUser.set(row.userId, { label: row.moduleLabel, count: c })
   }
 
-  const maxModuleCount = byModule.length ? byModule[0]._count._all : 0
   const activeUsers = byUser.length
+  const uniqueUsersByModule = new Map<string, number>()
+  for (const row of byModuleUser) {
+    uniqueUsersByModule.set(row.moduleLabel, (uniqueUsersByModule.get(row.moduleLabel) || 0) + 1)
+  }
+  const moduleStats = byModule
+    .map((m) => {
+      const visits = m._count._all
+      const users = uniqueUsersByModule.get(m.moduleLabel) || 0
+      const adoption = activeUsers ? users / activeUsers : 0
+      return {
+        label: m.moduleLabel,
+        visits,
+        users,
+        adoption,
+        score: visits * 0.55 + users * 8 + adoption * 25,
+      }
+    })
+    .sort((a, b) => b.score - a.score || b.visits - a.visits || a.label.localeCompare(b.label))
+  const maxModuleScore = moduleStats.length ? moduleStats[0].score : 0
 
   const periods = [
     { key: '7', label: '7 jours' },
@@ -47,7 +66,7 @@ export default async function AdminUsagePage({ searchParams }: { searchParams: {
     <div className="max-w-4xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Audit d&apos;usage</h1>
-        <p className="text-gray-500 mt-1">Quels modules vos membres utilisent réellement, et qui les utilise.</p>
+        <p className="text-gray-500 mt-1">Les modules qui plaisent le plus : visites, membres uniques et adoption.</p>
       </div>
 
       {/* Période */}
@@ -88,19 +107,30 @@ export default async function AdminUsagePage({ searchParams }: { searchParams: {
         </div>
       ) : (
         <>
-          {/* Modules les plus utilisés */}
+          {/* Modules les plus appréciés */}
           <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100"><h3 className="font-semibold text-gray-900">Modules les plus utilisés</h3></div>
+            <div className="px-5 py-3 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">Modules qui plaisent le plus</h3>
+              <p className="mt-0.5 text-xs text-gray-400">Classement pondéré : visites + nombre de membres différents + taux d&apos;adoption.</p>
+            </div>
             <ul className="divide-y divide-gray-50">
-              {byModule.map((m) => (
-                <li key={m.moduleLabel} className="px-5 py-2.5">
+              {moduleStats.map((m, idx) => (
+                <li key={m.label} className="px-5 py-3">
                   <div className="flex items-center justify-between gap-3 mb-1">
-                    <span className="text-sm font-medium text-gray-800">{m.moduleLabel}</span>
-                    <span className="text-xs text-gray-400 tabular-nums">{m._count._all}</span>
+                    <span className="text-sm font-medium text-gray-800">
+                      <span className="mr-2 text-xs text-gray-400">#{idx + 1}</span>
+                      {m.label}
+                    </span>
+                    <span className="text-xs text-gray-400 tabular-nums">
+                      {m.visits} visite{m.visits > 1 ? 's' : ''} · {m.users} membre{m.users > 1 ? 's' : ''}
+                    </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                    <div className="h-full bg-indigo-500" style={{ width: `${maxModuleCount ? (m._count._all / maxModuleCount) * 100 : 0}%` }} />
+                    <div className="h-full bg-indigo-500" style={{ width: `${maxModuleScore ? (m.score / maxModuleScore) * 100 : 0}%` }} />
                   </div>
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    Adoption : {Math.round(m.adoption * 100)}% des membres actifs sur la période
+                  </p>
                 </li>
               ))}
             </ul>
