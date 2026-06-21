@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from './providers'
 import { getSiteSettings } from '@/lib/site-settings'
@@ -6,6 +7,9 @@ import { getThemeCss } from '@/lib/themes'
 import { getPlaceholderOverrides } from '@/lib/placeholders-server'
 import { setPlaceholders } from '@/lib/placeholders'
 import { PlaceholderInit } from '@/components/PlaceholderInit'
+
+const UMAMI_WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID || '9ed85026-2476-419e-a514-972d31a95f06'
+const UMAMI_SCRIPT_SRC = process.env.NEXT_PUBLIC_UMAMI_SCRIPT_SRC || 'https://stats.toxic-files.com/script.js'
 
 export const metadata: Metadata = {
   title: 'Sol au piano',
@@ -39,6 +43,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="manifest" href="/site.webmanifest?v=4" />
       </head>
       <body className="bg-gray-50 text-gray-900 antialiased">
+        {process.env.NODE_ENV === 'production' && UMAMI_WEBSITE_ID && (
+          <Script
+            src={UMAMI_SCRIPT_SRC}
+            data-website-id={UMAMI_WEBSITE_ID}
+            data-domains="solaupiano.fr,www.solaupiano.fr"
+            strategy="afterInteractive"
+          />
+        )}
         {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
         <PlaceholderInit values={phOverrides} />
         <Providers>{children}</Providers>
