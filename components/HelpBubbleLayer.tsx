@@ -353,6 +353,7 @@ export default function HelpBubbleLayer() {
 
   const visibleBubbles = (editMode || !hidden) ? bubbles : []
   const mobileBubbles = hidden ? [] : bubbles
+  const mobileHelpCount = bubbles.length
 
   return (
     <>
@@ -418,19 +419,24 @@ export default function HelpBubbleLayer() {
       </div>
 
       {/* Mobile : pas de pastilles dispersées, une feuille d'aide lisible */}
-      {!editMode && mobileBubbles.length > 0 && (
+      {!editMode && mobileHelpCount > 0 && (
         <>
           <button
-            onClick={() => setMobileHelpOpen(true)}
-            className="fixed bottom-20 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 active:scale-95 md:hidden"
+            onClick={() => {
+              if (hidden) setHiddenPref(false)
+              setMobileHelpOpen(true)
+            }}
+            className={`fixed bottom-24 left-4 z-[70] inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white shadow-lg active:scale-95 md:hidden ${
+              hidden ? 'bg-gray-800 shadow-gray-900/20' : 'bg-indigo-600 shadow-indigo-600/25'
+            }`}
             style={{ pointerEvents: 'auto' }}
           >
-            💡 Aide
-            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">{mobileBubbles.length}</span>
+            💡 {hidden ? 'Aide masquée' : 'Aide'}
+            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">{mobileHelpCount}</span>
           </button>
 
-          {mobileHelpOpen && (
-            <div className="fixed inset-0 z-50 flex items-end bg-black/35 md:hidden" onClick={() => setMobileHelpOpen(false)}>
+          {mobileHelpOpen && mobileBubbles.length > 0 && (
+            <div className="fixed inset-0 z-[80] flex items-end bg-black/35 md:hidden" onClick={() => setMobileHelpOpen(false)}>
               <div className="max-h-[80vh] w-full overflow-hidden rounded-t-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                   <div>
