@@ -176,6 +176,7 @@ model User {
   // Se répercute sur isTest de tous les groupes fondés par ce compte.
   isTest                      Boolean   @default(false)
   adminLoginAlertEnabled      Boolean   @default(true)  // envoie une alerte admin quand ce compte se connecte
+  usageStatsExcluded          Boolean   @default(false) // exclut ce compte des statistiques d'usage admin
   helpBubblesOptOut           Boolean   @default(false) // masque les bulles d'aide contextuelles
 
   instruments              UserInstrument[]

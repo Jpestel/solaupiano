@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (err) return err
 
   const body = await req.json()
-  const { siteRole, name, email, password, instrumentIds, accountPlan, planExpiresAt, adminLoginAlertEnabled, isTest } = body
+  const { siteRole, name, email, password, instrumentIds, accountPlan, planExpiresAt, adminLoginAlertEnabled, usageStatsExcluded, isTest } = body
   const targetId = Number(params.id)
 
   // Statut « compte de test » (se répercute sur isTest de tous ses groupes fondés).
@@ -70,10 +70,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     data.adminLoginAlertEnabled = Boolean(adminLoginAlertEnabled)
   }
 
+  if (usageStatsExcluded !== undefined) {
+    data.usageStatsExcluded = Boolean(usageStatsExcluded)
+  }
+
   const user = await prisma.user.update({
     where: { id: targetId },
     data,
-    select: { id: true, name: true, email: true, siteRole: true, accountPlan: true, adminLoginAlertEnabled: true, isTest: true },
+    select: { id: true, name: true, email: true, siteRole: true, accountPlan: true, adminLoginAlertEnabled: true, usageStatsExcluded: true, isTest: true },
   })
 
   if (Array.isArray(instrumentIds)) {

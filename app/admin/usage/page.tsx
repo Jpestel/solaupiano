@@ -10,8 +10,8 @@ export default async function AdminUsagePage({ searchParams }: { searchParams: {
   const daysParam = searchParams.days || '30'
   const days = daysParam === 'all' ? null : Math.max(1, parseInt(daysParam, 10) || 30)
   const since = days ? new Date(Date.now() - days * 86400000) : null
-  // Exclut les visites des comptes de test des statistiques d'usage.
-  const where = { user: { isTest: false }, ...(since ? { createdAt: { gte: since } } : {}) }
+  // Exclut les comptes de test et les comptes explicitement retirés des statistiques.
+  const where = { user: { isTest: false, usageStatsExcluded: false }, ...(since ? { createdAt: { gte: since } } : {}) }
 
   const [total, byModule, byModuleUser, byUser, byUserModule, recent] = await Promise.all([
     prisma.moduleVisit.count({ where }),
@@ -185,7 +185,7 @@ export default async function AdminUsagePage({ searchParams }: { searchParams: {
         </>
       )}
 
-      <p className="text-[11px] text-gray-400">L&apos;audit enregistre chaque ouverture de module par un membre connecté. Les pages d&apos;administration ne sont pas tracées.</p>
+      <p className="text-[11px] text-gray-400">L&apos;audit enregistre chaque ouverture de module par un membre connecté. Les pages d&apos;administration ne sont pas tracées. Les comptes de test et les comptes marqués “hors stats” sont exclus.</p>
     </div>
   )
 }
