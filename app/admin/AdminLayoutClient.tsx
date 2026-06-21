@@ -47,6 +47,7 @@ const adminGroups = [
     label: 'Système', icon: '🛠️',
     items: [
       { href: '/admin/fichiers',    label: 'Fichiers',       icon: '📁' },
+      { href: '/admin/stats',       label: 'Stats site',     icon: '📊' },
       { href: '/admin/performance', label: 'Performance',    icon: '📈' },
       { href: '/admin/usage',       label: 'Audit d\'usage', icon: '🔍' },
       { href: '/admin/support',     label: 'Support',        icon: '🛟' },
