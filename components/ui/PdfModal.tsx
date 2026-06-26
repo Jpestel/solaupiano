@@ -148,6 +148,17 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     createBookmark(xPct, yPct)
   }
 
+  const handleBookmarkPointer = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!placingBookmark || !resourceId) return
+    e.preventDefault()
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const xPct = (e.clientX - rect.left) / rect.width
+    const yPct = (e.clientY - rect.top) / rect.height
+    if (xPct < 0 || xPct > 1 || yPct < 0 || yPct > 1) return
+    createBookmark(xPct, yPct)
+  }
+
   const handlePageInputSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const n = parseInt(pageInput, 10)
@@ -325,6 +336,14 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
                   ↪
                 </button>
               ))}
+              {placingBookmark && (
+                <div
+                  className="absolute inset-0 z-30 touch-none cursor-crosshair bg-emerald-400/10 ring-4 ring-inset ring-emerald-400/60"
+                  onPointerUp={handleBookmarkPointer}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                  aria-label="Zone de placement du repère"
+                />
+              )}
             </div>
           ) : (
             <div
@@ -370,6 +389,14 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
                   ↪
                 </button>
               ))}
+              {placingBookmark && (
+                <div
+                  className="absolute inset-0 z-30 touch-none cursor-crosshair bg-emerald-400/10 ring-4 ring-inset ring-emerald-400/60"
+                  onPointerUp={handleBookmarkPointer}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                  aria-label="Zone de placement du repère"
+                />
+              )}
             </div>
           )}
         </div>
