@@ -14,6 +14,14 @@ interface PdfModalProps {
   kind?: 'pdf' | 'image'   // 'image' : partition au format photo (jpeg/png…)
 }
 
+interface PdfBookmark {
+  id: number
+  page: number
+  xPct: number
+  yPct: number
+  label: string
+}
+
 export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const isImage = kind === 'image'
   const [numPages, setNumPages] = useState<number>(0)
@@ -22,7 +30,13 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const [pageInput, setPageInput] = useState('1')
   const [editingPage, setEditingPage] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(true)
+  const [bookmarks, setBookmarks] = useState<PdfBookmark[]>([])
+  const [placingBookmark, setPlacingBookmark] = useState(false)
+  const [jumpTarget, setJumpTarget] = useState<PdfBookmark | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const pageRef = useRef<HTMLDivElement>(null)
+  const resourceId = /^\/api\/ressources\/(\d+)/.exec(url)?.[1] || null
 
   // Zoom mémorisé par utilisateur connecté ET par fichier (chaque partition garde son
   // propre zoom). Stocké localement, propre à chaque compte sur l'appareil.
@@ -35,6 +49,30 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     const saved = parseFloat(window.localStorage.getItem(zoomKey) || '')
     if (!Number.isNaN(saved) && saved >= 0.5 && saved <= 3) setScale(saved)
   }, [zoomKey])
+
+  useEffect(() => {
+    if (!resourceId) return
+    fetch(`/api/ressources/${resourceId}/bookmarks`)
+      .then((res) => (res.ok ? res.json() : { bookmarks: [] }))
+      .then((data) => setBookmarks(data.bookmarks || []))
+      .catch(() => setBookmarks([]))
+  }, [resourceId])
+
+  useEffect(() => {
+    if (!jumpTarget || jumpTarget.page !== currentPage) return
+    const content = contentRef.current
+    const pageEl = pageRef.current
+    if (!content || !pageEl) return
+
+    const timer = window.setTimeout(() => {
+      const left = pageEl.offsetLeft + pageEl.offsetWidth * jumpTarget.xPct - content.clientWidth / 2
+      const top = pageEl.offsetTop + pageEl.offsetHeight * jumpTarget.yPct - content.clientHeight / 2
+      content.scrollTo({ left: Math.max(0, left), top: Math.max(0, top), behavior: 'smooth' })
+      setJumpTarget(null)
+    }, 80)
+
+    return () => window.clearTimeout(timer)
+  }, [currentPage, scale, jumpTarget])
 
   // Change le zoom ET le mémorise (uniquement sur action de l'utilisateur).
   const applyZoom = useCallback((updater: number | ((s: number) => number)) => {
@@ -71,6 +109,43 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     const p = Math.max(1, Math.min(page, numPages))
     setCurrentPage(p)
     setPageInput(String(p))
+  }
+
+  const goToBookmark = (bookmark: PdfBookmark) => {
+    setJumpTarget(bookmark)
+    goTo(bookmark.page)
+  }
+
+  const createBookmark = async (xPct: number, yPct: number) => {
+    if (!resourceId) return
+    const label = window.prompt('Nom du repère PDF', `Page ${currentPage}`)
+    if (label === null) return
+
+    const res = await fetch(`/api/ressources/${resourceId}/bookmarks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page: currentPage, xPct, yPct, label }),
+    })
+    if (res.ok) {
+      const bookmark = await res.json()
+      setBookmarks((items) => [...items, bookmark].sort((a, b) => a.page - b.page || a.yPct - b.yPct || a.xPct - b.xPct))
+      setPlacingBookmark(false)
+    }
+  }
+
+  const deleteBookmark = async (id: number) => {
+    if (!resourceId) return
+    const res = await fetch(`/api/ressources/${resourceId}/bookmarks/${id}`, { method: 'DELETE' })
+    if (res.ok) setBookmarks((items) => items.filter((item) => item.id !== id))
+  }
+
+  const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!placingBookmark || !resourceId) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const xPct = (e.clientX - rect.left) / rect.width
+    const yPct = (e.clientY - rect.top) / rect.height
+    if (xPct < 0 || xPct > 1 || yPct < 0 || yPct > 1) return
+    createBookmark(xPct, yPct)
   }
 
   const handlePageInputSubmit = (e: React.FormEvent) => {
@@ -123,6 +198,16 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
               </svg>
             </button>
 
+            {resourceId && (
+              <button
+                onClick={() => setPlacingBookmark((value) => !value)}
+                title={placingBookmark ? 'Annuler le placement du repère' : 'Placer un repère PDF'}
+                className={`ml-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${placingBookmark ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-gray-700 text-gray-200 hover:bg-gray-600 hover:text-white'}`}
+              >
+                {placingBookmark ? 'Cliquez sur le PDF' : 'Repère'}
+              </button>
+            )}
+
             {/* Fullscreen */}
             <button
               onClick={toggleFullscreen}
@@ -153,6 +238,39 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
           </div>
         </div>
 
+        {resourceId && (bookmarks.length > 0 || placingBookmark) && (
+          <div
+            className="flex flex-wrap items-center gap-2 border-b border-gray-700 bg-gray-850 px-4 py-2 text-xs text-gray-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="font-semibold text-emerald-300">Repères PDF</span>
+            {placingBookmark && (
+              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 font-medium text-emerald-200">
+                Cliquez sur la partition pour placer le bouton
+              </span>
+            )}
+            {bookmarks.map((bookmark) => (
+              <span key={bookmark.id} className="inline-flex overflow-hidden rounded-full border border-emerald-500/35 bg-gray-800">
+                <button
+                  onClick={() => goToBookmark(bookmark)}
+                  className="px-3 py-1.5 font-semibold text-emerald-100 hover:bg-emerald-500 hover:text-white"
+                  title={`Aller page ${bookmark.page}`}
+                >
+                  {bookmark.label || 'Repère'} · p.{bookmark.page}
+                </button>
+                <button
+                  onClick={() => deleteBookmark(bookmark.id)}
+                  className="border-l border-emerald-500/25 px-2 text-gray-400 hover:bg-red-600 hover:text-white"
+                  title="Supprimer ce repère"
+                  aria-label="Supprimer ce repère"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
         {!isImage && numPages > 1 && (
           <>
             <button
@@ -181,43 +299,77 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-auto flex justify-center bg-gray-800 p-4 min-h-0">
+        <div ref={contentRef} className="flex-1 overflow-auto flex justify-center bg-gray-800 p-4 min-h-0">
           {isImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={url}
-              alt={title}
-              style={{ width: `${Math.round((scale / 1.2) * 100)}%`, height: 'auto', maxWidth: 'none' }}
-              className="self-start object-contain shadow-2xl"
-            />
-          ) : (
-            <Document
-              file={url}
-              onLoadSuccess={onDocumentLoadSuccess}
-              loading={
-                <div className="flex items-center justify-center h-48 text-gray-400">
-                  <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    <p className="text-sm">Chargement de la partition...</p>
-                  </div>
-                </div>
-              }
-              error={
-                <div className="flex items-center justify-center h-48 text-red-400">
-                  <div className="text-center">
-                    <p className="text-2xl mb-2">⚠️</p>
-                    <p className="text-sm">Impossible de charger le PDF.</p>
-                  </div>
-                </div>
-              }
+            <div
+              ref={pageRef}
+              className={`relative self-start ${placingBookmark ? 'cursor-crosshair' : ''}`}
+              onClick={handlePageClick}
             >
-              <Page
-                pageNumber={currentPage}
-                scale={scale}
-                renderTextLayer={false}
-                className="shadow-2xl"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt={title}
+                style={{ width: `${Math.round((scale / 1.2) * 100)}%`, height: 'auto', maxWidth: 'none' }}
+                className="block object-contain shadow-2xl"
               />
-            </Document>
+              {bookmarks.filter((bookmark) => bookmark.page === 1).map((bookmark) => (
+                <button
+                  key={bookmark.id}
+                  onClick={(e) => { e.stopPropagation(); goToBookmark(bookmark) }}
+                  title={bookmark.label}
+                  style={{ left: `${bookmark.xPct * 100}%`, top: `${bookmark.yPct * 100}%` }}
+                  className="absolute z-10 flex h-9 min-w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 px-2 text-sm font-black text-white shadow-lg ring-4 ring-white/30 hover:bg-emerald-400"
+                >
+                  ↪
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div
+              ref={pageRef}
+              className={`relative self-start ${placingBookmark ? 'cursor-crosshair' : ''}`}
+              onClick={handlePageClick}
+            >
+              <Document
+                file={url}
+                onLoadSuccess={onDocumentLoadSuccess}
+                loading={
+                  <div className="flex h-48 items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                      <p className="text-sm">Chargement de la partition...</p>
+                    </div>
+                  </div>
+                }
+                error={
+                  <div className="flex h-48 items-center justify-center text-red-400">
+                    <div className="text-center">
+                      <p className="mb-2 text-2xl">⚠️</p>
+                      <p className="text-sm">Impossible de charger le PDF.</p>
+                    </div>
+                  </div>
+                }
+              >
+                <Page
+                  pageNumber={currentPage}
+                  scale={scale}
+                  renderTextLayer={false}
+                  className="shadow-2xl"
+                />
+              </Document>
+              {bookmarks.filter((bookmark) => bookmark.page === currentPage).map((bookmark) => (
+                <button
+                  key={bookmark.id}
+                  onClick={(e) => { e.stopPropagation(); goToBookmark(bookmark) }}
+                  title={bookmark.label}
+                  style={{ left: `${bookmark.xPct * 100}%`, top: `${bookmark.yPct * 100}%` }}
+                  className="absolute z-10 flex h-9 min-w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 px-2 text-sm font-black text-white shadow-lg ring-4 ring-white/30 hover:bg-emerald-400"
+                >
+                  ↪
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
