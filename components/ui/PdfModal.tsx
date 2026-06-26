@@ -21,7 +21,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const [scale, setScale] = useState(1.2)
   const [pageInput, setPageInput] = useState('1')
   const [editingPage, setEditingPage] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Zoom mémorisé par utilisateur connecté ET par fichier (chaque partition garde son
@@ -91,7 +91,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     >
       <div
         ref={containerRef}
-        className={`flex flex-col bg-gray-900 shadow-2xl overflow-hidden ${isFullscreen ? 'fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none' : 'w-full max-w-3xl max-h-[95vh] rounded-2xl'}`}
+        className={`relative flex flex-col bg-gray-900 shadow-2xl overflow-hidden ${isFullscreen ? 'fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none' : 'w-full max-w-3xl max-h-[95vh] rounded-2xl'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top toolbar */}
@@ -153,6 +153,33 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
           </div>
         </div>
 
+        {!isImage && numPages > 1 && (
+          <>
+            <button
+              onClick={() => goTo(currentPage - 1)}
+              disabled={currentPage <= 1}
+              title="Page précédente"
+              aria-label="Page précédente"
+              className="absolute left-3 sm:left-5 top-1/2 z-20 flex h-14 w-14 sm:h-16 sm:w-16 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white shadow-2xl ring-4 ring-white/15 transition hover:bg-emerald-400 disabled:pointer-events-none disabled:opacity-25"
+            >
+              <svg className="h-9 w-9 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.8} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => goTo(currentPage + 1)}
+              disabled={currentPage >= numPages}
+              title="Page suivante"
+              aria-label="Page suivante"
+              className="absolute right-3 sm:right-5 top-1/2 z-20 flex h-14 w-14 sm:h-16 sm:w-16 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white shadow-2xl ring-4 ring-white/15 transition hover:bg-emerald-400 disabled:pointer-events-none disabled:opacity-25"
+            >
+              <svg className="h-9 w-9 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.8} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
+
         {/* Content */}
         <div className="flex-1 overflow-auto flex justify-center bg-gray-800 p-4 min-h-0">
           {isImage ? (
@@ -201,9 +228,9 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
             <button
               onClick={() => goTo(currentPage - 1)}
               disabled={currentPage <= 1}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 rounded-xl bg-gray-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Précédente
@@ -244,10 +271,10 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
             <button
               onClick={() => goTo(currentPage + 1)}
               disabled={currentPage >= numPages}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 rounded-xl bg-gray-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-30"
             >
               Suivante
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
