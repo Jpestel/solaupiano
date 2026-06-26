@@ -46,25 +46,31 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
   const contentType = mimeTypes[ext] || 'application/octet-stream'
 
-  // Cache navigateur : ETag basé sur taille + date de modif (le fichier change => ETag change)
+  // Cache navigateur : ETag basé sur taille + date de modif (le fichier change => ETag change).
+  // IMPORTANT : `no-cache` = le navigateur peut garder en cache mais DOIT revalider à chaque
+  // usage (via ETag). On évite ainsi qu'une réponse partielle (Range 206) périmée soit resservie
+  // à pdf.js et corrompe le chargement du PDF (ancien bug : « impossible de charger le PDF »
+  // jusqu'à un rafraîchissement forcé, à cause de `max-age` long + `stale-while-revalidate`).
   const stat = fs.statSync(filePath)
   const fileSize = stat.size
   const etag = `"${fileSize}-${Math.round(stat.mtimeMs)}"`
   const baseHeaders: Record<string, string> = {
-    'Cache-Control': 'private, max-age=86400, stale-while-revalidate=604800',
+    'Cache-Control': 'private, no-cache',
     ETag: etag,
     'Accept-Ranges': 'bytes',
     'Content-Type': contentType,
     'Content-Disposition': `inline; filename="${resource.name}${ext}"`,
   }
 
-  if (req.headers.get('if-none-match') === etag) {
-    return new NextResponse(null, { status: 304, headers: baseHeaders })
-  }
-
   // Requêtes Range (chargement progressif des PDF par pdf.js, seek audio/vidéo)
   const range = req.headers.get('range')
   const m = range ? /bytes=(\d+)-(\d*)/.exec(range) : null
+
+  // 304 uniquement pour une requête NON-Range : pdf.js attend un 206 pour ses Range,
+  // un 304 renvoyé à une requête Range casse le chargement.
+  if (!m && req.headers.get('if-none-match') === etag) {
+    return new NextResponse(null, { status: 304, headers: baseHeaders })
+  }
   if (m) {
     const start = parseInt(m[1], 10)
     const end = m[2] ? Math.min(parseInt(m[2], 10), fileSize - 1) : fileSize - 1
