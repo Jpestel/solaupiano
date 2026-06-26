@@ -24,10 +24,10 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Zoom mémorisé par utilisateur connecté (préférence de lecture, ex. iPad en portrait).
-  // Stocké localement, propre à chaque compte sur l'appareil.
+  // Zoom mémorisé par utilisateur connecté ET par fichier (chaque partition garde son
+  // propre zoom). Stocké localement, propre à chaque compte sur l'appareil.
   const { data: session } = useSession()
-  const zoomKey = `solaupiano-pdf-zoom-${session?.user?.id ?? 'anon'}`
+  const zoomKey = `solaupiano-pdf-zoom-${session?.user?.id ?? 'anon'}-${url}`
 
   // Charge le zoom sauvegardé dès que la clé utilisateur est connue.
   useEffect(() => {
