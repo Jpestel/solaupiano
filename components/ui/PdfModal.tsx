@@ -195,7 +195,15 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const deleteBookmark = async (id: number) => {
     if (!resourceId) return
     const res = await fetch(`/api/ressources/${resourceId}/bookmarks/${id}`, { method: 'DELETE' })
-    if (res.ok) setBookmarks((items) => items.filter((item) => item.id !== id))
+    if (res.ok) {
+      setBookmarks((items) => items
+        .filter((item) => item.id !== id)
+        .map((item) => item.targetBookmarkId === id ? { ...item, targetBookmarkId: null } : item)
+      )
+    } else {
+      const data = await res.json().catch(() => null)
+      window.alert(data?.error || 'Impossible de supprimer ce repère.')
+    }
   }
 
   const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {

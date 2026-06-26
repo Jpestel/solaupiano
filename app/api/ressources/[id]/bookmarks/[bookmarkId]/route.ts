@@ -63,7 +63,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const userId = Number(session.user.id)
   const resourceId = Number(params.id)
   const bookmarkId = Number(params.bookmarkId)
-  if (!(await ownBookmark(bookmarkId, resourceId, userId, session.user.siteRole === 'ADMIN'))) {
+  const bookmark = await ownBookmark(bookmarkId, resourceId, userId, session.user.siteRole === 'ADMIN')
+  if (!bookmark) {
     return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   }
 
