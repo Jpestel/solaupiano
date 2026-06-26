@@ -20,6 +20,7 @@ interface PdfBookmark {
   xPct: number
   yPct: number
   label: string
+  targetBookmarkId?: number | null
 }
 
 export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
@@ -114,6 +115,61 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const goToBookmark = (bookmark: PdfBookmark) => {
     setJumpTarget(bookmark)
     goTo(bookmark.page)
+  }
+
+  const getBookmarkTarget = (bookmark: PdfBookmark) => {
+    if (!bookmark.targetBookmarkId) return null
+    return bookmarks.find((item) => item.id === bookmark.targetBookmarkId) || null
+  }
+
+  const followBookmark = (bookmark: PdfBookmark) => {
+    goToBookmark(getBookmarkTarget(bookmark) || bookmark)
+  }
+
+  const updateBookmarkTarget = async (bookmark: PdfBookmark) => {
+    if (!resourceId) return
+    const candidates = bookmarks.filter((item) => item.id !== bookmark.id)
+    if (candidates.length === 0) {
+      window.alert("Créez d'abord un deuxième repère pour pouvoir faire un lien.")
+      return
+    }
+
+    const currentTarget = getBookmarkTarget(bookmark)
+    const choices = candidates
+      .map((item, index) => `${index + 1}. ${item.label || 'Repère'} · page ${item.page}`)
+      .join('\n')
+    const answer = window.prompt(
+      `Vers quel repère doit aller "${bookmark.label || 'Repère'}" ?\n\n${choices}\n\nTapez le numéro du repère, ou 0 pour retirer le lien.`,
+      currentTarget ? String(candidates.findIndex((item) => item.id === currentTarget.id) + 1) : ''
+    )
+    if (answer === null) return
+
+    const choice = Number(answer.trim())
+    if (choice === 0) {
+      await saveBookmarkTarget(bookmark.id, null)
+      return
+    }
+    if (!Number.isInteger(choice) || choice < 1 || choice > candidates.length) {
+      window.alert('Choix invalide.')
+      return
+    }
+    await saveBookmarkTarget(bookmark.id, candidates[choice - 1].id)
+  }
+
+  const saveBookmarkTarget = async (bookmarkId: number, targetBookmarkId: number | null) => {
+    if (!resourceId) return
+    const res = await fetch(`/api/ressources/${resourceId}/bookmarks/${bookmarkId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetBookmarkId }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setBookmarks((items) => items.map((item) => (item.id === updated.id ? updated : item)))
+    } else {
+      const data = await res.json().catch(() => null)
+      window.alert(data?.error || "Impossible d'enregistrer le lien de repère.")
+    }
   }
 
   const createBookmark = async (xPct: number, yPct: number) => {
@@ -274,6 +330,14 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
                   {bookmark.label || 'Repère'} · p.{bookmark.page}
                 </button>
                 <button
+                  onClick={() => updateBookmarkTarget(bookmark)}
+                  className={`border-l border-emerald-500/25 px-2.5 font-semibold hover:bg-emerald-500 hover:text-white ${bookmark.targetBookmarkId ? 'text-emerald-200' : 'text-gray-400'}`}
+                  title={bookmark.targetBookmarkId ? `Lien vers ${getBookmarkTarget(bookmark)?.label || 'un repère'}` : 'Créer un lien vers un autre repère'}
+                  aria-label="Choisir la destination de ce repère"
+                >
+                  ↪
+                </button>
+                <button
                   onClick={() => deleteBookmark(bookmark.id)}
                   className="border-l border-emerald-500/25 px-2 text-gray-400 hover:bg-red-600 hover:text-white"
                   title="Supprimer ce repère"
@@ -331,12 +395,12 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
               {bookmarks.filter((bookmark) => bookmark.page === 1).map((bookmark) => (
                 <button
                   key={bookmark.id}
-                  onClick={(e) => { e.stopPropagation(); goToBookmark(bookmark) }}
-                  title={bookmark.label}
+                  onClick={(e) => { e.stopPropagation(); followBookmark(bookmark) }}
+                  title={bookmark.targetBookmarkId ? `${bookmark.label} → ${getBookmarkTarget(bookmark)?.label || 'repère lié'}` : bookmark.label}
                   style={{ left: `${bookmark.xPct * 100}%`, top: `${bookmark.yPct * 100}%` }}
                   className="absolute z-10 flex h-9 min-w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 px-2 text-sm font-black text-white shadow-lg ring-4 ring-white/30 hover:bg-emerald-400"
                 >
-                  ↪
+                  {bookmark.targetBookmarkId ? '↪' : '•'}
                 </button>
               ))}
               {placingBookmark && (
@@ -384,12 +448,12 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
               {bookmarks.filter((bookmark) => bookmark.page === currentPage).map((bookmark) => (
                 <button
                   key={bookmark.id}
-                  onClick={(e) => { e.stopPropagation(); goToBookmark(bookmark) }}
-                  title={bookmark.label}
+                  onClick={(e) => { e.stopPropagation(); followBookmark(bookmark) }}
+                  title={bookmark.targetBookmarkId ? `${bookmark.label} → ${getBookmarkTarget(bookmark)?.label || 'repère lié'}` : bookmark.label}
                   style={{ left: `${bookmark.xPct * 100}%`, top: `${bookmark.yPct * 100}%` }}
                   className="absolute z-10 flex h-9 min-w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 px-2 text-sm font-black text-white shadow-lg ring-4 ring-white/30 hover:bg-emerald-400"
                 >
-                  ↪
+                  {bookmark.targetBookmarkId ? '↪' : '•'}
                 </button>
               ))}
               {placingBookmark && (

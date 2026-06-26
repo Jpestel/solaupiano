@@ -1168,14 +1168,15 @@ model ScoreMarker {
 // Repères personnels placés par un utilisateur sur une partition PDF/image.
 // Les positions sont relatives (0..1), donc elles restent justes au zoom/dézoom.
 model PdfBookmark {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  resourceId Int
-  page       Int      @default(1)
-  xPct       Float
-  yPct       Float
-  label      String
-  createdAt  DateTime @default(now())
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  resourceId       Int
+  page             Int      @default(1)
+  xPct             Float
+  yPct             Float
+  label            String
+  targetBookmarkId Int?
+  createdAt        DateTime @default(now())
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)

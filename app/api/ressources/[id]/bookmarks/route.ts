@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-const SELECT = { id: true, page: true, xPct: true, yPct: true, label: true, createdAt: true }
+const SELECT = { id: true, page: true, xPct: true, yPct: true, label: true, targetBookmarkId: true, createdAt: true }
 
 async function canAccessResource(resourceId: number, userId: number, isAdmin: boolean) {
   const resource = await prisma.resource.findUnique({
