@@ -16,7 +16,7 @@ async function canAccessResource(resourceId: number, userId: number, isAdmin: bo
   if (isAdmin) return true
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId: resource.song.groupId } },
-    select: { id: true },
+    select: { userId: true },
   })
   return !!membership
 }

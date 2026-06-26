@@ -130,6 +130,9 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
       const bookmark = await res.json()
       setBookmarks((items) => [...items, bookmark].sort((a, b) => a.page - b.page || a.yPct - b.yPct || a.xPct - b.xPct))
       setPlacingBookmark(false)
+    } else {
+      const data = await res.json().catch(() => null)
+      window.alert(data?.error || "Impossible d'enregistrer ce repère.")
     }
   }
 
