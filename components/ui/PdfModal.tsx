@@ -161,12 +161,13 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950"
       onClick={onClose}
     >
       <div
         ref={containerRef}
-        className={`relative flex flex-col bg-gray-900 shadow-2xl overflow-hidden ${isFullscreen ? 'fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none' : 'w-full max-w-3xl max-h-[95vh] rounded-2xl'}`}
+        className={`relative flex flex-col bg-gray-900 shadow-2xl overflow-hidden ${isFullscreen ? 'fixed inset-0 max-w-none max-h-none rounded-none' : 'h-[95dvh] w-[min(96dvw,980px)] rounded-2xl'}`}
+        style={isFullscreen ? { width: '100dvw', height: '100dvh' } : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top toolbar */}
@@ -278,9 +279,9 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
               disabled={currentPage <= 1}
               title="Page précédente"
               aria-label="Page précédente"
-              className="absolute left-3 sm:left-5 top-1/2 z-20 flex h-14 w-14 sm:h-16 sm:w-16 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white shadow-2xl ring-4 ring-white/15 transition hover:bg-emerald-400 disabled:pointer-events-none disabled:opacity-25"
+              className="absolute left-2 sm:left-4 top-1/2 z-20 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white shadow-2xl ring-4 ring-white/15 transition hover:bg-emerald-400 disabled:pointer-events-none disabled:opacity-25"
             >
-              <svg className="h-9 w-9 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.8} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -289,9 +290,9 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
               disabled={currentPage >= numPages}
               title="Page suivante"
               aria-label="Page suivante"
-              className="absolute right-3 sm:right-5 top-1/2 z-20 flex h-14 w-14 sm:h-16 sm:w-16 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white shadow-2xl ring-4 ring-white/15 transition hover:bg-emerald-400 disabled:pointer-events-none disabled:opacity-25"
+              className="absolute right-2 sm:right-4 top-1/2 z-20 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white shadow-2xl ring-4 ring-white/15 transition hover:bg-emerald-400 disabled:pointer-events-none disabled:opacity-25"
             >
-              <svg className="h-9 w-9 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.8} d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -299,11 +300,11 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
         )}
 
         {/* Content */}
-        <div ref={contentRef} className="flex-1 overflow-auto flex justify-center bg-gray-800 p-4 min-h-0">
+        <div ref={contentRef} className="flex-1 overflow-auto flex justify-start bg-gray-800 px-20 py-4 sm:px-24 min-h-0">
           {isImage ? (
             <div
               ref={pageRef}
-              className={`relative self-start ${placingBookmark ? 'cursor-crosshair' : ''}`}
+              className={`relative mx-auto self-start ${placingBookmark ? 'cursor-crosshair' : ''}`}
               onClick={handlePageClick}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -328,7 +329,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
           ) : (
             <div
               ref={pageRef}
-              className={`relative self-start ${placingBookmark ? 'cursor-crosshair' : ''}`}
+              className={`relative mx-auto self-start ${placingBookmark ? 'cursor-crosshair' : ''}`}
               onClick={handlePageClick}
             >
               <Document
