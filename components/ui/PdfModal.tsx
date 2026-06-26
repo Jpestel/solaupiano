@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 
@@ -23,6 +24,27 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Zoom mémorisé par utilisateur connecté (préférence de lecture, ex. iPad en portrait).
+  // Stocké localement, propre à chaque compte sur l'appareil.
+  const { data: session } = useSession()
+  const zoomKey = `solaupiano-pdf-zoom-${session?.user?.id ?? 'anon'}`
+
+  // Charge le zoom sauvegardé dès que la clé utilisateur est connue.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const saved = parseFloat(window.localStorage.getItem(zoomKey) || '')
+    if (!Number.isNaN(saved) && saved >= 0.5 && saved <= 3) setScale(saved)
+  }, [zoomKey])
+
+  // Change le zoom ET le mémorise (uniquement sur action de l'utilisateur).
+  const applyZoom = useCallback((updater: number | ((s: number) => number)) => {
+    setScale((s) => {
+      const next = typeof updater === 'function' ? updater(s) : updater
+      if (typeof window !== 'undefined') window.localStorage.setItem(zoomKey, String(next))
+      return next
+    })
+  }, [zoomKey])
+
   // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -30,12 +52,12 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
       if (e.key === 'Escape') onClose()
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') setCurrentPage((p) => Math.min(p + 1, numPages))
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') setCurrentPage((p) => Math.max(p - 1, 1))
-      if (e.key === '+' || e.key === '=') setScale((s) => Math.min(s + 0.2, 3))
-      if (e.key === '-') setScale((s) => Math.max(s - 0.2, 0.5))
+      if (e.key === '+' || e.key === '=') applyZoom((s) => Math.min(s + 0.2, 3))
+      if (e.key === '-') applyZoom((s) => Math.max(s - 0.2, 0.5))
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onClose, numPages, editingPage])
+  }, [onClose, numPages, editingPage, applyZoom])
 
   // Sync page input with current page
   useEffect(() => { setPageInput(String(currentPage)) }, [currentPage])
@@ -79,20 +101,20 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Zoom */}
             <button
-              onClick={() => setScale((s) => Math.max(s - 0.2, 0.5))}
+              onClick={() => applyZoom((s) => Math.max(s - 0.2, 0.5))}
               title="Zoom −"
               className="w-7 h-7 rounded-md bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-white text-sm font-bold transition-colors"
             >−</button>
             <span className="text-xs text-gray-400 w-12 text-center">{Math.round(scale * 100)}%</span>
             <button
-              onClick={() => setScale((s) => Math.min(s + 0.2, 3))}
+              onClick={() => applyZoom((s) => Math.min(s + 0.2, 3))}
               title="Zoom +"
               className="w-7 h-7 rounded-md bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-white text-sm font-bold transition-colors"
             >+</button>
 
             {/* Fit width */}
             <button
-              onClick={() => setScale(1.2)}
+              onClick={() => applyZoom(1.2)}
               title="Taille normale"
               className="ml-1 w-7 h-7 rounded-md bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-gray-300 hover:text-white transition-colors"
             >
