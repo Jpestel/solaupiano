@@ -54,12 +54,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const stat = fs.statSync(filePath)
   const fileSize = stat.size
   const etag = `"${fileSize}-${Math.round(stat.mtimeMs)}"`
+
+  // Content-Disposition : le nom peut contenir des accents/espaces (ex. « 4 kampé Partition.pdf »).
+  // Un caractère NON-ASCII brut dans un en-tête HTTP est illégal et casse la réponse (le PDF ne se
+  // charge pas). On encode donc en RFC 5987 : un `filename` de repli purement ASCII + un
+  // `filename*=UTF-8''…` (pourcent-encodé) qui préserve les accents.
+  const rawFileName = `${resource.name}${ext}`
+  const asciiFileName = rawFileName
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '')   // enlève les diacritiques
+    .replace(/[^\x20-\x7E]/g, '_')                        // tout reste non-ASCII -> _
+    .replace(/["\\]/g, '_')                               // guillemets/backslash -> _
+  const contentDisposition = `inline; filename="${asciiFileName}"; filename*=UTF-8''${encodeURIComponent(rawFileName)}`
+
   const baseHeaders: Record<string, string> = {
     'Cache-Control': 'private, no-cache',
     ETag: etag,
     'Accept-Ranges': 'bytes',
     'Content-Type': contentType,
-    'Content-Disposition': `inline; filename="${resource.name}${ext}"`,
+    'Content-Disposition': contentDisposition,
   }
 
   // Requêtes Range (chargement progressif des PDF par pdf.js, seek audio/vidéo)
