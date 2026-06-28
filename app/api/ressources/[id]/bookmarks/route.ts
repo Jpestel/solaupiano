@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-const SELECT = { id: true, page: true, xPct: true, yPct: true, label: true, targetBookmarkId: true, createdAt: true }
+const SELECT = { id: true, page: true, xPct: true, yPct: true, label: true, kind: true, color: true, targetBookmarkId: true, createdAt: true }
 
 async function canAccessResource(resourceId: number, userId: number, isAdmin: boolean) {
   const resource = await prisma.resource.findUnique({
@@ -65,7 +65,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       page: Number.isFinite(Number(body.page)) ? Math.max(1, Math.round(Number(body.page))) : 1,
       xPct: Math.max(0, Math.min(1, xPct)),
       yPct: Math.max(0, Math.min(1, yPct)),
-      label: typeof body.label === 'string' && body.label.trim() ? body.label.trim().slice(0, 80) : 'Repère',
+      label: typeof body.label === 'string' && body.label.trim() ? body.label.trim().slice(0, 80) : (body.kind === 'NOTE' ? 'Note' : 'Repère'),
+      kind: body.kind === 'NOTE' ? 'NOTE' : 'BOOKMARK',
+      color: body.kind === 'NOTE' ? 'amber' : 'emerald',
     },
     select: SELECT,
   })

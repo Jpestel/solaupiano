@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-const SELECT = { id: true, page: true, xPct: true, yPct: true, label: true, targetBookmarkId: true, createdAt: true }
+const SELECT = { id: true, page: true, xPct: true, yPct: true, label: true, kind: true, color: true, targetBookmarkId: true, createdAt: true }
 
 async function ownBookmark(bookmarkId: number, resourceId: number, userId: number, isAdmin: boolean) {
   const bookmark = await prisma.pdfBookmark.findUnique({

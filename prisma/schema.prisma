@@ -1175,6 +1175,8 @@ model PdfBookmark {
   xPct             Float
   yPct             Float
   label            String
+  kind             String   @default("BOOKMARK")
+  color            String   @default("emerald")
   targetBookmarkId Int?
   createdAt        DateTime @default(now())
 

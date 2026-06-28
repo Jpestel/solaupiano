@@ -20,6 +20,8 @@ interface PdfBookmark {
   xPct: number
   yPct: number
   label: string
+  kind?: 'BOOKMARK' | 'NOTE'
+  color?: string
   targetBookmarkId?: number | null
 }
 
@@ -32,13 +34,17 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const [editingPage, setEditingPage] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(true)
   const [bookmarks, setBookmarks] = useState<PdfBookmark[]>([])
-  const [placingBookmark, setPlacingBookmark] = useState(false)
+  const [placingMode, setPlacingMode] = useState<'bookmark' | 'note' | null>(null)
   const [jumpTarget, setJumpTarget] = useState<PdfBookmark | null>(null)
   const draggingBookmarkRef = useRef<{ id: number; startX: number; startY: number; moved: boolean } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
   const resourceId = /^\/api\/ressources\/(\d+)/.exec(url)?.[1] || null
+  const placingBookmark = placingMode === 'bookmark'
+  const placingNote = placingMode === 'note'
+  const pdfBookmarks = bookmarks.filter((item) => item.kind !== 'NOTE')
+  const pdfNotes = bookmarks.filter((item) => item.kind === 'NOTE')
 
   // Zoom mémorisé par utilisateur connecté ET par fichier (chaque partition garde son
   // propre zoom). Stocké localement, propre à chaque compte sur l'appareil.
@@ -118,11 +124,11 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     goTo(bookmark.page)
   }
 
-  const getBookmarkNumber = (bookmark: PdfBookmark) => bookmarks.findIndex((item) => item.id === bookmark.id) + 1
+  const getBookmarkNumber = (bookmark: PdfBookmark) => pdfBookmarks.findIndex((item) => item.id === bookmark.id) + 1
 
   const getBookmarkTarget = (bookmark: PdfBookmark) => {
     if (!bookmark.targetBookmarkId) return null
-    return bookmarks.find((item) => item.id === bookmark.targetBookmarkId) || null
+    return pdfBookmarks.find((item) => item.id === bookmark.targetBookmarkId) || null
   }
 
   const followBookmark = (bookmark: PdfBookmark) => {
@@ -131,14 +137,14 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
 
   const updateBookmarkTarget = async (bookmark: PdfBookmark) => {
     if (!resourceId) return
-    const candidates = bookmarks.filter((item) => item.id !== bookmark.id)
+    const candidates = pdfBookmarks.filter((item) => item.id !== bookmark.id)
     if (candidates.length === 0) {
       window.alert("Créez d'abord un deuxième repère pour pouvoir faire un lien.")
       return
     }
 
     const currentTarget = getBookmarkTarget(bookmark)
-    const choices = bookmarks
+    const choices = pdfBookmarks
       .filter((item) => item.id !== bookmark.id)
       .map((item) => `${getBookmarkNumber(item)}. ${item.label || 'Repère'} · page ${item.page}`)
       .join('\n')
@@ -153,11 +159,11 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
       await saveBookmarkTarget(bookmark.id, null)
       return
     }
-    if (!Number.isInteger(choice) || choice < 1 || choice > bookmarks.length) {
+    if (!Number.isInteger(choice) || choice < 1 || choice > pdfBookmarks.length) {
       window.alert('Choix invalide.')
       return
     }
-    const target = bookmarks[choice - 1]
+    const target = pdfBookmarks[choice - 1]
     if (!target || target.id === bookmark.id) {
       window.alert('Choix invalide.')
       return
@@ -194,10 +200,53 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     if (res.ok) {
       const bookmark = await res.json()
       setBookmarks((items) => [...items, bookmark].sort((a, b) => a.page - b.page || a.yPct - b.yPct || a.xPct - b.xPct))
-      setPlacingBookmark(false)
+      setPlacingMode(null)
     } else {
       const data = await res.json().catch(() => null)
       window.alert(data?.error || "Impossible d'enregistrer ce repère.")
+    }
+  }
+
+  const createNote = async (xPct: number, yPct: number) => {
+    if (!resourceId) return
+    const label = window.prompt('Texte de la note courte', 'Entrée chant')
+    if (label === null) return
+    const text = label.trim()
+    if (!text) return
+
+    const res = await fetch(`/api/ressources/${resourceId}/bookmarks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page: currentPage, xPct, yPct, label: text, kind: 'NOTE' }),
+    })
+    if (res.ok) {
+      const note = await res.json()
+      setBookmarks((items) => [...items, note].sort((a, b) => a.page - b.page || a.yPct - b.yPct || a.xPct - b.xPct))
+      setPlacingMode(null)
+    } else {
+      const data = await res.json().catch(() => null)
+      window.alert(data?.error || "Impossible d'enregistrer cette note.")
+    }
+  }
+
+  const updateNoteLabel = async (note: PdfBookmark) => {
+    if (!resourceId) return
+    const label = window.prompt('Modifier la note', note.label)
+    if (label === null) return
+    const text = label.trim()
+    if (!text) return
+
+    const res = await fetch(`/api/ressources/${resourceId}/bookmarks/${note.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: text }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setBookmarks((items) => items.map((item) => (item.id === updated.id ? updated : item)))
+    } else {
+      const data = await res.json().catch(() => null)
+      window.alert(data?.error || 'Impossible de modifier cette note.')
     }
   }
 
@@ -239,7 +288,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   }
 
   const handlePlacedBookmarkPointerDown = (bookmark: PdfBookmark, e: React.PointerEvent<HTMLButtonElement>) => {
-    if (placingBookmark) return
+    if (placingMode) return
     e.preventDefault()
     e.stopPropagation()
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -273,7 +322,8 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     draggingBookmarkRef.current = null
 
     if (!drag.moved) {
-      followBookmark(bookmark)
+      if (bookmark.kind === 'NOTE') updateNoteLabel(bookmark)
+      else followBookmark(bookmark)
       return
     }
     if (!pageEl) return
@@ -285,23 +335,25 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   }
 
   const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!placingBookmark || !resourceId) return
+    if (!placingMode || !resourceId) return
     const rect = e.currentTarget.getBoundingClientRect()
     const xPct = (e.clientX - rect.left) / rect.width
     const yPct = (e.clientY - rect.top) / rect.height
     if (xPct < 0 || xPct > 1 || yPct < 0 || yPct > 1) return
-    createBookmark(xPct, yPct)
+    if (placingMode === 'note') createNote(xPct, yPct)
+    else createBookmark(xPct, yPct)
   }
 
   const handleBookmarkPointer = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!placingBookmark || !resourceId) return
+    if (!placingMode || !resourceId) return
     e.preventDefault()
     e.stopPropagation()
     const rect = e.currentTarget.getBoundingClientRect()
     const xPct = (e.clientX - rect.left) / rect.width
     const yPct = (e.clientY - rect.top) / rect.height
     if (xPct < 0 || xPct > 1 || yPct < 0 || yPct > 1) return
-    createBookmark(xPct, yPct)
+    if (placingMode === 'note') createNote(xPct, yPct)
+    else createBookmark(xPct, yPct)
   }
 
   const handlePageInputSubmit = (e: React.FormEvent) => {
@@ -356,13 +408,22 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
             </button>
 
             {resourceId && (
-              <button
-                onClick={() => setPlacingBookmark((value) => !value)}
-                title={placingBookmark ? 'Annuler le placement du repère' : 'Placer un repère PDF'}
-                className={`ml-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${placingBookmark ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-gray-700 text-gray-200 hover:bg-gray-600 hover:text-white'}`}
-              >
-                {placingBookmark ? 'Cliquez sur le PDF' : 'Repère'}
-              </button>
+              <>
+                <button
+                  onClick={() => setPlacingMode((value) => value === 'bookmark' ? null : 'bookmark')}
+                  title={placingBookmark ? 'Annuler le placement du repère' : 'Placer un repère PDF'}
+                  className={`ml-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${placingBookmark ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-gray-700 text-gray-200 hover:bg-gray-600 hover:text-white'}`}
+                >
+                  {placingBookmark ? 'Cliquez' : 'Repère'}
+                </button>
+                <button
+                  onClick={() => setPlacingMode((value) => value === 'note' ? null : 'note')}
+                  title={placingNote ? 'Annuler le placement de la note' : 'Placer une note courte'}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${placingNote ? 'bg-amber-500 text-gray-950 hover:bg-amber-400' : 'bg-gray-700 text-gray-200 hover:bg-gray-600 hover:text-white'}`}
+                >
+                  {placingNote ? 'Cliquez' : 'Note'}
+                </button>
+              </>
             )}
 
             {/* Fullscreen */}
@@ -395,18 +456,18 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
           </div>
         </div>
 
-        {resourceId && (bookmarks.length > 0 || placingBookmark) && (
+        {resourceId && (bookmarks.length > 0 || placingMode) && (
           <div
             className="flex flex-wrap items-center gap-2 border-b border-gray-700 bg-gray-850 px-4 py-2 text-xs text-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             <span className="font-semibold text-emerald-300">Repères PDF</span>
-            {placingBookmark && (
-              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 font-medium text-emerald-200">
-                Cliquez sur la partition pour placer le bouton
+            {placingMode && (
+              <span className={`rounded-full px-2.5 py-1 font-medium ${placingNote ? 'bg-amber-500/20 text-amber-200' : 'bg-emerald-500/15 text-emerald-200'}`}>
+                Cliquez sur la partition pour placer {placingNote ? 'la note' : 'le bouton'}
               </span>
             )}
-            {bookmarks.map((bookmark) => (
+            {pdfBookmarks.map((bookmark) => (
               <span key={bookmark.id} className="inline-flex overflow-hidden rounded-full border border-emerald-500/35 bg-gray-800">
                 <button
                   onClick={() => goToBookmark(bookmark)}
@@ -428,6 +489,34 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
                   className="border-l border-emerald-500/25 px-2 text-gray-400 hover:bg-red-600 hover:text-white"
                   title="Supprimer ce repère"
                   aria-label="Supprimer ce repère"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {pdfNotes.length > 0 && <span className="ml-1 font-semibold text-amber-200">Notes</span>}
+            {pdfNotes.map((note) => (
+              <span key={note.id} className="inline-flex overflow-hidden rounded-full border border-amber-400/40 bg-gray-800">
+                <button
+                  onClick={() => goToBookmark(note)}
+                  className="px-3 py-1.5 font-semibold text-amber-100 hover:bg-amber-500 hover:text-gray-950"
+                  title={`Aller page ${note.page}`}
+                >
+                  {note.label || 'Note'} · p.{note.page}
+                </button>
+                <button
+                  onClick={() => updateNoteLabel(note)}
+                  className="border-l border-amber-400/25 px-2 text-gray-400 hover:bg-amber-500 hover:text-gray-950"
+                  title="Modifier cette note"
+                  aria-label="Modifier cette note"
+                >
+                  ✎
+                </button>
+                <button
+                  onClick={() => deleteBookmark(note.id)}
+                  className="border-l border-amber-400/25 px-2 text-gray-400 hover:bg-red-600 hover:text-white"
+                  title="Supprimer cette note"
+                  aria-label="Supprimer cette note"
                 >
                   ×
                 </button>
@@ -468,7 +557,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
           {isImage ? (
             <div
               ref={pageRef}
-              className={`relative mx-auto self-start ${placingBookmark ? 'cursor-crosshair' : ''}`}
+              className={`relative mx-auto self-start ${placingMode ? 'cursor-crosshair' : ''}`}
               onClick={handlePageClick}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -479,6 +568,21 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
                 className="block object-contain shadow-2xl"
               />
               {bookmarks.filter((bookmark) => bookmark.page === 1).map((bookmark) => (
+                bookmark.kind === 'NOTE' ? (
+                  <button
+                    key={bookmark.id}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                    onPointerDown={(e) => handlePlacedBookmarkPointerDown(bookmark, e)}
+                    onPointerMove={(e) => handlePlacedBookmarkPointerMove(bookmark, e)}
+                    onPointerUp={(e) => handlePlacedBookmarkPointerUp(bookmark, e)}
+                    onPointerCancel={(e) => { e.stopPropagation(); draggingBookmarkRef.current = null }}
+                    title={bookmark.label}
+                    style={{ left: `${bookmark.xPct * 100}%`, top: `${bookmark.yPct * 100}%` }}
+                    className="absolute z-10 max-w-44 -translate-x-1/2 -translate-y-1/2 touch-none select-none rounded-md border border-amber-300 bg-amber-300 px-2.5 py-1 text-xs font-black text-gray-950 shadow-lg ring-2 ring-white/40 transition hover:bg-amber-200 active:scale-105"
+                  >
+                    {bookmark.label}
+                  </button>
+                ) : (
                 <button
                   key={bookmark.id}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
@@ -492,20 +596,21 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
                 >
                   {getBookmarkNumber(bookmark)}{bookmark.targetBookmarkId ? '↪' : ''}
                 </button>
+                )
               ))}
-              {placingBookmark && (
+              {placingMode && (
                 <div
-                  className="absolute inset-0 z-30 touch-none cursor-crosshair bg-emerald-400/10 ring-4 ring-inset ring-emerald-400/60"
+                  className={`absolute inset-0 z-30 touch-none cursor-crosshair ring-4 ring-inset ${placingNote ? 'bg-amber-300/10 ring-amber-300/70' : 'bg-emerald-400/10 ring-emerald-400/60'}`}
                   onPointerUp={handleBookmarkPointer}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
-                  aria-label="Zone de placement du repère"
+                  aria-label="Zone de placement"
                 />
               )}
             </div>
           ) : (
             <div
               ref={pageRef}
-              className={`relative mx-auto self-start ${placingBookmark ? 'cursor-crosshair' : ''}`}
+              className={`relative mx-auto self-start ${placingMode ? 'cursor-crosshair' : ''}`}
               onClick={handlePageClick}
             >
               <Document
@@ -536,6 +641,21 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
                 />
               </Document>
               {bookmarks.filter((bookmark) => bookmark.page === currentPage).map((bookmark) => (
+                bookmark.kind === 'NOTE' ? (
+                  <button
+                    key={bookmark.id}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                    onPointerDown={(e) => handlePlacedBookmarkPointerDown(bookmark, e)}
+                    onPointerMove={(e) => handlePlacedBookmarkPointerMove(bookmark, e)}
+                    onPointerUp={(e) => handlePlacedBookmarkPointerUp(bookmark, e)}
+                    onPointerCancel={(e) => { e.stopPropagation(); draggingBookmarkRef.current = null }}
+                    title={bookmark.label}
+                    style={{ left: `${bookmark.xPct * 100}%`, top: `${bookmark.yPct * 100}%` }}
+                    className="absolute z-10 max-w-44 -translate-x-1/2 -translate-y-1/2 touch-none select-none rounded-md border border-amber-300 bg-amber-300 px-2.5 py-1 text-xs font-black text-gray-950 shadow-lg ring-2 ring-white/40 transition hover:bg-amber-200 active:scale-105"
+                  >
+                    {bookmark.label}
+                  </button>
+                ) : (
                 <button
                   key={bookmark.id}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
@@ -549,13 +669,14 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
                 >
                   {getBookmarkNumber(bookmark)}{bookmark.targetBookmarkId ? '↪' : ''}
                 </button>
+                )
               ))}
-              {placingBookmark && (
+              {placingMode && (
                 <div
-                  className="absolute inset-0 z-30 touch-none cursor-crosshair bg-emerald-400/10 ring-4 ring-inset ring-emerald-400/60"
+                  className={`absolute inset-0 z-30 touch-none cursor-crosshair ring-4 ring-inset ${placingNote ? 'bg-amber-300/10 ring-amber-300/70' : 'bg-emerald-400/10 ring-emerald-400/60'}`}
                   onPointerUp={handleBookmarkPointer}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
-                  aria-label="Zone de placement du repère"
+                  aria-label="Zone de placement"
                 />
               )}
             </div>
