@@ -23,6 +23,7 @@ interface User {
   accountPlan?: string
   adminLoginAlertEnabled: boolean
   usageStatsExcluded: boolean
+  emailVerified?: string | null
   isTest?: boolean
   createdAt: string
   groups: { group: { id: number; name: string }; groupRole: string }[]
@@ -41,11 +42,13 @@ export default function AdminUtilisateursPage() {
   const [editSaving, setEditSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError] = useState('')
+  const [resendingId, setResendingId] = useState<number | null>(null)
   // Filtres
   const [search, setSearch] = useState('')
   const [groupFilter, setGroupFilter] = useState<'all' | 'none' | number>('all')
   const [roleFilter, setRoleFilter] = useState<'all' | 'ADMIN' | 'USER'>('all')
   const [instrFilter, setInstrFilter] = useState<'all' | number>('all')
+  const [emailFilter, setEmailFilter] = useState<'all' | 'verified' | 'unverified'>('all')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchUsers = async () => {
@@ -196,6 +199,20 @@ export default function AdminUtilisateursPage() {
     fetchUsers()
   }
 
+  const resendVerification = async (user: User) => {
+    if (user.emailVerified) return
+    if (!confirm(`Renvoyer un e-mail de validation à ${user.email} ?`)) return
+    setResendingId(user.id)
+    const res = await fetch(`/api/admin/utilisateurs/${user.id}/renvoyer-verification`, { method: 'POST' })
+    setResendingId(null)
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || 'Impossible de renvoyer l’e-mail de validation.')
+      return
+    }
+    alert(`E-mail de validation renvoyé à ${user.email}.`)
+  }
+
   if (loading) return <div className="text-gray-500">Chargement...</div>
 
   // Groupes distincts présents chez les utilisateurs (pour le filtre)
@@ -210,15 +227,18 @@ export default function AdminUtilisateursPage() {
     if (groupFilter === 'none' && u.groups.length > 0) return false
     if (typeof groupFilter === 'number' && !u.groups.some((g) => g.group.id === groupFilter)) return false
     if (typeof instrFilter === 'number' && !u.instruments.some((ui) => ui.instrument.id === instrFilter)) return false
+    if (emailFilter === 'verified' && !u.emailVerified) return false
+    if (emailFilter === 'unverified' && u.emailVerified) return false
     return true
   })
-  const filtering = q !== '' || groupFilter !== 'all' || roleFilter !== 'all' || instrFilter !== 'all'
-  const resetFilters = () => { setSearch(''); setGroupFilter('all'); setRoleFilter('all'); setInstrFilter('all') }
+  const filtering = q !== '' || groupFilter !== 'all' || roleFilter !== 'all' || instrFilter !== 'all' || emailFilter !== 'all'
+  const resetFilters = () => { setSearch(''); setGroupFilter('all'); setRoleFilter('all'); setInstrFilter('all'); setEmailFilter('all') }
 
   // Les comptes de test sont isolés dans une section à part et hors compteur.
   const realUsers = filtered.filter((u) => !u.isTest)
   const testUsers = filtered.filter((u) => u.isTest)
   const realTotal = users.filter((u) => !u.isTest).length
+  const unverifiedTotal = users.filter((u) => !u.emailVerified).length
 
   const renderUserRow = (user: User) => {
     const hasNoGroups = user.groups.length === 0
@@ -276,6 +296,27 @@ export default function AdminUtilisateursPage() {
           <Badge variant={isAdmin ? 'admin' : 'default'}>
             {isAdmin ? 'Admin' : 'Utilisateur'}
           </Badge>
+        </td>
+        <td className="px-6 py-4">
+          {user.emailVerified ? (
+            <div>
+              <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-xs font-semibold text-green-700">Validé</span>
+              <p className="mt-1 text-[10px] text-gray-400">
+                {new Date(user.emailVerified).toLocaleDateString('fr-FR')}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-start gap-1.5">
+              <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-700">À valider</span>
+              <button
+                onClick={() => resendVerification(user)}
+                disabled={resendingId === user.id || updatingId === user.id}
+                className="text-xs font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
+              >
+                {resendingId === user.id ? 'Envoi...' : 'Renvoyer validation'}
+              </button>
+            </div>
+          )}
         </td>
         <td className="px-6 py-4">
           {isAdmin ? (
@@ -341,6 +382,7 @@ export default function AdminUtilisateursPage() {
         <p className="text-gray-500 mt-1">
           {filtering ? `${realUsers.length} / ${realTotal}` : realTotal} compte{realTotal > 1 ? 's' : ''} {filtering ? 'affichés' : 'enregistrés'}
           {testUsers.length > 0 && <span className="text-amber-600"> · {testUsers.length} de test (hors compteur)</span>}.
+          {unverifiedTotal > 0 && <span className="text-amber-600"> · {unverifiedTotal} email{unverifiedTotal > 1 ? 's' : ''} non validé{unverifiedTotal > 1 ? 's' : ''}</span>}
         </p>
       </div>
 
@@ -369,6 +411,20 @@ export default function AdminUtilisateursPage() {
           <option value="ADMIN">Admin</option>
           <option value="USER">Utilisateur</option>
         </select>
+        <select value={emailFilter} onChange={(e) => setEmailFilter(e.target.value as 'all' | 'verified' | 'unverified')}
+          className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <option value="all">Tous les emails</option>
+          <option value="verified">Emails validés</option>
+          <option value="unverified">Emails non validés</option>
+        </select>
+        {unverifiedTotal > 0 && (
+          <button
+            onClick={() => setEmailFilter('unverified')}
+            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+          >
+            Voir les non validés ({unverifiedTotal})
+          </button>
+        )}
         {filtering && (
           <button onClick={resetFilters} className="text-xs font-medium text-gray-400 hover:text-gray-600">✕ Réinitialiser</button>
         )}
@@ -383,13 +439,14 @@ export default function AdminUtilisateursPage() {
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Instruments</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupes</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Rôle site</th>
+                <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Email</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
               {realUsers.length === 0 && (
-                <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">Aucun utilisateur ne correspond aux filtres.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400">Aucun utilisateur ne correspond aux filtres.</td></tr>
               )}
               {realUsers.map(renderUserRow)}
             </tbody>
@@ -416,6 +473,7 @@ export default function AdminUtilisateursPage() {
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Instruments</th>
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupes</th>
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Rôle site</th>
+                    <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Email</th>
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
                   </tr>
