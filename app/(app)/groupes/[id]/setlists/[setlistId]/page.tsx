@@ -15,8 +15,27 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { SetlistSequenceStage } from '@/components/ui/SetlistSequenceStage'
+import { PdfModal } from '@/components/ui/PdfModal'
 
-interface Song { id: number; title: string; artist?: string; durationSeconds?: number | null }
+interface Resource {
+  id: number
+  name: string
+  type: 'PDF' | 'AUDIO' | 'VIDEO' | 'IMAGE' | 'GRILLE' | 'LIEN' | 'AUTRE'
+  filePath: string
+}
+interface LinkedChart { id: number; title: string }
+interface Song {
+  id: number
+  title: string
+  artist?: string
+  durationSeconds?: number | null
+  resources?: Resource[]
+  chordCharts?: LinkedChart[]
+  squareScores?: LinkedChart[]
+  lyrics?: { id: number } | null
+  tab?: { id: number } | null
+  _count?: { sequences: number }
+}
 interface SetlistEntry { song: Song; position: number }
 interface Concert { id: number; name: string; date: string }
 interface Setlist {
@@ -47,6 +66,27 @@ function DragHandle() {
       <circle cx="11" cy="4" r="1.2" /><circle cx="11" cy="8" r="1.2" /><circle cx="11" cy="12" r="1.2" />
     </svg>
   )
+}
+
+function isPdfResource(resource: Resource) {
+  return resource.type === 'PDF'
+}
+
+function isImageResource(resource: Resource) {
+  return resource.type === 'IMAGE'
+}
+
+function firstPdfOrImage(song: Song) {
+  return song.resources?.find((resource) => isPdfResource(resource) || isImageResource(resource)) ?? null
+}
+
+function openExternalResource(resource: Resource) {
+  if (resource.type === 'LIEN' || resource.type === 'VIDEO') {
+    const url = resource.filePath.startsWith('http') ? resource.filePath : `https://${resource.filePath}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  window.open(`/api/ressources/${resource.id}`, '_blank', 'noopener,noreferrer')
 }
 
 function SortableSongRow({ entry, index, isChef, removingId, onRemove, showDuration }: {
@@ -88,6 +128,237 @@ function SortableSongRow({ entry, index, isChef, removingId, onRemove, showDurat
   )
 }
 
+function ConcertSetlistStage({
+  groupId,
+  setlistName,
+  songs,
+  onClose,
+  onOpenPdf,
+}: {
+  groupId: string
+  setlistName: string
+  songs: SetlistEntry[]
+  onClose: () => void
+  onOpenPdf: (resource: Resource, song: Song) => void
+}) {
+  const [query, setQuery] = useState('')
+  const [selectedSongId, setSelectedSongId] = useState<number | null>(songs[0]?.song.id ?? null)
+  const normalizedQuery = query.trim().toLowerCase()
+  const filteredSongs = normalizedQuery
+    ? songs.filter(({ song }) => `${song.title} ${song.artist ?? ''}`.toLowerCase().includes(normalizedQuery))
+    : songs
+  const selectedEntry = songs.find((entry) => entry.song.id === selectedSongId) ?? filteredSongs[0] ?? songs[0] ?? null
+
+  useEffect(() => {
+    if (!selectedEntry && filteredSongs[0]) setSelectedSongId(filteredSongs[0].song.id)
+  }, [filteredSongs, selectedEntry])
+
+  const jumpTo = (entry: SetlistEntry) => {
+    setSelectedSongId(entry.song.id)
+    document.getElementById(`stage-song-${entry.song.id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 bg-slate-950 text-white">
+      <div className="flex h-full flex-col">
+        <header className="border-b border-white/10 bg-slate-900/95 px-3 py-3 sm:px-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wide text-emerald-300">Mode concert</p>
+              <h2 className="truncate text-xl font-black sm:text-2xl">{setlistName}</h2>
+            </div>
+            <div className="flex flex-1 flex-col gap-2 sm:flex-row lg:max-w-2xl">
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Rechercher un morceau..."
+                className="h-12 flex-1 rounded-2xl border border-white/10 bg-white px-4 text-base font-semibold text-slate-900 shadow-sm outline-none focus:border-emerald-300 focus:ring-4 focus:ring-emerald-300/20"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-12 rounded-2xl border border-white/15 px-4 text-sm font-bold text-white/85 hover:bg-white/10"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(320px,420px)_1fr]">
+          <aside className="min-h-0 overflow-y-auto border-b border-white/10 bg-slate-900/65 p-3 lg:border-b-0 lg:border-r lg:p-4">
+            <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase tracking-wide text-white/45">
+              <span>{filteredSongs.length} titre{filteredSongs.length > 1 ? 's' : ''}</span>
+              {query && (
+                <button type="button" onClick={() => setQuery('')} className="text-emerald-300 hover:text-emerald-200">
+                  Effacer
+                </button>
+              )}
+            </div>
+            <div className="space-y-2">
+              {filteredSongs.map((entry) => {
+                const active = selectedEntry?.song.id === entry.song.id
+                const support = firstPdfOrImage(entry.song)
+                return (
+                  <button
+                    id={`stage-song-${entry.song.id}`}
+                    key={entry.song.id}
+                    type="button"
+                    onClick={() => jumpTo(entry)}
+                    className={`w-full rounded-2xl border p-3 text-left transition-colors ${
+                      active ? 'border-emerald-300 bg-emerald-400/15' : 'border-white/10 bg-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-black text-slate-900">
+                        {songs.findIndex((item) => item.song.id === entry.song.id) + 1}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-black">{entry.song.title}</span>
+                        {entry.song.artist && <span className="mt-0.5 block truncate text-xs text-white/55">{entry.song.artist}</span>}
+                        <span className="mt-2 flex flex-wrap gap-1.5">
+                          {support && <span className="rounded-full bg-red-400/15 px-2 py-0.5 text-[11px] font-bold text-red-100">PDF</span>}
+                          {(entry.song.chordCharts?.length ?? 0) > 0 && <span className="rounded-full bg-orange-400/15 px-2 py-0.5 text-[11px] font-bold text-orange-100">Grille</span>}
+                          {(entry.song.squareScores?.length ?? 0) > 0 && <span className="rounded-full bg-lime-400/15 px-2 py-0.5 text-[11px] font-bold text-lime-100">Carrée</span>}
+                          {(entry.song._count?.sequences ?? 0) > 0 && <span className="rounded-full bg-cyan-400/15 px-2 py-0.5 text-[11px] font-bold text-cyan-100">Audio</span>}
+                        </span>
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+              {filteredSongs.length === 0 && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-center text-sm text-white/55">
+                  Aucun morceau trouvé.
+                </div>
+              )}
+            </div>
+          </aside>
+
+          <main className="min-h-0 overflow-y-auto p-4 sm:p-6">
+            {selectedEntry ? (
+              <div className="mx-auto max-w-4xl">
+                <div className="rounded-3xl border border-white/10 bg-white p-5 text-slate-950 shadow-2xl sm:p-7">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-emerald-600">
+                        Morceau {songs.findIndex((item) => item.song.id === selectedEntry.song.id) + 1} / {songs.length}
+                      </p>
+                      <h3 className="mt-1 text-3xl font-black leading-tight sm:text-5xl">{selectedEntry.song.title}</h3>
+                      {selectedEntry.song.artist && <p className="mt-2 text-lg font-medium text-slate-500">{selectedEntry.song.artist}</p>}
+                    </div>
+                    {selectedEntry.song.durationSeconds && (
+                      <span className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700">
+                        {formatDuration(selectedEntry.song.durationSeconds)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {firstPdfOrImage(selectedEntry.song) ? (
+                      <button
+                        type="button"
+                        onClick={() => onOpenPdf(firstPdfOrImage(selectedEntry.song)!, selectedEntry.song)}
+                        className="rounded-2xl border-2 border-red-200 bg-red-50 px-5 py-4 text-left font-black text-red-700 transition-colors hover:bg-red-100"
+                      >
+                        <span className="block text-2xl">📄</span>
+                        Ouvrir la partition
+                        <span className="mt-1 block truncate text-xs font-semibold text-red-500">{firstPdfOrImage(selectedEntry.song)?.name}</span>
+                      </button>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-400">
+                        Pas de PDF/image
+                      </div>
+                    )}
+
+                    {(selectedEntry.song.chordCharts?.length ?? 0) > 0 ? (
+                      <Link
+                        href={`/groupes/${groupId}/grilles/${selectedEntry.song.chordCharts![0].id}`}
+                        className="rounded-2xl border-2 border-orange-200 bg-orange-50 px-5 py-4 text-left font-black text-orange-700 transition-colors hover:bg-orange-100"
+                      >
+                        <span className="block text-2xl">🎸</span>
+                        Ouvrir la grille
+                        <span className="mt-1 block truncate text-xs font-semibold text-orange-500">{selectedEntry.song.chordCharts![0].title}</span>
+                      </Link>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-400">
+                        Pas de grille
+                      </div>
+                    )}
+
+                    {(selectedEntry.song.squareScores?.length ?? 0) > 0 ? (
+                      <Link
+                        href={`/groupes/${groupId}/partitions-carrees/${selectedEntry.song.squareScores![0].id}`}
+                        className="rounded-2xl border-2 border-lime-200 bg-lime-50 px-5 py-4 text-left font-black text-lime-700 transition-colors hover:bg-lime-100"
+                      >
+                        <span className="block text-2xl">▦</span>
+                        Partition carrée
+                        <span className="mt-1 block truncate text-xs font-semibold text-lime-600">{selectedEntry.song.squareScores![0].title}</span>
+                      </Link>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-400">
+                        Pas de partition carrée
+                      </div>
+                    )}
+                  </div>
+
+                  {(selectedEntry.song.resources?.length ?? 0) > 0 && (
+                    <div className="mt-6 rounded-2xl border border-slate-200 p-4">
+                      <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">Autres ressources</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEntry.song.resources!.map((resource) => (
+                          <button
+                            key={resource.id}
+                            type="button"
+                            onClick={() => (isPdfResource(resource) || isImageResource(resource)) ? onOpenPdf(resource, selectedEntry.song) : openExternalResource(resource)}
+                            className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+                          >
+                            {resource.type === 'PDF' ? '📄' : resource.type === 'IMAGE' ? '🖼️' : resource.type === 'LIEN' ? '🔗' : resource.type === 'VIDEO' ? '🎬' : '📎'} {resource.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-7 flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const idx = songs.findIndex((item) => item.song.id === selectedEntry.song.id)
+                        const previous = songs[Math.max(0, idx - 1)]
+                        if (previous) jumpTo(previous)
+                      }}
+                      disabled={songs.findIndex((item) => item.song.id === selectedEntry.song.id) === 0}
+                      className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 disabled:opacity-35"
+                    >
+                      ← Précédent
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const idx = songs.findIndex((item) => item.song.id === selectedEntry.song.id)
+                        const next = songs[Math.min(songs.length - 1, idx + 1)]
+                        if (next) jumpTo(next)
+                      }}
+                      disabled={songs.findIndex((item) => item.song.id === selectedEntry.song.id) === songs.length - 1}
+                      className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white disabled:opacity-35"
+                    >
+                      Suivant →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center text-white/50">Aucun morceau dans cette setlist.</div>
+            )}
+          </main>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function SetlistDetailPage({ params }: { params: { id: string; setlistId: string } }) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -101,6 +372,8 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
   const [groupName, setGroupName] = useState('')
   const [hasSequences, setHasSequences] = useState(true)
   const [stageOpen, setStageOpen] = useState(false)
+  const [concertStageOpen, setConcertStageOpen] = useState(false)
+  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image' } | null>(null)
   const [loading, setLoading] = useState(true)
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [addingId, setAddingId] = useState<number | null>(null)
@@ -138,6 +411,12 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
   }, [session, setlistId, groupId])
 
   useEffect(() => { if (session) fetchData() }, [session, fetchData])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('scene') === '1') setConcertStageOpen(true)
+  }, [])
 
   const isChef = groupRole === 'CHEF'
 
@@ -206,6 +485,14 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
   const setlistIds = new Set(songs.map((s) => s.song.id))
   const availableSongs = groupSongs.filter((s) => !setlistIds.has(s.id))
 
+  const openPdfResource = (resource: Resource, song: Song) => {
+    setPdfModal({
+      url: `/api/ressources/${resource.id}`,
+      title: `${song.title} - ${resource.name}`,
+      kind: resource.type === 'IMAGE' ? 'image' : 'pdf',
+    })
+  }
+
   // Liste ordonnée pour le mode scène (tempo récupéré depuis le répertoire)
   const tempoById = new Map(groupSongs.map((s) => [s.id, s.tempo ?? null]))
   const stageSongs = songs.map((e) => ({
@@ -226,6 +513,15 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
   return (
     <div>
       {stageOpen && <SetlistSequenceStage songs={stageSongs} onClose={() => setStageOpen(false)} />}
+      {concertStageOpen && (
+        <ConcertSetlistStage
+          groupId={groupId}
+          setlistName={setlist.name}
+          songs={songs}
+          onClose={() => setConcertStageOpen(false)}
+          onOpenPdf={openPdfResource}
+        />
+      )}
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
         <Link href="/groupes" className="hover:text-indigo-600">Mes groupes</Link>
@@ -253,6 +549,15 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
               title="Lancer les séquences de la setlist en mode scène"
             >
               🎚 Mode séquences
+            </button>
+          )}
+          {songs.length > 0 && (
+            <button
+              onClick={() => setConcertStageOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 transition-colors"
+              title="Ouvrir la setlist avec recherche et accès direct aux PDF / grilles"
+            >
+              🎤 Mode concert
             </button>
           )}
           {/* Print button — visible for all members */}
@@ -508,6 +813,14 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
             </div>
           </div>
         </div>
+      )}
+      {pdfModal && (
+        <PdfModal
+          url={pdfModal.url}
+          title={pdfModal.title}
+          kind={pdfModal.kind}
+          onClose={() => setPdfModal(null)}
+        />
       )}
     </div>
   )

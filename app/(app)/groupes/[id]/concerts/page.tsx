@@ -500,6 +500,13 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
             <span className="text-purple-400">· {concert.setlist._count.songs} morceaux</span>
             <span className="text-purple-400">→</span>
           </Link>
+          <Link
+            href={`/groupes/${groupId}/setlists/${concert.setlist.id}?scene=1`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 border border-slate-800 px-2.5 py-1 text-xs font-bold text-white hover:bg-slate-700 transition-colors"
+            title="Ouvrir la setlist en mode concert avec accès aux PDF et grilles"
+          >
+            🎤 Jouer
+          </Link>
           <button
             onClick={() => handlePrintSetlist(concert)}
             disabled={printingId === concert.id}

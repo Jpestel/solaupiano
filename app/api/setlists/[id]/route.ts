@@ -10,7 +10,16 @@ async function getSetlistAndCheckAccess(setlistId: number, userId: number, isAdm
     include: {
       songs: {
         include: {
-          song: { include: { resources: { orderBy: { createdAt: 'asc' } } } },
+          song: {
+            include: {
+              resources: { orderBy: { createdAt: 'asc' } },
+              chordCharts: { select: { id: true, title: true }, orderBy: { createdAt: 'asc' } },
+              squareScores: { select: { id: true, title: true }, orderBy: { createdAt: 'asc' } },
+              lyrics: { select: { id: true } },
+              tab: { select: { id: true } },
+              _count: { select: { sequences: true } },
+            },
+          },
         },
         orderBy: [{ position: 'asc' }, { songId: 'asc' }],
       },
