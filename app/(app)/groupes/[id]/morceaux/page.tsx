@@ -101,7 +101,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [resourceError, setResourceError] = useState('')
   const [resourceSaving, setResourceSaving] = useState(false)
   const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string; local?: boolean } | null>(null)
-  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image' } | null>(null)
+  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image'; songId?: number } | null>(null)
   const [annotate, setAnnotate] = useState<{ id: number; name: string; type: string; filePath: string } | null>(null)
   const [pendingResources, setPendingResources] = useState<PendingResource[]>([])
   const [submitSongId, setSubmitSongId] = useState<number | null>(null)
@@ -519,7 +519,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                             )}
                             {res.type === 'PDF' ? (
                               <button
-                                onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name })}
+                                onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name, songId: song.id })}
                                 className="text-xs text-indigo-600 hover:text-indigo-500 font-medium flex items-center gap-1"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -529,7 +529,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                               </button>
                             ) : res.type === 'IMAGE' ? (
                               <button
-                                onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name, kind: 'image' })}
+                                onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name, kind: 'image', songId: song.id })}
                                 className="text-xs text-indigo-600 hover:text-indigo-500 font-medium flex items-center gap-1"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -778,7 +778,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
         />
       )}
 
-      <FloatingAudioPlayer groupId={groupId} />
+      <FloatingAudioPlayer groupId={groupId} currentSongId={pdfModal?.songId ?? null} />
 
       {annotate && <ScoreAnnotator resource={annotate} onClose={() => setAnnotate(null)} />}
     </div>
