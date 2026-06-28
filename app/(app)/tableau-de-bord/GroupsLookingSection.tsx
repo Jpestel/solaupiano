@@ -38,7 +38,7 @@ export function GroupsLookingSection({ groups }: { groups: Group[] }) {
 
   if (groups.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center">
+      <div className="rounded-xl border border-dashed border-gray-200 p-5 text-center sm:p-6">
         <p className="text-3xl mb-2">🎸</p>
         <p className="text-sm text-gray-500">Aucun groupe ne cherche de musicien pour l&apos;instant.</p>
       </div>
@@ -51,9 +51,9 @@ export function GroupsLookingSection({ groups }: { groups: Group[] }) {
         const instruments = parseLookingFor(group.lookingFor)
         const req = requests[group.id]
         return (
-          <div key={group.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+          <div key={group.id} className="space-y-3 rounded-xl border border-gray-200 bg-white p-3.5 sm:p-4">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-sm font-bold text-indigo-700">
                 {group.name.charAt(0)}
               </div>
               <div className="min-w-0 flex-1">
@@ -68,8 +68,8 @@ export function GroupsLookingSection({ groups }: { groups: Group[] }) {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              <span className="text-xs text-amber-600 font-medium self-center">Cherche :</span>
+            <div className="flex flex-wrap gap-1.5 rounded-lg bg-amber-50/60 p-2">
+              <span className="self-center text-xs font-medium text-amber-700">Cherche :</span>
               {instruments.map((inst) => (
                 <span key={inst} className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
                   {inst}
@@ -80,7 +80,7 @@ export function GroupsLookingSection({ groups }: { groups: Group[] }) {
             {group.isMember ? (
               <Link
                 href={`/groupes/${group.id}`}
-                className="w-full block text-center rounded-lg bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 transition-colors"
+                className="block w-full rounded-lg bg-gray-100 px-3 py-2.5 text-center text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200"
               >
                 Vous êtes déjà membre →
               </Link>
@@ -88,23 +88,23 @@ export function GroupsLookingSection({ groups }: { groups: Group[] }) {
               <button
                 onClick={() => requestJoin(group.id)}
                 disabled={loadingId === group.id}
-                className="w-full rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-60 transition-colors"
+                className="w-full rounded-lg bg-indigo-600 px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
               >
                 {loadingId === group.id ? 'Envoi...' : 'Demander à rejoindre'}
               </button>
             ) : req.status === 'PENDING' ? (
-              <p className="text-xs text-center text-amber-600 bg-amber-50 border border-amber-200 rounded-lg py-2 px-3">
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs text-amber-600">
                 Demande en attente
               </p>
             ) : req.status === 'ACCEPTED' ? (
-              <p className="text-xs text-center text-green-600 bg-green-50 border border-green-200 rounded-lg py-2">
+              <p className="rounded-lg border border-green-200 bg-green-50 py-2 text-center text-xs text-green-600">
                 Demande acceptée ✓
               </p>
             ) : (
               <button
                 onClick={() => requestJoin(group.id)}
                 disabled={loadingId === group.id}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
               >
                 Faire une nouvelle demande
               </button>

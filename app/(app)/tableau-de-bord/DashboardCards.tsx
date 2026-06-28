@@ -60,22 +60,23 @@ function SortableCard({ id, children }: { id: string; children: React.ReactNode 
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`transition-shadow ${isDragging ? 'shadow-2xl ring-2 ring-indigo-300 z-50 opacity-90' : ''}`}
+      className={`relative mt-2 transition-shadow ${isDragging ? 'z-50 opacity-90' : ''}`}
     >
-      {/* Drag handle strip */}
-      <div
+      <button
+        type="button"
         {...attributes}
         {...listeners}
-        className="flex justify-center items-center h-5 cursor-grab active:cursor-grabbing rounded-t-xl bg-gray-50 border border-b-0 border-gray-200 hover:bg-indigo-50 transition-colors group"
+        className="group absolute -top-2 left-4 z-20 flex h-7 w-11 cursor-grab items-center justify-center rounded-full border border-gray-200 bg-white text-gray-300 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-500 active:cursor-grabbing"
         title="Déplacer"
+        aria-label="Déplacer cette carte"
       >
         <span className="flex gap-0.5">
           {[0,1,2,3,4,5].map((i) => (
             <span key={i} className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-indigo-400 transition-colors" />
           ))}
         </span>
-      </div>
-      <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white overflow-hidden">
+      </button>
+      <div className={`overflow-hidden rounded-xl border border-gray-200 bg-white ${isDragging ? 'shadow-2xl ring-2 ring-indigo-300' : ''}`}>
         {children}
       </div>
     </div>
@@ -123,9 +124,9 @@ export function DashboardCards({ rehearsals, concerts, memberships }: Props) {
               <Link
                 key={rep.id}
                 href={`/groupes/${rep.groupId}/repetitions/${rep.id}`}
-                className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors"
+                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 sm:px-4"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium text-gray-900 text-sm">{rep.group.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5 capitalize">
                     {formatDateWithDay(rep.date)} · {rep.startTime}{rep.endTime ? ` - ${rep.endTime}` : ''}
@@ -158,7 +159,7 @@ export function DashboardCards({ rehearsals, concerts, memberships }: Props) {
               <Link
                 key={concert.id}
                 href={`/groupes/${concert.groupId}/concerts`}
-                className="block rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors"
+                className="block rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 sm:px-4"
               >
                 <p className="font-medium text-gray-900 text-sm">{concert.name}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{concert.group.name}</p>
@@ -181,15 +182,15 @@ export function DashboardCards({ rehearsals, concerts, memberships }: Props) {
               <Link
                 key={m.groupId}
                 href={`/groupes/${m.groupId}`}
-                className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 transition-colors hover:border-indigo-200 hover:bg-indigo-50/40"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-semibold">
                     {m.group.name.charAt(0)}
                   </div>
-                  <span className="text-sm font-medium text-gray-800">{m.group.name}</span>
+                  <span className="truncate text-sm font-medium text-gray-800">{m.group.name}</span>
                 </div>
-                <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${
+                <span className={`shrink-0 text-xs font-medium rounded-full px-2 py-0.5 ${
                   m.groupRole === 'CHEF' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'
                 }`}>
                   {m.groupRole === 'CHEF' ? "Chef d'orchestre" : 'Membre'}
@@ -207,7 +208,7 @@ export function DashboardCards({ rehearsals, concerts, memberships }: Props) {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={order} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
           {order.map((id, index) => (
             <SortableCard key={id} id={id}>
               {cardContent[id]}

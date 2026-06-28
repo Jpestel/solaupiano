@@ -70,7 +70,7 @@ export function GroupCard({ group, settings }: { group: GroupCardData; settings:
   return (
     <div
       className={`group relative overflow-hidden rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-        hasCover ? 'border-transparent min-h-[210px] flex flex-col justify-end' : 'border-gray-200 bg-white hover:border-indigo-200'
+        hasCover ? 'flex min-h-[230px] flex-col justify-end border-transparent sm:min-h-[210px]' : 'border-gray-200 bg-white hover:border-indigo-200'
       }`}
     >
       {hasCover && (
@@ -81,15 +81,15 @@ export function GroupCard({ group, settings }: { group: GroupCardData; settings:
         </>
       )}
 
-      <div className="relative p-4 space-y-3">
+      <div className="relative space-y-3 p-3.5 sm:p-4">
         <div className="flex items-start gap-3">
           {!hasCover && (
-            <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-sm font-bold text-indigo-700">
               {group.name.charAt(0)}
             </div>
           )}
           <div className="min-w-0 flex-1 space-y-0.5">
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex flex-wrap items-center gap-1.5">
               {renderedLines.length > 0 && (
                 <p
                   className={hasCover ? `${LINE_STYLES[renderedLines[0].style].cls} ${LINE_STYLES[renderedLines[0].style].coverCls}` : LINE_STYLES[renderedLines[0].style].cls}
@@ -99,7 +99,7 @@ export function GroupCard({ group, settings }: { group: GroupCardData; settings:
                 </p>
               )}
               {!group.isPublic && (
-                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${hasCover ? 'bg-white/20 text-white backdrop-blur' : 'bg-gray-100 text-gray-500'}`}>🔒 Privé</span>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${hasCover ? 'bg-white/20 text-white backdrop-blur' : 'bg-gray-100 text-gray-500'}`}>🔒 Privé</span>
               )}
             </div>
             {renderedLines.slice(1).map((l, i) => {
@@ -128,11 +128,11 @@ export function GroupCard({ group, settings }: { group: GroupCardData; settings:
           )}
 
           {(hasPageLink || hasContact) && (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 min-[420px]:flex-row">
               {hasPageLink && (
                 <Link
                   href={`/${page!.slug}`}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-center text-xs font-semibold transition-colors ${
+                  className={`flex-1 rounded-lg border px-3 py-2.5 text-center text-xs font-semibold transition-colors ${
                     hasCover
                       ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 backdrop-blur'
                       : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
@@ -144,7 +144,7 @@ export function GroupCard({ group, settings }: { group: GroupCardData; settings:
               {hasContact && (
                 <Link
                   href={`/${page!.slug}#contact`}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-center text-xs font-semibold transition-colors ${
+                  className={`flex-1 rounded-lg border px-3 py-2.5 text-center text-xs font-semibold transition-colors ${
                     hasCover
                       ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 backdrop-blur'
                       : 'border-gray-200 text-gray-700 hover:bg-gray-50'

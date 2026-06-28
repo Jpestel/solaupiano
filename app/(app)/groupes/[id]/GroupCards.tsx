@@ -73,21 +73,23 @@ function SortableCard({ id, children, spanFull }: { id: string; children: React.
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`${spanFull ? 'lg:col-span-2' : ''} ${isDragging ? 'shadow-2xl ring-2 ring-indigo-300 z-50 opacity-90' : ''}`}
+      className={`relative mt-2 ${spanFull ? 'lg:col-span-2' : ''} ${isDragging ? 'z-50 opacity-90' : ''}`}
     >
-      <div
+      <button
+        type="button"
         {...attributes}
         {...listeners}
-        className="flex justify-center items-center h-5 cursor-grab active:cursor-grabbing rounded-t-xl bg-gray-50 border border-b-0 border-gray-200 hover:bg-indigo-50 transition-colors group"
+        className="group absolute -top-2 left-4 z-20 flex h-7 w-11 cursor-grab items-center justify-center rounded-full border border-gray-200 bg-white text-gray-300 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-500 active:cursor-grabbing"
         title="Déplacer"
+        aria-label="Déplacer cette carte"
       >
         <span className="flex gap-0.5">
           {[0,1,2,3,4,5].map((i) => (
             <span key={i} className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-indigo-400 transition-colors" />
           ))}
         </span>
-      </div>
-      <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white overflow-hidden">
+      </button>
+      <div className={`overflow-hidden rounded-xl border border-gray-200 bg-white ${isDragging ? 'shadow-2xl ring-2 ring-indigo-300' : ''}`}>
         {children}
       </div>
     </div>
@@ -257,7 +259,7 @@ export function GroupCards({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={order} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           {order.map((id) => {
             const card = cardContent[id]
             if (!card) return null

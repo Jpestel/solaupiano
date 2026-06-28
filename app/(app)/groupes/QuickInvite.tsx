@@ -21,7 +21,7 @@ export function QuickInvite({ groupId, groupName }: { groupId: number; groupName
     <>
       <button
         onClick={openModal}
-        className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-white px-2.5 py-1 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm"
+        className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white px-2.5 py-2 text-xs font-semibold text-indigo-600 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 sm:absolute sm:bottom-3 sm:right-3 sm:z-10 sm:mt-0 sm:w-auto sm:py-1"
         title="Inviter un musicien dans ce groupe"
       >
         ➕ Inviter
@@ -33,7 +33,7 @@ export function QuickInvite({ groupId, groupName }: { groupId: number; groupName
           onClick={close}
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6"
+            className="w-full max-w-md bg-white rounded-2xl shadow-xl p-4 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-4">

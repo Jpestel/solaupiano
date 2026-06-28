@@ -41,19 +41,19 @@ export function JoinPublicGroupsSection({ groups }: { groups: PublicGroup[] }) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
       {groups.map((group) => {
         const req = requests[group.id]
         const lookingFor = parseLookingFor(group.lookingFor)
         return (
-          <div key={group.id} className={`rounded-xl border p-4 flex flex-col gap-3 ${group.isPublic ? 'border-gray-200 bg-white' : 'border-gray-200 bg-gray-50'}`}>
+          <div key={group.id} className={`flex min-h-[190px] flex-col gap-3 rounded-xl border p-3.5 sm:p-4 ${group.isPublic ? 'border-gray-200 bg-white' : 'border-gray-200 bg-gray-50'}`}>
             <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base flex-shrink-0 ${group.isPublic ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+              <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-base font-bold ${group.isPublic ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
                 {group.name.charAt(0)}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold text-gray-900 text-sm">{group.name}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold leading-tight text-gray-900">{group.name}</p>
                   {!group.isPublic && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-500">
                       🔒 Privé
@@ -63,7 +63,7 @@ export function JoinPublicGroupsSection({ groups }: { groups: PublicGroup[] }) {
                 {group.description && (
                   <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{group.description}</p>
                 )}
-                <p className="text-xs text-gray-400 mt-1">{group._count.members} membre{group._count.members > 1 ? 's' : ''}</p>
+                <p className="mt-1 text-xs text-gray-400">{group._count.members} membre{group._count.members > 1 ? 's' : ''}</p>
                 {group.lookingForSince && (
                   <p className="text-xs text-gray-400 mt-0.5">Depuis le {new Date(group.lookingForSince).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 )}
@@ -71,8 +71,8 @@ export function JoinPublicGroupsSection({ groups }: { groups: PublicGroup[] }) {
             </div>
 
             {lookingFor.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                <span className="text-xs text-amber-600 font-medium mr-0.5">Cherche :</span>
+              <div className="flex flex-wrap gap-1.5 rounded-lg bg-amber-50/60 p-2">
+                <span className="mr-0.5 self-center text-xs font-medium text-amber-700">Cherche :</span>
                 {lookingFor.map((inst) => (
                   <span key={inst} className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
                     {inst}
@@ -87,18 +87,18 @@ export function JoinPublicGroupsSection({ groups }: { groups: PublicGroup[] }) {
                   <button
                     onClick={() => requestJoin(group.id)}
                     disabled={loadingId === group.id}
-                    className="w-full rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-60 transition-colors"
+                    className="mt-auto w-full rounded-lg bg-indigo-600 px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
                   >
                     {loadingId === group.id ? 'Envoi...' : 'Demander à rejoindre'}
                   </button>
                 )}
                 {req?.status === 'PENDING' && (
-                  <p className="text-xs text-center text-amber-600 bg-amber-50 border border-amber-200 rounded-lg py-2 px-3">
+                  <p className="mt-auto rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs text-amber-600">
                     Demande en attente de validation
                   </p>
                 )}
                 {req?.status === 'ACCEPTED' && (
-                  <p className="text-xs text-center text-green-600 bg-green-50 border border-green-200 rounded-lg py-2 px-3">
+                  <p className="mt-auto rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-center text-xs text-green-600">
                     Demande acceptée ✓
                   </p>
                 )}
@@ -106,14 +106,14 @@ export function JoinPublicGroupsSection({ groups }: { groups: PublicGroup[] }) {
                   <button
                     onClick={() => requestJoin(group.id)}
                     disabled={loadingId === group.id}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="mt-auto w-full rounded-lg border border-gray-300 px-3 py-2.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
                   >
                     Faire une nouvelle demande
                   </button>
                 )}
               </>
             ) : (
-              <p className="text-xs text-center text-gray-500 bg-gray-100 border border-gray-200 rounded-lg py-2 px-3">
+              <p className="mt-auto rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-center text-xs text-gray-500">
                 Sur invitation uniquement
               </p>
             )}

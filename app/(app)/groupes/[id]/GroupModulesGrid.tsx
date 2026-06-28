@@ -64,11 +64,11 @@ function SortableModuleCard({
             type="button"
             {...attributes}
             {...listeners}
-            className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-lg bg-white/90 px-1.5 py-1 text-gray-300 shadow-sm ring-1 ring-gray-200 cursor-grab active:cursor-grabbing hover:text-indigo-500"
+            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-white/95 text-gray-300 shadow-sm ring-1 ring-gray-200 cursor-grab active:cursor-grabbing hover:text-indigo-500 sm:left-2 sm:right-auto sm:top-1/2 sm:-translate-y-1/2"
             title="Déplacer ce module"
             aria-label="Déplacer ce module"
           >
-            <span className="block leading-none">⋮⋮</span>
+            <span className="block text-sm leading-none">⋮⋮</span>
           </button>
         )}
         {children}
@@ -125,7 +125,7 @@ export function GroupModulesGrid({
   }
 
   const grid = (
-    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2 mb-2">
+    <div className="mb-2 grid grid-cols-1 gap-2.5 min-[430px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
       {visibleOrder.map((href) => {
         const link = linksByHref.get(href)
         if (!link) return null
@@ -134,19 +134,19 @@ export function GroupModulesGrid({
             <Link
               href={`/groupes/${groupId}/${link.href}`}
               data-bubble={`mod-${link.href}`}
-              className={`module-tile relative flex items-center gap-2.5 rounded-xl border px-3 py-2.5 group ${canReorder ? 'pl-9' : ''} ${link.border}`}
+              className={`module-tile relative flex min-h-[78px] items-center gap-3 rounded-xl border px-3.5 py-3 group sm:min-h-[70px] ${canReorder ? 'pr-11 sm:pl-9 sm:pr-3' : ''} ${link.border}`}
             >
               <span className="module-tile-sheen" aria-hidden />
-              <div className={`module-tile-icon relative z-10 w-8 h-8 rounded-lg ${link.iconBg} flex items-center justify-center text-base flex-shrink-0 transition-transform group-hover:scale-110`}>
+              <div className={`module-tile-icon relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-lg transition-transform group-hover:scale-105 sm:h-9 sm:w-9 ${link.iconBg}`}>
                 {link.icon}
               </div>
               <div className="relative z-10 min-w-0 flex-1">
-                <p className={`text-sm font-semibold ${link.textColor} leading-tight`}>{link.label}</p>
-                <p className="text-[11px] text-gray-400 leading-tight mt-0.5 truncate">
+                <p className={`text-[15px] font-semibold ${link.textColor} leading-tight sm:text-sm`}>{link.label}</p>
+                <p className="mt-1 line-clamp-2 text-xs leading-snug text-gray-500 sm:mt-0.5 sm:text-[11px]">
                   {isChef ? link.chefDesc : link.memberDesc}
                 </p>
               </div>
-              <span className={`relative z-10 flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full transition-all ${link.iconBg} ${link.textColor} opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5`}>
+              <span className={`relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-all ${link.iconBg} ${link.textColor} opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5`}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
