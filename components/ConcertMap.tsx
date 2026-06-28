@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import type * as Leaflet from 'leaflet'
+import { mapsSearchUrl } from '@/lib/map-links'
 import { defaultPopupLines, parsePopupLines, type ConcertPopupSettings, type PopupLine, type PopupLineStyle } from '@/lib/site-settings'
 
 export interface MapConcert {
@@ -95,14 +96,17 @@ function renderTokens(text: string, ctx: Record<string, string>) {
   return out
 }
 
-function lineHtml(line: PopupLine, ctx: Record<string, string>, settings: PopupSettings, hasTime: boolean) {
+function lineHtml(line: PopupLine, ctx: Record<string, string>, settings: PopupSettings, hasTime: boolean, mapHref: string) {
   // Cas spécial : une ligne qui affiche l'heure mais sans heure connue => texte de repli.
   const inner = line.text.includes('{heure}') && !hasTime
     ? escapeHtml(settings.concertPopupMissingTimeText)
     : renderTokens(line.text, ctx)
   if (!inner.trim()) return ''
   const meta = LINE_STYLE_META[line.style] ?? LINE_STYLE_META.normal
-  return `<p class="${meta.className}" style="color:${escapeHtml(settings[meta.colorKey])};">${inner}</p>`
+  const content = line.style === 'address'
+    ? `<a href="${escapeHtml(mapHref)}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;text-underline-offset:3px;">${inner}</a>`
+    : inner
+  return `<p class="${meta.className}" style="color:${escapeHtml(settings[meta.colorKey])};">${content}</p>`
 }
 
 function popupHtml(point: MapPoint, settings: PopupSettings) {
@@ -120,7 +124,8 @@ function popupHtml(point: MapPoint, settings: PopupSettings) {
 
   const parsed = parsePopupLines(settings.concertPopupLines)
   const lines = parsed && parsed.length > 0 ? parsed : defaultPopupLines(settings)
-  const bodyHtml = lines.map((line) => lineHtml(line, ctx, settings, hasTime)).join('')
+  const mapHref = mapsSearchUrl(fullAddress(point))
+  const bodyHtml = lines.map((line) => lineHtml(line, ctx, settings, hasTime, mapHref)).join('')
 
   const avatarHtml = point.groupCoverUrl
     ? `<img class="concert-map-popup-avatar" src="${escapeHtml(point.groupCoverUrl)}" alt="" />`
@@ -318,7 +323,14 @@ export function ConcertMap({ concerts, popupSettings }: { concerts: MapConcert[]
               {selected.startTime ? `${dateLabel(selected.date)} · ${selected.startTime}` : 'Heure à confirmer'}
             </span>
           </div>
-          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">{fullAddress(selected)}</p>
+          <a
+            href={mapsSearchUrl(fullAddress(selected))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-indigo-600"
+          >
+            📍 {fullAddress(selected)}
+          </a>
           <Link
             href={`/concerts/${selected.id}/contact`}
             className="mt-3 inline-flex text-xs font-bold text-indigo-600 hover:underline"

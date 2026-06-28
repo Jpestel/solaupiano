@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { mapsSearchUrl } from '@/lib/map-links'
 import { ConcertContactForm } from './ConcertContactForm'
 
 function formatDate(date: Date) {
@@ -58,7 +59,14 @@ export default async function ConcertContactPage({ params }: { params: { id: str
         <div className="mt-6 rounded-3xl bg-gradient-to-br from-indigo-600 to-purple-700 px-6 py-8 text-white shadow-lg">
           <p className="text-sm font-semibold text-white/75">{concert.group.name}</p>
           <h1 className="mt-2 text-3xl font-black">{concert.group.name} en concert ici</h1>
-          <p className="mt-4 text-white/85">{address}</p>
+          <a
+            href={mapsSearchUrl(address)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-block text-white/85 underline decoration-white/40 underline-offset-4 hover:text-white"
+          >
+            📍 {address}
+          </a>
           <p className="mt-2 font-bold text-amber-200">
             {formatDate(concert.date)}
             {concert.startTime ? `, à partir de ${concert.startTime}` : ' · Heure à confirmer, contactez le groupe via le formulaire'}

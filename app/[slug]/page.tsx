@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { mapsSearchUrl } from '@/lib/map-links'
 import { ContactForm } from './ContactForm'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -13,6 +14,19 @@ function hex(color: string, opacity: number) {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function fullConcertAddress(concert: {
+  location: string
+  address: string | null
+  postalCode: string | null
+  city: string | null
+}) {
+  return [
+    concert.location,
+    concert.address,
+    [concert.postalCode, concert.city].filter(Boolean).join(' '),
+  ].filter(Boolean).join(', ')
 }
 
 interface MemberCard {
@@ -205,7 +219,14 @@ export default async function GroupPublicPage({
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-gray-900">{c.name}</p>
                     <p className="text-sm capitalize" style={{ color: p }}>{formatDate(c.date.toISOString())}</p>
-                    <p className="text-sm text-gray-500">📍 {c.location}</p>
+                    <a
+                      href={mapsSearchUrl(fullConcertAddress(c))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block text-sm text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-gray-700"
+                    >
+                      📍 {c.location}
+                    </a>
                     {c.address && <p className="text-sm text-gray-400">{c.address}</p>}
                     {(c.postalCode || c.city) && (
                       <p className="text-sm text-gray-400">{[c.postalCode, c.city].filter(Boolean).join(' ')}</p>

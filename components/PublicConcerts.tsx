@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { mapsSearchUrl } from '@/lib/map-links'
 
 export interface PublicConcert {
   id: number
@@ -19,6 +20,14 @@ export interface PublicConcert {
 type Mode = 'month' | 'group'
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+function fullAddress(c: PublicConcert) {
+  return [
+    c.location,
+    c.address,
+    [c.postalCode, c.city].filter(Boolean).join(' '),
+  ].filter(Boolean).join(', ')
+}
 
 function DateBadge({ iso }: { iso: string }) {
   const d = new Date(iso)
@@ -50,7 +59,14 @@ function ConcertRow({ c, showGroup = true }: { c: PublicConcert; showGroup?: boo
         )}
         <div className="text-xs text-gray-400 mt-0.5 leading-snug">
           {c.startTime && <p className="text-purple-600 font-medium">Début {c.startTime}</p>}
-          <p className="text-gray-500">📍 {c.location}</p>
+          <a
+            href={mapsSearchUrl(fullAddress(c))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-indigo-600"
+          >
+            📍 {c.location}
+          </a>
           {c.address && <p>{c.address}</p>}
           {(c.postalCode || c.city) && <p>{[c.postalCode, c.city].filter(Boolean).join(' ')}</p>}
         </div>

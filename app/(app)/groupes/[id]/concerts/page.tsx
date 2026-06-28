@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { StarRating, EvaluationModal, PresencePicker } from '@/components/ui/RehearsalEvaluation'
 import { ph } from '@/lib/placeholders'
+import { mapsSearchUrl } from '@/lib/map-links'
 
 interface SetlistRef { id: number; name: string; _count: { songs: number } }
 interface SimulationRef { id: number; label: string; data: any }
@@ -41,6 +42,14 @@ const EMPTY_FORM = {
   requiredUserIds: [] as number[], confirmDaysBefore: '',
 }
 type ConcertForm = typeof EMPTY_FORM
+
+function concertFullAddress(concert: Concert) {
+  return [
+    concert.location,
+    concert.address,
+    [concert.postalCode, concert.city].filter(Boolean).join(' '),
+  ].filter(Boolean).join(', ')
+}
 
 // Champs « validation » : musiciens obligatoires + délai de confirmation
 function ConcertValidationFields({ form, onChange, members }: { form: ConcertForm; onChange: (p: Partial<ConcertForm>) => void; members: { userId: number; name: string }[] }) {
@@ -438,7 +447,14 @@ export default function ConcertsPage({ params }: { params: { id: string } }) {
         <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">🎸 {groupInfo.name}</p>
       )}
       <p className={`text-sm font-medium capitalize ${dim ? 'text-gray-400' : 'text-indigo-600'}`}>{formatDateWithDay(concert.date)}</p>
-      <p className="text-sm text-gray-700 mt-1">📍 {concert.location}</p>
+      <a
+        href={mapsSearchUrl(concertFullAddress(concert))}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1 inline-block text-sm text-gray-700 underline decoration-gray-300 underline-offset-2 hover:text-indigo-600"
+      >
+        📍 {concert.location}
+      </a>
       {(concert.address || concert.city) && (
         <p className="text-xs text-gray-500 mt-0.5">
           {[concert.address, [concert.postalCode, concert.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
