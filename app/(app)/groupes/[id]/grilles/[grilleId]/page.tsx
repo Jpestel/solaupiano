@@ -167,15 +167,18 @@ const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '5/4', '12/8', '2/2']
 const BARS_PER_ROW_OPTIONS = [2, 3, 4, 6]
 const TOTAL_BARS_OPTIONS = [8, 16, 24, 32, 48, 64, 80]
 const TEST_ACCOUNT_EMAIL = 'testeur@solaupiano.fr'
+const MIN_GRID_TEXT_SIZE = 9
+const MAX_GRID_TEXT_SIZE = 22
+const DEFAULT_GRID_TEXT_SIZE = 12
 
 /* ─── Beat content renderer ─── */
-function BeatContent({ content }: { content: string }) {
+function BeatContent({ content, fontSize }: { content: string; fontSize: number }) {
   const tokens = content.trim().split(/\s+/).filter(Boolean)
   if (!tokens.length) return <span className="text-gray-200 text-[10px] select-none">·</span>
   return (
     <div className="flex flex-col items-center justify-center gap-0.5 px-0.5 w-full">
       {tokens.map((token, i) => (
-        <span key={i} className="text-gray-900 font-bold text-xs leading-none">{token}</span>
+        <span key={i} className="text-gray-900 font-bold leading-none" style={{ fontSize }}>{token}</span>
       ))}
     </div>
   )
@@ -235,6 +238,23 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     barsPerRow: 4, totalBars: 32, songId: '',
   })
   const [settingsSaving, setSettingsSaving] = useState(false)
+  const [gridTextSize, setGridTextSize] = useState(DEFAULT_GRID_TEXT_SIZE)
+
+  const updateGridTextSize = (delta: number) => {
+    setGridTextSize((value) => Math.max(MIN_GRID_TEXT_SIZE, Math.min(MAX_GRID_TEXT_SIZE, value + delta)))
+  }
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(`solaupiano:grid-text-size:${grilleId}`)
+    const parsed = saved ? Number(saved) : DEFAULT_GRID_TEXT_SIZE
+    if (Number.isFinite(parsed)) {
+      setGridTextSize(Math.max(MIN_GRID_TEXT_SIZE, Math.min(MAX_GRID_TEXT_SIZE, parsed)))
+    }
+  }, [grilleId])
+
+  useEffect(() => {
+    window.localStorage.setItem(`solaupiano:grid-text-size:${grilleId}`, String(gridTextSize))
+  }, [grilleId, gridTextSize])
 
   /* Fetch */
   const fetchData = useCallback(async () => {
@@ -496,7 +516,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         const bar = barIdx < cells.length ? cells[barIdx] : { l: '', b: Array(bpb).fill(''), r: '' }
         const barNum = barIdx + 1
         const beatsHtml = bar.b.map((beat, bi) =>
-          `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #ddd;' : ''}font-size:12px;font-weight:700;color:#111;min-height:18px;">${escapeHtml(beat || '')}</div>`
+          `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #ddd;' : ''}font-size:${gridTextSize}px;font-weight:700;color:#111;min-height:18px;">${escapeHtml(beat || '')}</div>`
         ).join('')
         tds += `<td style="border:1px solid #bbb;padding:0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${rowBg}">
           <div style="display:flex;align-items:baseline;justify-content:space-between;padding:2px 5px 1px;border-bottom:1px solid #e5e5e5;">
@@ -611,6 +631,27 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           >
             ← Retour au répertoire
           </Link>
+          <div className="flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <button
+              type="button"
+              onClick={() => updateGridTextSize(-1)}
+              disabled={gridTextSize <= MIN_GRID_TEXT_SIZE}
+              title="Réduire la taille du texte des cases"
+              className="flex h-8 w-9 items-center justify-center text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              A
+            </button>
+            <span className="h-5 w-px bg-gray-200" />
+            <button
+              type="button"
+              onClick={() => updateGridTextSize(1)}
+              disabled={gridTextSize >= MAX_GRID_TEXT_SIZE}
+              title="Augmenter la taille du texte des cases"
+              className="flex h-8 w-9 items-center justify-center text-base font-black text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              A
+            </button>
+          </div>
           <span className={`text-xs transition-opacity ${saving ? 'text-orange-500 opacity-100' : savedAt ? 'text-green-600 opacity-100' : 'opacity-0'}`}>
             {saving ? '💾 Sauvegarde...' : '✓ Sauvegardé'}
           </span>
@@ -726,7 +767,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                                 transition-colors
                               `}
                             >
-                              <BeatContent content={bar.b[beatIdx] || ''} />
+                              <BeatContent content={bar.b[beatIdx] || ''} fontSize={gridTextSize} />
                             </div>
                           )
                         })}
