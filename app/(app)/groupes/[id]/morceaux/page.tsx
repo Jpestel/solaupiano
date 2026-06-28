@@ -100,6 +100,23 @@ function getUrlResources(song: Song) {
   return song.resources.filter((resource) => resource.type === 'LIEN')
 }
 
+function chordifyQuery(title: string, artist?: string) {
+  return [title, artist].map((part) => part?.trim()).filter(Boolean).join(' ')
+}
+
+function chordifySearchUrl(title: string, artist?: string) {
+  const query = chordifyQuery(title, artist)
+  return `https://chordify.net/search/${encodeURIComponent(query)}`
+}
+
+function chordifyResourceName(title: string) {
+  return `Chordify - ${title}`.slice(0, 120)
+}
+
+function isChordifyResource(resource: Resource) {
+  return resource.type === 'LIEN' && /(^|\.)chordify\.net/i.test(resource.filePath)
+}
+
 interface GroupInfo {
   name: string
   groupRole: string
@@ -152,6 +169,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [activeLetter, setActiveLetter] = useState<string | null>(null)
   const [quickPdfBySong, setQuickPdfBySong] = useState<Record<number, number>>({})
   const [quickUrlBySong, setQuickUrlBySong] = useState<Record<number, number>>({})
+  const [addChordifyOnSave, setAddChordifyOnSave] = useState(true)
 
   const quickChoiceKey = `solaupiano-repertoire-quick-resources-${groupId}`
 
@@ -228,8 +246,12 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       return
     }
     const created = await res.json().catch(() => null)
+    if (created?.id && addChordifyOnSave) {
+      await saveChordifyResource(created.id, songForm.title, songForm.artist)
+    }
     setAddSongOpen(false)
     setSongForm({ title: '', artist: '', notes: '', duration: '', tempo: '' })
+    setAddChordifyOnSave(true)
     fetchData()
     // Propose une vidéo YouTube officielle à ajouter en ressource
     if (created?.id && created.title) {
@@ -245,6 +267,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
 
   const openEdit = (song: Song) => {
     setEditSong(song)
+    setAddChordifyOnSave(true)
     setSongForm({
       title: song.title,
       artist: song.artist || '',
@@ -272,8 +295,41 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       setError(d.error || 'Erreur.')
       return
     }
+    if (addChordifyOnSave) {
+      await saveChordifyResource(editSong.id, songForm.title, songForm.artist, editSong)
+    }
     setEditSong(null)
+    setAddChordifyOnSave(true)
     fetchData()
+  }
+
+  const saveChordifyResource = async (songId: number, title: string, artist?: string, song?: Song) => {
+    const cleanTitle = title.trim()
+    if (!cleanTitle) return
+    const url = chordifySearchUrl(cleanTitle, artist)
+    const name = chordifyResourceName(cleanTitle)
+    const existing = song?.resources.find(isChordifyResource)
+    if (existing && chefCan('ressources', 'update')) {
+      await fetch(`/api/ressources/${existing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, filePath: url }),
+      })
+      return
+    }
+    if (existing || !chefCan('ressources', 'create')) return
+    await fetch(`/api/morceaux/${songId}/ressources`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, name }),
+    })
+  }
+
+  const openAddSong = () => {
+    setSongForm({ title: '', artist: '', notes: '', duration: '', tempo: '' })
+    setAddChordifyOnSave(true)
+    setError('')
+    setAddSongOpen(true)
   }
 
   const handleDeleteSong = async (song: Song) => {
@@ -392,6 +448,9 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     if (isFounder) return true
     return (perms[mod] as Record<string, boolean>)[action] !== false
   }
+  const canManageChordifyLink = chefCan('ressources', 'create') || chefCan('ressources', 'update')
+  const chordifyPreviewUrl = songForm.title.trim() ? chordifySearchUrl(songForm.title, songForm.artist) : ''
+  const editSongHasChordify = editSong?.resources.some(isChordifyResource) ?? false
   const availableLetters = new Set(songs.map((song) => getSongLetter(song.title)))
   const normalizedSearch = normalizeSearch(search.trim())
   const filteredSongs = songs.filter((song) => {
@@ -415,7 +474,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Répertoire ({songs.length})</h1>
         {chefCan('repertoire', 'create') && (
-          <Button onClick={() => setAddSongOpen(true)}>+ Ajouter un morceau</Button>
+          <Button onClick={openAddSong}>+ Ajouter un morceau</Button>
         )}
       </div>
 
@@ -1000,7 +1059,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       </Modal>
 
       {/* Edit song modal */}
-      <Modal isOpen={!!editSong} onClose={() => setEditSong(null)} title="Modifier le morceau">
+      <Modal isOpen={!!editSong} onClose={() => { setEditSong(null); setAddChordifyOnSave(true) }} title="Modifier le morceau">
         <form onSubmit={handleEditSong} className="space-y-4">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
           <div>
@@ -1038,6 +1097,37 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} />
           </div>
 
+          {canManageChordifyLink && (chefCan('ressources', 'create') || editSongHasChordify) && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={addChordifyOnSave}
+                  onChange={(e) => setAddChordifyOnSave(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-amber-900">
+                    {editSongHasChordify ? 'Mettre à jour le lien Chordify' : 'Ajouter une recherche Chordify'}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-amber-800">
+                    Le lien est généré avec le titre et l&apos;artiste saisis. Chordify proposera ensuite ses résultats.
+                  </span>
+                  {chordifyPreviewUrl && (
+                    <a
+                      href={chordifyPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex max-w-full text-xs font-bold text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-900"
+                    >
+                      Prévisualiser la recherche Chordify →
+                    </a>
+                  )}
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* Suggestions de ressources sur un titre existant (n'efface rien) */}
           <button
             type="button"
@@ -1059,7 +1149,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
               </button>
             )}
             <div className="flex gap-3">
-              <Button type="button" variant="secondary" onClick={() => setEditSong(null)}>Annuler</Button>
+              <Button type="button" variant="secondary" onClick={() => { setEditSong(null); setAddChordifyOnSave(true) }}>Annuler</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Sauvegarder'}</Button>
             </div>
           </div>
@@ -1067,7 +1157,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       </Modal>
 
       {/* Add song modal */}
-      <Modal isOpen={addSongOpen} onClose={() => setAddSongOpen(false)} title="Ajouter un morceau">
+      <Modal isOpen={addSongOpen} onClose={() => { setAddSongOpen(false); setAddChordifyOnSave(true) }} title="Ajouter un morceau">
         <form onSubmit={handleAddSong} className="space-y-4">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
           <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 text-xs text-indigo-700">
@@ -1107,8 +1197,36 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             <label className="form-label">Notes</label>
             <textarea value={songForm.notes} onChange={(e) => setSongForm({ ...songForm, notes: e.target.value })} className="form-input" rows={3} placeholder={ph('groupes_id_morceaux_8')} />
           </div>
+          {canManageChordifyLink && chefCan('ressources', 'create') && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={addChordifyOnSave}
+                  onChange={(e) => setAddChordifyOnSave(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-amber-900">Ajouter automatiquement une recherche Chordify</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-amber-800">
+                    Une ressource URL sera créée avec le titre et l&apos;artiste saisis.
+                  </span>
+                  {chordifyPreviewUrl && (
+                    <a
+                      href={chordifyPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex max-w-full text-xs font-bold text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-900"
+                    >
+                      Prévisualiser la recherche Chordify →
+                    </a>
+                  )}
+                </span>
+              </label>
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setAddSongOpen(false)}>Annuler</Button>
+            <Button type="button" variant="secondary" onClick={() => { setAddSongOpen(false); setAddChordifyOnSave(true) }}>Annuler</Button>
             <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Ajouter'}</Button>
           </div>
         </form>
