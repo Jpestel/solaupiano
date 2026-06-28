@@ -7,6 +7,20 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
+const NOTE_SUGGESTIONS = [
+  'Intro',
+  'Intro guitare seule',
+  'Intro piano seul',
+  'Couplet',
+  'Refrain',
+  'Pont',
+  'Solo',
+  'Break',
+  'Entrée chant',
+  'Entrée saxo',
+  'Fin',
+]
+
 interface PdfModalProps {
   url: string    // URL of the file (/api/ressources/ID)
   title: string
@@ -36,6 +50,8 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const [bookmarks, setBookmarks] = useState<PdfBookmark[]>([])
   const [placingMode, setPlacingMode] = useState<'bookmark' | 'note' | null>(null)
   const [jumpTarget, setJumpTarget] = useState<PdfBookmark | null>(null)
+  const [noteEditor, setNoteEditor] = useState<{ id?: number; page: number; xPct?: number; yPct?: number } | null>(null)
+  const [noteDraft, setNoteDraft] = useState('')
   const draggingBookmarkRef = useRef<{ id: number; startX: number; startY: number; moved: boolean } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -207,17 +223,43 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     }
   }
 
-  const createNote = async (xPct: number, yPct: number) => {
+  const saveNoteDraft = async () => {
+    if (!resourceId || !noteEditor) return
+    const text = noteDraft.trim()
+    if (!text) return
+
+    if (noteEditor.id) {
+      const res = await fetch(`/api/ressources/${resourceId}/bookmarks/${noteEditor.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: text }),
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setBookmarks((items) => items.map((item) => (item.id === updated.id ? updated : item)))
+        setNoteEditor(null)
+        setNoteDraft('')
+      } else {
+        const data = await res.json().catch(() => null)
+        window.alert(data?.error || 'Impossible de modifier cette note.')
+      }
+      return
+    }
+
+    await createNote(noteEditor.xPct ?? 0.5, noteEditor.yPct ?? 0.5, text, noteEditor.page)
+    setNoteEditor(null)
+    setNoteDraft('')
+  }
+
+  const createNote = async (xPct: number, yPct: number, label: string, page = currentPage) => {
     if (!resourceId) return
-    const label = window.prompt('Texte de la note courte', 'Entrée chant')
-    if (label === null) return
     const text = label.trim()
     if (!text) return
 
     const res = await fetch(`/api/ressources/${resourceId}/bookmarks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ page: currentPage, xPct, yPct, label: text, kind: 'NOTE' }),
+      body: JSON.stringify({ page, xPct, yPct, label: text, kind: 'NOTE' }),
     })
     if (res.ok) {
       const note = await res.json()
@@ -230,24 +272,8 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   }
 
   const updateNoteLabel = async (note: PdfBookmark) => {
-    if (!resourceId) return
-    const label = window.prompt('Modifier la note', note.label)
-    if (label === null) return
-    const text = label.trim()
-    if (!text) return
-
-    const res = await fetch(`/api/ressources/${resourceId}/bookmarks/${note.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label: text }),
-    })
-    if (res.ok) {
-      const updated = await res.json()
-      setBookmarks((items) => items.map((item) => (item.id === updated.id ? updated : item)))
-    } else {
-      const data = await res.json().catch(() => null)
-      window.alert(data?.error || 'Impossible de modifier cette note.')
-    }
+    setNoteDraft(note.label || '')
+    setNoteEditor({ id: note.id, page: note.page })
   }
 
   const deleteBookmark = async (id: number) => {
@@ -340,8 +366,12 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     const xPct = (e.clientX - rect.left) / rect.width
     const yPct = (e.clientY - rect.top) / rect.height
     if (xPct < 0 || xPct > 1 || yPct < 0 || yPct > 1) return
-    if (placingMode === 'note') createNote(xPct, yPct)
-    else createBookmark(xPct, yPct)
+    if (placingMode === 'note') {
+      setNoteDraft('')
+      setNoteEditor({ page: isImage ? 1 : currentPage, xPct, yPct })
+    } else {
+      createBookmark(xPct, yPct)
+    }
   }
 
   const handleBookmarkPointer = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -352,8 +382,12 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     const xPct = (e.clientX - rect.left) / rect.width
     const yPct = (e.clientY - rect.top) / rect.height
     if (xPct < 0 || xPct > 1 || yPct < 0 || yPct > 1) return
-    if (placingMode === 'note') createNote(xPct, yPct)
-    else createBookmark(xPct, yPct)
+    if (placingMode === 'note') {
+      setNoteDraft('')
+      setNoteEditor({ page: isImage ? 1 : currentPage, xPct, yPct })
+    } else {
+      createBookmark(xPct, yPct)
+    }
   }
 
   const handlePageInputSubmit = (e: React.FormEvent) => {
@@ -522,6 +556,71 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
                 </button>
               </span>
             ))}
+          </div>
+        )}
+
+        {noteEditor && (
+          <div
+            className="absolute inset-0 z-40 flex items-center justify-center bg-gray-950/55 px-4"
+            onClick={() => { setNoteEditor(null); setNoteDraft(''); setPlacingMode(null) }}
+          >
+            <form
+              className="w-full max-w-lg rounded-xl border border-amber-300/40 bg-gray-900 p-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+              onSubmit={(e) => { e.preventDefault(); saveNoteDraft() }}
+            >
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold text-white">{noteEditor.id ? 'Modifier la note' : 'Ajouter une note'}</h3>
+                  <p className="text-sm text-gray-400">Saisissez un court texte ou choisissez une suggestion.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setNoteEditor(null); setNoteDraft(''); setPlacingMode(null) }}
+                  className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-800 text-gray-300 hover:bg-red-600 hover:text-white"
+                  aria-label="Fermer"
+                >
+                  ×
+                </button>
+              </div>
+
+              <input
+                autoFocus
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                className="mb-3 w-full rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-base font-semibold text-white outline-none transition focus:border-amber-300"
+              />
+
+              <div className="mb-4 flex flex-wrap gap-2">
+                {NOTE_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setNoteDraft(suggestion)}
+                    className="rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1.5 text-sm font-semibold text-amber-100 hover:bg-amber-300 hover:text-gray-950"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setNoteEditor(null); setNoteDraft(''); setPlacingMode(null) }}
+                  className="rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-gray-700"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={!noteDraft.trim()}
+                  className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-black text-gray-950 hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Valider
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
