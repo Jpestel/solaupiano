@@ -605,6 +605,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+          <Link
+            href={`/groupes/${groupId}/morceaux`}
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+          >
+            ← Retour au répertoire
+          </Link>
           <span className={`text-xs transition-opacity ${saving ? 'text-orange-500 opacity-100' : savedAt ? 'text-green-600 opacity-100' : 'opacity-0'}`}>
             {saving ? '💾 Sauvegarde...' : '✓ Sauvegardé'}
           </span>
