@@ -51,6 +51,15 @@ export default function AdminUtilisateursPage() {
   const [emailFilter, setEmailFilter] = useState<'all' | 'verified' | 'unverified'>('all')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const formatDateTime = (value: string) =>
+    new Date(value).toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+
   const fetchUsers = async () => {
     const [usrRes, instrRes] = await Promise.all([
       fetch('/api/admin/utilisateurs'),
@@ -319,6 +328,9 @@ export default function AdminUtilisateursPage() {
           )}
         </td>
         <td className="px-6 py-4">
+          <span className="text-xs font-medium text-gray-700">{formatDateTime(user.createdAt)}</span>
+        </td>
+        <td className="px-6 py-4">
           {isAdmin ? (
             <span className="text-xs text-gray-400">—</span>
           ) : (
@@ -440,13 +452,14 @@ export default function AdminUtilisateursPage() {
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupes</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Rôle site</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Email</th>
+                <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Créé le</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
                 <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
               {realUsers.length === 0 && (
-                <tr><td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400">Aucun utilisateur ne correspond aux filtres.</td></tr>
+                <tr><td colSpan={8} className="px-6 py-10 text-center text-sm text-gray-400">Aucun utilisateur ne correspond aux filtres.</td></tr>
               )}
               {realUsers.map(renderUserRow)}
             </tbody>
@@ -474,6 +487,7 @@ export default function AdminUtilisateursPage() {
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Groupes</th>
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Rôle site</th>
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Email</th>
+                    <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Créé le</th>
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Plan</th>
                     <th className="text-left px-6 py-3.5 font-semibold text-gray-600">Actions</th>
                   </tr>
