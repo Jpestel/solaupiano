@@ -10,7 +10,7 @@ import { ph } from '@/lib/placeholders'
 /* ─── Types ─── */
 interface Song { id: number; title: string; artist?: string; tempo?: number | null }
 interface ChartData {
-  id: number; groupId: number; title: string; tempo?: string | null
+  id: number; groupId: number; songId?: number | null; title: string; tempo?: string | null
   keySignature?: string | null; timeSignature: string
   barsPerRow: number; totalBars: number; cells: unknown
   sons?: string | null; song?: { id: number; title: string } | null
@@ -239,6 +239,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   })
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [gridTextSize, setGridTextSize] = useState(DEFAULT_GRID_TEXT_SIZE)
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportPdfMessage, setExportPdfMessage] = useState('')
 
   const updateGridTextSize = (delta: number) => {
     setGridTextSize((value) => Math.max(MIN_GRID_TEXT_SIZE, Math.min(MAX_GRID_TEXT_SIZE, value + delta)))
@@ -494,6 +496,30 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     setSettingsOpen(true)
   }
 
+  const handleExportPdfResource = async () => {
+    if (!chart) return
+    setExportPdfMessage('')
+    if (!chart.song?.id && !chart.songId) {
+      setExportPdfMessage('Liez d’abord cette grille à un morceau dans Paramètres.')
+      return
+    }
+
+    setExportingPdf(true)
+    const res = await fetch(`/api/grilles/${grilleId}/export-pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ textSize: gridTextSize }),
+    })
+    setExportingPdf(false)
+
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setExportPdfMessage(data.error || 'Impossible de créer le PDF.')
+      return
+    }
+    setExportPdfMessage('PDF ajouté aux ressources du morceau.')
+  }
+
   /* Impression */
   const handlePrint = () => {
     if (!chart) return
@@ -659,6 +685,17 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
             🖨️ Imprimer
           </button>
+          {canEditGrid && (
+            <button
+              type="button"
+              onClick={handleExportPdfResource}
+              disabled={exportingPdf}
+              title={chart.song?.id || chart.songId ? 'Créer un PDF et l’ajouter aux ressources du morceau lié' : 'Liez cette grille à un morceau dans Paramètres'}
+              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+            >
+              {exportingPdf ? 'Création...' : '📄 PDF ressource'}
+            </button>
+          )}
           <Link
             href={`/outils/transposition?chartId=${chart.id}&groupId=${groupId}`}
             className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
@@ -676,6 +713,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           )}
         </div>
       </div>
+
+      {exportPdfMessage && (
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${exportPdfMessage.includes('ajouté') ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-amber-100 bg-amber-50 text-amber-800'}`}>
+          {exportPdfMessage}
+        </div>
+      )}
 
       {readOnlyTestAccount && (
         <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
