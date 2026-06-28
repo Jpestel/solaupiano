@@ -96,6 +96,7 @@ export default async function AidePage() {
             { href: '#metronome', label: '🥁 Métronome' },
             { href: '#portee', label: '🎼 Portée' },
             { href: '#lecteur-partition', label: '🎼 Lecteur partition' },
+            { href: '#lecteur-pdf', label: '📄 Lecteur PDF' },
             { href: '#wav-mp3', label: '🎧 WAV→MP3' },
             { href: '#video-audio', label: '🎬 Vidéo→MP3' },
             { href: '#images-pdf', label: '🖼️ Photos→PDF' },
@@ -103,6 +104,7 @@ export default async function AidePage() {
             { href: '#stats', label: '📊 Statistiques' },
             { href: '#annonces', label: '📢 Annonces' },
             { href: '#blog', label: '📰 Blog' },
+            ...(session?.user?.siteRole === 'ADMIN' ? [{ href: '#admin', label: '🛠 Admin' }] : []),
             { href: '#plans', label: '📦 Plans' },
             { href: '#testeur', label: '🧪 Compte testeur' },
             { href: '#assistance', label: '🆘 Assistance' },
@@ -148,7 +150,8 @@ export default async function AidePage() {
 
             <HelpCard title="Alertes de connexion">
               <p>Pour l&apos;audit, l&apos;administration peut recevoir un e-mail lorsqu&apos;un membre se connecte. Cette alerte est réglable <strong>compte par compte</strong> depuis <strong>Admin → Utilisateurs</strong>.</p>
-              <Note>Les comptes administrateurs sont ignorés par cet audit afin d&apos;éviter les notifications inutiles.</Note>
+              <p className="mt-2">L&apos;alerte tient aussi compte de l&apos;activité : même si un membre ne clique pas sur “Déconnexion” et revient plus tard sur le site avec sa session encore ouverte, une nouvelle visite significative peut être signalée.</p>
+              <Note>Les comptes administrateurs peuvent être exclus de cet audit afin d&apos;éviter les notifications inutiles.</Note>
             </HelpCard>
 
             <HelpCard title="Votre compte">
@@ -439,6 +442,7 @@ export default async function AidePage() {
 
             <HelpCard title="Voir les concerts à venir">
               <p>La page <strong>Concerts</strong> affiche tous les concerts (le <strong>nom du groupe en concert</strong> y figure), triés par date. Si une setlist est associée, vous pouvez la consulter et l&apos;imprimer directement.</p>
+              <p className="mt-2">L&apos;adresse d&apos;un concert est cliquable : elle ouvre directement un itinéraire ou une recherche GPS dans Google Maps.</p>
               <Tip>Le tableau de bord affiche aussi le prochain concert de chacun de vos groupes, avec un accès rapide.</Tip>
             </HelpCard>
 
@@ -449,6 +453,7 @@ export default async function AidePage() {
                 <li>Au clic, la fiche affiche : le <strong>nom du groupe</strong> avec son image, l&apos;adresse, puis l&apos;heure de début.</li>
                 <li>Si l&apos;heure n&apos;est pas renseignée, le message indique : <strong>Heure à confirmer, cliquez sur en savoir plus pour contacter le groupe</strong>.</li>
                 <li>Le lien <strong>En savoir plus</strong> ouvre un formulaire de contact relié au mail du chef du groupe.</li>
+                <li>Les textes de cette fiche publique peuvent être personnalisés depuis l&apos;administration du site.</li>
               </ul>
               <Tip>Pour apparaître sur la carte, le concert doit avoir une adresse exploitable et être destiné à être visible publiquement.</Tip>
             </HelpCard>
@@ -832,6 +837,12 @@ export default async function AidePage() {
               </HelpCard>
             )}
 
+            <HelpCard title="Retrouver vite un titre">
+              <p>En haut du répertoire, utilisez la recherche et les <strong>lettres de l&apos;alphabet</strong> pour sauter rapidement aux titres qui commencent par A, B, C…</p>
+              <p className="mt-2">Les filtres vous aident aussi à repérer les morceaux selon leurs contenus : partitions PDF, grilles, séquences, paroles, tablatures, liens ou ressources manquantes.</p>
+              <Tip>Sur iPad ou téléphone, ces raccourcis évitent de faire défiler une longue liste pendant une répétition.</Tip>
+            </HelpCard>
+
             <HelpCard title="Ressources d'un morceau" badge={isCreateur ? { label: "Chef pour l'upload", color: "indigo" } : undefined}>
               <p>Chaque morceau peut avoir des ressources associées :</p>
               <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -852,8 +863,32 @@ export default async function AidePage() {
               <Note>Le quota de stockage est <strong>partagé entre tous vos groupes</strong> (pas un quota par groupe). La barre visible sur chaque groupe affiche la consommation totale de votre compte.</Note>
             </HelpCard>
 
+            {isCreateur && (
+              <HelpCard title="Alerte si un morceau n'a rien à jouer" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <p>Un morceau doit idéalement avoir au moins une <strong>partition PDF</strong> ou une <strong>grille</strong>. Si un titre ne possède ni PDF, ni grille, ni URL, ni ressource exploitable, Sol au piano affiche une alerte pour vous aider à corriger rapidement.</p>
+                <ul className="mt-2 space-y-1">
+                  <li>Le bouton <strong>Corriger le premier titre</strong> vous amène directement au premier morceau concerné.</li>
+                  <li>Sur chaque morceau, vous pouvez choisir <strong>d&apos;ignorer l&apos;alerte</strong> si vous estimez qu&apos;il a déjà assez d&apos;informations.</li>
+                  <li>Les badges rapides donnent accès à <strong>un PDF choisi</strong> et à <strong>une URL choisie</strong>, même si le morceau possède plusieurs ressources.</li>
+                </ul>
+                <Tip>Le menu des ressources reste disponible pour tout voir, mais les badges rapides servent à lancer le bon fichier ou le bon lien sans chercher.</Tip>
+              </HelpCard>
+            )}
+
+            {isCreateur && (
+              <HelpCard title="Lien Chordify automatique" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <p>Lors de l&apos;ajout ou de l&apos;édition d&apos;un morceau, vous pouvez demander à Sol au piano de créer automatiquement une <strong>recherche Chordify</strong> à partir du titre et de l&apos;artiste.</p>
+                <ul className="mt-2 space-y-1">
+                  <li>Le lien est ajouté comme ressource de type <strong>Lien</strong>.</li>
+                  <li>Il ouvre Chordify sur la recherche correspondante : vous restez libre de choisir la bonne version.</li>
+                  <li>Ce n&apos;est pas un téléchargement automatique de partition : c&apos;est un raccourci pratique vers votre recherche.</li>
+                </ul>
+                <Note>Respectez toujours les droits d&apos;utilisation des contenus que vous consultez, téléchargez ou importez ensuite dans Sol au piano.</Note>
+              </HelpCard>
+            )}
+
             <HelpCard title="Tempo & métronome par morceau">
-              <p>Renseignez le <strong>tempo (BPM)</strong> d&apos;un morceau : un badge <span className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">🥁 BPM</span> apparaît et lance un <strong>métronome visuel et sonore</strong> (son coupable avant le lancement).</p>
+              <p>Renseignez le <strong>tempo (BPM)</strong> d&apos;un morceau : un badge <span className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">🥁 BPM</span> apparaît et lance un <strong>métronome visuel et sonore</strong>.</p>
               <ul className="mt-2 space-y-1">
                 <li>Affichage <strong>plein écran</strong> (gros repère) ou <strong>fenêtre flottante</strong> déplaçable et redimensionnable</li>
                 <li>La fenêtre reste <strong>toujours au premier plan</strong>, même au-dessus d&apos;une partition PDF ouverte en plein écran</li>
@@ -926,6 +961,17 @@ export default async function AidePage() {
                 <li>Les durées individuelles et le total (si activé)</li>
               </ul>
               <Tip>Vous pouvez aussi imprimer directement depuis la page <strong>Concerts</strong> si une setlist y est associée.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Mode concert : jouer la setlist sans papier" badge={{ label: "Scène", color: "green" }}>
+              <p>Le bouton <strong>🎤 Mode concert</strong> ouvre une vue plein écran pensée pour jouer une setlist en direct.</p>
+              <ul className="mt-2 space-y-1">
+                <li>La liste des titres est numérotée, avec un <strong>morceau sélectionné</strong> bien visible.</li>
+                <li>Une recherche rapide permet de retrouver un titre si le chef change l&apos;ordre en plein concert.</li>
+                <li>Chaque morceau affiche ses accès de scène : <strong>PDF</strong>, <strong>Grille</strong>, <strong>Partition carrée</strong>, paroles, tablature, séquences et ressources.</li>
+                <li>Depuis un concert associé à une setlist, le bouton <strong>🎤 Jouer</strong> ouvre directement ce mode.</li>
+              </ul>
+              <Tip>Le mode concert évite d&apos;imprimer la setlist : vous pouvez ouvrir la partition ou la grille du titre au moment où il est joué.</Tip>
             </HelpCard>
           </div>
         </section>
@@ -1041,6 +1087,27 @@ export default async function AidePage() {
               </ul>
               <Tip>La fenêtre d&apos;impression est optimisée pour A4 et fonctionne aussi depuis un mobile.</Tip>
             </HelpCard>
+
+            <HelpCard title="Lecture sur iPad, mobile et retour au répertoire">
+              <p>La partie haute d&apos;une grille est adaptée aux écrans tactiles : titre, tempo, tonalité, mesure et actions restent lisibles sans casser la mise en page.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Les boutons <strong>petit A</strong> et <strong>grand A</strong> réduisent ou augmentent la taille du texte dans les cases.</li>
+                <li>Si vous arrivez depuis un morceau du répertoire, un bouton clair permet de <strong>revenir au répertoire</strong> ou au morceau consulté.</li>
+                <li>La grille peut être consultée à la place d&apos;un PDF quand aucun fichier PDF n&apos;est associé au titre.</li>
+              </ul>
+            </HelpCard>
+
+            {isCreateur && (
+              <HelpCard title="Transformer une grille en PDF" badge={{ label: "Chef seulement", color: "indigo" }}>
+                <p>Une grille associée à un morceau peut être exportée en <strong>PDF</strong>, puis ajoutée automatiquement aux ressources du titre.</p>
+                <ol className="space-y-2 mt-2">
+                  <Step n={1}>Ouvrez la grille liée au morceau.</Step>
+                  <Step n={2}>Cliquez sur l&apos;action d&apos;export PDF.</Step>
+                  <Step n={3}>Le PDF généré est ajouté comme ressource du morceau, afin d&apos;être disponible dans le répertoire, les setlists et le mode concert.</Step>
+                </ol>
+                <Tip>Pratique pour un membre qui préfère ouvrir une partition PDF plutôt qu&apos;entrer dans l&apos;éditeur de grille.</Tip>
+              </HelpCard>
+            )}
 
             {isCreateur && (
               <HelpCard title="Paramètres d'une grille" badge={{ label: "Chef seulement", color: "indigo" }}>
@@ -1390,6 +1457,7 @@ export default async function AidePage() {
                 <li>Le lecteur <strong>flotte par-dessus</strong> : ouvrez une <strong>partition PDF</strong> d&apos;un morceau et l&apos;audio continue</li>
                 <li><strong>Réduisez-le</strong> (▾) : la lecture <strong>continue</strong> en arrière-plan, une pastille verte indique qu&apos;un audio est chargé</li>
               </ul>
+              <p className="mt-2">Si l&apos;audio attendu n&apos;apparaît pas dans la liste, utilisez <strong>Ajouter un fichier audio</strong> depuis le lecteur pour l&apos;importer sans devoir fermer la partition.</p>
             </HelpCard>
           </div>
         </section>
@@ -1409,6 +1477,25 @@ export default async function AidePage() {
                 <Step n={4}>Repassez en <strong>▶ Écouter</strong> et <strong>cliquez un 🔊</strong> : l&apos;audio démarre pile à ce moment.</Step>
               </ol>
               <Note>Cliquez un 🔊 en mode Éditer pour le régler (⏱ caler sur l&apos;audio, saisir un temps, tester, supprimer). Les marqueurs sont <strong>personnels</strong>, et pour les <strong>PDF</strong> ils sont mémorisés <strong>par page</strong>.</Note>
+            </HelpCard>
+
+            <HelpCard title="Repères de navigation dans un PDF">
+              <p>Le lecteur PDF permet aussi de poser des <strong>repères</strong> directement sur une page, à un endroit précis. Ils restent alignés avec la partition lorsque vous zoomez ou dézoomez.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Chaque repère affiche son <strong>numéro</strong> pour faciliter l&apos;organisation.</li>
+                <li>Vous pouvez le <strong>déplacer</strong> par glisser-déposer ou le supprimer depuis son panneau de réglage.</li>
+                <li>Un repère peut renvoyer vers <strong>un autre repère</strong>, même placé sur une autre page : utile pour les reprises, codas, sauts ou retours.</li>
+              </ul>
+              <Tip>Sur iPad, activez le mode repère, touchez l&apos;emplacement voulu sur la page, puis renseignez le renvoi si nécessaire.</Tip>
+            </HelpCard>
+
+            <HelpCard title="Notes courtes sur une partition">
+              <p>En plus des repères, vous pouvez poser de petits <strong>badges de texte</strong> sur le PDF : entrée chant, intro guitare seule, refrain, solo sax, break, stop, etc.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Le champ de saisie est volontairement vide pour écrire votre propre indication.</li>
+                <li>Des textes courts courants sont proposés pour aller vite.</li>
+                <li>Les badges utilisent une couleur différente des repères de navigation pour éviter la confusion.</li>
+              </ul>
             </HelpCard>
           </div>
         </section>
@@ -1788,6 +1875,23 @@ export default async function AidePage() {
           </div>
         </section>
 
+        {/* ─── LECTEUR PDF ─── */}
+        <section id="lecteur-pdf">
+          <SectionTitle icon="📄" title="Lecteur PDF" color="blue" tutorials={[]} />
+          <div className="space-y-4">
+            <HelpCard title="Ouvrir une partition PDF">
+              <p>Depuis le répertoire, une setlist ou le mode concert, ouvrez un PDF pour le lire directement dans Sol au piano.</p>
+              <ul className="mt-2 space-y-1">
+                <li>Le lecteur s&apos;ouvre par défaut en <strong>plein écran</strong> pour maximiser la partition.</li>
+                <li>Votre <strong>zoom est mémorisé par utilisateur et par PDF</strong> : chacun garde son confort de lecture.</li>
+                <li>Les boutons précédent / suivant et les grandes flèches latérales permettent de tourner les pages rapidement.</li>
+                <li>Le lecteur audio flottant peut rester disponible par-dessus la partition.</li>
+              </ul>
+              <Tip>Sur tablette, utilisez le zoom adapté à votre distance de lecture puis laissez Sol au piano le retenir pour la prochaine ouverture.</Tip>
+            </HelpCard>
+          </div>
+        </section>
+
         {/* ─── WAV → MP3 ─── */}
         <section id="wav-mp3">
           <SectionTitle icon="🎧" title="WAV → MP3" color="green" tutorials={tf('tool_wav2mp3')} />
@@ -1960,6 +2064,16 @@ export default async function AidePage() {
               <p className="mt-2 text-gray-600">Pour les fichiers hébergés (PDF, Audio, Image…), la taille totale occupée est indiquée pour aider à gérer l&apos;espace de stockage.</p>
             </HelpCard>
 
+            <HelpCard title="Statistiques d'utilisation du site" badge={session?.user?.siteRole === 'ADMIN' ? { label: "Admin", color: "indigo" } : undefined}>
+              <p>L&apos;administration peut consulter les statistiques de fréquentation de Sol au piano sans quitter l&apos;espace admin : visites, pages vues, parcours et modules les plus consultés.</p>
+              <ul className="mt-2 space-y-1">
+                <li>La vue aide à répondre à la question : <strong>les membres utilisent-ils vraiment le site ?</strong></li>
+                <li>Les modules populaires permettent de voir ce qui sert le plus : répertoire, PDF, séquences, setlists, tâches, concerts, etc.</li>
+                <li>Certains comptes peuvent être <strong>exclus des statistiques</strong>, par exemple admin ou testeur, pour éviter de fausser les chiffres.</li>
+              </ul>
+              <Note>Ces statistiques mesurent l&apos;usage global et les pages consultées. Elles ne donnent pas accès aux mots de passe, messages privés ou contenus personnels non destinés à l&apos;administration.</Note>
+            </HelpCard>
+
             {isCreateur && (
               <HelpCard title="Permissions co-chefs / co-profs pour les statistiques" badge={{ label: "Fondateur seulement", color: "indigo" }}>
                 <p>Par défaut, tous les <strong>co-chefs</strong> ou <strong>co-profs</strong> que vous avez nommés ont accès aux statistiques. Vous pouvez restreindre cet accès depuis les paramètres de permissions en bas de la page du groupe :</p>
@@ -2111,6 +2225,37 @@ export default async function AidePage() {
             )}
           </div>
         </section>
+
+        {session?.user?.siteRole === 'ADMIN' && (
+          <section id="admin">
+            <SectionTitle icon="🛠" title="Administration" color="indigo" tutorials={[]} />
+            <div className="space-y-4">
+              <HelpCard title="Plans, modules et accès" badge={{ label: 'Admin', color: 'indigo' }}>
+                <p>Depuis l&apos;administration, vous décidez quels modules sont inclus dans chaque plan : tâches de groupe, méthode carrée, statistiques, séquences, outils audio, photos → PDF, cachet GUSO, etc.</p>
+                <ul className="mt-2 space-y-1">
+                  <li>Un module activé dans un plan apparaît comme carte module pour les groupes concernés.</li>
+                  <li>Un module désactivé disparaît ou s&apos;affiche comme indisponible selon le contexte.</li>
+                  <li>Les chefs peuvent ensuite réorganiser l&apos;ordre des modules sur leur propre page de groupe.</li>
+                </ul>
+              </HelpCard>
+
+              <HelpCard title="Utilisateurs, alertes et statistiques" badge={{ label: 'Admin', color: 'indigo' }}>
+                <p>La gestion des utilisateurs permet de régler les alertes de connexion <strong>compte par compte</strong> et d&apos;exclure certains comptes des statistiques, par exemple admin ou testeur.</p>
+                <Tip>Exclure les comptes de test évite de gonfler artificiellement les pages vues, les modules populaires et les visites.</Tip>
+              </HelpCard>
+
+              <HelpCard title="Newsletters" badge={{ label: 'Admin', color: 'indigo' }}>
+                <p>Les newsletters se préparent en brouillon depuis l&apos;admin avant envoi. Vous pouvez relire le contenu, corriger, envoyer, ou <strong>supprimer un brouillon</strong> devenu inutile.</p>
+                <p className="mt-2">La newsletter peut présenter les nouveautés et accueillir les nouveaux groupes inscrits depuis la précédente édition.</p>
+              </HelpCard>
+
+              <HelpCard title="Personnalisation du site" badge={{ label: 'Admin', color: 'indigo' }}>
+                <p>Les zones publiques importantes peuvent être ajustées depuis l&apos;admin : textes de la page d&apos;accueil, cartes de groupes, contenu de la carte des concerts, boutons et libellés publics.</p>
+                <Note>Quand vous modifiez un texte public, vérifiez rapidement le rendu sur ordinateur et mobile : certains libellés longs peuvent prendre beaucoup de place.</Note>
+              </HelpCard>
+            </div>
+          </section>
+        )}
 
         {/* ─── PLANS ─── */}
         <section id="plans">
@@ -2375,6 +2520,30 @@ export default async function AidePage() {
             </FaqItem>
             <FaqItem question="Les répétitions passées sont-elles conservées ?">
               Oui, toutes les répétitions passées restent accessibles. Seules les répétitions futures sont mises en avant sur le tableau de bord et la page du groupe.
+            </FaqItem>
+            <FaqItem question="Comment ouvrir vite une partition pendant un concert ?">
+              Associez une <strong>setlist</strong> au concert, puis ouvrez le <strong>Mode concert</strong>. Chaque titre donne accès directement à ses PDF, grilles, partitions carrées, paroles, tablatures, séquences et ressources. La recherche permet de retrouver un morceau si l&apos;ordre change au dernier moment.
+            </FaqItem>
+            <FaqItem question="Puis-je garder mon zoom personnel sur un PDF ?">
+              Oui. Le lecteur PDF mémorise le <strong>zoom par utilisateur et par fichier</strong>. Un chanteur, un pianiste ou un bassiste peuvent donc avoir chacun leur propre confort de lecture sur la même partition.
+            </FaqItem>
+            <FaqItem question="À quoi servent les repères sur un PDF ?">
+              Les repères permettent de poser des points de navigation sur une partition. Chaque repère a un numéro, peut être déplacé, supprimé et relié à un autre repère, même sur une autre page. C&apos;est utile pour les reprises, codas, sauts et retours.
+            </FaqItem>
+            <FaqItem question="Puis-je ajouter des notes textuelles sur une partition ?">
+              Oui. Vous pouvez poser de petits badges de texte sur un PDF : <strong>Intro</strong>, <strong>Refrain</strong>, <strong>Entrée chant</strong>, <strong>Solo sax</strong>, <strong>Break</strong>, etc. Ils sont séparés visuellement des repères de navigation.
+            </FaqItem>
+            <FaqItem question="Le lien Chordify télécharge-t-il une partition automatiquement ?">
+              Non. Sol au piano peut créer un <strong>lien de recherche Chordify</strong> à partir du titre et de l&apos;artiste, mais vous choisissez ensuite vous-même la bonne version sur Chordify. Respectez toujours les droits des contenus que vous utilisez.
+            </FaqItem>
+            <FaqItem question="Pourquoi un morceau est-il signalé comme incomplet ?">
+              Un morceau est signalé s&apos;il ne possède ni PDF, ni grille, ni URL, ni ressource utile. Vous pouvez le corriger rapidement ou ignorer l&apos;alerte sur ce titre si vous estimez qu&apos;il contient déjà assez d&apos;informations.
+            </FaqItem>
+            <FaqItem question="Puis-je ouvrir un GPS depuis l'adresse d'un concert ?">
+              Oui. Les adresses de concerts sont cliquables et ouvrent une recherche ou un itinéraire GPS via Google Maps.
+            </FaqItem>
+            <FaqItem question="Puis-je exclure les comptes testeur ou admin des statistiques ?">
+              Oui. Depuis l&apos;administration, certains comptes peuvent être exclus du suivi statistique afin de ne pas fausser les chiffres d&apos;utilisation réelle des membres.
             </FaqItem>
             <FaqItem question="J'ai oublié mon mot de passe, que faire ?">
               Sur la page de connexion, cliquez sur <strong>&quot;Mot de passe oublié&quot;</strong>. Un lien de réinitialisation vous sera envoyé par e-mail.
