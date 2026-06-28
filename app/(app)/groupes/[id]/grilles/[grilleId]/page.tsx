@@ -633,37 +633,57 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       </div>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-4">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{chart.title}</h1>
-          <div className="flex flex-wrap items-center gap-2 mt-1.5">
-            {chart.tempo && (
-              <span className="inline-flex items-center rounded-full bg-orange-50 border border-orange-100 px-2.5 py-1 text-xs font-medium text-orange-700">♩ {chart.tempo}</span>
-            )}
-            {chart.keySignature && (
-              <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">🎵 {chart.keySignature}</span>
-            )}
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{chart.timeSignature}</span>
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{chart.totalBars} mesures · {bpr}/ligne</span>
-            {chart.song && (
-              <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700">↳ {(chart.song as any).title}</span>
-            )}
+      <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between lg:block">
+              <div className="min-w-0">
+                <h1 className="text-xl font-bold leading-tight text-gray-900 sm:text-2xl">{chart.title}</h1>
+                {chart.song && (
+                  <p className="mt-1 truncate text-sm font-medium text-indigo-700">
+                    ↳ {(chart.song as any).title}
+                  </p>
+                )}
+              </div>
+              <span className={`min-h-5 text-xs font-semibold transition-opacity sm:pt-1 lg:hidden ${saving ? 'text-orange-500 opacity-100' : savedAt ? 'text-green-600 opacity-100' : 'opacity-0'}`}>
+                {saving ? '💾 Sauvegarde...' : '✓ Sauvegardé'}
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <div className="rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
+                <div className="text-[10px] font-bold uppercase text-orange-400">Tempo</div>
+                <div className="text-sm font-bold text-orange-800">{chart.tempo || '—'}</div>
+              </div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2">
+                <div className="text-[10px] font-bold uppercase text-amber-400">Tonalité</div>
+                <div className="truncate text-sm font-bold text-amber-800">{chart.keySignature || '—'}</div>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+                <div className="text-[10px] font-bold uppercase text-gray-400">Mesure</div>
+                <div className="text-sm font-bold text-gray-800">{chart.timeSignature}</div>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+                <div className="text-[10px] font-bold uppercase text-gray-400">Structure</div>
+                <div className="text-sm font-bold text-gray-800">{chart.totalBars} · {bpr}/ligne</div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end lg:max-w-[520px]">
           <Link
             href={`/groupes/${groupId}/morceaux`}
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+            className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 sm:col-span-1"
           >
             ← Retour au répertoire
           </Link>
-          <div className="flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="flex items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
             <button
               type="button"
               onClick={() => updateGridTextSize(-1)}
               disabled={gridTextSize <= MIN_GRID_TEXT_SIZE}
               title="Réduire la taille du texte des cases"
-              className="flex h-8 w-9 items-center justify-center text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 flex-1 items-center justify-center px-3 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:w-9 sm:flex-none sm:px-0"
             >
               A
             </button>
@@ -673,16 +693,16 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
               onClick={() => updateGridTextSize(1)}
               disabled={gridTextSize >= MAX_GRID_TEXT_SIZE}
               title="Augmenter la taille du texte des cases"
-              className="flex h-8 w-9 items-center justify-center text-base font-black text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 flex-1 items-center justify-center px-3 text-base font-black text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:w-9 sm:flex-none sm:px-0"
             >
               A
             </button>
           </div>
-          <span className={`text-xs transition-opacity ${saving ? 'text-orange-500 opacity-100' : savedAt ? 'text-green-600 opacity-100' : 'opacity-0'}`}>
+          <span className={`hidden text-xs font-semibold transition-opacity lg:inline-flex lg:items-center ${saving ? 'text-orange-500 opacity-100' : savedAt ? 'text-green-600 opacity-100' : 'opacity-0'}`}>
             {saving ? '💾 Sauvegarde...' : '✓ Sauvegardé'}
           </span>
           <button onClick={handlePrint}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50">
             🖨️ Imprimer
           </button>
           {canEditGrid && (
@@ -691,26 +711,27 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
               onClick={handleExportPdfResource}
               disabled={exportingPdf}
               title={chart.song?.id || chart.songId ? 'Créer un PDF et l’ajouter aux ressources du morceau lié' : 'Liez cette grille à un morceau dans Paramètres'}
-              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {exportingPdf ? 'Création...' : '📄 PDF ressource'}
             </button>
           )}
           <Link
             href={`/outils/transposition?chartId=${chart.id}&groupId=${groupId}`}
-            className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
           >
             🎼 Transposer
           </Link>
           {canEditGrid && (
             <button onClick={openSettings}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
               Paramètres
             </button>
           )}
+          </div>
         </div>
       </div>
 
