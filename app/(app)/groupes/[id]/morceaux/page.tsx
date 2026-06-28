@@ -34,6 +34,7 @@ interface Song {
   notes?: string
   durationSeconds?: number | null
   tempo?: number | null
+  ignoreWorkMaterialWarning?: boolean
   resources: Resource[]
   lyrics?: { id: number } | null
   tab?: { id: number } | null
@@ -88,7 +89,15 @@ function hasLinkedGrid(song: Song) {
 }
 
 function needsWorkMaterial(song: Song) {
-  return !hasPdfResource(song) && !hasLinkedGrid(song)
+  return !song.ignoreWorkMaterialWarning && !hasPdfResource(song) && !hasLinkedGrid(song)
+}
+
+function getPdfResources(song: Song) {
+  return song.resources.filter((resource) => resource.type === 'PDF')
+}
+
+function getUrlResources(song: Song) {
+  return song.resources.filter((resource) => resource.type === 'LIEN')
 }
 
 interface GroupInfo {
@@ -141,6 +150,10 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [ytSuggest, setYtSuggest] = useState<{ id: number; title: string; artist: string; hasDuration: boolean } | null>(null)
   const [search, setSearch] = useState('')
   const [activeLetter, setActiveLetter] = useState<string | null>(null)
+  const [quickPdfBySong, setQuickPdfBySong] = useState<Record<number, number>>({})
+  const [quickUrlBySong, setQuickUrlBySong] = useState<Record<number, number>>({})
+
+  const quickChoiceKey = `solaupiano-repertoire-quick-resources-${groupId}`
 
   useEffect(() => {
     fetch('/api/me/module-access?key=tool_img2pdf')
@@ -148,6 +161,32 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
       .then((d) => setCanImg2Pdf(!!d.allowed))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(quickChoiceKey)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      setQuickPdfBySong(parsed.pdf || {})
+      setQuickUrlBySong(parsed.url || {})
+    } catch {}
+  }, [quickChoiceKey])
+
+  const saveQuickChoices = (nextPdf: Record<number, number>, nextUrl: Record<number, number>) => {
+    setQuickPdfBySong(nextPdf)
+    setQuickUrlBySong(nextUrl)
+    try {
+      localStorage.setItem(quickChoiceKey, JSON.stringify({ pdf: nextPdf, url: nextUrl }))
+    } catch {}
+  }
+
+  const chooseQuickPdf = (songId: number, resourceId: number) => {
+    saveQuickChoices({ ...quickPdfBySong, [songId]: resourceId }, quickUrlBySong)
+  }
+
+  const chooseQuickUrl = (songId: number, resourceId: number) => {
+    saveQuickChoices(quickPdfBySong, { ...quickUrlBySong, [songId]: resourceId })
+  }
 
   const fetchData = useCallback(async () => {
     const [songsRes, grpRes] = await Promise.all([
@@ -244,6 +283,32 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     fetchData()
   }
 
+  const focusSongForFix = (song: Song) => {
+    setActiveLetter(getSongLetter(song.title))
+    setSearch('')
+    setExpandedSongIds((prev) => new Set(prev).add(song.id))
+    if (chefCan('ressources', 'create')) setUploadSongId(song.id)
+    window.setTimeout(() => {
+      document.getElementById(`song-${song.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+  }
+
+  const setIgnoreWorkMaterialWarning = async (song: Song, ignore: boolean) => {
+    const res = await fetch(`/api/groupes/${groupId}/morceaux/${song.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: song.title,
+        artist: song.artist || '',
+        notes: song.notes || '',
+        durationSeconds: song.durationSeconds ?? null,
+        tempo: song.tempo ?? '',
+        ignoreWorkMaterialWarning: ignore,
+      }),
+    })
+    if (res.ok) fetchData()
+  }
+
   const toggleResources = (songId: number) => {
     setExpandedSongIds((prev) => {
       const next = new Set(prev)
@@ -282,6 +347,28 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     if (!confirm('Supprimer cette ressource ?')) return
     await fetch(`/api/ressources/${resourceId}`, { method: 'DELETE' })
     fetchData()
+  }
+
+  const openResource = (resource: Resource, song: Song) => {
+    if (resource.type === 'PDF') {
+      setPdfModal({ url: `/api/ressources/${resource.id}`, title: resource.name, songId: song.id })
+      return
+    }
+    if (resource.type === 'IMAGE') {
+      setPdfModal({ url: `/api/ressources/${resource.id}`, title: resource.name, kind: 'image', songId: song.id })
+      return
+    }
+    if (resource.type === 'VIDEO' || isVideoFile(resource.filePath)) {
+      setVideoModal({ embedUrl: resource.filePath, title: resource.name, local: true })
+      return
+    }
+    if (resource.type === 'LIEN') {
+      const embedUrl = getVideoEmbedUrl(resource.filePath)
+      if (embedUrl) setVideoModal({ embedUrl, title: resource.name })
+      else window.open(resource.filePath, '_blank', 'noopener,noreferrer')
+      return
+    }
+    window.open(`/api/ressources/${resource.id}`, '_blank', 'noopener,noreferrer')
   }
 
   const handleApprovePending = async (pendingId: number) => {
@@ -402,7 +489,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             {chefCan('ressources', 'create') && (
               <button
                 type="button"
-                onClick={() => setUploadSongId(songsWithoutWorkMaterial[0].id)}
+                onClick={() => focusSongForFix(songsWithoutWorkMaterial[0])}
                 className="inline-flex shrink-0 items-center justify-center rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-800 shadow-sm transition-colors hover:bg-amber-100"
               >
                 Corriger le premier titre
@@ -414,12 +501,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
               <button
                 key={song.id}
                 type="button"
-                onClick={() => {
-                  setActiveLetter(getSongLetter(song.title))
-                  setSearch('')
-                  setExpandedSongIds((prev) => new Set(prev).add(song.id))
-                  if (chefCan('ressources', 'create')) setUploadSongId(song.id)
-                }}
+                onClick={() => focusSongForFix(song)}
                 className="shrink-0 rounded-full border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:border-amber-400 hover:bg-amber-100"
               >
                 {song.title}
@@ -512,12 +594,16 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             const missingWorkMaterial = needsWorkMaterial(song)
             const hasAnyResource = song.resources.length > 0
             const hasUrl = hasUrlResource(song)
+            const pdfResources = getPdfResources(song)
+            const urlResources = getUrlResources(song)
+            const quickPdf = pdfResources.find((resource) => resource.id === quickPdfBySong[song.id]) || pdfResources[0] || null
+            const quickUrl = urlResources.find((resource) => resource.id === quickUrlBySong[song.id]) || urlResources[0] || null
             const missingReason = hasAnyResource
               ? `Ce titre a ${hasUrl ? 'une URL ou une autre ressource' : 'des ressources'}, mais aucune partition PDF ni grille associée.`
               : 'Ce titre ne possède aucune ressource, aucun PDF, aucune URL et aucune grille associée.'
 
             return (
-            <Card key={song.id} padding={false} className={`overflow-hidden ${missingWorkMaterial ? 'border-amber-300 ring-1 ring-amber-100' : ''}`}>
+            <Card key={song.id} id={`song-${song.id}`} padding={false} className={`overflow-hidden ${missingWorkMaterial ? 'border-amber-300 ring-1 ring-amber-100' : ''}`}>
               <div className="px-4 sm:px-6 py-4">
                 <div className="flex items-start gap-4">
                   <div className="min-w-0 flex-1">
@@ -572,6 +658,36 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                         >
                           🎚 Séquences 🔒
                         </span>
+                      )}
+                      {quickPdf && (
+                        <button
+                          type="button"
+                          onClick={() => openResource(quickPdf, song)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 transition-colors hover:border-red-300 hover:bg-red-100"
+                          title={pdfResources.length > 1 ? `PDF rapide choisi : ${quickPdf.name}` : quickPdf.name}
+                        >
+                          📄 PDF
+                        </button>
+                      )}
+                      {quickUrl && (
+                        <button
+                          type="button"
+                          onClick={() => openResource(quickUrl, song)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 transition-colors hover:border-sky-300 hover:bg-sky-100"
+                          title={urlResources.length > 1 ? `URL rapide choisie : ${quickUrl.name}` : quickUrl.name}
+                        >
+                          🔗 URL
+                        </button>
+                      )}
+                      {song.ignoreWorkMaterialWarning && chefCan('repertoire', 'update') && (
+                        <button
+                          type="button"
+                          onClick={() => setIgnoreWorkMaterialWarning(song, false)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700"
+                          title="Réactiver l'alerte de support de travail manquant"
+                        >
+                          ⚠️ Alerte ignorée
+                        </button>
                       )}
                       {(groupInfo?.hasGrilles ?? true) && song.chordCharts && song.chordCharts.length > 0 && (
                         <Link
@@ -632,6 +748,15 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                                   Créer une grille
                                 </Link>
                               )}
+                              {chefCan('repertoire', 'update') && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIgnoreWorkMaterialWarning(song, true)}
+                                  className="rounded-lg border border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-200"
+                                >
+                                  Ignorer
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -683,6 +808,56 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                   </button>
                   {expandedSongIds.has(song.id) && (
                     <div className="border-t border-gray-100">
+                      <div className="grid gap-3 bg-gray-50/70 px-4 py-3 sm:grid-cols-3 sm:px-6">
+                        <label className="block">
+                          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-400">Toutes les ressources</span>
+                          <select
+                            value=""
+                            onChange={(event) => {
+                              const resource = song.resources.find((item) => item.id === Number(event.target.value))
+                              if (resource) openResource(resource, song)
+                            }}
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                          >
+                            <option value="">Ouvrir une ressource...</option>
+                            {song.resources.map((resource) => (
+                              <option key={resource.id} value={resource.id}>
+                                {getResourceIcon(resource.type)} {resource.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        {pdfResources.length > 0 && (
+                          <label className="block">
+                            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-red-400">PDF rapide</span>
+                            <select
+                              value={quickPdf?.id ?? ''}
+                              onChange={(event) => chooseQuickPdf(song.id, Number(event.target.value))}
+                              className="w-full rounded-lg border border-red-100 bg-white px-3 py-2 text-xs font-medium text-red-700 outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                            >
+                              {pdfResources.map((resource) => (
+                                <option key={resource.id} value={resource.id}>{resource.name}</option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+
+                        {urlResources.length > 0 && (
+                          <label className="block">
+                            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-sky-400">URL rapide</span>
+                            <select
+                              value={quickUrl?.id ?? ''}
+                              onChange={(event) => chooseQuickUrl(song.id, Number(event.target.value))}
+                              className="w-full rounded-lg border border-sky-100 bg-white px-3 py-2 text-xs font-medium text-sky-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                            >
+                              {urlResources.map((resource) => (
+                                <option key={resource.id} value={resource.id}>{resource.name}</option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                      </div>
                       {song.resources.map((res) => (
                         <div
                           key={res.id}

@@ -946,6 +946,7 @@ model Song {
   notes           String?  @db.Text
   durationSeconds Int?
   tempo           Int?     // BPM
+  ignoreWorkMaterialWarning Boolean @default(false)
   createdAt       DateTime @default(now())
 
   group            Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
