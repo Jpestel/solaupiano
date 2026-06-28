@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { resolvePermissions, type ChefPermissions } from '@/lib/permissions'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -24,7 +25,9 @@ const TOTAL_BARS = [8, 16, 24, 32, 48, 64, 80]
 
 export default function GrillesPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
+  const searchParams = useSearchParams()
   const groupId = params.id
+  const prefillSongId = searchParams.get('songId')
 
   const [charts, setCharts] = useState<Chart[]>([])
   const [songs, setSongs] = useState<Song[]>([])
@@ -41,6 +44,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     title: '', tempo: '', keySignature: '',
     timeSignature: '4/4', barsPerRow: 4, totalBars: 32, songId: '',
   })
+  const [prefillApplied, setPrefillApplied] = useState(false)
 
   const fetchData = async () => {
     const [chartsRes, grpRes, songsRes] = await Promise.all([
@@ -73,6 +77,14 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
       title: s?.title && !f.title.trim() ? s.title : f.title,
     }))
   }
+
+  useEffect(() => {
+    if (prefillApplied || !prefillSongId || songs.length === 0) return
+    if (!songs.some((song) => String(song.id) === prefillSongId)) return
+    selectSong(prefillSongId)
+    setModalOpen(true)
+    setPrefillApplied(true)
+  }, [prefillApplied, prefillSongId, songs])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()

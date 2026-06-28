@@ -38,6 +38,7 @@ interface Song {
   lyrics?: { id: number } | null
   tab?: { id: number } | null
   chordCharts?: { id: number; title: string }[]
+  squareScores?: { id: number; title: string }[]
   _count?: { sequences: number }
 }
 
@@ -72,6 +73,22 @@ function normalizeSearch(value: string) {
 function getSongLetter(title: string) {
   const first = normalizeSearch(title.trim()).charAt(0)
   return /^[A-Z]$/.test(first) ? first : '#'
+}
+
+function hasPdfResource(song: Song) {
+  return song.resources.some((resource) => resource.type === 'PDF')
+}
+
+function hasUrlResource(song: Song) {
+  return song.resources.some((resource) => resource.type === 'LIEN')
+}
+
+function hasLinkedGrid(song: Song) {
+  return (song.chordCharts?.length ?? 0) > 0 || (song.squareScores?.length ?? 0) > 0
+}
+
+function needsWorkMaterial(song: Song) {
+  return !hasPdfResource(song) && !hasLinkedGrid(song)
 }
 
 interface GroupInfo {
@@ -296,6 +313,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     return normalizeSearch(`${song.title} ${song.artist || ''} ${song.notes || ''}`).includes(normalizedSearch)
   })
   const hasActiveFilters = !!activeLetter || !!search.trim()
+  const songsWithoutWorkMaterial = songs.filter(needsWorkMaterial)
 
   return (
     <div>
@@ -367,6 +385,52 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
               Réinitialiser les filtres
             </button>
           )}
+        </div>
+      )}
+
+      {songsWithoutWorkMaterial.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 sm:p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-900">
+                ⚠️ {songsWithoutWorkMaterial.length} titre{songsWithoutWorkMaterial.length > 1 ? 's' : ''} sans PDF ni grille
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                Chaque titre devrait avoir au minimum une partition PDF ou une grille associée pour être vraiment exploitable en répétition.
+              </p>
+            </div>
+            {chefCan('ressources', 'create') && (
+              <button
+                type="button"
+                onClick={() => setUploadSongId(songsWithoutWorkMaterial[0].id)}
+                className="inline-flex shrink-0 items-center justify-center rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-800 shadow-sm transition-colors hover:bg-amber-100"
+              >
+                Corriger le premier titre
+              </button>
+            )}
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {songsWithoutWorkMaterial.slice(0, 8).map((song) => (
+              <button
+                key={song.id}
+                type="button"
+                onClick={() => {
+                  setActiveLetter(getSongLetter(song.title))
+                  setSearch('')
+                  setExpandedSongIds((prev) => new Set(prev).add(song.id))
+                  if (chefCan('ressources', 'create')) setUploadSongId(song.id)
+                }}
+                className="shrink-0 rounded-full border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:border-amber-400 hover:bg-amber-100"
+              >
+                {song.title}
+              </button>
+            ))}
+            {songsWithoutWorkMaterial.length > 8 && (
+              <span className="shrink-0 rounded-full border border-amber-200 bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800">
+                +{songsWithoutWorkMaterial.length - 8}
+              </span>
+            )}
+          </div>
         </div>
       )}
 
@@ -444,8 +508,16 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredSongs.map((song) => (
-            <Card key={song.id} padding={false} className="overflow-hidden">
+          {filteredSongs.map((song) => {
+            const missingWorkMaterial = needsWorkMaterial(song)
+            const hasAnyResource = song.resources.length > 0
+            const hasUrl = hasUrlResource(song)
+            const missingReason = hasAnyResource
+              ? `Ce titre a ${hasUrl ? 'une URL ou une autre ressource' : 'des ressources'}, mais aucune partition PDF ni grille associée.`
+              : 'Ce titre ne possède aucune ressource, aucun PDF, aucune URL et aucune grille associée.'
+
+            return (
+            <Card key={song.id} padding={false} className={`overflow-hidden ${missingWorkMaterial ? 'border-amber-300 ring-1 ring-amber-100' : ''}`}>
               <div className="px-4 sm:px-6 py-4">
                 <div className="flex items-start gap-4">
                   <div className="min-w-0 flex-1">
@@ -534,6 +606,37 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                         </button>
                       )}
                     </div>
+                    {missingWorkMaterial && (
+                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-amber-900">⚠️ Support de travail manquant</p>
+                            <p className="mt-0.5 text-xs leading-relaxed text-amber-800">{missingReason}</p>
+                          </div>
+                          {(chefCan('ressources', 'create') || chefCan('grilles', 'create')) && (
+                            <div className="flex shrink-0 flex-wrap gap-2">
+                              {chefCan('ressources', 'create') && (
+                                <button
+                                  type="button"
+                                  onClick={() => setUploadSongId(song.id)}
+                                  className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-amber-500"
+                                >
+                                  Ajouter un PDF
+                                </button>
+                              )}
+                              {(groupInfo?.hasGrilles ?? true) && chefCan('grilles', 'create') && (
+                                <Link
+                                  href={`/groupes/${groupId}/grilles?songId=${song.id}`}
+                                  className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                                >
+                                  Créer une grille
+                                </Link>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -683,7 +786,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                 </div>
               )}
             </Card>
-          ))}
+          )})}
         </div>
       )}
 
