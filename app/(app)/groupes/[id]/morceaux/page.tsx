@@ -60,6 +60,20 @@ function parseDuration(val: string): number | null {
   return null
 }
 
+const REPERTOIRE_LETTERS = ['#', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+
+function normalizeSearch(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+}
+
+function getSongLetter(title: string) {
+  const first = normalizeSearch(title.trim()).charAt(0)
+  return /^[A-Z]$/.test(first) ? first : '#'
+}
+
 interface GroupInfo {
   name: string
   groupRole: string
@@ -108,6 +122,8 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [pendingExpanded, setPendingExpanded] = useState(true)
   const [canImg2Pdf, setCanImg2Pdf] = useState(false)
   const [ytSuggest, setYtSuggest] = useState<{ id: number; title: string; artist: string; hasDuration: boolean } | null>(null)
+  const [search, setSearch] = useState('')
+  const [activeLetter, setActiveLetter] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/me/module-access?key=tool_img2pdf')
@@ -272,6 +288,14 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
     if (isFounder) return true
     return (perms[mod] as Record<string, boolean>)[action] !== false
   }
+  const availableLetters = new Set(songs.map((song) => getSongLetter(song.title)))
+  const normalizedSearch = normalizeSearch(search.trim())
+  const filteredSongs = songs.filter((song) => {
+    if (activeLetter && getSongLetter(song.title) !== activeLetter) return false
+    if (!normalizedSearch) return true
+    return normalizeSearch(`${song.title} ${song.artist || ''} ${song.notes || ''}`).includes(normalizedSearch)
+  })
+  const hasActiveFilters = !!activeLetter || !!search.trim()
 
   return (
     <div>
@@ -289,6 +313,62 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           <Button onClick={() => setAddSongOpen(true)}>+ Ajouter un morceau</Button>
         )}
       </div>
+
+      {songs.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative flex-1">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔎</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher un titre, un artiste, une note..."
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3 text-sm font-medium text-gray-800 outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
+            <div className="text-xs font-medium text-gray-500">
+              {filteredSongs.length} titre{filteredSongs.length > 1 ? 's' : ''} affiché{filteredSongs.length > 1 ? 's' : ''}
+            </div>
+          </div>
+
+          <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+            <button
+              type="button"
+              onClick={() => setActiveLetter(null)}
+              className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${!activeLetter ? 'border-indigo-500 bg-indigo-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-200 hover:text-indigo-600'}`}
+            >
+              Tous
+            </button>
+            {REPERTOIRE_LETTERS.map((letter) => {
+              const available = availableLetters.has(letter)
+              const active = activeLetter === letter
+              return (
+                <button
+                  key={letter}
+                  type="button"
+                  disabled={!available}
+                  onClick={() => setActiveLetter(active ? null : letter)}
+                  className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${active ? 'border-indigo-500 bg-indigo-600 text-white' : available ? 'border-gray-200 bg-white text-gray-600 hover:border-indigo-200 hover:text-indigo-600' : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'}`}
+                  title={available ? `Afficher les titres en ${letter}` : `Aucun titre en ${letter}`}
+                >
+                  {letter}
+                </button>
+              )
+            })}
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={() => { setSearch(''); setActiveLetter(null) }}
+              className="mt-2 text-xs font-semibold text-gray-500 hover:text-indigo-600"
+            >
+              Réinitialiser les filtres
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Soumissions en attente — chef only */}
       {isChef && pendingResources.length > 0 && (
@@ -354,9 +434,17 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             <p className="text-sm text-gray-500">Aucun morceau dans ce groupe pour l&apos;instant.</p>
           </div>
         </Card>
+      ) : filteredSongs.length === 0 ? (
+        <Card>
+          <div className="text-center py-10">
+            <div className="text-4xl mb-3">🔎</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun titre trouvé</h3>
+            <p className="text-sm text-gray-500">Essayez une autre recherche ou une autre lettre.</p>
+          </div>
+        </Card>
       ) : (
         <div className="space-y-4">
-          {songs.map((song) => (
+          {filteredSongs.map((song) => (
             <Card key={song.id} padding={false} className="overflow-hidden">
               <div className="px-4 sm:px-6 py-4">
                 <div className="flex items-start gap-4">
