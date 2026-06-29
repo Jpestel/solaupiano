@@ -53,6 +53,8 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
   const [noteEditor, setNoteEditor] = useState<{ id?: number; page: number; xPct?: number; yPct?: number } | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
   const draggingBookmarkRef = useRef<{ id: number; startX: number; startY: number; moved: boolean } | null>(null)
+  const loadedZoomKeyRef = useRef<string | null>(null)
+  const scaleRef = useRef(scale)
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
@@ -64,15 +66,22 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
 
   // Zoom mémorisé par utilisateur connecté ET par fichier (chaque partition garde son
   // propre zoom). Stocké localement, propre à chaque compte sur l'appareil.
-  const { data: session } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
   const zoomKey = `solaupiano-pdf-zoom-${session?.user?.id ?? 'anon'}-${url}`
 
-  // Charge le zoom sauvegardé dès que la clé utilisateur est connue.
+  useEffect(() => { scaleRef.current = scale }, [scale])
+
+  // Charge le zoom sauvegardé une seule fois, quand la session est stable.
+  // Cela évite qu'une résolution tardive de session réapplique un ancien zoom
+  // pendant l'ajout/édition d'une note sur la partition.
   useEffect(() => {
+    if (sessionStatus === 'loading') return
+    if (loadedZoomKeyRef.current === zoomKey) return
     if (typeof window === 'undefined') return
     const saved = parseFloat(window.localStorage.getItem(zoomKey) || '')
+    loadedZoomKeyRef.current = zoomKey
     if (!Number.isNaN(saved) && saved >= 0.5 && saved <= 3) setScale(saved)
-  }, [zoomKey])
+  }, [sessionStatus, zoomKey])
 
   useEffect(() => {
     if (!resourceId) return
@@ -225,6 +234,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
 
   const saveNoteDraft = async () => {
     if (!resourceId || !noteEditor) return
+    const preservedScale = scaleRef.current
     const text = noteDraft.trim()
     if (!text) return
 
@@ -237,6 +247,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
       if (res.ok) {
         const updated = await res.json()
         setBookmarks((items) => items.map((item) => (item.id === updated.id ? updated : item)))
+        setScale(preservedScale)
         setNoteEditor(null)
         setNoteDraft('')
       } else {
@@ -247,6 +258,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf' }: PdfModalProps) {
     }
 
     await createNote(noteEditor.xPct ?? 0.5, noteEditor.yPct ?? 0.5, text, noteEditor.page)
+    setScale(preservedScale)
     setNoteEditor(null)
     setNoteDraft('')
   }
