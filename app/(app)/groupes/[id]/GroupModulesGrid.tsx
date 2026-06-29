@@ -64,7 +64,7 @@ function SortableModuleCard({
             type="button"
             {...attributes}
             {...listeners}
-            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-white/95 text-gray-300 shadow-sm ring-1 ring-gray-200 cursor-grab active:cursor-grabbing hover:text-indigo-500 sm:left-2 sm:right-auto sm:top-1/2 sm:-translate-y-1/2"
+            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-white/95 text-gray-300 shadow-sm ring-1 ring-gray-200 cursor-grab active:cursor-grabbing hover:text-indigo-500 sm:left-3 sm:right-auto sm:top-1/2 sm:-translate-y-1/2"
             title="Déplacer ce module"
             aria-label="Déplacer ce module"
           >
@@ -134,7 +134,7 @@ export function GroupModulesGrid({
             <Link
               href={`/groupes/${groupId}/${link.href}`}
               data-bubble={`mod-${link.href}`}
-              className={`module-tile relative flex min-h-[78px] items-center gap-3 rounded-xl border px-3.5 py-3 group sm:min-h-[70px] ${canReorder ? 'pr-11 sm:pl-9 sm:pr-3' : ''} ${link.border}`}
+              className={`module-tile relative flex min-h-[78px] items-center gap-3 rounded-xl border px-3.5 py-3 group sm:min-h-[70px] ${canReorder ? 'pr-11 sm:pl-16 sm:pr-3' : ''} ${link.border}`}
             >
               <span className="module-tile-sheen" aria-hidden />
               <div className={`module-tile-icon relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-lg transition-transform group-hover:scale-105 sm:h-9 sm:w-9 ${link.iconBg}`}>
