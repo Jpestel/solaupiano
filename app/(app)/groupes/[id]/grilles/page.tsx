@@ -36,6 +36,7 @@ const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '5/4', '12/8', '2/2']
 const BARS_PER_ROW = [2, 3, 4, 6]
 const TOTAL_BARS = [8, 16, 24, 32, 48, 64, 80]
 type ChordifyImportMode = 'existing' | 'upload-linked' | 'free'
+type ChordifyAccidentalMode = 'auto' | 'sharp' | 'flat'
 
 function cellsFromImportPreview(previewText: string, totalBars: number) {
   const lines = previewText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
@@ -83,6 +84,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null)
   const [importPreviewText, setImportPreviewText] = useState('')
   const [importMode, setImportMode] = useState<ChordifyImportMode>('existing')
+  const [importAccidentalMode, setImportAccidentalMode] = useState<ChordifyAccidentalMode>('auto')
   const [importSongId, setImportSongId] = useState('')
   const [importResourceId, setImportResourceId] = useState('')
   const [error, setError] = useState('')
@@ -116,6 +118,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     setImportPreview(null)
     setImportPreviewText('')
     setImportMode('existing')
+    setImportAccidentalMode('auto')
     setImportSongId('')
     setImportResourceId('')
   }
@@ -208,6 +211,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     if (!importResourceId) { setError('Choisissez un PDF déjà associé à un titre.'); return }
     const fd = new FormData()
     fd.append('resourceId', importResourceId)
+    fd.append('accidentalMode', importAccidentalMode)
     importChordifyPdf(fd)
   }
 
@@ -219,6 +223,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     }
     const fd = new FormData()
     fd.append('file', file)
+    fd.append('accidentalMode', importAccidentalMode)
     if (importMode === 'upload-linked') {
       fd.append('songId', importSongId)
       fd.append('attachToSong', '1')
@@ -396,6 +401,26 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                   <span className="block text-[11px] leading-snug">{mode.desc}</span>
                 </button>
               ))}
+            </div>
+
+            <div className="mt-3 max-w-sm">
+              <label className="form-label">Altérations masquées</label>
+              <select
+                value={importAccidentalMode}
+                onChange={(e) => {
+                  setImportAccidentalMode(e.target.value as ChordifyAccidentalMode)
+                  setImportPreview(null)
+                  setImportPreviewText('')
+                }}
+                className="form-input"
+              >
+                <option value="auto">Auto</option>
+                <option value="sharp">Forcer les dièses (#)</option>
+                <option value="flat">Forcer les bémols (b)</option>
+              </select>
+              <p className="mt-1 text-[11px] text-orange-700">
+                À utiliser si Chordify affiche les signes mais que le PDF ne les expose pas correctement.
+              </p>
             </div>
 
             <div className="mt-4 rounded-lg border border-orange-200 bg-white/70 p-3">

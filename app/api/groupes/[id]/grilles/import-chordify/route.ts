@@ -16,6 +16,7 @@ const execFileAsync = promisify(execFile)
 const MAX_PDF_SIZE = 25 * 1024 * 1024
 
 type ChordToken = { chord: string; index: number }
+type AccidentalMode = 'auto' | 'sharp' | 'flat'
 type PdfTextItem = {
   page: number
   top: number
@@ -58,11 +59,11 @@ function extractTempo(text: string) {
 
 function extractChords(line: string) {
   const chordPattern = new RegExp(
-    String.raw`\b(?:N\.?C\.?|[A-G](?:#|b)?\s*(?:m|maj|min|dim|aug|sus|add)?\s*(?:2|4|5|6|7|9|11|13)?(?:[#b](?:5|9|11|13))?(?:\+)?(?:/[A-G](?:#|b)?)?)\b`,
+    String.raw`(^|[\s|,;])((?:N\.?C\.?|[A-G](?:#|b|♯|♭)?\s*(?:m|maj|min|dim|aug|sus|add)?\s*(?:2|4|5|6|7|9|11|13)?(?:[#b♯♭](?:5|9|11|13))?(?:\+)?(?:/[A-G](?:#|b|♯|♭)?)?))(?=$|[\s|,;])`,
     'g',
   )
   return Array.from(line.matchAll(chordPattern))
-    .map((match) => ({ chord: normalizeChord(match[0]), index: match.index || 0 }))
+    .map((match) => ({ chord: normalizeChord(match[2]), index: (match.index || 0) + match[1].length }))
     .filter(({ chord }) => chord === 'N.C.' || /^[A-G]/.test(chord))
 }
 
@@ -90,7 +91,6 @@ function parsePdfXmlItems(xml: string) {
     let textMatch: RegExpExecArray | null
     while ((textMatch = textRegex.exec(pageMatch[2]))) {
       const text = cleanText(decodeXmlText(textMatch[6]).replace(/<[^>]+>/g, ''))
-      if (!text) continue
       items.push({
         page,
         top: Number(textMatch[1]),
@@ -111,7 +111,7 @@ function median(values: number[], fallback: number) {
   return sorted[Math.floor(sorted.length / 2)]
 }
 
-function parseChordifyXml(xml: string, fallbackText: string) {
+function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: AccidentalMode = 'auto') {
   const items = parsePdfXmlItems(xml)
   if (items.length === 0) return null
 
@@ -129,24 +129,31 @@ function parseChordifyXml(xml: string, fallbackText: string) {
     .filter((item) => item.top > 55 && isChordLabel(item.text))
     .map((item) => {
       let chord = normalizeChord(item.text)
-      const hasExplicitMissingSharp = chord !== 'N.C.' && !/^[A-G][#b]/.test(chord) && accidentalItems.some((accidental) => {
+      const hasExplicitMissingAccidental = chord !== 'N.C.' && !/^[A-G][#b]/.test(chord) && accidentalItems.some((accidental) => {
         if (accidental.page !== item.page) return false
         const verticalMatch = accidental.top >= item.top + 12 && accidental.top <= item.top + 42
         if (!verticalMatch) return false
         return accidental.left >= item.left - 16 && accidental.left <= item.left - 1
       })
-      if (hasExplicitMissingSharp) chord = chord.replace(/^([A-G])/, '$1#')
-      return { ...item, chord, explicitSharp: hasExplicitMissingSharp, center: item.left + item.width / 2 }
+      if (hasExplicitMissingAccidental) {
+        chord = chord.replace(/^([A-G])/, accidentalMode === 'flat' ? '$1b' : '$1#')
+      }
+      return { ...item, chord, explicitAccidental: hasExplicitMissingAccidental, center: item.left + item.width / 2 }
     })
     .sort((a, b) => a.page - b.page || a.top - b.top || a.left - b.left)
-  const explicitSharpCount = chordItems.filter((item) => item.explicitSharp).length
-  const likelySharpExport = explicitSharpCount >= 4 && chordItems.some((item) => item.chord.startsWith('C#'))
-  if (likelySharpExport) {
-    const autoSharpRoots = new Set(['F', 'C', 'G', 'D', 'A', 'E'])
+  const explicitAccidentalCount = chordItems.filter((item) => item.explicitAccidental).length
+  const likelySharpExport = accidentalMode !== 'flat' && explicitAccidentalCount >= 4 && chordItems.some((item) => item.chord.startsWith('C#'))
+  const forcedFlatExport = accidentalMode === 'flat' && explicitAccidentalCount > 0
+  const forcedSharpExport = accidentalMode === 'sharp' && explicitAccidentalCount > 0
+  if (likelySharpExport || forcedSharpExport || forcedFlatExport) {
+    const autoAccidentalRoots = forcedFlatExport
+      ? new Set(['B', 'E', 'A', 'D', 'G', 'C'])
+      : new Set(['F', 'C', 'G', 'D', 'A', 'E'])
+    const accidental = forcedFlatExport ? 'b' : '#'
     chordItems.forEach((item) => {
       const root = item.chord[0]
-      if (item.chord !== 'N.C.' && autoSharpRoots.has(root) && /^[A-G](?![#b])/.test(item.chord)) {
-        item.chord = item.chord.replace(/^([A-G])/, '$1#')
+      if (item.chord !== 'N.C.' && autoAccidentalRoots.has(root) && /^[A-G](?![#b])/.test(item.chord)) {
+        item.chord = item.chord.replace(/^([A-G])/, `$1${accidental}`)
       }
     })
   }
@@ -251,6 +258,8 @@ function parseChordifyXml(xml: string, fallbackText: string) {
       'Import géométrique : les accords sont replacés selon leur position dans le PDF Chordify.',
       'Relisez les bémols/dièses : certains PDF Chordify encodent les altérations avec des glyphes musicaux difficiles à lire automatiquement.',
       ...(likelySharpExport ? ['Mode dièses détecté : les accords nus du PDF ont été reconstruits en accords diésés quand Chordify masquait le signe #.'] : []),
+      ...(forcedSharpExport ? ['Mode dièses forcé : les altérations masquées du PDF ont été interprétées comme des #.'] : []),
+      ...(forcedFlatExport ? ['Mode bémols forcé : les altérations masquées du PDF ont été interprétées comme des b.'] : []),
     ],
   }
 }
@@ -366,11 +375,11 @@ async function pdfBufferToXml(buffer: Buffer) {
   }
 }
 
-async function parseChordifyBuffer(buffer: Buffer) {
+async function parseChordifyBuffer(buffer: Buffer, accidentalMode: AccidentalMode = 'auto') {
   const text = await pdfBufferToText(buffer)
   try {
     const xml = await pdfBufferToXml(buffer)
-    return parseChordifyXml(xml, text) || parseChordifyText(text)
+    return parseChordifyXml(xml, text, accidentalMode) || parseChordifyText(text)
   } catch {
     return parseChordifyText(text)
   }
@@ -412,6 +421,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const resourceId = Number(data.get('resourceId') || 0)
   const songId = Number(data.get('songId') || 0)
   const attachToSong = data.get('attachToSong') === '1'
+  const accidentalModeValue = data.get('accidentalMode')
+  const accidentalMode: AccidentalMode = accidentalModeValue === 'sharp' || accidentalModeValue === 'flat'
+    ? accidentalModeValue
+    : 'auto'
 
   try {
     if (resourceId) {
@@ -428,7 +441,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       const stat = fs.statSync(pdfPath)
       if (stat.size > MAX_PDF_SIZE) throw new Error('PDF trop volumineux.')
 
-      const preview = await parseChordifyBuffer(await readFile(pdfPath))
+      const preview = await parseChordifyBuffer(await readFile(pdfPath), accidentalMode)
       return NextResponse.json({
         ...preview,
         title: resource.song.title || preview.title,
@@ -492,7 +505,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     return NextResponse.json({
-      ...(await parseChordifyBuffer(buffer)),
+      ...(await parseChordifyBuffer(buffer, accidentalMode)),
       songId: linkedResource?.songId || null,
       resourceId: linkedResource?.id || null,
       resourceName: linkedResource?.name || null,
