@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { ph } from '@/lib/placeholders'
 
-interface Song { id: number; title: string; artist?: string; tempo?: number | null }
+interface SongResource { id: number; name: string; type: string; filePath: string }
+interface Song { id: number; title: string; artist?: string; tempo?: number | null; resources?: SongResource[] }
 interface Chart {
   id: number; title: string; tempo?: string; keySignature?: string
   timeSignature: string; barsPerRow: number; totalBars: number
@@ -26,11 +27,15 @@ interface ImportPreview {
   totalBars: number
   previewText: string
   warnings: string[]
+  songId?: number | null
+  resourceId?: number | null
+  resourceName?: string | null
 }
 
 const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '5/4', '12/8', '2/2']
 const BARS_PER_ROW = [2, 3, 4, 6]
 const TOTAL_BARS = [8, 16, 24, 32, 48, 64, 80]
+type ChordifyImportMode = 'existing' | 'upload-linked' | 'free'
 
 function cellsFromImportPreview(previewText: string, totalBars: number) {
   const lines = previewText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
@@ -77,6 +82,9 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   const [importing, setImporting] = useState(false)
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null)
   const [importPreviewText, setImportPreviewText] = useState('')
+  const [importMode, setImportMode] = useState<ChordifyImportMode>('existing')
+  const [importSongId, setImportSongId] = useState('')
+  const [importResourceId, setImportResourceId] = useState('')
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     title: '', tempo: '', keySignature: '',
@@ -107,6 +115,9 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     setForm({ title: '', tempo: '', keySignature: '', timeSignature: '4/4', barsPerRow: 4, totalBars: 32, songId: '' })
     setImportPreview(null)
     setImportPreviewText('')
+    setImportMode('existing')
+    setImportSongId('')
+    setImportResourceId('')
   }
 
   // Lier un morceau → pré-remplit les éléments déjà connus du titre (BPM, titre)
@@ -150,23 +161,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     window.location.href = `/groupes/${groupId}/grilles/${chart.id}`
   }
 
-  const handleChordifyPdfImport = async (file: File | null) => {
-    if (!file) return
-    setImporting(true)
-    setError('')
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await fetch(`/api/groupes/${groupId}/grilles/import-chordify`, {
-      method: 'POST',
-      body: fd,
-    })
-    setImporting(false)
-    const data = await res.json().catch(() => null)
-    if (!res.ok) {
-      setError(data?.error || "Impossible d'analyser ce PDF.")
-      return
-    }
-    const preview = data as ImportPreview
+  const applyImportPreview = (preview: ImportPreview) => {
     setImportPreview(preview)
     setImportPreviewText(preview.previewText || '')
     setForm((f) => ({
@@ -176,7 +171,46 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
       timeSignature: preview.timeSignature || f.timeSignature,
       barsPerRow: preview.barsPerRow || f.barsPerRow,
       totalBars: preview.totalBars || f.totalBars,
+      songId: preview.songId ? String(preview.songId) : f.songId,
     }))
+  }
+
+  const importChordifyPdf = async (payload: FormData) => {
+    setImporting(true)
+    setError('')
+    const res = await fetch(`/api/groupes/${groupId}/grilles/import-chordify`, {
+      method: 'POST',
+      body: payload,
+    })
+    setImporting(false)
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      setError(data?.error || "Impossible d'analyser ce PDF.")
+      return
+    }
+    applyImportPreview(data as ImportPreview)
+  }
+
+  const handleChordifyExistingImport = () => {
+    if (!importResourceId) { setError('Choisissez un PDF déjà associé à un titre.'); return }
+    const fd = new FormData()
+    fd.append('resourceId', importResourceId)
+    importChordifyPdf(fd)
+  }
+
+  const handleChordifyPdfUpload = (file: File | null) => {
+    if (!file) return
+    if (importMode === 'upload-linked' && !importSongId) {
+      setError('Choisissez le titre auquel associer ce PDF avant de le téléverser.')
+      return
+    }
+    const fd = new FormData()
+    fd.append('file', file)
+    if (importMode === 'upload-linked') {
+      fd.append('songId', importSongId)
+      fd.append('attachToSong', '1')
+    }
+    importChordifyPdf(fd)
   }
 
   const openDuplicate = (chart: Chart) => {
@@ -209,6 +243,10 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   const isFounder = isChef && (session?.user?.siteRole === 'ADMIN' || Number(session?.user?.id) === groupInfo?.createdBy)
   const perms = resolvePermissions(groupInfo?.chefPermissions)
   const totalBarOptions = Array.from(new Set([...TOTAL_BARS, form.totalBars])).sort((a, b) => a - b)
+  const songsWithPdfs = songs
+    .map((song) => ({ ...song, resources: (song.resources || []).filter((resource) => resource.type === 'PDF') }))
+    .filter((song) => song.resources.length > 0)
+  const selectedExistingSong = songsWithPdfs.find((song) => String(song.id) === importSongId)
   const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
     if (!isChef) return false
     if (isFounder) return true
@@ -318,28 +356,126 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
         <form onSubmit={handleCreate} className="space-y-4">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
           <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-bold text-orange-900">Importer depuis un PDF Chordify</p>
-                <p className="mt-0.5 text-xs text-orange-700">
-                  Analyse les accords du PDF, les regroupe par mesures, puis vous laisse corriger avant création.
-                </p>
-              </div>
-              <label className={`inline-flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
-                importing ? 'border-orange-200 bg-white/60 text-orange-400' : 'border-orange-300 bg-white text-orange-700 hover:bg-orange-100'
-              }`}>
-                {importing ? 'Analyse...' : 'Choisir un PDF'}
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  className="sr-only"
-                  disabled={importing}
-                  onChange={(e) => handleChordifyPdfImport(e.target.files?.[0] || null)}
-                />
-              </label>
+            <div>
+              <p className="text-sm font-bold text-orange-900">Importer depuis un PDF Chordify</p>
+              <p className="mt-0.5 text-xs text-orange-700">
+                Choisissez la source du PDF : ressource déjà stockée, fichier à joindre à un titre, ou grille libre sans titre existant.
+              </p>
+            </div>
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {[
+                { key: 'existing' as const, label: 'PDF déjà associé', desc: 'Parcourir les PDF du répertoire' },
+                { key: 'upload-linked' as const, label: 'Fichier + titre', desc: 'Uploader et lier à un morceau' },
+                { key: 'free' as const, label: 'Nouveau / libre', desc: 'Créer une grille sans morceau' },
+              ].map((mode) => (
+                <button
+                  key={mode.key}
+                  type="button"
+                  onClick={() => { setImportMode(mode.key); setImportPreview(null); setImportPreviewText(''); setError('') }}
+                  className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                    importMode === mode.key
+                      ? 'border-orange-400 bg-white text-orange-900 shadow-sm'
+                      : 'border-orange-200 bg-orange-100/60 text-orange-700 hover:bg-white'
+                  }`}
+                >
+                  <span className="block text-sm font-bold">{mode.label}</span>
+                  <span className="block text-[11px] leading-snug">{mode.desc}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 rounded-lg border border-orange-200 bg-white/70 p-3">
+              {importMode === 'existing' ? (
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <div>
+                    <label className="form-label">Titre contenant le PDF</label>
+                    <select
+                      value={importSongId}
+                      onChange={(e) => { setImportSongId(e.target.value); setImportResourceId('') }}
+                      className="form-input"
+                    >
+                      <option value="">Choisir un titre...</option>
+                      {songsWithPdfs.map((song) => (
+                        <option key={song.id} value={song.id}>{song.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">PDF Chordify</label>
+                    <select
+                      value={importResourceId}
+                      onChange={(e) => setImportResourceId(e.target.value)}
+                      className="form-input"
+                      disabled={!selectedExistingSong}
+                    >
+                      <option value="">{selectedExistingSong ? 'Choisir un PDF...' : 'Choisissez un titre'}</option>
+                      {selectedExistingSong?.resources.map((resource) => (
+                        <option key={resource.id} value={resource.id}>{resource.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleChordifyExistingImport}
+                    disabled={importing || !importResourceId}
+                    className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:bg-orange-200"
+                  >
+                    {importing ? 'Analyse...' : 'Analyser'}
+                  </button>
+                  {songsWithPdfs.length === 0 && (
+                    <p className="sm:col-span-3 text-xs text-orange-700">
+                      Aucun PDF n&apos;est encore associé aux titres du répertoire.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                  {importMode === 'upload-linked' && (
+                    <div>
+                      <label className="form-label">Associer ce PDF au titre</label>
+                      <select
+                        value={importSongId}
+                        onChange={(e) => setImportSongId(e.target.value)}
+                        className="form-input"
+                      >
+                        <option value="">Choisir un titre...</option>
+                        {songs.map((song) => (
+                          <option key={song.id} value={song.id}>{song.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {importMode === 'free' && (
+                    <div>
+                      <p className="text-sm font-semibold text-orange-900">Grille non liée au répertoire</p>
+                      <p className="mt-1 text-xs text-orange-700">
+                        Utile pour transcrire un morceau qui sera peut-être ajouté au répertoire plus tard.
+                      </p>
+                    </div>
+                  )}
+                  <label className={`inline-flex cursor-pointer items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                    importing ? 'border-orange-200 bg-white/60 text-orange-400' : 'border-orange-300 bg-white text-orange-700 hover:bg-orange-100'
+                  }`}>
+                    {importing ? 'Analyse...' : 'Choisir un PDF'}
+                    <input
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="sr-only"
+                      disabled={importing}
+                      onChange={(e) => { handleChordifyPdfUpload(e.target.files?.[0] || null); e.currentTarget.value = '' }}
+                    />
+                  </label>
+                </div>
+              )}
             </div>
             {importPreview && (
               <div className="mt-4 space-y-3">
+                {importPreview.resourceName && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                    PDF lié : <strong>{importPreview.resourceName}</strong>
+                  </div>
+                )}
                 {importPreview.warnings.length > 0 && (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                     {importPreview.warnings.map((warning) => <p key={warning}>{warning}</p>)}
