@@ -138,6 +138,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     if (prefillApplied || !prefillSongId || songs.length === 0) return
     if (!songs.some((song) => String(song.id) === prefillSongId)) return
     selectSong(prefillSongId)
+    setImportSongId(prefillSongId)
     setModalOpen(true)
     setPrefillApplied(true)
   }, [prefillApplied, prefillSongId, songs])

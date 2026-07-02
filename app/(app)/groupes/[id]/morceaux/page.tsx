@@ -657,6 +657,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
             const urlResources = getUrlResources(song)
             const quickPdf = pdfResources.find((resource) => resource.id === quickPdfBySong[song.id]) || pdfResources[0] || null
             const quickUrl = urlResources.find((resource) => resource.id === quickUrlBySong[song.id]) || urlResources[0] || null
+            const hasChordChart = (song.chordCharts?.length ?? 0) > 0
             const missingReason = hasAnyResource
               ? `Ce titre a ${hasUrl ? 'une URL ou une autre ressource' : 'des ressources'}, mais aucune partition PDF ni grille associée.`
               : 'Ce titre ne possède aucune ressource, aucun PDF, aucune URL et aucune grille associée.'
@@ -748,15 +749,32 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                           ⚠️ Alerte ignorée
                         </button>
                       )}
-                      {(groupInfo?.hasGrilles ?? true) && song.chordCharts && song.chordCharts.length > 0 && (
-                        <Link
-                          href={`/groupes/${groupId}/grilles/${song.chordCharts[0].id}?from=repertoire&songId=${song.id}`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-orange-300 hover:text-orange-600 transition-colors"
-                          title={song.chordCharts.length > 1 ? `${song.chordCharts.length} grilles associées` : 'Grille d\'accords'}
-                        >
-                          🎸 Grille
-                          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 ml-0.5" />
-                        </Link>
+                      {(groupInfo?.hasGrilles ?? true) && (
+                        hasChordChart ? (
+                          <Link
+                            href={`/groupes/${groupId}/grilles/${song.chordCharts![0].id}?from=repertoire&songId=${song.id}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-orange-300 hover:text-orange-600 transition-colors"
+                            title={song.chordCharts!.length > 1 ? `${song.chordCharts!.length} grilles associées` : 'Grille d\'accords'}
+                          >
+                            🎸 Grille
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 ml-0.5" />
+                          </Link>
+                        ) : chefCan('grilles', 'create') ? (
+                          <Link
+                            href={`/groupes/${groupId}/grilles?songId=${song.id}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600"
+                            title="Créer une grille pour ce titre, à zéro ou depuis un PDF Chordify"
+                          >
+                            🎸 Grille
+                          </Link>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-400"
+                            title="Aucune grille associée"
+                          >
+                            🎸 Grille
+                          </span>
+                        )
                       )}
                       {isChef && (chefCan('repertoire', 'update') || chefCan('repertoire', 'delete')) && (
                         <Button variant="ghost" size="sm" onClick={() => openEdit(song)}>
