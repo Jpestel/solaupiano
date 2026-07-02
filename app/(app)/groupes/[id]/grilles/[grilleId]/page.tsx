@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { FloatingAudioPlayer } from '@/components/FloatingAudioPlayer'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { ph } from '@/lib/placeholders'
@@ -203,6 +205,7 @@ function MarkerContent({ value, side }: { value: string; side: 'left' | 'right' 
 /* ─── Main editor ─── */
 export default function GrilleEditorPage({ params }: { params: { id: string; grilleId: string } }) {
   const { data: session } = useSession()
+  const searchParams = useSearchParams()
   const groupId = params.id
   const grilleId = params.grilleId
 
@@ -611,6 +614,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const bpr = chart.barsPerRow
   const bpb = beatsPerBar(chart.timeSignature)
   const parsedSounds = parseChartSounds(sons)
+  const currentSongId = chart.song?.id ?? chart.songId ?? null
+  const sourceSongId = searchParams.get('songId') || (currentSongId ? String(currentSongId) : '')
+  const fromRepertoire = searchParams.get('from') === 'repertoire'
+  const repertoireReturnHref = `/groupes/${groupId}/morceaux${sourceSongId ? `#song-${sourceSongId}` : ''}`
+  const backHref = fromRepertoire ? repertoireReturnHref : `/groupes/${groupId}/grilles`
+  const backLabel = fromRepertoire ? '← Retour au titre du répertoire' : '← Retour aux grilles'
 
   const rows: number[][] = []
   for (let i = 0; i < cells.length; i += bpr) {
@@ -627,7 +636,9 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         <span>/</span>
         <Link href={`/groupes/${groupId}`} className="hover:text-indigo-600">{groupName}</Link>
         <span>/</span>
-        <Link href={`/groupes/${groupId}/grilles`} className="hover:text-indigo-600">Grilles</Link>
+        <Link href={fromRepertoire ? repertoireReturnHref : `/groupes/${groupId}/grilles`} className="hover:text-indigo-600">
+          {fromRepertoire ? 'Répertoire' : 'Grilles'}
+        </Link>
         <span>/</span>
         <span className="text-gray-900 truncate max-w-[160px]">{chart.title}</span>
       </div>
@@ -672,10 +683,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end lg:max-w-[520px]">
           <Link
-            href={`/groupes/${groupId}/morceaux`}
+            href={backHref}
             className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 sm:col-span-1"
           >
-            ← Retour au répertoire
+            {backLabel}
           </Link>
           <div className="flex items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
             <button
@@ -1149,6 +1160,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           </div>
         </form>
       </Modal>
+      <FloatingAudioPlayer groupId={groupId} currentSongId={currentSongId} />
     </div>
   )
 }

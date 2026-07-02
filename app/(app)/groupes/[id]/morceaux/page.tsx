@@ -750,7 +750,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                       )}
                       {(groupInfo?.hasGrilles ?? true) && song.chordCharts && song.chordCharts.length > 0 && (
                         <Link
-                          href={`/groupes/${groupId}/grilles/${song.chordCharts[0].id}`}
+                          href={`/groupes/${groupId}/grilles/${song.chordCharts[0].id}?from=repertoire&songId=${song.id}`}
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-orange-300 hover:text-orange-600 transition-colors"
                           title={song.chordCharts.length > 1 ? `${song.chordCharts.length} grilles associées` : 'Grille d\'accords'}
                         >
