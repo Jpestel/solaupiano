@@ -178,17 +178,30 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   const importChordifyPdf = async (payload: FormData) => {
     setImporting(true)
     setError('')
-    const res = await fetch(`/api/groupes/${groupId}/grilles/import-chordify`, {
-      method: 'POST',
-      body: payload,
-    })
-    setImporting(false)
-    const data = await res.json().catch(() => null)
-    if (!res.ok) {
-      setError(data?.error || "Impossible d'analyser ce PDF.")
-      return
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 35000)
+    try {
+      const res = await fetch(`/api/groupes/${groupId}/grilles/import-chordify`, {
+        method: 'POST',
+        body: payload,
+        signal: controller.signal,
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(data?.error || "Impossible d'analyser ce PDF.")
+        return
+      }
+      applyImportPreview(data as ImportPreview)
+    } catch (err) {
+      setError(
+        err instanceof DOMException && err.name === 'AbortError'
+          ? "L'analyse du PDF a pris trop de temps. Essayez avec un PDF plus léger ou un autre export Chordify."
+          : "L'analyse du PDF a échoué. Vérifiez votre connexion et réessayez.",
+      )
+    } finally {
+      window.clearTimeout(timeout)
+      setImporting(false)
     }
-    applyImportPreview(data as ImportPreview)
   }
 
   const handleChordifyExistingImport = () => {

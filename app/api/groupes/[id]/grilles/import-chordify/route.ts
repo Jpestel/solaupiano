@@ -311,7 +311,7 @@ async function pdfBufferToText(buffer: Buffer) {
   await mkdir(dir, { recursive: true })
   try {
     await writeFile(pdfPath, buffer)
-    await execFileAsync('pdftotext', ['-layout', pdfPath, textPath], { timeout: 15000 })
+    await execFileAsync('pdftotext', ['-layout', pdfPath, textPath], { timeout: 10000, killSignal: 'SIGKILL' })
     return readFile(textPath, 'utf8')
   } finally {
     await rm(dir, { recursive: true, force: true })
@@ -326,7 +326,8 @@ async function pdfBufferToXml(buffer: Buffer) {
   try {
     await writeFile(pdfPath, buffer)
     const { stdout } = await execFileAsync('pdftohtml', ['-xml', '-i', '-stdout', pdfPath], {
-      timeout: 15000,
+      timeout: 6000,
+      killSignal: 'SIGKILL',
       maxBuffer: 10 * 1024 * 1024,
     })
     return stdout
@@ -394,6 +395,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         ? path.join(process.cwd(), 'public', resource.filePath)
         : path.join(process.cwd(), resource.filePath)
       if (!fs.existsSync(pdfPath)) return NextResponse.json({ error: 'Fichier PDF introuvable sur le serveur.' }, { status: 404 })
+      const stat = fs.statSync(pdfPath)
+      if (stat.size > MAX_PDF_SIZE) throw new Error('PDF trop volumineux.')
 
       const preview = await parseChordifyBuffer(await readFile(pdfPath))
       return NextResponse.json({
