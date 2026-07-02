@@ -57,11 +57,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   }
 
-  const { title, tempo, keySignature, timeSignature, barsPerRow, totalBars, songId } = await req.json()
+  const { title, tempo, keySignature, timeSignature, barsPerRow, totalBars, songId, cells } = await req.json()
   if (!title?.trim()) return NextResponse.json({ error: 'Le titre est requis.' }, { status: 400 })
 
-  const bars = Math.max(8, Math.min(80, Number(totalBars) || 32))
-  const cells = Array(bars).fill('')
+  const bars = Math.max(8, Math.min(240, Number(totalBars) || 32))
+  const normalizedCells = Array.isArray(cells)
+    ? (cells.length < bars ? [...cells, ...Array(bars - cells.length).fill('')] : cells.slice(0, bars))
+    : Array(bars).fill('')
 
   // Filet de sécurité : si la grille est liée à un morceau et qu'aucun tempo n'est saisi,
   // on reprend le BPM du morceau.
@@ -80,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       timeSignature: timeSignature || '4/4',
       barsPerRow: Number(barsPerRow) || 4,
       totalBars: bars,
-      cells,
+      cells: normalizedCells,
       songId: songId ? Number(songId) : null,
     },
   })

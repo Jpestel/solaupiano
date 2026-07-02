@@ -18,10 +18,45 @@ interface Chart {
   createdAt: string; updatedAt: string
 }
 interface GroupInfo { name: string; groupRole: string; createdBy: number | null; chefPermissions: unknown }
+interface ImportPreview {
+  title: string
+  tempo: string | null
+  timeSignature: string
+  barsPerRow: number
+  totalBars: number
+  previewText: string
+  warnings: string[]
+}
 
 const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '5/4', '12/8', '2/2']
 const BARS_PER_ROW = [2, 3, 4, 6]
 const TOTAL_BARS = [8, 16, 24, 32, 48, 64, 80]
+
+function cellsFromImportPreview(previewText: string, totalBars: number) {
+  const lines = previewText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  const parsed = lines
+    .map((line) => {
+      const match = line.match(/^(\d+)\s*:\s*(.+)$/)
+      if (!match) return null
+      const number = Number(match[1])
+      const chords = match[2].split(/\s*(?:\||,|;)\s*/).map((chord) => chord.trim()).filter(Boolean)
+      return Number.isFinite(number) && number > 0 ? { number, chords } : null
+    })
+    .filter((item): item is { number: number; chords: string[] } => Boolean(item))
+  const maxBar = Math.max(totalBars, ...parsed.map((item) => item.number), 8)
+  const cells = Array.from({ length: Math.min(240, maxBar) }, () => ({ l: '', b: Array(4).fill(''), r: '' }))
+
+  parsed.forEach(({ number, chords }) => {
+    const bar = cells[number - 1]
+    if (!bar) return
+    const limitedChords = chords.slice(0, 4)
+    limitedChords.forEach((chord, idx) => {
+      const beat = limitedChords.length === 1 ? 0 : Math.min(3, Math.floor(idx * 4 / limitedChords.length))
+      bar.b[beat] = chord
+    })
+  })
+  return cells
+}
 
 export default function GrillesPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
@@ -39,6 +74,9 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   const [duplicateTitle, setDuplicateTitle] = useState('')
   const [duplicating, setDuplicating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null)
+  const [importPreviewText, setImportPreviewText] = useState('')
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     title: '', tempo: '', keySignature: '',
@@ -65,7 +103,11 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
 
   useEffect(() => { if (session) fetchData() }, [session, groupId])
 
-  const resetForm = () => setForm({ title: '', tempo: '', keySignature: '', timeSignature: '4/4', barsPerRow: 4, totalBars: 32, songId: '' })
+  const resetForm = () => {
+    setForm({ title: '', tempo: '', keySignature: '', timeSignature: '4/4', barsPerRow: 4, totalBars: 32, songId: '' })
+    setImportPreview(null)
+    setImportPreviewText('')
+  }
 
   // Lier un morceau → pré-remplit les éléments déjà connus du titre (BPM, titre)
   const selectSong = (val: string) => {
@@ -89,16 +131,52 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true); setError('')
+    const importedCells = importPreview ? cellsFromImportPreview(importPreviewText, form.totalBars) : null
+    const importedTotalBars = importedCells?.length || form.totalBars
     const res = await fetch(`/api/groupes/${groupId}/grilles`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, songId: form.songId ? Number(form.songId) : null }),
+      body: JSON.stringify({
+        ...form,
+        totalBars: importedTotalBars,
+        cells: importedCells,
+        songId: form.songId ? Number(form.songId) : null,
+      }),
     })
     setSaving(false)
     if (!res.ok) { const d = await res.json(); setError(d.error || 'Erreur.'); return }
     const chart = await res.json()
     setModalOpen(false); resetForm()
     window.location.href = `/groupes/${groupId}/grilles/${chart.id}`
+  }
+
+  const handleChordifyPdfImport = async (file: File | null) => {
+    if (!file) return
+    setImporting(true)
+    setError('')
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch(`/api/groupes/${groupId}/grilles/import-chordify`, {
+      method: 'POST',
+      body: fd,
+    })
+    setImporting(false)
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      setError(data?.error || "Impossible d'analyser ce PDF.")
+      return
+    }
+    const preview = data as ImportPreview
+    setImportPreview(preview)
+    setImportPreviewText(preview.previewText || '')
+    setForm((f) => ({
+      ...f,
+      title: f.title.trim() ? f.title : preview.title,
+      tempo: f.tempo.trim() ? f.tempo : (preview.tempo || ''),
+      timeSignature: preview.timeSignature || f.timeSignature,
+      barsPerRow: preview.barsPerRow || f.barsPerRow,
+      totalBars: preview.totalBars || f.totalBars,
+    }))
   }
 
   const openDuplicate = (chart: Chart) => {
@@ -130,6 +208,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   const isChef = groupInfo?.groupRole === 'CHEF'
   const isFounder = isChef && (session?.user?.siteRole === 'ADMIN' || Number(session?.user?.id) === groupInfo?.createdBy)
   const perms = resolvePermissions(groupInfo?.chefPermissions)
+  const totalBarOptions = Array.from(new Set([...TOTAL_BARS, form.totalBars])).sort((a, b) => a - b)
   const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
     if (!isChef) return false
     if (isFounder) return true
@@ -238,6 +317,51 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
       <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); resetForm(); setError('') }} title="Nouvelle grille d'accords">
         <form onSubmit={handleCreate} className="space-y-4">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-orange-900">Importer depuis un PDF Chordify</p>
+                <p className="mt-0.5 text-xs text-orange-700">
+                  Analyse les accords du PDF, les regroupe par mesures, puis vous laisse corriger avant création.
+                </p>
+              </div>
+              <label className={`inline-flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                importing ? 'border-orange-200 bg-white/60 text-orange-400' : 'border-orange-300 bg-white text-orange-700 hover:bg-orange-100'
+              }`}>
+                {importing ? 'Analyse...' : 'Choisir un PDF'}
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="sr-only"
+                  disabled={importing}
+                  onChange={(e) => handleChordifyPdfImport(e.target.files?.[0] || null)}
+                />
+              </label>
+            </div>
+            {importPreview && (
+              <div className="mt-4 space-y-3">
+                {importPreview.warnings.length > 0 && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    {importPreview.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+                  </div>
+                )}
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-orange-800">
+                    Prévisualisation modifiable
+                  </label>
+                  <textarea
+                    value={importPreviewText}
+                    onChange={(e) => setImportPreviewText(e.target.value)}
+                    rows={8}
+                    className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 font-mono text-xs text-gray-800 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                  />
+                  <p className="mt-1 text-[11px] text-orange-700">
+                    Format : une mesure par ligne, exemple <code>12: Gm | Dm</code>. Les accords séparés par <code>|</code> seront répartis dans la mesure.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
           <div>
             <label className="form-label">Titre <span className="text-red-500">*</span></label>
             <input type="text" required autoFocus value={form.title}
@@ -274,7 +398,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
             <div>
               <label className="form-label">Nb mesures</label>
               <select value={form.totalBars} onChange={(e) => setForm({ ...form, totalBars: Number(e.target.value) })} className="form-input">
-                {TOTAL_BARS.map((n) => <option key={n} value={n}>{n}</option>)}
+                {totalBarOptions.map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
           </div>
@@ -291,7 +415,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => { setModalOpen(false); resetForm(); setError('') }}>Annuler</Button>
             <Button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-500">
-              {saving ? 'Création...' : 'Créer et éditer'}
+              {saving ? 'Création...' : importPreview ? 'Créer depuis le PDF' : 'Créer et éditer'}
             </Button>
           </div>
         </form>
