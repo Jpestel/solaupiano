@@ -117,10 +117,39 @@ function parseChordifyXml(xml: string, fallbackText: string) {
 
   const title = extractTitle(fallbackText || items.map((item) => item.text).join('\n'))
   const tempo = extractTempo(fallbackText || items.map((item) => item.text).join('\n'))
+  const accidentalItems = items.filter((item) =>
+    item.top > 55 &&
+    item.text === '' &&
+    item.width >= 5 &&
+    item.width <= 13 &&
+    item.height >= 35 &&
+    item.height <= 55,
+  )
   const chordItems = items
     .filter((item) => item.top > 55 && isChordLabel(item.text))
-    .map((item) => ({ ...item, chord: normalizeChord(item.text), center: item.left + item.width / 2 }))
+    .map((item) => {
+      let chord = normalizeChord(item.text)
+      const hasExplicitMissingSharp = chord !== 'N.C.' && !/^[A-G][#b]/.test(chord) && accidentalItems.some((accidental) => {
+        if (accidental.page !== item.page) return false
+        const verticalMatch = accidental.top >= item.top + 12 && accidental.top <= item.top + 42
+        if (!verticalMatch) return false
+        return accidental.left >= item.left - 16 && accidental.left <= item.left - 1
+      })
+      if (hasExplicitMissingSharp) chord = chord.replace(/^([A-G])/, '$1#')
+      return { ...item, chord, explicitSharp: hasExplicitMissingSharp, center: item.left + item.width / 2 }
+    })
     .sort((a, b) => a.page - b.page || a.top - b.top || a.left - b.left)
+  const explicitSharpCount = chordItems.filter((item) => item.explicitSharp).length
+  const likelySharpExport = explicitSharpCount >= 4 && chordItems.some((item) => item.chord.startsWith('C#'))
+  if (likelySharpExport) {
+    const autoSharpRoots = new Set(['F', 'C', 'G', 'D', 'A', 'E'])
+    chordItems.forEach((item) => {
+      const root = item.chord[0]
+      if (item.chord !== 'N.C.' && autoSharpRoots.has(root) && /^[A-G](?![#b])/.test(item.chord)) {
+        item.chord = item.chord.replace(/^([A-G])/, '$1#')
+      }
+    })
+  }
 
   if (chordItems.length < 2) return null
 
@@ -221,6 +250,7 @@ function parseChordifyXml(xml: string, fallbackText: string) {
     warnings: [
       'Import géométrique : les accords sont replacés selon leur position dans le PDF Chordify.',
       'Relisez les bémols/dièses : certains PDF Chordify encodent les altérations avec des glyphes musicaux difficiles à lire automatiquement.',
+      ...(likelySharpExport ? ['Mode dièses détecté : les accords nus du PDF ont été reconstruits en accords diésés quand Chordify masquait le signe #.'] : []),
     ],
   }
 }
