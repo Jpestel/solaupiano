@@ -284,12 +284,16 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
         <span className="text-gray-900">Grilles</span>
       </div>
 
-      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
+      <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Grilles d&apos;accords</h1>
           <p className="text-gray-500 text-sm mt-1">Créez et partagez vos grilles d&apos;accords.</p>
         </div>
-        {chefCan('grilles', 'create') && <Button onClick={() => setModalOpen(true)}>+ Nouvelle grille</Button>}
+        {chefCan('grilles', 'create') && (
+          <Button onClick={() => setModalOpen(true)} className="w-full sm:w-auto">
+            + Nouvelle grille
+          </Button>
+        )}
       </div>
 
       {charts.length === 0 ? (
@@ -373,10 +377,10 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
       )}
 
       {/* Create modal */}
-      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); resetForm(); setError('') }} title="Nouvelle grille d'accords">
-        <form onSubmit={handleCreate} className="space-y-4">
+      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); resetForm(); setError('') }} title="Nouvelle grille d'accords" size="xl">
+        <form onSubmit={handleCreate} className="space-y-4 pb-20 sm:pb-0">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
-          <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+          <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-3 sm:px-4">
             <div>
               <p className="text-sm font-bold text-orange-900">Importer depuis un PDF Chordify</p>
               <p className="mt-0.5 text-xs text-orange-700">
@@ -394,7 +398,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                   key={mode.key}
                   type="button"
                   onClick={() => { setImportMode(mode.key); setImportPreview(null); setImportPreviewText(''); setError('') }}
-                  className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                  className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
                     importMode === mode.key
                       ? 'border-orange-400 bg-white text-orange-900 shadow-sm'
                       : 'border-orange-200 bg-orange-100/60 text-orange-700 hover:bg-white'
@@ -406,7 +410,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
               ))}
             </div>
 
-            <div className="mt-3 max-w-sm">
+            <div className="mt-3 sm:max-w-sm">
               <label className="form-label">Altérations masquées</label>
               <select
                 value={importAccidentalMode}
@@ -426,7 +430,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
               </p>
             </div>
 
-            <div className="mt-4 rounded-lg border border-orange-200 bg-white/70 p-3">
+            <div className="mt-4 rounded-lg border border-orange-200 bg-white/70 p-3 sm:p-4">
               {importMode === 'existing' ? (
                 <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                   <div>
@@ -460,7 +464,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                     type="button"
                     onClick={handleChordifyExistingImport}
                     disabled={importing || !importResourceId}
-                    className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:bg-orange-200"
+                    className="min-h-[44px] rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:bg-orange-200"
                   >
                     {importing ? 'Analyse...' : 'Analyser'}
                   </button>
@@ -495,7 +499,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                       </p>
                     </div>
                   )}
-                  <label className={`inline-flex cursor-pointer items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                  <label className={`inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
                     importing ? 'border-orange-200 bg-white/60 text-orange-400' : 'border-orange-300 bg-white text-orange-700 hover:bg-orange-100'
                   }`}>
                     {importing ? 'Analyse...' : 'Choisir un PDF'}
@@ -534,8 +538,8 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                   <textarea
                     value={importPreviewText}
                     onChange={(e) => setImportPreviewText(e.target.value)}
-                    rows={8}
-                    className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 font-mono text-xs text-gray-800 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                    rows={10}
+                    className="max-h-[45dvh] min-h-56 w-full rounded-lg border border-orange-200 bg-white px-3 py-2 font-mono text-[13px] leading-relaxed text-gray-800 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 sm:min-h-44 sm:text-xs"
                   />
                   <p className="mt-1 text-[11px] text-orange-700">
                     Format : une mesure par ligne, exemple <code>12: Gm | Dm</code>. Les accords séparés par <code>|</code> seront répartis dans la mesure.
@@ -550,7 +554,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               className="form-input" placeholder={ph('groupes_id_grilles_1')} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="form-label">Tempo <span className="text-gray-400 font-normal">(optionnel)</span></label>
               <input type="text" value={form.tempo}
@@ -564,7 +568,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                 className="form-input" placeholder={ph('groupes_id_grilles_3')} />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label className="form-label">Mesure</label>
               <select value={form.timeSignature} onChange={(e) => setForm({ ...form, timeSignature: e.target.value })} className="form-input">
@@ -594,9 +598,9 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
               <p className="text-xs text-gray-400 mt-1">Le tempo (BPM) et le titre du morceau sont pré-remplis automatiquement.</p>
             </div>
           )}
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => { setModalOpen(false); resetForm(); setError('') }}>Annuler</Button>
-            <Button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-500">
+          <div className="fixed inset-x-0 bottom-0 z-10 flex gap-2 border-t border-gray-100 bg-white/95 p-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:justify-end sm:border-t-0 sm:bg-transparent sm:p-0 sm:pt-2 sm:shadow-none sm:backdrop-blur-none">
+            <Button type="button" variant="secondary" onClick={() => { setModalOpen(false); resetForm(); setError('') }} className="flex-1 sm:flex-none">Annuler</Button>
+            <Button type="submit" disabled={saving} className="flex-1 bg-orange-600 hover:bg-orange-500 sm:flex-none">
               {saving ? 'Création...' : importPreview ? 'Créer depuis le PDF' : 'Créer et éditer'}
             </Button>
           </div>
