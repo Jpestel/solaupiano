@@ -29,6 +29,7 @@ interface PdfModalProps {
   kind?: 'pdf' | 'image'   // 'image' : partition au format photo (jpeg/png…)
   groupId?: number | string
   songId?: number | null
+  songTitle?: string | null
 }
 
 interface PdfBookmark {
@@ -42,7 +43,7 @@ interface PdfBookmark {
   targetBookmarkId?: number | null
 }
 
-export function PdfModal({ url, title, onClose, kind = 'pdf', groupId, songId }: PdfModalProps) {
+export function PdfModal({ url, title, onClose, kind = 'pdf', groupId, songId, songTitle }: PdfModalProps) {
   const isImage = kind === 'image'
   const [numPages, setNumPages] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState(1)
@@ -479,6 +480,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf', groupId, songId }:
               <VoiceRecorder
                 groupId={groupId}
                 songId={songId}
+                songTitle={songTitle}
                 resourceId={resourceId ? Number(resourceId) : null}
                 contextTitle={title}
                 source="PDF"

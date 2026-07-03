@@ -158,7 +158,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [resourceError, setResourceError] = useState('')
   const [resourceSaving, setResourceSaving] = useState(false)
   const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string; local?: boolean } | null>(null)
-  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image'; songId?: number } | null>(null)
+  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image'; songId?: number; songTitle?: string } | null>(null)
   const [annotate, setAnnotate] = useState<{ id: number; name: string; type: string; filePath: string } | null>(null)
   const [pendingResources, setPendingResources] = useState<PendingResource[]>([])
   const [submitSongId, setSubmitSongId] = useState<number | null>(null)
@@ -407,11 +407,11 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
 
   const openResource = (resource: Resource, song: Song) => {
     if (resource.type === 'PDF') {
-      setPdfModal({ url: `/api/ressources/${resource.id}`, title: resource.name, songId: song.id })
+      setPdfModal({ url: `/api/ressources/${resource.id}`, title: resource.name, songId: song.id, songTitle: song.title })
       return
     }
     if (resource.type === 'IMAGE') {
-      setPdfModal({ url: `/api/ressources/${resource.id}`, title: resource.name, kind: 'image', songId: song.id })
+      setPdfModal({ url: `/api/ressources/${resource.id}`, title: resource.name, kind: 'image', songId: song.id, songTitle: song.title })
       return
     }
     if (resource.type === 'VIDEO' || isVideoFile(resource.filePath)) {
@@ -962,7 +962,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                             )}
                             {res.type === 'PDF' ? (
                               <button
-                                onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name, songId: song.id })}
+                                onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name, songId: song.id, songTitle: song.title })}
                                 className="text-xs text-indigo-600 hover:text-indigo-500 font-medium flex items-center gap-1"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -972,7 +972,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                               </button>
                             ) : res.type === 'IMAGE' ? (
                               <button
-                                onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name, kind: 'image', songId: song.id })}
+                                onClick={() => setPdfModal({ url: `/api/ressources/${res.id}`, title: res.name, kind: 'image', songId: song.id, songTitle: song.title })}
                                 className="text-xs text-indigo-600 hover:text-indigo-500 font-medium flex items-center gap-1"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1266,6 +1266,7 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           kind={pdfModal.kind}
           groupId={groupId}
           songId={pdfModal.songId ?? null}
+          songTitle={pdfModal.songTitle ?? null}
           onClose={() => setPdfModal(null)}
         />
       )}

@@ -19,6 +19,7 @@ interface Recording {
 interface VoiceRecorderProps {
   groupId: number | string
   songId?: number | null
+  songTitle?: string | null
   resourceId?: number | null
   contextTitle?: string
   source?: 'GENERAL' | 'PDF' | 'GRID' | 'REHEARSAL' | 'SETLIST'
@@ -45,6 +46,96 @@ function recordingUrl(groupId: number | string, recordingId: number) {
   return `/api/groupes/${groupId}/recordings/${recordingId}`
 }
 
+function formatDateTime(value: Date | string) {
+  const date = typeof value === 'string' ? new Date(value) : value
+  return date.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).replace(':', 'h')
+}
+
+function RecordingPlayer({ src }: { src: string }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [playing, setPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [loading, setLoading] = useState(false)
+
+  const togglePlayback = async () => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    if (!audio.paused) {
+      audio.pause()
+      setPlaying(false)
+      return
+    }
+
+    setLoading(true)
+    setPlaying(false)
+    document.querySelectorAll<HTMLAudioElement>('audio[data-voice-recording-player="true"]').forEach((item) => {
+      if (item !== audio) item.pause()
+    })
+
+    try {
+      audio.preload = 'auto'
+      if (audio.readyState === 0) audio.load()
+      await audio.play()
+      setPlaying(true)
+    } catch {
+      setPlaying(false)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl bg-gray-100 px-3 py-2">
+      <audio
+        ref={audioRef}
+        data-voice-recording-player="true"
+        preload="auto"
+        src={src}
+        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime || 0)}
+        onEnded={() => setPlaying(false)}
+        onPause={() => setPlaying(false)}
+        onPlay={() => setPlaying(true)}
+      />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={togglePlayback}
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-rose-600 text-sm font-black text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-60"
+          disabled={loading}
+          aria-label={playing ? 'Mettre en pause' : 'Lire la prise audio'}
+        >
+          {loading ? '…' : playing ? 'Ⅱ' : '▶'}
+        </button>
+        <span className="w-10 text-xs font-semibold tabular-nums text-gray-600">{formatDuration(currentTime)}</span>
+        <input
+          type="range"
+          min={0}
+          max={duration || 0}
+          step={0.1}
+          value={Math.min(currentTime, duration || currentTime)}
+          onChange={(event) => {
+            const next = Number(event.target.value)
+            if (audioRef.current) audioRef.current.currentTime = next
+            setCurrentTime(next)
+          }}
+          className="min-w-0 flex-1 accent-rose-600"
+          disabled={!duration}
+        />
+        <span className="w-10 text-right text-xs font-semibold tabular-nums text-gray-600">{formatDuration(duration)}</span>
+      </div>
+    </div>
+  )
+}
+
 function preferredMimeType() {
   if (typeof MediaRecorder === 'undefined') return ''
   const candidates = [
@@ -59,6 +150,7 @@ function preferredMimeType() {
 export function VoiceRecorder({
   groupId,
   songId,
+  songTitle,
   resourceId,
   contextTitle,
   source = 'GENERAL',
@@ -133,9 +225,13 @@ export function VoiceRecorder({
     setSaving(true)
     setError('')
     const date = new Date()
-    const title = contextTitle
-      ? `Prise - ${contextTitle} - ${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
-      : `Prise audio - ${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+    const stamp = formatDateTime(date)
+    const baseTitle = songId && songTitle?.trim()
+      ? songTitle.trim()
+      : contextTitle?.trim()
+        ? contextTitle.trim()
+        : 'Prise audio'
+    const title = `${baseTitle} - ${stamp}`
 
     const fd = new FormData()
     fd.append('file', blob, 'prise-audio.webm')
@@ -157,7 +253,7 @@ export function VoiceRecorder({
     setRecordings((items) => [recording, ...items])
     setNote('')
     setNotice(stopReasonRef.current || 'Prise audio sauvegardée.')
-  }, [contextTitle, groupId, note, resourceId, songId, source])
+  }, [contextTitle, groupId, note, resourceId, songId, songTitle, source])
 
   const stopRecording = useCallback((reason = 'Prise audio sauvegardée.') => {
     stopReasonRef.current = reason
@@ -376,7 +472,7 @@ export function VoiceRecorder({
                         <div className="min-w-0">
                           <p className="truncate text-sm font-bold text-gray-900">{item.title}</p>
                           <p className="text-xs text-gray-500">
-                            {formatDuration(item.durationSec)} · {formatBytes(item.fileSize)} · {new Date(item.createdAt).toLocaleDateString('fr-FR')}
+                            {formatDuration(item.durationSec)} · {formatBytes(item.fileSize)} · {formatDateTime(item.createdAt)}
                           </p>
                         </div>
                         <button
@@ -387,7 +483,7 @@ export function VoiceRecorder({
                           Suppr.
                         </button>
                       </div>
-                      <audio controls preload="metadata" src={recordingUrl(groupId, item.id)} className="h-9 w-full" />
+                      <RecordingPlayer src={recordingUrl(groupId, item.id)} />
                       {item.note && <p className="mt-2 text-xs text-gray-500">{item.note}</p>}
                     </div>
                   ))}

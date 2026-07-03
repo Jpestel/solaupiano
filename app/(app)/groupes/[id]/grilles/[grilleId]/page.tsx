@@ -714,7 +714,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             {saving ? '💾 Sauvegarde...' : '✓ Sauvegardé'}
           </span>
           <div className="relative flex items-center justify-center">
-            <VoiceRecorder groupId={groupId} songId={currentSongId} contextTitle={chart.title} source="GRID" compact />
+            <VoiceRecorder groupId={groupId} songId={currentSongId} songTitle={chart.song?.title || null} contextTitle={chart.title} source="GRID" compact />
           </div>
           <button onClick={handlePrint}
             className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50">
