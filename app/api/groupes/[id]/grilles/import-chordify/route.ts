@@ -26,6 +26,7 @@ type PdfTextItem = {
   font: string
   text: string
 }
+type KeySignatureGuess = { accidental: '#' | 'b'; count: number; roots: Set<string> }
 
 function cleanText(value: string) {
   return value
@@ -111,6 +112,53 @@ function median(values: number[], fallback: number) {
   return sorted[Math.floor(sorted.length / 2)]
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
+}
+
+function inferKeySignature(items: PdfTextItem[]): KeySignatureGuess | null {
+  const candidates = items
+    .filter((item) =>
+      item.page === 1 &&
+      item.top >= 150 &&
+      item.top <= 235 &&
+      item.left >= 105 &&
+      item.left <= 230 &&
+      item.width >= 35 &&
+      item.height >= 35 &&
+      item.text.trim() === '',
+    )
+    .sort((a, b) => b.width * b.height - a.width * a.height)
+  const keyBlock = candidates[0]
+  if (!keyBlock) return null
+
+  const isSharp = keyBlock.top < 195
+  const count = clamp(Math.round(keyBlock.width / (isSharp ? 15 : 30)), 1, 7)
+  const order = isSharp
+    ? ['F', 'C', 'G', 'D', 'A', 'E', 'B']
+    : ['B', 'E', 'A', 'D', 'G', 'C', 'F']
+
+  return {
+    accidental: isSharp ? '#' : 'b',
+    count,
+    roots: new Set(order.slice(0, count)),
+  }
+}
+
+function hasLocalAccidentalGlyph(item: PdfTextItem, accidentals: PdfTextItem[]) {
+  return accidentals.some((accidental) => {
+    if (accidental.page !== item.page) return false
+    const dy = accidental.top - item.top
+    const dx = accidental.left - item.left
+    return dy >= -6 && dy <= 22 && dx >= -26 && dx <= -2
+  })
+}
+
+function applyRootAccidental(chord: string, accidental: '#' | 'b' | null) {
+  if (!accidental || chord === 'N.C.' || !/^[A-G](?![#b])/.test(chord)) return chord
+  return chord.replace(/^([A-G])/, `$1${accidental}`)
+}
+
 function buildPreviewText(byNumber: Map<number, string[]>, lastNumber: number, fillRepeats = true) {
   let hasPreviousChord = false
   const lines: string[] = []
@@ -137,48 +185,34 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
   const accidentalItems = items.filter((item) =>
     item.top > 55 &&
     item.text === '' &&
-    item.width >= 2 &&
-    item.width <= 18 &&
+    item.width >= 5 &&
+    item.width <= 26 &&
     item.height >= 20 &&
     item.height <= 65,
   )
+  const keySignature = accidentalMode === 'auto' ? inferKeySignature(items) : null
+  const forcedAccidental: '#' | 'b' | null = accidentalMode === 'sharp'
+    ? '#'
+    : accidentalMode === 'flat'
+      ? 'b'
+      : null
   const chordItems = items
     .filter((item) => item.top > 55 && isChordLabel(item.text))
     .map((item) => {
       let chord = normalizeChord(item.text)
-      const hasExplicitMissingAccidental = chord !== 'N.C.' && !/^[A-G][#b]/.test(chord) && accidentalItems.some((accidental) => {
-        if (accidental.page !== item.page) return false
-        const verticalMatch = accidental.top >= item.top + 8 && accidental.top <= item.top + 48
-        if (!verticalMatch) return false
-        return accidental.left >= item.left - 20 && accidental.left <= item.left + 3
-      })
-      if (hasExplicitMissingAccidental) {
-        chord = chord.replace(/^([A-G])/, accidentalMode === 'flat' ? '$1b' : '$1#')
-      }
-      return { ...item, chord, explicitAccidental: hasExplicitMissingAccidental, center: item.left + item.width / 2 }
+      const root = chord[0]
+      const localAccidental = chord !== 'N.C.' && hasLocalAccidentalGlyph(item, accidentalItems)
+      const localAccidentalEligible = keySignature?.accidental === 'b'
+        ? root !== 'F'
+        : root !== 'B'
+      const inferredAccidental = forcedAccidental
+        || (keySignature && (/^[A-G]$/.test(root) && (keySignature.roots.has(root) || (localAccidental && localAccidentalEligible)))
+          ? keySignature.accidental
+          : null)
+      chord = applyRootAccidental(chord, inferredAccidental)
+      return { ...item, chord, explicitAccidental: Boolean(inferredAccidental), center: item.left + item.width / 2 }
     })
     .sort((a, b) => a.page - b.page || a.top - b.top || a.left - b.left)
-  const explicitAccidentalCount = chordItems.filter((item) => item.explicitAccidental).length
-  const explicitRoots = new Set(
-    chordItems
-      .filter((item) => item.explicitAccidental && item.chord !== 'N.C.')
-      .map((item) => item.chord[0]),
-  )
-  const likelySharpExport = accidentalMode !== 'flat' && explicitAccidentalCount >= 4 && explicitRoots.size >= 1
-  const forcedFlatExport = accidentalMode === 'flat' && explicitAccidentalCount > 0
-  const forcedSharpExport = accidentalMode === 'sharp' && explicitAccidentalCount > 0
-  if (likelySharpExport || forcedSharpExport || forcedFlatExport) {
-    const autoAccidentalRoots = forcedFlatExport
-      ? new Set(['B', 'E', 'A', 'D', 'G', 'C'])
-      : (explicitRoots.size > 0 ? explicitRoots : new Set(['F', 'C', 'G', 'D', 'A', 'E']))
-    const accidental = forcedFlatExport ? 'b' : '#'
-    chordItems.forEach((item) => {
-      const root = item.chord[0]
-      if (item.chord !== 'N.C.' && autoAccidentalRoots.has(root) && /^[A-G](?![#b])/.test(item.chord)) {
-        item.chord = item.chord.replace(/^([A-G])/, `$1${accidental}`)
-      }
-    })
-  }
 
   if (chordItems.length < 2) return null
 
@@ -291,9 +325,9 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
       'Import géométrique : les accords sont replacés selon leur position dans le PDF Chordify.',
       'Les mesures sans nouvel accord visible sont remplies avec % pour indiquer la répétition de la mesure précédente.',
       'Relisez les bémols/dièses : certains PDF Chordify encodent les altérations avec des glyphes musicaux difficiles à lire automatiquement.',
-      ...(likelySharpExport ? ['Mode dièses détecté : les accords nus du PDF ont été reconstruits en accords diésés quand Chordify masquait le signe #.'] : []),
-      ...(forcedSharpExport ? ['Mode dièses forcé : les altérations masquées du PDF ont été interprétées comme des #.'] : []),
-      ...(forcedFlatExport ? ['Mode bémols forcé : les altérations masquées du PDF ont été interprétées comme des b.'] : []),
+      ...(keySignature ? [`Armure détectée : ${keySignature.count} ${keySignature.accidental === 'b' ? 'bémol' : 'dièse'}${keySignature.count > 1 ? 's' : ''}.`] : []),
+      ...(accidentalMode === 'sharp' ? ['Mode dièses forcé : les altérations masquées du PDF ont été interprétées comme des #.'] : []),
+      ...(accidentalMode === 'flat' ? ['Mode bémols forcé : les altérations masquées du PDF ont été interprétées comme des b.'] : []),
     ],
   }
 }
