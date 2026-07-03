@@ -45,12 +45,13 @@ function fmtDateOnly(iso: string) {
 }
 
 function fmtRehearsalDate(iso: string, startTime?: string | null, endTime?: string | null) {
+  const formatTime = (time: string) => time.replace(':', 'h')
   const time = startTime
     ? endTime
-      ? `${startTime} - ${endTime}`
-      : startTime
+      ? `de ${formatTime(startTime)} à ${formatTime(endTime)}`
+      : `à ${formatTime(startTime)}`
     : 'heure non renseignée'
-  return `${fmtDateOnly(iso)} à ${time}`
+  return `${fmtDateOnly(iso)} ${time}`
 }
 
 function SectionCard({
