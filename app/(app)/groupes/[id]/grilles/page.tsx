@@ -171,7 +171,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     setForm((f) => ({
       ...f,
       title: f.title.trim() ? f.title : preview.title,
-      tempo: f.tempo.trim() ? f.tempo : (preview.tempo || ''),
+      tempo: preview.tempo || f.tempo,
       timeSignature: preview.timeSignature || f.timeSignature,
       barsPerRow: preview.barsPerRow || f.barsPerRow,
       totalBars: preview.totalBars || f.totalBars,

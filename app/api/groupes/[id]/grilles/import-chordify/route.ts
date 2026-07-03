@@ -510,7 +510,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({
         ...preview,
         title: resource.song.title || preview.title,
-        tempo: resource.song.tempo ? String(resource.song.tempo) : preview.tempo,
+        tempo: preview.tempo || (resource.song.tempo ? String(resource.song.tempo) : null),
         songId: resource.song.id,
         resourceId: resource.id,
         resourceName: resource.name,
