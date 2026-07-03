@@ -7,12 +7,12 @@ import Link from 'next/link'
 
 interface MissingPresence {
   rehearsalId: number; groupId: number; groupName: string
-  date: string; location: string
+  date: string; startTime: string; endTime?: string | null; location: string
 }
 
 interface NextRehearsal {
   rehearsalId: number; groupId: number; groupName: string
-  date: string; location: string; totalSongs: number; pendingSongs: number
+  date: string; startTime: string; endTime?: string | null; location: string; totalSongs: number; pendingSongs: number
 }
 
 interface GroupMessage {
@@ -37,11 +37,20 @@ const TCHAT_KEY = (gid: number) => `tchat_last_read_${gid}`
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmtDate(iso: string) {
+function fmtDateOnly(iso: string) {
   const d = new Date(iso)
   return d.toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long',
-  }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  })
+}
+
+function fmtRehearsalDate(iso: string, startTime?: string | null, endTime?: string | null) {
+  const time = startTime
+    ? endTime
+      ? `${startTime} - ${endTime}`
+      : startTime
+    : 'heure non renseignée'
+  return `${fmtDateOnly(iso)} à ${time}`
 }
 
 function SectionCard({
@@ -100,8 +109,8 @@ export function WakeUpOverlay() {
       // changé depuis la dernière fois qu'il a été montré (évite de le revoir à
       // chaque connexion alors qu'on l'a déjà lu).
       const signature = JSON.stringify({
-        reh: hasRehearsal ? [d.nextRehearsal!.rehearsalId, d.nextRehearsal!.pendingSongs] : null,
-        pres: d.missingPresences.map((p) => p.rehearsalId).sort(),
+        reh: hasRehearsal ? [d.nextRehearsal!.rehearsalId, d.nextRehearsal!.pendingSongs, d.nextRehearsal!.startTime, d.nextRehearsal!.endTime] : null,
+        pres: d.missingPresences.map((p) => [p.rehearsalId, p.startTime, p.endTime]).sort(),
         polls: (d.pendingPolls ?? []).map((p) => [p.id, p.answered]).sort(),
         chats: newChats.map((c) => [c.groupId, c.lastMessageAt]).sort(),
       })
@@ -192,7 +201,7 @@ export function WakeUpOverlay() {
                 <p className="text-sm text-gray-600">
                   Vous n&apos;avez pas encore indiqué si vous serez présent à la répétition
                   {' '}<strong>{presences[0].groupName}</strong>{' '}
-                  du <span className="text-indigo-700 font-medium">{fmtDate(presences[0].date)}</span>.
+                  du <span className="text-indigo-700 font-medium">{fmtRehearsalDate(presences[0].date, presences[0].startTime, presences[0].endTime)}</span>.
                 </p>
               ) : (
                 <ul className="text-sm text-gray-600 space-y-1 mt-1">
@@ -201,7 +210,7 @@ export function WakeUpOverlay() {
                       <span className="text-indigo-400 mt-0.5">·</span>
                       <span>
                         <strong>{p.groupName}</strong> —{' '}
-                        <span className="text-indigo-700 font-medium capitalize">{fmtDate(p.date)}</span>
+                        <span className="text-indigo-700 font-medium capitalize">{fmtRehearsalDate(p.date, p.startTime, p.endTime)}</span>
                       </span>
                     </li>
                   ))}
@@ -225,7 +234,7 @@ export function WakeUpOverlay() {
             <SectionCard icon="🎼" color="green" title="Progression des morceaux">
               <p className="text-sm text-gray-600">
                 La prochaine répétition <strong>{rehearsal.groupName}</strong> est prévue
-                le <span className="text-green-700 font-medium capitalize">{fmtDate(rehearsal.date)}</span>.
+                le <span className="text-green-700 font-medium capitalize">{fmtRehearsalDate(rehearsal.date, rehearsal.startTime, rehearsal.endTime)}</span>.
               </p>
               <p className="text-sm text-gray-600 mt-1">
                 <span className="font-semibold text-green-700">{rehearsal.pendingSongs}</span>{' '}

@@ -100,6 +100,8 @@ export async function GET() {
       groupId:     r.groupId,
       groupName:   r.group.name,
       date:        r.date.toISOString(),
+      startTime:   r.startTime,
+      endTime:     r.endTime,
       location:    r.location,
     }))
 
@@ -127,7 +129,7 @@ export async function GET() {
 
   let nextRehearsal: {
     rehearsalId: number; groupId: number; groupName: string
-    date: string; location: string; totalSongs: number; pendingSongs: number
+    date: string; startTime: string; endTime: string | null; location: string; totalSongs: number; pendingSongs: number
   } | null = null
 
   if (nextWithSongs) {
@@ -141,6 +143,8 @@ export async function GET() {
       groupId:     nextWithSongs.groupId,
       groupName:   nextWithSongs.group.name,
       date:        nextWithSongs.date.toISOString(),
+      startTime:   nextWithSongs.startTime,
+      endTime:     nextWithSongs.endTime,
       location:    nextWithSongs.location,
       totalSongs:  nextWithSongs.songs.length,
       pendingSongs: pending,
