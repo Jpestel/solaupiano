@@ -148,11 +148,13 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     setSaving(true); setError('')
     const importedCells = importPreview ? cellsFromImportPreview(importPreviewText, form.totalBars) : null
     const importedTotalBars = importedCells?.length || form.totalBars
+    const resolvedTempo = importPreview?.tempo?.trim() || form.tempo
     const res = await fetch(`/api/groupes/${groupId}/grilles`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...form,
+        tempo: resolvedTempo,
         totalBars: importedTotalBars,
         cells: importedCells,
         songId: form.songId ? Number(form.songId) : null,
@@ -171,7 +173,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     setForm((f) => ({
       ...f,
       title: f.title.trim() ? f.title : preview.title,
-      tempo: preview.tempo || f.tempo,
+      tempo: preview.tempo?.trim() || f.tempo,
       timeSignature: preview.timeSignature || f.timeSignature,
       barsPerRow: preview.barsPerRow || f.barsPerRow,
       totalBars: preview.totalBars || f.totalBars,
@@ -513,6 +515,11 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
                 {importPreview.resourceName && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
                     PDF lié : <strong>{importPreview.resourceName}</strong>
+                  </div>
+                )}
+                {importPreview.tempo && (
+                  <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800">
+                    Tempo détecté dans le PDF : {importPreview.tempo} BPM
                   </div>
                 )}
                 {importPreview.warnings.length > 0 && (
