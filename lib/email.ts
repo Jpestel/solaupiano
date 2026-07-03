@@ -116,7 +116,7 @@ export async function sendRehearsalNotification(
 
   const tpl = await getEmailTemplate('rehearsal_notification')
 
-  await Promise.all(
+  const results = await Promise.allSettled(
     members.map(({ email, name }) => {
       const { subject, introHtml, outroHtml } = tpl.render({
         memberName: name,
@@ -144,6 +144,11 @@ export async function sendRehearsalNotification(
       })
     })
   )
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error('rehearsal notification send failed', members[index]?.email, result.reason)
+    }
+  })
 }
 
 // ─── Rappel de confirmation (membres obligatoires) ──────────────────────────

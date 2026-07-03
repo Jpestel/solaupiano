@@ -161,13 +161,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } })
   if (group) {
     const baseUrl = process.env.NEXTAUTH_URL || 'https://solaupiano.fr'
-    sendRehearsalNotification(
-      invitedMembers.filter((m) => m.userId !== userId).map((m) => ({ email: m.user.email, name: m.user.name })),
-      group.name,
-      groupId,
-      rehearsal,
-      baseUrl
-    ).catch(console.error)
+    const notificationRecipients = invitedMembers
+      .filter((m) => m.userId !== userId && m.user.email)
+      .map((m) => ({ email: m.user.email, name: m.user.name }))
+    if (notificationRecipients.length > 0) {
+      try {
+        await sendRehearsalNotification(
+          notificationRecipients,
+          group.name,
+          groupId,
+          rehearsal,
+          baseUrl
+        )
+      } catch (error) {
+        console.error('rehearsal notification batch failed', { groupId, rehearsalId: rehearsal.id }, error)
+      }
+    }
   }
 
   return NextResponse.json(rehearsal, { status: 201 })
