@@ -373,7 +373,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
   const [hasSequences, setHasSequences] = useState(true)
   const [stageOpen, setStageOpen] = useState(false)
   const [concertStageOpen, setConcertStageOpen] = useState(false)
-  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image' } | null>(null)
+  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image'; songId?: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [addingId, setAddingId] = useState<number | null>(null)
@@ -490,6 +490,7 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
       url: `/api/ressources/${resource.id}`,
       title: `${song.title} - ${resource.name}`,
       kind: resource.type === 'IMAGE' ? 'image' : 'pdf',
+      songId: song.id,
     })
   }
 
@@ -819,6 +820,8 @@ export default function SetlistDetailPage({ params }: { params: { id: string; se
           url={pdfModal.url}
           title={pdfModal.title}
           kind={pdfModal.kind}
+          groupId={groupId}
+          songId={pdfModal.songId ?? null}
           onClose={() => setPdfModal(null)}
         />
       )}

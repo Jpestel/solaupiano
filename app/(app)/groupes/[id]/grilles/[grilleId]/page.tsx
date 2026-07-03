@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { FloatingAudioPlayer } from '@/components/FloatingAudioPlayer'
+import { VoiceRecorder } from '@/components/VoiceRecorder'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { ph } from '@/lib/placeholders'
@@ -1160,6 +1161,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           </div>
         </form>
       </Modal>
+      <VoiceRecorder groupId={groupId} songId={currentSongId} contextTitle={chart.title} source="GRID" />
       <FloatingAudioPlayer groupId={groupId} currentSongId={currentSongId} />
     </div>
   )

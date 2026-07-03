@@ -152,7 +152,7 @@ function SortableSongRow({
   removeSong: (id: number) => void
   setProgress: (id: number, percent: number) => void
   onVideoClick: (embedUrl: string, title: string) => void
-  onPdfClick: (url: string, title: string, kind?: 'pdf' | 'image') => void
+  onPdfClick: (url: string, title: string, kind?: 'pdf' | 'image', songId?: number) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.song.id,
@@ -226,7 +226,7 @@ function SortableSongRow({
                   return (
                     <div key={res.id}>
                       <button
-                        onClick={() => onPdfClick(`/api/ressources/${res.id}`, res.name, res.type === 'IMAGE' ? 'image' : 'pdf')}
+                        onClick={() => onPdfClick(`/api/ressources/${res.id}`, res.name, res.type === 'IMAGE' ? 'image' : 'pdf', song.id)}
                         className="w-full flex items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 hover:border-indigo-400 hover:bg-indigo-50 transition-colors group text-left"
                       >
                         <span className="text-base">{res.type === 'IMAGE' ? '🖼️' : '📄'}</span>
@@ -289,7 +289,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [expandedSongIds, setExpandedSongIds] = useState<Set<number>>(new Set())
   const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string } | null>(null)
-  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image' } | null>(null)
+  const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image'; songId?: number } | null>(null)
 
   // Edit state
   const [editOpen, setEditOpen] = useState(false)
@@ -581,7 +581,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
                         removeSong={removeSong}
                         setProgress={setProgress}
                         onVideoClick={(embedUrl, title) => setVideoModal({ embedUrl, title })}
-                        onPdfClick={(url, title, kind) => setPdfModal({ url, title, kind })}
+                        onPdfClick={(url, title, kind, songId) => setPdfModal({ url, title, kind, songId })}
                       />
                     ))}
                   </div>
@@ -823,6 +823,8 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
           url={pdfModal.url}
           title={pdfModal.title}
           kind={pdfModal.kind}
+          groupId={params.id}
+          songId={pdfModal.songId ?? null}
           onClose={() => setPdfModal(null)}
         />
       )}

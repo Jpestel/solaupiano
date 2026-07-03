@@ -135,6 +135,16 @@ const navItems = [
     ),
   },
   {
+    href: '/outils/dictaphone',
+    label: 'Dictaphone',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 10v2a7 7 0 01-14 0v-2m7 9v3m-4 0h8" />
+      </svg>
+    ),
+  },
+  {
     href: '/outils/partition',
     label: 'Lecteur partition',
     icon: (

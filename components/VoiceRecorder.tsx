@@ -1,0 +1,354 @@
+'use client'
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+interface Recording {
+  id: number
+  title: string
+  note?: string | null
+  filePath: string
+  mimeType: string
+  fileSize: number
+  durationSec?: number | null
+  source: string
+  createdAt: string
+  song?: { id: number; title: string; artist?: string | null } | null
+  resource?: { id: number; name: string } | null
+}
+
+interface VoiceRecorderProps {
+  groupId: number | string
+  songId?: number | null
+  resourceId?: number | null
+  contextTitle?: string
+  source?: 'GENERAL' | 'PDF' | 'GRID' | 'REHEARSAL' | 'SETLIST'
+  compact?: boolean
+}
+
+const MAX_RECORDING_MS = 15 * 60 * 1000
+
+function formatDuration(seconds?: number | null) {
+  const total = Math.max(0, Math.round(seconds || 0))
+  const min = Math.floor(total / 60)
+  const sec = total % 60
+  return `${min}:${String(sec).padStart(2, '0')}`
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} o`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
+function preferredMimeType() {
+  if (typeof MediaRecorder === 'undefined') return ''
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/mp4',
+  ]
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || ''
+}
+
+export function VoiceRecorder({
+  groupId,
+  songId,
+  resourceId,
+  contextTitle,
+  source = 'GENERAL',
+  compact = false,
+}: VoiceRecorderProps) {
+  const [allowed, setAllowed] = useState<boolean | null>(null)
+  const [open, setOpen] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [recordings, setRecordings] = useState<Recording[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const [note, setNote] = useState('')
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<BlobPart[]>([])
+  const startedAtRef = useRef<number>(0)
+  const timerRef = useRef<number | null>(null)
+  const autoStopRef = useRef<number | null>(null)
+  const stopReasonRef = useRef('')
+
+  const cleanupTimers = () => {
+    if (timerRef.current) window.clearInterval(timerRef.current)
+    if (autoStopRef.current) window.clearTimeout(autoStopRef.current)
+    timerRef.current = null
+    autoStopRef.current = null
+  }
+
+  const stopStream = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+  }
+
+  const loadRecordings = useCallback(async () => {
+    const params = new URLSearchParams()
+    if (songId) params.set('songId', String(songId))
+    if (resourceId) params.set('resourceId', String(resourceId))
+    const res = await fetch(`/api/groupes/${groupId}/recordings${params.toString() ? `?${params}` : ''}`)
+    if (!res.ok) return
+    const data = await res.json()
+    setRecordings(Array.isArray(data.recordings) ? data.recordings : [])
+    setLoaded(true)
+  }, [groupId, resourceId, songId])
+
+  useEffect(() => {
+    fetch('/api/me/module-access?key=tool_voice_recorder')
+      .then((res) => (res.ok ? res.json() : { allowed: false }))
+      .then((data) => setAllowed(!!data.allowed))
+      .catch(() => setAllowed(false))
+  }, [])
+
+  useEffect(() => {
+    if (!open || loaded) return
+    loadRecordings().catch(() => {})
+  }, [loaded, loadRecordings, open])
+
+  const saveRecording = useCallback(async (blob: Blob, durationSec: number) => {
+    setSaving(true)
+    setError('')
+    const date = new Date()
+    const title = contextTitle
+      ? `Prise - ${contextTitle} - ${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+      : `Prise audio - ${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+
+    const fd = new FormData()
+    fd.append('file', blob, 'prise-audio.webm')
+    fd.append('title', title)
+    fd.append('durationSec', String(durationSec))
+    fd.append('source', source)
+    if (songId) fd.append('songId', String(songId))
+    if (resourceId) fd.append('resourceId', String(resourceId))
+    if (note.trim()) fd.append('note', note.trim())
+
+    const res = await fetch(`/api/groupes/${groupId}/recordings`, { method: 'POST', body: fd })
+    setSaving(false)
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      setError(data?.error || "Impossible d'enregistrer cette prise.")
+      return
+    }
+    const recording = await res.json()
+    setRecordings((items) => [recording, ...items])
+    setNote('')
+    setNotice(stopReasonRef.current || 'Prise audio sauvegardée.')
+  }, [contextTitle, groupId, note, resourceId, songId, source])
+
+  const stopRecording = useCallback((reason = 'Prise audio sauvegardée.') => {
+    stopReasonRef.current = reason
+    cleanupTimers()
+    const recorder = mediaRecorderRef.current
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop()
+    } else {
+      stopStream()
+      setRecording(false)
+    }
+  }, [])
+
+  const startRecording = async () => {
+    setError('')
+    setNotice('')
+
+    if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setError("L'enregistrement audio n'est pas supporté par ce navigateur.")
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mimeType = preferredMimeType()
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      streamRef.current = stream
+      mediaRecorderRef.current = recorder
+      chunksRef.current = []
+      startedAtRef.current = Date.now()
+      stopReasonRef.current = ''
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data)
+      }
+
+      recorder.onstop = () => {
+        const durationSec = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000))
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+        mediaRecorderRef.current = null
+        chunksRef.current = []
+        stopStream()
+        setRecording(false)
+        setElapsed(0)
+        if (blob.size > 0) saveRecording(blob, durationSec)
+      }
+
+      recorder.start()
+      setRecording(true)
+      timerRef.current = window.setInterval(() => {
+        setElapsed(Math.round((Date.now() - startedAtRef.current) / 1000))
+      }, 500)
+      autoStopRef.current = window.setTimeout(() => {
+        stopRecording('Enregistrement arrêté automatiquement après 15 minutes pour éviter une prise infinie.')
+      }, MAX_RECORDING_MS)
+    } catch {
+      stopStream()
+      setError("Impossible d'accéder au micro. Vérifiez l'autorisation du navigateur.")
+    }
+  }
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && recording) {
+        window.alert("L'enregistrement a été arrêté car la page n'est plus active.")
+        stopRecording("Enregistrement arrêté automatiquement car la page n'était plus active.")
+      }
+    }
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!recording) return
+      event.preventDefault()
+      event.returnValue = "Un enregistrement est en cours. Il sera arrêté si vous quittez la page."
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [recording, stopRecording])
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        window.alert("L'enregistrement a été arrêté car vous avez quitté cette page.")
+        stopRecording("Enregistrement arrêté automatiquement lors du changement de page.")
+      }
+      cleanupTimers()
+      stopStream()
+    }
+  }, [stopRecording])
+
+  const deleteRecording = async (recordingId: number) => {
+    if (!window.confirm('Supprimer cette prise audio ?')) return
+    const res = await fetch(`/api/groupes/${groupId}/recordings/${recordingId}`, { method: 'DELETE' })
+    if (res.ok) setRecordings((items) => items.filter((item) => item.id !== recordingId))
+  }
+
+  if (allowed === false) return null
+
+  return (
+    <>
+      {!open && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          title="Dictaphone - enregistrer une prise audio"
+          className={compact
+            ? 'rounded-md bg-rose-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow hover:bg-rose-500'
+            : 'fixed bottom-36 right-4 z-[60] inline-flex items-center gap-2 rounded-full bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-rose-500'}
+        >
+          {recording ? '● REC' : '🎙️ Dictaphone'}
+        </button>
+      )}
+
+      {open && (
+        <div
+          className={compact
+            ? 'absolute right-3 top-14 z-50 w-[min(360px,calc(100vw-1.5rem))] rounded-2xl border border-rose-200 bg-white text-gray-900 shadow-2xl'
+            : 'fixed bottom-36 right-4 z-[70] w-[min(420px,calc(100vw-2rem))] rounded-2xl border border-rose-200 bg-white text-gray-900 shadow-2xl'}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="flex items-center justify-between gap-2 rounded-t-2xl border-b border-rose-100 bg-rose-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-black text-rose-800">🎙️ Dictaphone</p>
+              <p className="text-xs text-rose-600">{contextTitle || 'Prise audio personnelle'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-100"
+              aria-label="Fermer le dictaphone"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="max-h-[70vh] space-y-3 overflow-y-auto p-4">
+            <div className="rounded-xl border border-rose-100 bg-rose-50/60 p-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-rose-500">Enregistrement</p>
+                  <p className="text-2xl font-black tabular-nums text-gray-950">{recording ? formatDuration(elapsed) : '0:00'}</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={saving || allowed === null}
+                  onClick={() => recording ? stopRecording('Prise audio sauvegardée.') : startRecording()}
+                  className={`flex h-16 w-16 items-center justify-center rounded-full text-sm font-black text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-50 ${recording ? 'bg-gray-900 hover:bg-gray-800' : 'bg-rose-600 hover:bg-rose-500'}`}
+                >
+                  {recording ? 'STOP' : 'REC'}
+                </button>
+              </div>
+
+              <textarea
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                disabled={recording || saving}
+                rows={2}
+                className="w-full rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm outline-none focus:border-rose-300"
+                placeholder="Note optionnelle avant d'enregistrer..."
+              />
+              <p className="mt-2 text-xs text-gray-500">Arrêt automatique au changement de page ou après 15 minutes.</p>
+            </div>
+
+            {saving && <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">Sauvegarde de la prise...</p>}
+            {notice && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{notice}</p>}
+            {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-sm font-bold text-gray-900">Mes prises</p>
+                <button type="button" onClick={() => loadRecordings()} className="text-xs font-semibold text-rose-600 hover:text-rose-500">Actualiser</button>
+              </div>
+
+              {recordings.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
+                  Aucune prise sauvegardée ici pour l'instant.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {recordings.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-gray-900">{item.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatDuration(item.durationSec)} · {formatBytes(item.fileSize)} · {new Date(item.createdAt).toLocaleDateString('fr-FR')}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => deleteRecording(item.id)}
+                          className="rounded-lg px-2 py-1 text-xs font-semibold text-red-500 hover:bg-red-50"
+                        >
+                          Suppr.
+                        </button>
+                      </div>
+                      <audio controls src={item.filePath} className="h-9 w-full" />
+                      {item.note && <p className="mt-2 text-xs text-gray-500">{item.note}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}

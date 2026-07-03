@@ -105,6 +105,14 @@ export const MODULES: ModuleDef[] = [
     category: 'outil',
   },
   {
+    key: 'tool_voice_recorder',
+    label: 'Dictaphone',
+    description: "Enregistre rapidement une prise audio personnelle depuis une partition ou un module du groupe, pour réécouter un passage plus tard.",
+    href: '/outils/dictaphone',
+    icon: '🎙️',
+    category: 'outil',
+  },
+  {
     key: 'tool_transposition',
     label: 'Transposition',
     description: "Transpose automatiquement une grille d'accords, un texte ou un PDF texte, avec création possible d'une copie de grille.",

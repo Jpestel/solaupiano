@@ -1264,6 +1264,8 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           url={pdfModal.url}
           title={pdfModal.title}
           kind={pdfModal.kind}
+          groupId={groupId}
+          songId={pdfModal.songId ?? null}
           onClose={() => setPdfModal(null)}
         />
       )}

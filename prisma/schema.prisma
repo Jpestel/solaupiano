@@ -223,6 +223,7 @@ model User {
   socialPosts              SocialPost[]
   helpBubbleDismissals     HelpBubbleDismissal[]
   taskAssignments          TaskAssignee[]
+  voiceRecordings          VoiceRecording[]
 }
 
 // ─── Blog ────────────────────────────────────────────────────────────────────
@@ -407,6 +408,7 @@ model Group {
   galleryCategories GalleryCategory[]
   socialPosts      SocialPost[]
   taskLists        TaskList[]
+  voiceRecordings  VoiceRecording[]
 }
 
 // Catalogue de liens de ressources (audios, vidéos, tutos, partitions…)
@@ -963,6 +965,7 @@ model Song {
   sequences        SongSequence[]
   evaluationRatings RehearsalSongRating[]
   concertEvaluationRatings ConcertSongRating[] @relation("ConcertSongRated")
+  voiceRecordings VoiceRecording[]
 }
 
 model SongSequence {
@@ -1144,6 +1147,35 @@ model Resource {
   uploadedBy User @relation(fields: [uploadedById], references: [id])
   scoreMarkers ScoreMarker[]
   pdfBookmarks PdfBookmark[]
+  voiceRecordings VoiceRecording[]
+}
+
+// Enregistrements personnels au dictaphone, créés depuis une partition ou un module.
+// Ils restent privés à l'utilisateur qui les a créés.
+model VoiceRecording {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  groupId      Int
+  songId       Int?
+  resourceId   Int?
+  title        String
+  note         String?  @db.Text
+  filePath     String   @db.Text
+  mimeType     String
+  fileSize     Int
+  durationSec  Int?
+  source       String   @default("GENERAL") // GENERAL | PDF | GRID | REHEARSAL | SETLIST
+  createdAt    DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group    Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  song     Song?     @relation(fields: [songId], references: [id], onDelete: SetNull)
+  resource Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+
+  @@index([userId, groupId])
+  @@index([songId])
+  @@index([resourceId])
+  @@index([createdAt])
 }
 
 // Marqueurs audio 🔊 placés par un membre sur une partition (image/PDF), lançant un audio à un timecode.
