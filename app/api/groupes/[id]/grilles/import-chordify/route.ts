@@ -116,6 +116,26 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
 
+function compactCenters(values: number[], tolerance = 8) {
+  const sorted = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b)
+  const clusters: number[][] = []
+  sorted.forEach((value) => {
+    const last = clusters[clusters.length - 1]
+    const lastAverage = last ? last.reduce((sum, item) => sum + item, 0) / last.length : 0
+    if (last && Math.abs(value - lastAverage) <= tolerance) last.push(value)
+    else clusters.push([value])
+  })
+  return clusters.map((cluster) => cluster.reduce((sum, item) => sum + item, 0) / cluster.length)
+}
+
+function estimateMeasureWidthFromEvents(values: number[]) {
+  const centers = compactCenters(values)
+  const gaps = centers
+    .map((value, index) => index === 0 ? 0 : value - centers[index - 1])
+    .filter((gap) => gap >= 38 && gap <= 95)
+  return median(gaps, 0)
+}
+
 function inferKeySignature(items: PdfTextItem[]): KeySignatureGuess | null {
   const candidates = items
     .filter((item) =>
@@ -227,6 +247,12 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
     start: number | null
     barsInRow: number
   }> = []
+  const musicGlyphs = items.filter((item) =>
+    item.top > 55 &&
+    item.text.trim() === '' &&
+    item.width >= 3 &&
+    item.height >= 30,
+  )
 
   chordItems.forEach((item) => {
     const last = rows[rows.length - 1]
@@ -282,7 +308,30 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
     .map((row) => {
       const centers = row.chords.map((chord) => chord.center).sort((a, b) => a - b)
       if (row.barsInRow < 2 || centers.length < 2) return 0
-      const width = (centers[centers.length - 1] - centers[0]) / Math.max(1, row.barsInRow - 1)
+      const rowGlyphs = musicGlyphs.filter((item) =>
+        item.page === row.page &&
+        item.top >= row.top + 6 &&
+        item.top <= row.top + 75,
+      )
+      const eventWidth = estimateMeasureWidthFromEvents([
+        ...centers,
+        ...rowGlyphs
+          .filter((item) => item.left >= centers[0] - 25)
+          .map((item) => item.left + item.width / 2),
+      ])
+      const rightEdge = Math.max(
+        ...row.chords.map((chord) => chord.right),
+        ...rowGlyphs.map((item) => item.left + item.width),
+      )
+      const firstAnchor = centers[0]
+      const edgeWidth = Number.isFinite(rightEdge) && rightEdge > firstAnchor
+        ? (rightEdge - firstAnchor) / Math.max(1, row.barsInRow - 0.32)
+        : (centers[centers.length - 1] - centers[0]) / Math.max(1, row.barsInRow - 1)
+      const width = eventWidth >= 35 && eventWidth <= 120 && edgeWidth >= 35 && edgeWidth <= 120
+        ? eventWidth * 0.65 + edgeWidth * 0.35
+        : eventWidth >= 35 && eventWidth <= 120
+          ? eventWidth
+          : edgeWidth
       return width >= 35 && width <= 120 ? width : 0
     })
     .filter((value) => value > 0)
@@ -292,15 +341,36 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
   usefulRows.forEach((row) => {
     if (!row.start) return
     const centers = row.chords.map((chord) => chord.center).sort((a, b) => a - b)
-    const rowWidth = row.barsInRow >= 2 && centers.length >= 2
-      ? (centers[centers.length - 1] - centers[0]) / Math.max(1, row.barsInRow - 1)
+    const rowGlyphs = musicGlyphs.filter((item) =>
+      item.page === row.page &&
+      item.top >= row.top + 6 &&
+      item.top <= row.top + 75,
+    )
+    const firstAnchor = centers[0] ?? Math.min(...row.chords.map((chord) => chord.left))
+    const eventWidth = estimateMeasureWidthFromEvents([
+      ...centers,
+      ...rowGlyphs
+        .filter((item) => item.left >= firstAnchor - 25)
+        .map((item) => item.left + item.width / 2),
+    ])
+    const rightEdge = Math.max(
+      ...row.chords.map((chord) => chord.right),
+      ...rowGlyphs.map((item) => item.left + item.width),
+    )
+    const edgeWidth = row.barsInRow >= 2 && Number.isFinite(rightEdge) && rightEdge > firstAnchor
+      ? (rightEdge - firstAnchor) / Math.max(1, row.barsInRow - 0.32)
       : commonMeasureWidth
+    const rowWidth = eventWidth >= 35 && eventWidth <= 120 && edgeWidth >= 35 && edgeWidth <= 120
+      ? eventWidth * 0.65 + edgeWidth * 0.35
+      : eventWidth >= 35 && eventWidth <= 120
+        ? eventWidth
+        : edgeWidth
     const measureWidth = rowWidth >= 35 && rowWidth <= 120 ? rowWidth : commonMeasureWidth
-    const rowLeft = centers[0] ?? Math.min(...row.chords.map((chord) => chord.left))
+    const rowLeft = firstAnchor - measureWidth * 0.32
 
     row.chords.forEach((chord) => {
       const rawOffset = (chord.center - rowLeft) / Math.max(1, measureWidth)
-      const offset = Math.max(0, Math.min(row.barsInRow - 1, Math.floor(rawOffset + 0.12)))
+      const offset = Math.max(0, Math.min(row.barsInRow - 1, Math.floor(rawOffset + 0.02)))
       const barNumber = row.start! + offset
       const existing = byNumber.get(barNumber) || []
       if (existing.length < 4 && existing[existing.length - 1] !== chord.chord) existing.push(chord.chord)
