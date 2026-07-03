@@ -280,7 +280,7 @@ export default function AdminPlansPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-4">
         {[
           { label: 'Plans au total', value: plans.length, icon: '📋' },
           { label: 'Plans actifs', value: activePlans.length, icon: '✅' },

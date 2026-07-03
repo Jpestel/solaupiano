@@ -23,9 +23,9 @@ const variants: Record<ButtonVariant, string> = {
 }
 
 const sizes: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-xs',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-5 py-2.5 text-base',
+  sm: 'min-h-9 px-3 py-1.5 text-xs',
+  md: 'min-h-10 px-4 py-2 text-sm',
+  lg: 'min-h-11 px-5 py-2.5 text-base',
 }
 
 export function Button({
@@ -42,7 +42,7 @@ export function Button({
       {...props}
       disabled={disabled}
       className={clsx(
-        'inline-flex items-center justify-center gap-2 rounded-lg border font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1',
+        'inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1',
         variants[variant],
         sizes[size],
         fullWidth ? 'w-full' : '',

@@ -30,7 +30,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen overflow-x-hidden bg-white">
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -41,42 +41,42 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         <PreviewBanner />
         {/* Mobile top bar */}
-        <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
+        <header className="lg:hidden sticky top-0 z-30 flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2.5">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 transition-colors active:scale-95"
+            className="flex min-h-10 flex-shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-gray-700 transition-colors hover:bg-gray-50 active:scale-95"
             aria-label="Ouvrir le menu"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-            <span className="text-sm font-medium">Menu</span>
+            <span className="hidden text-sm font-medium min-[390px]:inline">Menu</span>
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600">
               <span className="text-sm">{siteIcon}</span>
             </div>
-            <div className="flex flex-col leading-none">
-              <span className="font-bold text-indigo-900 text-base">Sol au piano</span>
-              <span className="text-[10px] text-indigo-400 italic font-normal">du solo à l&apos;orchestre</span>
+            <div className="flex min-w-0 flex-col leading-none">
+              <span className="truncate text-base font-bold text-indigo-900">Sol au piano</span>
+              <span className="truncate text-[10px] font-normal italic text-indigo-400">du solo à l&apos;orchestre</span>
             </div>
           </div>
 
           {/* Déconnexion rapide (mobile) */}
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
-            className="ml-auto flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors active:scale-95"
+            className="flex min-h-10 flex-shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-gray-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 active:scale-95"
             aria-label="Se déconnecter"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            <span className="text-sm font-medium">Quitter</span>
+            <span className="hidden text-sm font-medium min-[430px]:inline">Quitter</span>
           </button>
         </header>
 
-        <main className="flex-1 overflow-auto">
-          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-10 lg:pb-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+          <div className="relative mx-auto w-full max-w-6xl px-3 py-5 pb-10 sm:px-6 sm:py-8 lg:pb-8">
             {children}
             <HelpBubbleLayer />
           </div>

@@ -92,17 +92,17 @@ export default function ComptabilitePage({ params }: { params: { id: string } })
         <span>/</span><span className="text-gray-900">Comptabilité</span>
       </div>
 
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
-        <div>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">💶 Comptabilité</h1>
           <p className="text-sm text-gray-500 mt-1">Dépenses partagées (salle, matériel…), qui a avancé, et qui a remboursé sa part.</p>
         </div>
-        {isChef && <button onClick={openCreate} className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2">➕ Nouvelle dépense</button>}
+        {isChef && <button onClick={openCreate} className="min-h-10 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 sm:flex-shrink-0">➕ Nouvelle dépense</button>}
       </div>
 
       {/* Synthèse */}
       {summary && (
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="mb-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
           <div className="rounded-xl border border-gray-200 bg-white p-3"><p className="text-xs text-gray-400">Total dépenses</p><p className="text-lg font-bold text-gray-900">{eur(summary.totalExpenses)}</p></div>
           <div className="rounded-xl border border-gray-200 bg-white p-3"><p className="text-xs text-gray-400">Recouvré</p><p className="text-lg font-bold text-green-700">{eur(summary.totalCollected)}</p></div>
           <div className="rounded-xl border border-gray-200 bg-white p-3"><p className="text-xs text-gray-400">Reste dû</p><p className="text-lg font-bold text-amber-600">{eur(summary.totalOutstanding)}</p></div>

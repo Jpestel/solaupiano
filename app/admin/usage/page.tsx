@@ -70,7 +70,7 @@ export default async function AdminUsagePage({ searchParams }: { searchParams: {
       </div>
 
       {/* Période */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-gray-500">Période :</span>
         {periods.map((p) => (
           <Link
@@ -84,7 +84,7 @@ export default async function AdminUsagePage({ searchParams }: { searchParams: {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <p className="text-2xl font-bold text-gray-900">{total}</p>
           <p className="text-xs text-gray-500 mt-0.5">visites de modules</p>

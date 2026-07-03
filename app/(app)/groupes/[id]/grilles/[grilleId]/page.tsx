@@ -662,7 +662,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
               </span>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <div className="mt-3 grid grid-cols-2 gap-2 min-[520px]:grid-cols-4 sm:flex sm:flex-wrap">
               <div className="rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
                 <div className="text-[10px] font-bold uppercase text-orange-400">Tempo</div>
                 <div className="text-sm font-bold text-orange-800">{chart.tempo || '—'}</div>
@@ -763,8 +763,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       )}
 
       {/* Grid */}
-      <div className="rounded-xl border border-gray-300 overflow-hidden mb-4 bg-white">
-        <table className="w-full border-collapse">
+      <div className="mb-4 overflow-x-auto rounded-xl border border-gray-300 bg-white">
+        <table className="min-w-[720px] border-collapse sm:w-full sm:min-w-0">
           <tbody>
             {rows.map((row, rowIdx) => (
               <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/80'}>
@@ -1093,7 +1093,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       )}
 
       {/* Settings modal */}
-      <Modal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} title="Paramètres de la grille">
+      <Modal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} title="Paramètres de la grille" size="lg">
         <form onSubmit={handleSettingsSave} className="space-y-4">
           <div>
             <label className="form-label">Titre <span className="text-red-500">*</span></label>
@@ -1101,7 +1101,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
               onChange={(e) => setSettingsForm({ ...settingsForm, title: e.target.value })}
               className="form-input" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="form-label">Tempo</label>
               <input type="text" value={settingsForm.tempo}
@@ -1115,7 +1115,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                 className="form-input" placeholder={ph('groupes_id_grilles_grilleid_3')} />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label className="form-label">Mesure</label>
               <select value={settingsForm.timeSignature}

@@ -119,13 +119,13 @@ export default function RessourcesPartageesPage({ params }: { params: { id: stri
         <span className="text-gray-900">Ressources partagées</span>
       </div>
 
-      <div className="flex items-start justify-between gap-4 mb-2 flex-wrap">
-        <div>
+      <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">📒 Ressources partagées</h1>
           <p className="text-sm text-gray-500 mt-0.5">Liens, boutiques, contacts, notes et fichiers — partagés entre les membres du groupe.</p>
         </div>
         <button onClick={() => { setAddOpen(true); setError('') }}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
+          className="min-h-10 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 sm:flex-shrink-0">
           + Ajouter
         </button>
       </div>
@@ -203,19 +203,23 @@ export default function RessourcesPartageesPage({ params }: { params: { id: stri
 
       {/* Modale ajout */}
       {addOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setAddOpen(false)}>
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Ajouter une ressource</h3>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={() => setAddOpen(false)}>
+          <div className="flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6">
+              <h3 className="text-lg font-bold text-gray-900">Ajouter une ressource</h3>
+              <button type="button" onClick={() => setAddOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl leading-none text-gray-400 hover:bg-gray-100 hover:text-gray-700">×</button>
+            </div>
+            <div className="overflow-y-auto px-4 py-4 sm:px-6">
             {error && <div className="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
             <form onSubmit={handleAdd} className="space-y-3">
               {/* Type */}
-              <div className="grid grid-cols-5 gap-1">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-1">
                 {TYPES.map(t => (
                   <button key={t.key} type="button"
                     onClick={() => setForm(f => ({ ...f, type: t.key }))}
                     disabled={t.key === 'FILE' && !uploadEnabled}
                     title={t.key === 'FILE' && !uploadEnabled ? 'Stockage non inclus dans ce plan' : t.label}
-                    className={`flex flex-col items-center gap-0.5 rounded-lg border-2 py-2 text-[10px] transition-colors ${
+                    className={`flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-2 py-2 text-[10px] transition-colors ${
                       form.type === t.key ? 'border-indigo-500 bg-indigo-50 text-indigo-700' :
                       (t.key === 'FILE' && !uploadEnabled) ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed' :
                       'border-gray-200 text-gray-600 hover:border-indigo-300'
@@ -257,13 +261,14 @@ export default function RessourcesPartageesPage({ params }: { params: { id: stri
               <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
                 placeholder={ph('groupes_id_ressources_partagees_5')} rows={2} className={`${inp} resize-none`} />
 
-              <div className="flex justify-end gap-3 pt-1">
-                <button type="button" onClick={() => setAddOpen(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Annuler</button>
-                <button type="submit" disabled={saving} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60">
+              <div className="grid grid-cols-2 gap-2 pt-1 sm:flex sm:justify-end sm:gap-3">
+                <button type="button" onClick={() => setAddOpen(false)} className="min-h-10 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Annuler</button>
+                <button type="submit" disabled={saving} className="min-h-10 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60">
                   {saving ? 'Ajout…' : 'Ajouter'}
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}

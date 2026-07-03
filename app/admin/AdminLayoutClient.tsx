@@ -89,7 +89,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-white">
       {/* En-tête admin (plein largeur, sans menu latéral) */}
       <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 px-4 sm:px-6 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-sm">{siteIcon}</span>
@@ -99,7 +99,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
           <Link
             href="/tableau-de-bord"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex-shrink-0"
+            className="inline-flex min-h-10 flex-shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -110,17 +110,17 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       </header>
 
       <main>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-10">
+        <div className="mx-auto w-full max-w-6xl px-3 py-5 pb-10 sm:px-6 sm:py-8">
 
             {/* Admin sub-nav — catégories déroulantes */}
-            <nav className="mb-6 border-b border-gray-200 pb-3">
-              <div ref={navRef} className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1 flex-shrink-0">Admin</span>
+            <nav className="mb-6 -mx-3 overflow-x-auto border-b border-gray-200 px-3 pb-3 sm:mx-0 sm:px-0">
+              <div ref={navRef} className="flex min-w-max items-center gap-1.5 sm:min-w-0 sm:flex-wrap">
+                <span className="hidden text-xs font-semibold uppercase tracking-wider text-gray-400 sm:mr-1 sm:inline sm:flex-shrink-0">Admin</span>
 
                 {/* Entrée autonome : Vue d'ensemble */}
                 <Link
                   href={overview.href}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`flex min-h-10 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive(overview.href)
                       ? 'bg-indigo-600 text-white shadow-sm'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -142,7 +142,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                         onClick={() => setOpenMenu(open ? null : g.label)}
                         aria-haspopup="menu"
                         aria-expanded={open}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                        className={`flex min-h-10 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
                           active
                             ? 'bg-indigo-600 text-white shadow-sm'
                             : open
@@ -167,7 +167,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                       {open && (
                         <div
                           role="menu"
-                          className="absolute left-0 top-full mt-1.5 z-40 w-60 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 p-1.5 animate-[fadeIn_0.12s_ease-out]"
+                          className="absolute left-0 top-full z-40 mt-1.5 max-h-[70vh] w-60 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg ring-1 ring-black/5 animate-[fadeIn_0.12s_ease-out]"
                         >
                           {g.items.map((it) => (
                             <Link

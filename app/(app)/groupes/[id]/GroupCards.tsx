@@ -79,11 +79,11 @@ function SortableCard({ id, children, spanFull }: { id: string; children: React.
         type="button"
         {...attributes}
         {...listeners}
-        className="group absolute -top-2 left-4 z-20 flex h-7 w-11 cursor-grab items-center justify-center rounded-full border border-gray-200 bg-white text-gray-300 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-500 active:cursor-grabbing"
+        className="group absolute right-3 top-3 z-20 flex h-9 w-9 cursor-grab items-center justify-center rounded-xl border border-gray-200 bg-white/95 text-gray-300 shadow-sm backdrop-blur transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-500 active:cursor-grabbing sm:-top-2 sm:left-4 sm:right-auto sm:h-7 sm:w-11 sm:rounded-full"
         title="Déplacer"
         aria-label="Déplacer cette carte"
       >
-        <span className="flex gap-0.5">
+        <span className="grid grid-cols-2 gap-0.5 sm:flex">
           {[0,1,2,3,4,5].map((i) => (
             <span key={i} className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-indigo-400 transition-colors" />
           ))}

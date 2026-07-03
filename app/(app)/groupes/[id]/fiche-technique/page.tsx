@@ -230,31 +230,31 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
           <h1 className="text-2xl font-bold text-gray-900">Fiche technique</h1>
           <p className="text-sm text-gray-500 mt-0.5">Modèle réutilisable pour tous vos concerts</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
           {/* Print */}
-          <button onClick={handlePrint} className="text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200 flex items-center gap-1.5 transition-colors">
+          <button onClick={handlePrint} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900">
             🖨️ Imprimer
           </button>
           {/* Share */}
           {isChef && !shareToken && (
             <button onClick={generateShareLink} disabled={shareLoading}
-              className="text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200 flex items-center gap-1.5 transition-colors disabled:opacity-50">
+              className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50">
               {shareLoading ? '⏳' : '🔗'} Créer un lien
             </button>
           )}
           {shareToken && (
-            <div className="flex items-center gap-1">
-              <button onClick={copyShareLink} className="text-sm text-indigo-600 hover:text-indigo-500 font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 border border-indigo-200 flex items-center gap-1.5 transition-colors">
+            <div className="col-span-2 flex min-w-0 items-center gap-1 sm:col-span-1">
+              <button onClick={copyShareLink} className="flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-indigo-200 px-3 py-1.5 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-500 sm:flex-none">
                 {copied ? '✓ Copié !' : '🔗 Copier le lien'}
               </button>
               {isChef && (
-                <button onClick={revokeShareLink} title="Révoquer le lien" className="text-xs text-red-400 hover:text-red-600 px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors">✕</button>
+                <button onClick={revokeShareLink} title="Révoquer le lien" className="min-h-10 rounded-lg px-2 py-1.5 text-xs text-red-400 transition-colors hover:bg-red-50 hover:text-red-600">✕</button>
               )}
             </div>
           )}
           {/* Email */}
           {isChef && (
-            <button onClick={() => setEmailOpen(true)} className="text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200 flex items-center gap-1.5 transition-colors">
+            <button onClick={() => setEmailOpen(true)} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900">
               ✉️ Envoyer
             </button>
           )}
@@ -285,7 +285,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
         <TabButton active={activeTab === 'hosp'} onClick={() => setActiveTab('hosp')}>🍺 Loges</TabButton>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         {/* ── Tab: Général ── */}
         {activeTab === 'general' && (
           <div className="space-y-5 max-w-xl">
@@ -314,7 +314,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
         {activeTab === 'scene' && (
           <div className="space-y-6">
             <h2 className="text-base font-semibold text-gray-900">Scène & Backline</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-4 sm:gap-4">
               <Field label="Largeur min." hint="(m)">
                 <input disabled={!isChef} value={content.stage.minWidth} onChange={e => updStage({ minWidth: e.target.value })} className={inp} placeholder={ph('groupes_id_fiche_technique_6')} />
               </Field>
@@ -354,7 +354,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
               {content.stage.members.length === 0 ? (
                 <p className="text-sm text-gray-400 italic">Aucun musicien ajouté.</p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                   <table className="w-full text-sm min-w-[600px]">
                     <thead>
                       <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wider">
@@ -413,7 +413,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
         {activeTab === 'son' && (
           <div className="space-y-6">
             <h2 className="text-base font-semibold text-gray-900">Son & Retours</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-4">
               <Field label="Canaux total">
                 <input disabled={!isChef} type="number" min="0" value={content.sound.totalChannels || ''} onChange={e => updSound({ totalChannels: Number(e.target.value) })} className={inp} placeholder={ph('groupes_id_fiche_technique_17')} />
               </Field>
@@ -424,7 +424,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
                 <input disabled={!isChef} type="number" min="0" value={content.sound.diCount || ''} onChange={e => updSound({ diCount: Number(e.target.value) })} className={inp} placeholder={ph('groupes_id_fiche_technique_19')} />
               </Field>
             </div>
-            <div className="flex gap-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input disabled={!isChef} type="checkbox" checked={content.sound.inEar} onChange={e => updSound({ inEar: e.target.checked })} className="w-4 h-4 rounded text-indigo-600 border-gray-300" />
                 <span className="text-sm text-gray-700">Mix in-ear</span>
@@ -444,7 +444,7 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
               {content.sound.channels.length === 0 ? (
                 <p className="text-sm text-gray-400 italic">Aucun canal défini.</p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                   <table className="w-full text-sm min-w-[520px]">
                     <thead>
                       <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wider">
@@ -559,10 +559,13 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
 
       {/* Email modal */}
       {emailOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setEmailOpen(false)}>
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Envoyer la fiche technique</h3>
-            <div className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={() => setEmailOpen(false)}>
+          <div className="flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6">
+              <h3 className="text-lg font-semibold text-gray-900">Envoyer la fiche technique</h3>
+              <button type="button" onClick={() => setEmailOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl leading-none text-gray-400 hover:bg-gray-100 hover:text-gray-700">×</button>
+            </div>
+            <div className="space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
               <div>
                 <label className="form-label">Destinataire <span className="text-red-500">*</span></label>
                 <input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} className={inp} placeholder={ph('groupes_id_fiche_technique_30')} autoFocus />
@@ -573,9 +576,9 @@ export default function FicheTechniquePage({ params }: { params: { id: string } 
               </div>
               {emailSent && <p className="text-sm text-green-600 font-medium">✓ Email envoyé avec succès !</p>}
             </div>
-            <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setEmailOpen(false)} className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">Annuler</button>
-              <button onClick={sendEmail} disabled={emailSending || !emailTo} className="px-4 py-2 rounded-lg bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            <div className="grid grid-cols-2 gap-2 px-4 pb-4 sm:flex sm:justify-end sm:gap-3 sm:px-6">
+              <button onClick={() => setEmailOpen(false)} className="min-h-10 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100">Annuler</button>
+              <button onClick={sendEmail} disabled={emailSending || !emailTo} className="min-h-10 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-50">
                 {emailSending ? 'Envoi…' : 'Envoyer'}
               </button>
             </div>

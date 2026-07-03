@@ -26,7 +26,7 @@ export default async function AdminPage() {
         <p className="text-gray-500 mt-1">Vue d&apos;ensemble de la plateforme Sol au piano.</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-5 lg:gap-5">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href}>
             <Card className={`border ${stat.color} hover:shadow-md transition-all cursor-pointer`}>

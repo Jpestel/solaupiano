@@ -52,7 +52,7 @@ export default async function AdminAnnoncesPage({ searchParams }: { searchParams
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-gray-900">Annonces</h1>
         <Link href="/annonces" target="_blank" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
           Voir la page publique →
@@ -70,7 +70,7 @@ export default async function AdminAnnoncesPage({ searchParams }: { searchParams
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: 'Total', value: stats.total, color: 'text-gray-900' },
           { label: 'En attente', value: stats.pending, color: 'text-amber-600' },
@@ -103,8 +103,8 @@ export default async function AdminAnnoncesPage({ searchParams }: { searchParams
       {tab === 'categories' ? (
         <CategoriesManager initial={categories} />
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+          <table className="min-w-[560px] text-sm sm:w-full sm:min-w-0">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase">Annonce</th>
