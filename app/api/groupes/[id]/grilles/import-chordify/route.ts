@@ -59,7 +59,7 @@ function extractTempo(text: string) {
 
 function extractChords(line: string) {
   const chordPattern = new RegExp(
-    String.raw`(^|[\s|,;])((?:N\.?C\.?|[A-G](?:#|b|♯|♭)?\s*(?:m|maj|min|dim|aug|sus|add)?\s*(?:2|4|5|6|7|9|11|13)?(?:[#b♯♭](?:5|9|11|13))?(?:\+)?(?:/[A-G](?:#|b|♯|♭)?)?))(?=$|[\s|,;])`,
+    String.raw`(^|[\s|,;])((?:N\.?C\.?|[A-G](?:#|b|♯|♭)?\s*(?:m|maj|min|dim|aug|sus|add|ø|°)?\s*(?:2|4|5|6|7|9|11|13)?(?:[#b♯♭](?:5|9|11|13))?(?:\+)?(?:/[A-G](?:#|b|♯|♭)?)?))(?=$|[\s|,;])`,
     'g',
   )
   return Array.from(line.matchAll(chordPattern))
@@ -69,7 +69,7 @@ function extractChords(line: string) {
 
 function isChordLabel(text: string) {
   const chord = normalizeChord(text)
-  return /^(?:N\.C\.|[A-G](?:#|b)?(?:(?:m|maj|min|dim|aug|sus|add)?(?:2|4|5|6|7|9|11|13)?(?:[#b](?:5|9|11|13))?(?:\+)?)(?:\/[A-G](?:#|b)?)?)$/.test(chord)
+  return /^(?:N\.C\.|[A-G](?:#|b)?(?:(?:m|maj|min|dim|aug|sus|add|ø|°)?(?:2|4|5|6|7|9|11|13)?(?:[#b](?:5|9|11|13))?(?:\+)?)(?:\/[A-G](?:#|b)?)?)$/.test(chord)
 }
 
 function decodeXmlText(text: string) {
@@ -111,6 +111,23 @@ function median(values: number[], fallback: number) {
   return sorted[Math.floor(sorted.length / 2)]
 }
 
+function buildPreviewText(byNumber: Map<number, string[]>, lastNumber: number, fillRepeats = true) {
+  let hasPreviousChord = false
+  const lines: string[] = []
+
+  for (let number = 1; number <= lastNumber; number += 1) {
+    const chords = byNumber.get(number)
+    if (chords?.length) {
+      lines.push(`${number}: ${chords.slice(0, 4).join(' | ')}`)
+      hasPreviousChord = true
+    } else if (fillRepeats && hasPreviousChord) {
+      lines.push(`${number}: %`)
+    }
+  }
+
+  return lines.join('\n')
+}
+
 function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: AccidentalMode = 'auto') {
   const items = parsePdfXmlItems(xml)
   if (items.length === 0) return null
@@ -120,10 +137,10 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
   const accidentalItems = items.filter((item) =>
     item.top > 55 &&
     item.text === '' &&
-    item.width >= 5 &&
-    item.width <= 13 &&
-    item.height >= 35 &&
-    item.height <= 55,
+    item.width >= 2 &&
+    item.width <= 18 &&
+    item.height >= 20 &&
+    item.height <= 65,
   )
   const chordItems = items
     .filter((item) => item.top > 55 && isChordLabel(item.text))
@@ -131,9 +148,9 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
       let chord = normalizeChord(item.text)
       const hasExplicitMissingAccidental = chord !== 'N.C.' && !/^[A-G][#b]/.test(chord) && accidentalItems.some((accidental) => {
         if (accidental.page !== item.page) return false
-        const verticalMatch = accidental.top >= item.top + 12 && accidental.top <= item.top + 42
+        const verticalMatch = accidental.top >= item.top + 8 && accidental.top <= item.top + 48
         if (!verticalMatch) return false
-        return accidental.left >= item.left - 16 && accidental.left <= item.left - 1
+        return accidental.left >= item.left - 20 && accidental.left <= item.left + 3
       })
       if (hasExplicitMissingAccidental) {
         chord = chord.replace(/^([A-G])/, accidentalMode === 'flat' ? '$1b' : '$1#')
@@ -142,13 +159,18 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
     })
     .sort((a, b) => a.page - b.page || a.top - b.top || a.left - b.left)
   const explicitAccidentalCount = chordItems.filter((item) => item.explicitAccidental).length
-  const likelySharpExport = accidentalMode !== 'flat' && explicitAccidentalCount >= 4 && chordItems.some((item) => item.chord.startsWith('C#'))
+  const explicitRoots = new Set(
+    chordItems
+      .filter((item) => item.explicitAccidental && item.chord !== 'N.C.')
+      .map((item) => item.chord[0]),
+  )
+  const likelySharpExport = accidentalMode !== 'flat' && explicitAccidentalCount >= 4 && explicitRoots.size >= 1
   const forcedFlatExport = accidentalMode === 'flat' && explicitAccidentalCount > 0
   const forcedSharpExport = accidentalMode === 'sharp' && explicitAccidentalCount > 0
   if (likelySharpExport || forcedSharpExport || forcedFlatExport) {
     const autoAccidentalRoots = forcedFlatExport
       ? new Set(['B', 'E', 'A', 'D', 'G', 'C'])
-      : new Set(['F', 'C', 'G', 'D', 'A', 'E'])
+      : (explicitRoots.size > 0 ? explicitRoots : new Set(['F', 'C', 'G', 'D', 'A', 'E']))
     const accidental = forcedFlatExport ? 'b' : '#'
     chordItems.forEach((item) => {
       const root = item.chord[0]
@@ -192,14 +214,16 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
     .map((row) => ({ ...row, chords: row.chords.sort((a, b) => a.left - b.left) }))
     .filter((row) => row.chords.length >= 2)
     .sort((a, b) => a.page - b.page || a.top - b.top)
+  if (usefulRows.length === 0) return null
 
   usefulRows.forEach((row, index) => {
     const label = measureLabels
       .filter((candidate) => candidate.page === row.page && Math.abs(candidate.top - row.top) <= 28)
       .sort((a, b) => Math.abs(a.top - row.top) - Math.abs(b.top - row.top))[0]
-    row.start = label?.value || (index === 0 ? 1 : null)
+    row.start = label?.value || null
   })
 
+  if (!usefulRows[0].start) usefulRows[0].start = 1
   for (let index = 0; index < usefulRows.length; index += 1) {
     if (usefulRows[index].start) continue
     const previous = usefulRows[index - 1]
@@ -220,18 +244,29 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
     row.barsInRow = gap >= 2 && gap <= 16 ? gap : commonBarsPerSystem
   })
 
-  const leftSamples = usefulRows.map((row) => Math.min(...row.chords.map((chord) => chord.left))).sort((a, b) => a - b)
-  const rightSamples = usefulRows.map((row) => Math.max(...row.chords.map((chord) => chord.right))).sort((a, b) => a - b)
-  const staffLeft = leftSamples[Math.floor(leftSamples.length * 0.2)] ?? 160
-  const staffRight = rightSamples[Math.floor(rightSamples.length * 0.8)] ?? 810
-  const staffWidth = Math.max(1, staffRight - staffLeft)
+  const measureWidthSamples = usefulRows
+    .map((row) => {
+      const centers = row.chords.map((chord) => chord.center).sort((a, b) => a - b)
+      if (row.barsInRow < 2 || centers.length < 2) return 0
+      const width = (centers[centers.length - 1] - centers[0]) / Math.max(1, row.barsInRow - 1)
+      return width >= 35 && width <= 120 ? width : 0
+    })
+    .filter((value) => value > 0)
+  const commonMeasureWidth = median(measureWidthSamples, 64)
   const byNumber = new Map<number, string[]>()
 
   usefulRows.forEach((row) => {
     if (!row.start) return
+    const centers = row.chords.map((chord) => chord.center).sort((a, b) => a - b)
+    const rowWidth = row.barsInRow >= 2 && centers.length >= 2
+      ? (centers[centers.length - 1] - centers[0]) / Math.max(1, row.barsInRow - 1)
+      : commonMeasureWidth
+    const measureWidth = rowWidth >= 35 && rowWidth <= 120 ? rowWidth : commonMeasureWidth
+    const rowLeft = centers[0] ?? Math.min(...row.chords.map((chord) => chord.left))
+
     row.chords.forEach((chord) => {
-      const position = Math.max(0, Math.min(0.999, (chord.center - staffLeft) / staffWidth))
-      const offset = Math.max(0, Math.min(row.barsInRow - 1, Math.floor(position * row.barsInRow)))
+      const rawOffset = (chord.center - rowLeft) / Math.max(1, measureWidth)
+      const offset = Math.max(0, Math.min(row.barsInRow - 1, Math.floor(rawOffset + 0.12)))
       const barNumber = row.start! + offset
       const existing = byNumber.get(barNumber) || []
       if (existing.length < 4 && existing[existing.length - 1] !== chord.chord) existing.push(chord.chord)
@@ -242,10 +277,8 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
   const orderedNumbers = Array.from(byNumber.keys()).sort((a, b) => a - b)
   if (orderedNumbers.length === 0) return null
 
-  const previewText = orderedNumbers
-    .map((number) => `${number}: ${(byNumber.get(number) || []).slice(0, 4).join(' | ')}`)
-    .join('\n')
   const lastNumber = Math.max(...usefulRows.map((row) => (row.start || 0) + row.barsInRow - 1), orderedNumbers.at(-1) || 32)
+  const previewText = buildPreviewText(byNumber, lastNumber)
 
   return {
     title,
@@ -256,6 +289,7 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
     previewText,
     warnings: [
       'Import géométrique : les accords sont replacés selon leur position dans le PDF Chordify.',
+      'Les mesures sans nouvel accord visible sont remplies avec % pour indiquer la répétition de la mesure précédente.',
       'Relisez les bémols/dièses : certains PDF Chordify encodent les altérations avec des glyphes musicaux difficiles à lire automatiquement.',
       ...(likelySharpExport ? ['Mode dièses détecté : les accords nus du PDF ont été reconstruits en accords diésés quand Chordify masquait le signe #.'] : []),
       ...(forcedSharpExport ? ['Mode dièses forcé : les altérations masquées du PDF ont été interprétées comme des #.'] : []),
@@ -320,12 +354,9 @@ function parseChordifyText(text: string) {
   })
 
   const orderedNumbers = Array.from(byNumber.keys()).sort((a, b) => a - b)
-  const previewText = orderedNumbers
-    .map((number) => `${number}: ${(byNumber.get(number) || []).slice(0, 4).join(' | ')}`)
-    .join('\n')
-
   const lastNumber = orderedNumbers.at(-1) || 32
   const totalBars = Math.max(8, Math.min(240, lastNumber + 3))
+  const previewText = buildPreviewText(byNumber, totalBars)
 
   if (!previewText) {
     warnings.push("Aucun accord n'a été détecté automatiquement dans ce PDF.")
