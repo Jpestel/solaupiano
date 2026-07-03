@@ -713,6 +713,9 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           <span className={`hidden text-xs font-semibold transition-opacity lg:inline-flex lg:items-center ${saving ? 'text-orange-500 opacity-100' : savedAt ? 'text-green-600 opacity-100' : 'opacity-0'}`}>
             {saving ? '💾 Sauvegarde...' : '✓ Sauvegardé'}
           </span>
+          <div className="relative flex items-center justify-center">
+            <VoiceRecorder groupId={groupId} songId={currentSongId} contextTitle={chart.title} source="GRID" compact />
+          </div>
           <button onClick={handlePrint}
             className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50">
             🖨️ Imprimer
@@ -1161,7 +1164,6 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           </div>
         </form>
       </Modal>
-      <VoiceRecorder groupId={groupId} songId={currentSongId} contextTitle={chart.title} source="GRID" />
       <FloatingAudioPlayer groupId={groupId} currentSongId={currentSongId} />
     </div>
   )

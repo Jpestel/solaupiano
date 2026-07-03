@@ -23,6 +23,7 @@ interface VoiceRecorderProps {
   contextTitle?: string
   source?: 'GENERAL' | 'PDF' | 'GRID' | 'REHEARSAL' | 'SETLIST'
   compact?: boolean
+  draggable?: boolean
 }
 
 const MAX_RECORDING_MS = 15 * 60 * 1000
@@ -62,6 +63,7 @@ export function VoiceRecorder({
   contextTitle,
   source = 'GENERAL',
   compact = false,
+  draggable = false,
 }: VoiceRecorderProps) {
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [open, setOpen] = useState(false)
@@ -73,6 +75,7 @@ export function VoiceRecorder({
   const [recordings, setRecordings] = useState<Recording[]>([])
   const [loaded, setLoaded] = useState(false)
   const [note, setNote] = useState('')
+  const [panelPos, setPanelPos] = useState<{ x: number; y: number } | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
@@ -80,6 +83,7 @@ export function VoiceRecorder({
   const timerRef = useRef<number | null>(null)
   const autoStopRef = useRef<number | null>(null)
   const stopReasonRef = useRef('')
+  const dragRef = useRef<{ dx: number; dy: number } | null>(null)
 
   const cleanupTimers = () => {
     if (timerRef.current) window.clearInterval(timerRef.current)
@@ -115,6 +119,15 @@ export function VoiceRecorder({
     if (!open || loaded) return
     loadRecordings().catch(() => {})
   }, [loaded, loadRecordings, open])
+
+  useEffect(() => {
+    if (!open || !draggable || panelPos || typeof window === 'undefined') return
+    const width = Math.min(420, window.innerWidth - 24)
+    setPanelPos({
+      x: Math.max(12, window.innerWidth - width - 24),
+      y: Math.max(88, Math.min(180, window.innerHeight - 360)),
+    })
+  }, [draggable, open, panelPos])
 
   const saveRecording = useCallback(async (blob: Blob, durationSec: number) => {
     setSaving(true)
@@ -243,6 +256,27 @@ export function VoiceRecorder({
     if (res.ok) setRecordings((items) => items.filter((item) => item.id !== recordingId))
   }
 
+  const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggable || !panelPos) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    dragRef.current = { dx: event.clientX - panelPos.x, dy: event.clientY - panelPos.y }
+  }
+
+  const moveDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggable || !dragRef.current) return
+    const width = Math.min(420, window.innerWidth - 24)
+    const height = Math.min(560, window.innerHeight - 24)
+    setPanelPos({
+      x: Math.max(12, Math.min(window.innerWidth - width - 12, event.clientX - dragRef.current.dx)),
+      y: Math.max(12, Math.min(window.innerHeight - height - 12, event.clientY - dragRef.current.dy)),
+    })
+  }
+
+  const stopDrag = () => {
+    dragRef.current = null
+  }
+
   if (allowed === false) return null
 
   return (
@@ -262,18 +296,28 @@ export function VoiceRecorder({
 
       {open && (
         <div
-          className={compact
-            ? 'absolute right-3 top-14 z-50 w-[min(360px,calc(100vw-1.5rem))] rounded-2xl border border-rose-200 bg-white text-gray-900 shadow-2xl'
-            : 'fixed bottom-36 right-4 z-[70] w-[min(420px,calc(100vw-2rem))] rounded-2xl border border-rose-200 bg-white text-gray-900 shadow-2xl'}
+          className={draggable
+            ? 'fixed z-[80] w-[min(420px,calc(100vw-1.5rem))] rounded-2xl border border-rose-200 bg-white text-gray-900 shadow-2xl'
+            : compact
+              ? 'absolute right-3 top-14 z-50 w-[min(360px,calc(100vw-1.5rem))] rounded-2xl border border-rose-200 bg-white text-gray-900 shadow-2xl'
+              : 'fixed bottom-36 right-4 z-[70] w-[min(420px,calc(100vw-2rem))] rounded-2xl border border-rose-200 bg-white text-gray-900 shadow-2xl'}
+          style={draggable && panelPos ? { left: panelPos.x, top: panelPos.y } : undefined}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-center justify-between gap-2 rounded-t-2xl border-b border-rose-100 bg-rose-50 px-4 py-3">
+          <div
+            className={`flex items-center justify-between gap-2 rounded-t-2xl border-b border-rose-100 bg-rose-50 px-4 py-3 ${draggable ? 'cursor-move touch-none select-none' : ''}`}
+            onPointerDown={startDrag}
+            onPointerMove={moveDrag}
+            onPointerUp={stopDrag}
+            onPointerCancel={stopDrag}
+          >
             <div>
               <p className="text-sm font-black text-rose-800">🎙️ Dictaphone</p>
-              <p className="text-xs text-rose-600">{contextTitle || 'Prise audio personnelle'}</p>
+              <p className="text-xs text-rose-600">{draggable ? 'Déplacez ce panneau si besoin' : (contextTitle || 'Prise audio personnelle')}</p>
             </div>
             <button
               type="button"
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={() => setOpen(false)}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-100"
               aria-label="Fermer le dictaphone"

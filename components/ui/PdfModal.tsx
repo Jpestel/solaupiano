@@ -482,6 +482,7 @@ export function PdfModal({ url, title, onClose, kind = 'pdf', groupId, songId }:
                 resourceId={resourceId ? Number(resourceId) : null}
                 contextTitle={title}
                 source="PDF"
+                compact
               />
             )}
 

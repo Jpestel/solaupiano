@@ -43,11 +43,11 @@ export function DictaphonePageClient({ groups }: { groups: GroupOption[] }) {
             </select>
 
             {groupId && (
-              <div className="relative min-h-44 rounded-xl border border-rose-100 bg-rose-50 p-4">
+              <div className="relative rounded-xl border border-rose-100 bg-rose-50/70 p-4">
                 <p className="mb-3 text-sm text-rose-800">
-                  Cliquez sur le bouton ci-dessous pour ouvrir le panneau d'enregistrement.
+                  Cliquez sur le bouton ci-dessous pour ouvrir le panneau d'enregistrement. Vous pourrez le déplacer si besoin.
                 </p>
-                <VoiceRecorder groupId={groupId} source="GENERAL" contextTitle="Dictaphone" compact />
+                <VoiceRecorder groupId={groupId} source="GENERAL" contextTitle="Dictaphone" compact draggable />
               </div>
             )}
           </>
