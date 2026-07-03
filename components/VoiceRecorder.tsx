@@ -40,6 +40,10 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
 }
 
+function recordingUrl(groupId: number | string, recordingId: number) {
+  return `/api/groupes/${groupId}/recordings/${recordingId}`
+}
+
 function preferredMimeType() {
   if (typeof MediaRecorder === 'undefined') return ''
   const candidates = [
@@ -339,7 +343,7 @@ export function VoiceRecorder({
                           Suppr.
                         </button>
                       </div>
-                      <audio controls src={item.filePath} className="h-9 w-full" />
+                      <audio controls preload="metadata" src={recordingUrl(groupId, item.id)} className="h-9 w-full" />
                       {item.note && <p className="mt-2 text-xs text-gray-500">{item.note}</p>}
                     </div>
                   ))}
