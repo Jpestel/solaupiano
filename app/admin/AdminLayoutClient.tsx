@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSettings } from '@/components/SettingsProvider'
@@ -57,9 +58,12 @@ const adminGroups = [
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null)
   const pathname = usePathname()
   const { siteIcon } = useSettings()
   const navRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   const isActive = (href: string) =>
     href === '/admin' ? pathname === href : pathname.startsWith(href)
@@ -70,11 +74,55 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   // Ferme le menu déroulant au changement de page
   useEffect(() => { setOpenMenu(null) }, [pathname])
 
+  const updateMenuPosition = (label: string) => {
+    if (typeof window === 'undefined') return
+    const button = buttonRefs.current[label]
+    if (!button) return
+    const rect = button.getBoundingClientRect()
+    const viewportPadding = 12
+    const width = Math.min(288, Math.max(180, window.innerWidth - viewportPadding * 2))
+    const preferredLeft = window.innerWidth < 640
+      ? Math.min(rect.left, window.innerWidth - width - viewportPadding)
+      : rect.left
+    setMenuPosition({
+      top: Math.min(rect.bottom + 8, window.innerHeight - 96),
+      left: Math.max(viewportPadding, Math.min(preferredLeft, window.innerWidth - width - viewportPadding)),
+      width,
+    })
+  }
+
+  const toggleMenu = (label: string) => {
+    setOpenMenu((current) => {
+      const next = current === label ? null : label
+      if (next) requestAnimationFrame(() => updateMenuPosition(next))
+      else setMenuPosition(null)
+      return next
+    })
+  }
+
+  useEffect(() => {
+    if (!openMenu) {
+      setMenuPosition(null)
+      return
+    }
+    updateMenuPosition(openMenu)
+    const onReposition = () => updateMenuPosition(openMenu)
+    window.addEventListener('resize', onReposition)
+    window.addEventListener('scroll', onReposition, true)
+    return () => {
+      window.removeEventListener('resize', onReposition)
+      window.removeEventListener('scroll', onReposition, true)
+    }
+  }, [openMenu])
+
   // Ferme au clic extérieur / touche Échap
   useEffect(() => {
     if (!openMenu) return
     const onClick = (e: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenMenu(null)
+      const target = e.target as Node
+      const inNav = navRef.current?.contains(target)
+      const inMenu = menuRef.current?.contains(target)
+      if (!inNav && !inMenu) setOpenMenu(null)
     }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenMenu(null) }
     document.addEventListener('mousedown', onClick)
@@ -113,7 +161,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         <div className="mx-auto w-full max-w-6xl px-3 py-5 pb-10 sm:px-6 sm:py-8">
 
             {/* Admin sub-nav — catégories déroulantes */}
-            <nav className="mb-6 -mx-3 overflow-x-auto border-b border-gray-200 px-3 pb-3 sm:mx-0 sm:px-0">
+            <nav className="relative z-20 mb-6 -mx-3 overflow-x-auto border-b border-gray-200 px-3 pb-3 sm:mx-0 sm:px-0">
               <div ref={navRef} className="flex min-w-max items-center gap-1.5 sm:min-w-0 sm:flex-wrap">
                 <span className="hidden text-xs font-semibold uppercase tracking-wider text-gray-400 sm:mr-1 sm:inline sm:flex-shrink-0">Admin</span>
 
@@ -138,10 +186,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                   return (
                     <div key={g.label} className="relative flex-shrink-0">
                       <button
+                        ref={(node) => { buttonRefs.current[g.label] = node }}
                         type="button"
-                        onClick={() => setOpenMenu(open ? null : g.label)}
+                        onClick={() => toggleMenu(g.label)}
                         aria-haspopup="menu"
                         aria-expanded={open}
+                        aria-controls={open ? `admin-menu-${g.label}` : undefined}
                         className={`flex min-h-10 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
                           active
                             ? 'bg-indigo-600 text-white shadow-sm'
@@ -163,39 +213,87 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
-
-                      {open && (
-                        <div
-                          role="menu"
-                          className="absolute left-0 top-full z-40 mt-1.5 max-h-[70vh] w-60 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg ring-1 ring-black/5 animate-[fadeIn_0.12s_ease-out]"
-                        >
-                          {g.items.map((it) => (
-                            <Link
-                              key={it.href}
-                              href={it.href}
-                              role="menuitem"
-                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                                isActive(it.href)
-                                  ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                                  : 'text-gray-700 hover:bg-gray-50'
-                              }`}
-                            >
-                              <span className="text-base leading-none w-5 text-center">{it.icon}</span>
-                              <span className="flex-1">{it.label}</span>
-                              {isActive(it.href) && (
-                                <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 011.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z" clipRule="evenodd" />
-                                </svg>
-                              )}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   )
                 })}
               </div>
             </nav>
+
+            {openMenu && (() => {
+              const group = adminGroups.find((item) => item.label === openMenu)
+              if (!group) return null
+              return (
+                <div className="-mt-3 mb-6 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg ring-1 ring-black/5 sm:hidden">
+                  <div className="mb-1 flex items-center gap-2 border-b border-gray-100 px-3 py-2">
+                    <span className="text-base leading-none">{group.icon}</span>
+                    <span className="text-sm font-bold text-gray-900">{group.label}</span>
+                  </div>
+                  <div className="grid gap-1">
+                    {group.items.map((it) => (
+                      <Link
+                        key={it.href}
+                        href={it.href}
+                        role="menuitem"
+                        onClick={() => setOpenMenu(null)}
+                        className={`flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                          isActive(it.href)
+                            ? 'bg-indigo-50 font-semibold text-indigo-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="w-6 text-center text-base leading-none">{it.icon}</span>
+                        <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                        {isActive(it.href) && (
+                          <svg className="h-4 w-4 flex-shrink-0 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 011.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {openMenu && menuPosition && typeof document !== 'undefined' && createPortal((() => {
+              const group = adminGroups.find((item) => item.label === openMenu)
+              if (!group) return null
+              return (
+                <div
+                  ref={menuRef}
+                  id={`admin-menu-${group.label}`}
+                  role="menu"
+                  className="fixed z-[1000] hidden max-h-[min(70dvh,28rem)] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-1.5 shadow-2xl ring-1 ring-black/5 animate-[fadeIn_0.12s_ease-out] sm:block"
+                  style={{ top: menuPosition.top, left: menuPosition.left, width: menuPosition.width }}
+                >
+                  <div className="mb-1 flex items-center gap-2 border-b border-gray-100 px-3 py-2 sm:hidden">
+                    <span className="text-base leading-none">{group.icon}</span>
+                    <span className="text-sm font-bold text-gray-900">{group.label}</span>
+                  </div>
+                  {group.items.map((it) => (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      role="menuitem"
+                      onClick={() => setOpenMenu(null)}
+                      className={`flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                        isActive(it.href)
+                          ? 'bg-indigo-50 font-semibold text-indigo-700'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="w-6 text-center text-base leading-none">{it.icon}</span>
+                      <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                      {isActive(it.href) && (
+                        <svg className="h-4 w-4 flex-shrink-0 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 011.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )
+            })(), document.body)}
 
             {children}
           </div>
