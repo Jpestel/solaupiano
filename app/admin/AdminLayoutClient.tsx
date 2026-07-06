@@ -63,6 +63,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { siteIcon } = useSettings()
   const navRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   const isActive = (href: string) =>
@@ -122,7 +123,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       const target = e.target as Node
       const inNav = navRef.current?.contains(target)
       const inMenu = menuRef.current?.contains(target)
-      if (!inNav && !inMenu) setOpenMenu(null)
+      const inMobileMenu = mobileMenuRef.current?.contains(target)
+      if (!inNav && !inMenu && !inMobileMenu) setOpenMenu(null)
     }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenMenu(null) }
     document.addEventListener('mousedown', onClick)
@@ -223,7 +225,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               const group = adminGroups.find((item) => item.label === openMenu)
               if (!group) return null
               return (
-                <div className="-mt-3 mb-6 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg ring-1 ring-black/5 sm:hidden">
+                <div ref={mobileMenuRef} className="-mt-3 mb-6 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg ring-1 ring-black/5 sm:hidden">
                   <div className="mb-1 flex items-center gap-2 border-b border-gray-100 px-3 py-2">
                     <span className="text-base leading-none">{group.icon}</span>
                     <span className="text-sm font-bold text-gray-900">{group.label}</span>
