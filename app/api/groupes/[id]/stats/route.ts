@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { resolvePermissions } from '@/lib/permissions'
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { fr } from 'date-fns/locale/fr'
 
 export const dynamic = 'force-dynamic'
 

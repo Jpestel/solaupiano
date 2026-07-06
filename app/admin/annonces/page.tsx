@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { fr } from 'date-fns/locale/fr'
 import { AdminAnnonceActions } from './AdminAnnonceActions'
 import { CategoriesManager } from './CategoriesManager'
 

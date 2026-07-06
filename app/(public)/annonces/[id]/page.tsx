@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { fr } from 'date-fns/locale/fr'
 import { MarkSoldButton, DeleteButton } from './AnnonceActions'
 
 export const dynamic = 'force-dynamic'

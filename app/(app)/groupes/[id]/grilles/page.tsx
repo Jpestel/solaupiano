@@ -87,6 +87,8 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
   const [importAccidentalMode, setImportAccidentalMode] = useState<ChordifyAccidentalMode>('auto')
   const [importSongId, setImportSongId] = useState('')
   const [importResourceId, setImportResourceId] = useState('')
+  const [partitionSongId, setPartitionSongId] = useState('')
+  const [partitionResourceId, setPartitionResourceId] = useState('')
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     title: '', tempo: '', keySignature: '',
@@ -121,6 +123,8 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     setImportAccidentalMode('auto')
     setImportSongId('')
     setImportResourceId('')
+    setPartitionSongId('')
+    setPartitionResourceId('')
   }
 
   // Lier un morceau → pré-remplit les éléments déjà connus du titre (BPM, titre)
@@ -139,6 +143,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     if (!songs.some((song) => String(song.id) === prefillSongId)) return
     selectSong(prefillSongId)
     setImportSongId(prefillSongId)
+    setPartitionSongId(prefillSongId)
     setModalOpen(true)
     setPrefillApplied(true)
   }, [prefillApplied, prefillSongId, songs])
@@ -234,6 +239,50 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     importChordifyPdf(fd)
   }
 
+  const importPartition = async (payload: FormData) => {
+    setImporting(true)
+    setError('')
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 25000)
+    try {
+      const res = await fetch(`/api/groupes/${groupId}/grilles/import-partition`, {
+        method: 'POST',
+        body: payload,
+        signal: controller.signal,
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(data?.error || "Impossible d'analyser cette partition.")
+        return
+      }
+      applyImportPreview(data as ImportPreview)
+    } catch (err) {
+      setError(
+        err instanceof DOMException && err.name === 'AbortError'
+          ? "L'analyse de la partition a pris trop de temps. Essayez un export MusicXML plus léger."
+          : "L'analyse de la partition a échoué. Vérifiez votre connexion et réessayez.",
+      )
+    } finally {
+      window.clearTimeout(timeout)
+      setImporting(false)
+    }
+  }
+
+  const handlePartitionExistingImport = () => {
+    if (!partitionResourceId) { setError('Choisissez une partition MusicXML déjà associée à un titre.'); return }
+    const fd = new FormData()
+    fd.append('resourceId', partitionResourceId)
+    importPartition(fd)
+  }
+
+  const handlePartitionUpload = (file: File | null) => {
+    if (!file) return
+    const fd = new FormData()
+    fd.append('file', file)
+    if (partitionSongId) fd.append('songId', partitionSongId)
+    importPartition(fd)
+  }
+
   const openDuplicate = (chart: Chart) => {
     setDuplicateTarget(chart)
     setDuplicateTitle(`${chart.title} — copie`)
@@ -268,6 +317,11 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
     .map((song) => ({ ...song, resources: (song.resources || []).filter((resource) => resource.type === 'PDF') }))
     .filter((song) => song.resources.length > 0)
   const selectedExistingSong = songsWithPdfs.find((song) => String(song.id) === importSongId)
+  const isMusicXmlResource = (resource: SongResource) => /\.(xml|musicxml|mxl)$/i.test(resource.filePath || resource.name)
+  const songsWithPartitions = songs
+    .map((song) => ({ ...song, resources: (song.resources || []).filter(isMusicXmlResource) }))
+    .filter((song) => song.resources.length > 0)
+  const selectedPartitionSong = songsWithPartitions.find((song) => String(song.id) === partitionSongId)
   const chefCan = (mod: keyof ChefPermissions, action: string): boolean => {
     if (!isChef) return false
     if (isFounder) return true
@@ -380,6 +434,88 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
       <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); resetForm(); setError('') }} title="Nouvelle grille d'accords" size="xl">
         <form onSubmit={handleCreate} className="space-y-4 pb-20 sm:pb-0">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          <div className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-3 sm:px-4">
+            <div>
+              <p className="text-sm font-bold text-violet-950">Importer depuis une partition MusicXML</p>
+              <p className="mt-0.5 text-xs text-violet-700">
+                Utilisez un export MuseScore / Free-scores (.musicxml, .xml ou .mxl). Les accords écrits sont repris, sinon une proposition est déduite des notes.
+              </p>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-violet-200 bg-white/75 p-3 sm:p-4">
+              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                <div>
+                  <label className="form-label">Titre contenant la partition</label>
+                  <select
+                    value={partitionSongId}
+                    onChange={(e) => { setPartitionSongId(e.target.value); setPartitionResourceId('') }}
+                    className="form-input"
+                  >
+                    <option value="">Choisir un titre...</option>
+                    {songsWithPartitions.map((song) => (
+                      <option key={song.id} value={song.id}>{song.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Partition MusicXML</label>
+                  <select
+                    value={partitionResourceId}
+                    onChange={(e) => setPartitionResourceId(e.target.value)}
+                    className="form-input"
+                    disabled={!selectedPartitionSong}
+                  >
+                    <option value="">{selectedPartitionSong ? 'Choisir une partition...' : 'Choisissez un titre'}</option>
+                    {selectedPartitionSong?.resources.map((resource) => (
+                      <option key={resource.id} value={resource.id}>{resource.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePartitionExistingImport}
+                  disabled={importing || !partitionResourceId}
+                  className="min-h-[44px] rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-violet-200"
+                >
+                  {importing ? 'Analyse...' : 'Analyser'}
+                </button>
+                {songsWithPartitions.length === 0 && (
+                  <p className="sm:col-span-3 text-xs text-violet-700">
+                    Aucune ressource MusicXML/MXL n&apos;est encore associée aux titres du répertoire.
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-3 border-t border-violet-100 pt-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                <div>
+                  <label className="form-label">Ou importer un fichier</label>
+                  <select
+                    value={partitionSongId}
+                    onChange={(e) => setPartitionSongId(e.target.value)}
+                    className="form-input"
+                  >
+                    <option value="">Grille libre, non liée</option>
+                    {songs.map((song) => (
+                      <option key={song.id} value={song.id}>{song.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <label className={`inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                  importing ? 'border-violet-200 bg-white/60 text-violet-400' : 'border-violet-300 bg-white text-violet-700 hover:bg-violet-100'
+                }`}>
+                  {importing ? 'Analyse...' : 'Choisir MusicXML'}
+                  <input
+                    type="file"
+                    accept=".xml,.musicxml,.mxl,application/xml,text/xml"
+                    className="sr-only"
+                    disabled={importing}
+                    onChange={(e) => { handlePartitionUpload(e.target.files?.[0] || null); e.currentTarget.value = '' }}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-3 sm:px-4">
             <div>
               <p className="text-sm font-bold text-orange-900">Importer depuis un PDF Chordify</p>
@@ -518,12 +654,12 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
               <div className="mt-4 space-y-3">
                 {importPreview.resourceName && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                    PDF lié : <strong>{importPreview.resourceName}</strong>
+                    Ressource analysée : <strong>{importPreview.resourceName}</strong>
                   </div>
                 )}
                 {importPreview.tempo && (
                   <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800">
-                    Tempo détecté dans le PDF : {importPreview.tempo} BPM
+                    Tempo détecté : {importPreview.tempo} BPM
                   </div>
                 )}
                 {importPreview.warnings.length > 0 && (
@@ -601,7 +737,7 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
           <div className="fixed inset-x-0 bottom-0 z-10 flex gap-2 border-t border-gray-100 bg-white/95 p-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:justify-end sm:border-t-0 sm:bg-transparent sm:p-0 sm:pt-2 sm:shadow-none sm:backdrop-blur-none">
             <Button type="button" variant="secondary" onClick={() => { setModalOpen(false); resetForm(); setError('') }} className="flex-1 sm:flex-none">Annuler</Button>
             <Button type="submit" disabled={saving} className="flex-1 bg-orange-600 hover:bg-orange-500 sm:flex-none">
-              {saving ? 'Création...' : importPreview ? 'Créer depuis le PDF' : 'Créer et éditer'}
+              {saving ? 'Création...' : importPreview ? 'Créer depuis l’import' : 'Créer et éditer'}
             </Button>
           </div>
         </form>

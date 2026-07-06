@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { fr } from 'date-fns/locale/fr'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string; hint: string }> = {
   PENDING: {

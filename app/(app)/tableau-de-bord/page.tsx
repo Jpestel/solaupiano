@@ -9,7 +9,7 @@ import { RepertoiresPanel } from '@/components/admin/RepertoiresPanel'
 import { PreviewGroupButtons } from '@/components/admin/PreviewGroupButtons'
 import { UNSPECIFIED_GENRE } from '@/lib/genres'
 import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { fr } from 'date-fns/locale/fr'
 
 function ConcertDateBox({ date }: { date: Date }) {
   const day = format(date, 'd', { locale: fr })
