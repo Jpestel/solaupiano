@@ -60,6 +60,12 @@ export default function SequencesPage({ params }: { params: { id: string; songId
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editChannelMode, setEditChannelMode] = useState<'STEREO' | 'SPLIT_LR'>('STEREO')
+  const [editFile, setEditFile] = useState<File | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fallbackFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -127,16 +133,52 @@ export default function SequencesPage({ params }: { params: { id: string; songId
 
   const handleDelete = async (id: number) => {
     if (!confirm('Supprimer cette séquence ?')) return
-    await fetch(`/api/sequences/${id}`, { method: 'DELETE' })
+    setEditError('')
+    const res = await fetch(`/api/sequences/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setEditError(data.error || 'Impossible de supprimer cette séquence.')
+      return
+    }
     load()
   }
 
-  const handleChannelChange = async (id: number, mode: 'STEREO' | 'SPLIT_LR') => {
-    await fetch(`/api/sequences/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channelMode: mode }),
-    })
+  const beginEdit = (seq: SeqItem) => {
+    setEditingId(seq.id!)
+    setEditTitle(seq.title)
+    setEditChannelMode(seq.channelMode || 'STEREO')
+    setEditFile(null)
+    setEditError('')
+  }
+
+  const saveEdit = async () => {
+    if (!editingId || !editTitle.trim()) return
+    setEditSaving(true)
+    setEditError('')
+
+    let res: Response
+    if (editFile) {
+      const form = new FormData()
+      form.append('file', editFile)
+      form.append('title', editTitle.trim())
+      form.append('channelMode', editChannelMode)
+      res = await fetch(`/api/sequences/${editingId}`, { method: 'PUT', body: form })
+    } else {
+      res = await fetch(`/api/sequences/${editingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editTitle.trim(), channelMode: editChannelMode }),
+      })
+    }
+
+    setEditSaving(false)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setEditError(data.error || 'Impossible de modifier cette séquence.')
+      return
+    }
+    setEditingId(null)
+    setEditFile(null)
     load()
   }
 
@@ -181,27 +223,58 @@ export default function SequencesPage({ params }: { params: { id: string; songId
             <div key={seq.id}>
               <SequencePlayer seq={seq} />
               {isChef && (
-                <div className="flex items-center gap-3 mt-1 px-1">
-                  {seq.kind === 'AUDIO' && (
-                    <label className="flex items-center gap-1.5 text-xs text-gray-500">
-                      Sortie :
-                      <select
-                        value={seq.channelMode}
-                        onChange={(e) => handleChannelChange(seq.id!, e.target.value as 'STEREO' | 'SPLIT_LR')}
-                        className="rounded border border-gray-200 text-xs px-1.5 py-0.5"
-                      >
-                        <option value="STEREO">Stéréo normale</option>
-                        <option value="SPLIT_LR">Click G / Backing D</option>
-                      </select>
-                    </label>
+                <>
+                  <div className="flex items-center justify-end gap-2 mt-1 px-1">
+                    <button onClick={() => beginEdit(seq)} className="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50">
+                      Modifier
+                    </button>
+                    <button onClick={() => handleDelete(seq.id!)} className="rounded-md px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50">
+                      Supprimer
+                    </button>
+                  </div>
+
+                  {editingId === seq.id && (
+                    <div className="mt-2 border-t border-gray-200 bg-gray-50 px-3 py-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Titre</label>
+                          <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} maxLength={191}
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Sortie audio</label>
+                          <select value={editChannelMode} onChange={(e) => setEditChannelMode(e.target.value as 'STEREO' | 'SPLIT_LR')}
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+                            <option value="STEREO">Stéréo normale</option>
+                            <option value="SPLIT_LR">Click G / Backing D</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Remplacer le fichier (optionnel)</label>
+                        <input type="file" accept={ACCEPTED_SEQUENCE_FILES}
+                          onChange={(e) => setEditFile(e.target.files?.[0] || null)}
+                          className="block w-full text-xs text-gray-500 file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-2 file:font-medium file:text-indigo-600 hover:file:bg-indigo-50" />
+                        {editFile && <p className="mt-1 text-xs text-gray-500">{editFile.name} · {formatBytes(editFile.size)}</p>}
+                      </div>
+                      {editError && <p className="mt-2 text-sm text-red-500">{editError}</p>}
+                      <div className="mt-3 flex justify-end gap-2">
+                        <button type="button" onClick={() => { setEditingId(null); setEditFile(null); setEditError('') }}
+                          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">
+                          Annuler
+                        </button>
+                        <button type="button" onClick={saveEdit} disabled={editSaving || !editTitle.trim()}
+                          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50">
+                          {editSaving ? 'Enregistrement…' : 'Enregistrer'}
+                        </button>
+                      </div>
+                    </div>
                   )}
-                  <button onClick={() => handleDelete(seq.id!)} className="text-xs text-red-400 hover:text-red-600 ml-auto">
-                    Supprimer
-                  </button>
-                </div>
+                </>
               )}
             </div>
           ))}
+          {editError && editingId === null && <p className="text-sm text-red-500">{editError}</p>}
         </div>
       )}
 
