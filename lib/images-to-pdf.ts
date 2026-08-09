@@ -55,6 +55,10 @@ function pageDims(w: number, h: number): [number, number] {
   return [Math.round(w * r), Math.round(h * r)]
 }
 
+function pageOrientation(w: number, h: number): 'p' | 'l' {
+  return w > h ? 'l' : 'p'
+}
+
 // À partir d'images déjà décodées ({ dataUrl, w, h }).
 //  - mode 'image' : chaque page épouse le ratio de l'image, dimensionnée à l'A4 (taille « document » normale)
 //  - mode 'a4'    : page A4 fixe, image centrée avec marges
@@ -63,19 +67,21 @@ export async function imagesToPdfBlobFromDecoded(imgs: PdfImage[], mode: 'image'
   if (imgs.length === 0) throw new Error('Aucune image.')
 
   const first = mode === 'a4' ? ([A4_W, A4_H] as [number, number]) : pageDims(imgs[0].w, imgs[0].h)
-  const doc = new jsPDF({ unit: 'pt', format: first, orientation: 'p' })
+  const doc = new jsPDF({ unit: 'pt', format: first, orientation: pageOrientation(first[0], first[1]) })
 
   imgs.forEach((it, i) => {
     const [pw, ph] = mode === 'a4' ? [A4_W, A4_H] : pageDims(it.w, it.h)
-    if (i > 0) doc.addPage([pw, ph], 'p')
-    if (mode === 'image') {
-      doc.addImage(it.dataUrl, 'JPEG', 0, 0, pw, ph)
-    } else {
-      const margin = 24
-      const ratio = Math.min((pw - 2 * margin) / it.w, (ph - 2 * margin) / it.h)
-      const w = it.w * ratio, h = it.h * ratio
-      doc.addImage(it.dataUrl, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h)
-    }
+    // jsPDF réordonne les dimensions d'un format personnalisé selon l'orientation.
+    // L'orientation doit donc suivre chaque image, sinon une page paysage devient
+    // portrait alors que l'image reste paysage et déborde hors de la page.
+    if (i > 0) doc.addPage([pw, ph], pageOrientation(pw, ph))
+    const actualW = doc.internal.pageSize.getWidth()
+    const actualH = doc.internal.pageSize.getHeight()
+    const margin = mode === 'a4' ? 24 : 0
+    const ratio = Math.min((actualW - 2 * margin) / it.w, (actualH - 2 * margin) / it.h)
+    const imageW = it.w * ratio
+    const imageH = it.h * ratio
+    doc.addImage(it.dataUrl, 'JPEG', (actualW - imageW) / 2, (actualH - imageH) / 2, imageW, imageH)
   })
   return doc.output('blob')
 }
