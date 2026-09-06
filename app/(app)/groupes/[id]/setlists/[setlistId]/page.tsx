@@ -366,6 +366,8 @@ function ConcertSetlistStage({
           groupId={groupId}
           chartId={grilleViewer.chartId}
           onClose={() => setGrilleViewer(null)}
+          // En concert : Espace fait défiler la grille sans lâcher son instrument.
+          spaceScroll
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { beatsPerBar, normalizeCells, type BarData } from '@/lib/grille'
 import { GrilleGrid } from './GrilleGrid'
@@ -28,13 +28,19 @@ const DEFAULT_SIZE = 14
  * une grille SANS quitter le module où l'on se trouve.
  */
 export function GrilleViewer({
-  groupId, chartId, onClose, editHref,
+  groupId, chartId, onClose, editHref, spaceScroll = false,
 }: {
   groupId: string | number
   chartId: number
   onClose: () => void
   /** Si fourni, un bouton « Modifier » mène à l'éditeur (choix explicite de l'utilisateur). */
   editHref?: string
+  /**
+   * Mode concert : la barre d'espace fait défiler la grille d'un écran vers le bas
+   * (Maj + Espace pour remonter). Pensé pour jouer sans lâcher son instrument,
+   * y compris avec une pédale tourne-pages qui envoie la touche Espace.
+   */
+  spaceScroll?: boolean
 }) {
   const [chart, setChart] = useState<ChartData | null>(null)
   const [cells, setCells] = useState<BarData[]>([])
@@ -43,6 +49,8 @@ export function GrilleViewer({
   const [fontSize, setFontSize] = useState(DEFAULT_SIZE)
   // Affichage seulement : aucune donnée n'est modifiée, le retour est immédiat.
   const [condensed, setCondensed] = useState(false)
+  // Conteneur défilant de la grille (la fenêtre, elle, ne défile pas ici).
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   // Taille de texte mémorisée par grille (même clé que l'éditeur)
   useEffect(() => {
@@ -74,12 +82,33 @@ export function GrilleViewer({
     return () => { cancelled = true }
   }, [chartId])
 
-  // Échap ferme la visionneuse
+  // Échap ferme la visionneuse ; en concert, Espace fait défiler la grille.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return }
+      if (!spaceScroll || e.code !== 'Space') return
+
+      // Ne jamais voler la barre d'espace à une saisie en cours.
+      const el = e.target as HTMLElement | null
+      const tag = el?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return
+      // Un appui maintenu ne doit pas faire défiler en continu : un appui = un écran.
+      if (e.repeat) return
+
+      const box = scrollRef.current
+      if (!box) return
+      e.preventDefault()
+      // On garde un peu de recouvrement pour ne pas perdre la ligne en cours.
+      const step = Math.max(120, box.clientHeight * 0.85)
+      // Le défilement animé dépend de la boucle d'animation du navigateur : si
+      // l'appareil est réglé sur « réduire les animations », on saute directement,
+      // pour qu'un appui déclenche toujours quelque chose en plein morceau.
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      box.scrollBy({ top: e.shiftKey ? -step : step, behavior: reduceMotion ? 'auto' : 'smooth' })
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, spaceScroll])
 
   const bpb = chart ? beatsPerBar(chart.timeSignature) : 4
 
@@ -98,6 +127,13 @@ export function GrilleViewer({
             </p>
           )}
         </div>
+
+        {spaceScroll && (
+          <span className="hidden flex-shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-500 md:flex">
+            <kbd className="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-sans text-[10px]">Espace</kbd>
+            défiler
+          </span>
+        )}
 
         <button
           type="button" onClick={() => changeSize(-1)} disabled={fontSize <= MIN_SIZE}
@@ -138,7 +174,7 @@ export function GrilleViewer({
       </div>
 
       {/* Grille */}
-      <div className="flex-1 overflow-auto px-2 py-3 sm:px-4">
+      <div ref={scrollRef} className="flex-1 overflow-auto px-2 py-3 sm:px-4">
         {loading && <p className="py-10 text-center text-sm text-gray-400">Chargement de la grille…</p>}
         {error && !loading && <p className="py-10 text-center text-sm text-red-600">{error}</p>}
         {chart && !loading && !error && (
