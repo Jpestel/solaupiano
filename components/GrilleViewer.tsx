@@ -81,6 +81,19 @@ export function GrilleViewer({
     return () => { cancelled = true }
   }, [chartId])
 
+  /** Défile d'un écran vers le bas (ou vers le haut), avec un peu de
+   *  recouvrement pour ne pas perdre la ligne en cours de lecture. */
+  const scrollOneScreen = useCallback((direction: 1 | -1) => {
+    const box = scrollRef.current
+    if (!box) return
+    const step = Math.max(120, box.clientHeight * 0.85)
+    // Le défilement animé dépend de la boucle d'animation du navigateur : si
+    // l'appareil est réglé sur « réduire les animations », on saute directement,
+    // pour qu'une commande déclenche toujours quelque chose en plein morceau.
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    box.scrollBy({ top: direction * step, behavior: reduceMotion ? 'auto' : 'smooth' })
+  }, [])
+
   // Échap ferme la visionneuse, Espace fait défiler la grille.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -94,20 +107,37 @@ export function GrilleViewer({
       // Un appui maintenu ne doit pas faire défiler en continu : un appui = un écran.
       if (e.repeat) return
 
-      const box = scrollRef.current
-      if (!box) return
       e.preventDefault()
-      // On garde un peu de recouvrement pour ne pas perdre la ligne en cours.
-      const step = Math.max(120, box.clientHeight * 0.85)
-      // Le défilement animé dépend de la boucle d'animation du navigateur : si
-      // l'appareil est réglé sur « réduire les animations », on saute directement,
-      // pour qu'un appui déclenche toujours quelque chose en plein morceau.
-      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-      box.scrollBy({ top: e.shiftKey ? -step : step, behavior: reduceMotion ? 'auto' : 'smooth' })
+      scrollOneScreen(e.shiftKey ? -1 : 1)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, scrollOneScreen])
+
+  /* ─── Tablette : une tape du doigt fait défiler ───
+     Haut de l'écran = remonter, reste de l'écran = descendre. On ne réagit
+     qu'à une vraie tape : un glissement (le défilement au doigt habituel) ou
+     un appui prolongé ne doivent pas déclencher un saut d'écran en plus. */
+  const tapStart = useRef<{ x: number; y: number; t: number } | null>(null)
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') return
+    tapStart.current = { x: e.clientX, y: e.clientY, t: Date.now() }
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    const start = tapStart.current
+    tapStart.current = null
+    if (!start || e.pointerType === 'mouse') return
+    if (Math.abs(e.clientX - start.x) > 10 || Math.abs(e.clientY - start.y) > 10) return
+    if (Date.now() - start.t > 500) return
+
+    const box = scrollRef.current
+    if (!box) return
+    const rect = box.getBoundingClientRect()
+    const relative = (e.clientY - rect.top) / rect.height
+    scrollOneScreen(relative < 0.3 ? -1 : 1)
+  }
 
   const bpb = chart ? beatsPerBar(chart.timeSignature) : 4
 
@@ -127,9 +157,9 @@ export function GrilleViewer({
           )}
         </div>
 
-        <span className="hidden flex-shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-500 md:flex">
+        <span className="hidden flex-shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-500 sm:flex">
           <kbd className="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-sans text-[10px]">Espace</kbd>
-          défiler
+          ou tape · défiler
         </span>
 
         <button
@@ -171,7 +201,12 @@ export function GrilleViewer({
       </div>
 
       {/* Grille */}
-      <div ref={scrollRef} className="flex-1 overflow-auto px-2 py-3 sm:px-4">
+      <div
+        ref={scrollRef}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        className="flex-1 overflow-auto px-2 py-3 sm:px-4"
+      >
         {loading && <p className="py-10 text-center text-sm text-gray-400">Chargement de la grille…</p>}
         {error && !loading && <p className="py-10 text-center text-sm text-red-600">{error}</p>}
         {chart && !loading && !error && (
