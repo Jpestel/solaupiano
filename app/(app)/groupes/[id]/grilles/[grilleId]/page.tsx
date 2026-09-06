@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { ph } from '@/lib/placeholders'
 import { beatsPerBar, normalizeCells, clampTotalBars, MAX_BARS, type BarData } from '@/lib/grille'
 import { BeatContent, MarkerContent } from '@/components/GrilleGrid'
+import { GrilleCondensed } from '@/components/GrilleCondensed'
 
 /* ─── Types ─── */
 interface Song { id: number; title: string; artist?: string; tempo?: number | null }
@@ -153,6 +154,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const [colorWholeRow, setColorWholeRow] = useState(false)
   // Mode plein écran : lecture seule, sans les barres d'outils (pupitre en répétition)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  // Vue repliée : affichage seulement, les mesures enregistrées ne bougent pas.
+  const [condensed, setCondensed] = useState(false)
   const [inputVal, setInputVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -269,7 +272,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const readOnlyTestAccount = session?.user?.email === TEST_ACCOUNT_EMAIL
   const canEditGrid = isChef && !readOnlyTestAccount
   // En plein écran la grille est en lecture seule (pupitre) : pas de palette d'édition
-  const gridEditable = canEditGrid && !isFullscreen
+  const gridEditable = canEditGrid && !isFullscreen && !condensed
 
   /* Ouvrir une cible dans la palette */
   const openTarget = (target: ActiveTarget) => {
@@ -665,6 +668,20 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           >
             ⛶ Plein écran
           </button>
+          <button
+            type="button"
+            onClick={() => setCondensed((v) => !v)}
+            title={condensed
+              ? 'Revenir à la grille complète (rien n’a été modifié)'
+              : 'Replier les sections identiques en renvois numérotés (affichage seulement)'}
+            className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+              condensed
+                ? 'border-indigo-300 bg-indigo-600 text-white hover:bg-indigo-700'
+                : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+            }`}
+          >
+            {condensed ? '↩ Grille complète' : '🗜 Condenser'}
+          </button>
           <div className="flex items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
             <button
               type="button"
@@ -759,6 +776,16 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           >A</button>
           <button
             type="button"
+            onClick={() => setCondensed((v) => !v)}
+            title={condensed ? 'Revenir à la grille complète' : 'Replier les sections identiques'}
+            className={`h-9 rounded-lg border px-3 text-xs font-semibold ${
+              condensed
+                ? 'border-indigo-300 bg-indigo-600 text-white hover:bg-indigo-700'
+                : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >{condensed ? '↩ Complète' : '🗜 Condenser'}</button>
+          <button
+            type="button"
             onClick={() => setIsFullscreen(false)}
             title="Quitter le plein écran (Échap)"
             className="h-9 rounded-lg border border-gray-300 bg-gray-100 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-200"
@@ -770,6 +797,17 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       <div className={isFullscreen
         ? 'fixed inset-0 z-50 overflow-auto bg-white px-2 pb-4 pt-14 sm:px-4'
         : 'mb-4 overflow-x-auto rounded-xl border border-gray-300 bg-white'}>
+        {condensed ? (
+        <div className="p-3">
+          <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Affichage condensé : vos mesures ne sont pas modifiées. Le bouton « Grille complète » rétablit la grille d’origine.
+          </p>
+          <GrilleCondensed
+            cells={cells} bpr={bpr} bpb={bpb} fontSize={gridTextSize}
+            barHeight={isFullscreen ? 96 : 72}
+          />
+        </div>
+        ) : (
         <table className="min-w-[720px] border-collapse sm:w-full sm:min-w-0">
           <tbody>
             {rows.map((row, rowIdx) => (
@@ -868,6 +906,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             ))}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* SONS footer */}

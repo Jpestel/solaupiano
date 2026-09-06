@@ -36,13 +36,16 @@ export function MarkerContent({ value, side }: { value: string; side: 'left' | '
  * L'éditeur garde son propre rendu interactif ; ici on ne fait qu'afficher.
  */
 export function GrilleGrid({
-  cells, bpr, bpb, fontSize, barHeight = 72,
+  cells, bpr, bpb, fontSize, barHeight = 72, numberOffset = 0,
 }: {
   cells: BarData[]
   bpr: number
   bpb: number
   fontSize: number
   barHeight?: number
+  /** Décalage de numérotation : la vue condensée affiche des extraits qui
+   *  doivent garder le numéro de mesure de la grille complète. */
+  numberOffset?: number
 }) {
   const rows: number[][] = []
   for (let i = 0; i < cells.length; i += bpr) {
@@ -75,7 +78,7 @@ export function GrilleGrid({
                   {/* Bandelette : numéro + marqueurs */}
                   <div className="flex items-center border-b border-gray-100 px-1.5 gap-1" style={{ height: `${headerH}px` }}>
                     <span className="text-[9px] text-gray-300 font-medium leading-none flex-shrink-0 select-none">
-                      {barIdx + 1}
+                      {numberOffset + barIdx + 1}
                     </span>
                     <div className="flex items-center flex-shrink-0 leading-none" style={{ minWidth: '20px', height: '14px' }}>
                       <MarkerContent value={bar.l} side="left" />

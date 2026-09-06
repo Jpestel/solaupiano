@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { beatsPerBar, normalizeCells, type BarData } from '@/lib/grille'
 import { GrilleGrid } from './GrilleGrid'
+import { GrilleCondensed } from './GrilleCondensed'
 
 interface ChartData {
   id: number
@@ -40,6 +41,8 @@ export function GrilleViewer({
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [fontSize, setFontSize] = useState(DEFAULT_SIZE)
+  // Affichage seulement : aucune donnée n'est modifiée, le retour est immédiat.
+  const [condensed, setCondensed] = useState(false)
 
   // Taille de texte mémorisée par grille (même clé que l'éditeur)
   useEffect(() => {
@@ -107,6 +110,18 @@ export function GrilleViewer({
           className="h-9 w-9 flex-shrink-0 rounded-lg border border-gray-200 text-base font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
         >A</button>
 
+        <button
+          type="button" onClick={() => setCondensed((v) => !v)}
+          title={condensed ? 'Revenir à la grille complète' : 'Replier les sections identiques'}
+          className={`hidden h-9 flex-shrink-0 items-center rounded-lg border px-3 text-xs font-semibold sm:flex ${
+            condensed
+              ? 'border-indigo-300 bg-indigo-600 text-white hover:bg-indigo-700'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          {condensed ? '↩ Grille complète' : '🗜 Condenser'}
+        </button>
+
         {editHref && (
           <Link
             href={editHref}
@@ -127,13 +142,15 @@ export function GrilleViewer({
         {loading && <p className="py-10 text-center text-sm text-gray-400">Chargement de la grille…</p>}
         {error && !loading && <p className="py-10 text-center text-sm text-red-600">{error}</p>}
         {chart && !loading && !error && (
-          <GrilleGrid
-            cells={cells}
-            bpr={chart.barsPerRow}
-            bpb={bpb}
-            fontSize={fontSize}
-            barHeight={96}
-          />
+          condensed ? (
+            <GrilleCondensed
+              cells={cells} bpr={chart.barsPerRow} bpb={bpb} fontSize={fontSize} barHeight={96}
+            />
+          ) : (
+            <GrilleGrid
+              cells={cells} bpr={chart.barsPerRow} bpb={bpb} fontSize={fontSize} barHeight={96}
+            />
+          )
         )}
       </div>
     </div>
