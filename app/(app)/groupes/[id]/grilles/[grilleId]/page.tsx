@@ -156,6 +156,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const [isFullscreen, setIsFullscreen] = useState(false)
   // Vue repliée : affichage seulement, les mesures enregistrées ne bougent pas.
   const [condensed, setCondensed] = useState(false)
+  // Dernière ligne supprimée, conservée pour pouvoir revenir en arrière.
+  const [deletedRow, setDeletedRow] = useState<
+    { label: string; cells: BarData[]; totalBars: number } | null
+  >(null)
   const [inputVal, setInputVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -240,6 +244,9 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
   /* Auto-save */
   const scheduleSave = (newCells: BarData[]) => {
+    // Toute modification rend caduque l'annulation d'une suppression de ligne :
+    // restaurer l'état d'avant écraserait la saisie qui vient d'être faite.
+    setDeletedRow(null)
     pendingCellsRef.current = newCells
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
@@ -301,6 +308,56 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     })
     setCells(newCells)
     scheduleSave(newCells)
+  }
+
+  /* Enregistrement immédiat quand le NOMBRE de mesures change (et pas seulement
+     leur contenu) : il faut envoyer totalBars en même temps que les mesures. */
+  const saveStructure = async (newCells: BarData[], newTotal: number) => {
+    // Un auto-save differé porterait sur les mesures d'avant : on l'annule.
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    pendingCellsRef.current = newCells
+    setSaving(true)
+    await fetch(`/api/grilles/${grilleId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cells: newCells, totalBars: newTotal }),
+    })
+    setSaving(false)
+    setSavedAt(new Date())
+  }
+
+  /* Supprimer une ligne entière : les mesures suivantes remontent d'un cran. */
+  const deleteRow = async (rowIdx: number) => {
+    if (!chart || !gridEditable) return
+    const bpr = chart.barsPerRow
+    const start = rowIdx * bpr
+    const removed = cells.slice(start, start + bpr)
+    if (removed.length === 0) return
+    // On ne laisse jamais une grille sans aucune mesure.
+    if (cells.length - removed.length < 1) return
+
+    const newCells = [...cells.slice(0, start), ...cells.slice(start + bpr)]
+    const lastBar = Math.min(start + bpr, cells.length)
+    setDeletedRow({
+      label: `Ligne ${rowIdx + 1} (mesures ${start + 1} à ${lastBar})`,
+      cells,
+      totalBars: chart.totalBars,
+    })
+    setActive(null)
+    setCells(newCells)
+    setChart({ ...chart, totalBars: newCells.length })
+    await saveStructure(newCells, newCells.length)
+  }
+
+  /* Annuler la suppression : on remet exactement les mesures d'avant. */
+  const undoDeleteRow = async () => {
+    if (!deletedRow || !chart) return
+    const restored = deletedRow.cells
+    const total = deletedRow.totalBars
+    setDeletedRow(null)
+    setCells(restored)
+    setChart({ ...chart, totalBars: total })
+    await saveStructure(restored, total)
   }
 
   /* Couleur de fond de la mesure active (ou de toute sa ligne) */
@@ -443,6 +500,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     })
     setSettingsSaving(false)
     setSettingsOpen(false)
+    setDeletedRow(null)
     setCells(newCells)
     fetchData()
   }
@@ -793,6 +851,29 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         </div>
       )}
 
+      {/* Retour en arrière après une suppression de ligne */}
+      {deletedRow && !isFullscreen && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <span className="text-sm text-amber-900">
+            <strong>{deletedRow.label}</strong> supprimée — les mesures suivantes ont remonté.
+          </span>
+          <button
+            type="button"
+            onClick={undoDeleteRow}
+            className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+          >
+            ↩ Annuler la suppression
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeletedRow(null)}
+            className="ml-auto text-xs font-medium text-amber-600 hover:text-amber-800"
+          >
+            Fermer
+          </button>
+        </div>
+      )}
+
       {/* Grid */}
       <div className={isFullscreen
         ? 'fixed inset-0 z-50 overflow-auto bg-white px-2 pb-4 pt-14 sm:px-4'
@@ -812,6 +893,22 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           <tbody>
             {rows.map((row, rowIdx) => (
               <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/80'}>
+                {/* Gouttière d'édition : repère de ligne + suppression de la ligne entière */}
+                {gridEditable && (
+                  <td className="border border-gray-200 bg-gray-50 p-0 align-middle" style={{ width: '34px' }}>
+                    <div className="flex flex-col items-center justify-center gap-0.5 py-1">
+                      <span className="select-none text-[9px] font-bold text-gray-400">L{rowIdx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteRow(rowIdx)}
+                        title={`Supprimer la ligne ${rowIdx + 1} (mesures ${rowIdx * bpr + 1} à ${Math.min((rowIdx + 1) * bpr, cells.length)}) — les mesures suivantes remontent`}
+                        className="rounded px-1 py-0.5 text-[13px] leading-none text-gray-300 transition-colors hover:bg-red-50 hover:text-red-600"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  </td>
+                )}
                 {row.map((barIdx) => {
                   const isValidBar = barIdx < cells.length
                   if (!isValidBar) return (
