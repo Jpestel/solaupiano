@@ -5,14 +5,13 @@ import { prisma } from '@/lib/prisma'
 import { detectResourceType } from '@/lib/utils'
 import { getGroupStorageInfo } from '@/lib/storage'
 import { getEmailTemplate } from '@/lib/get-email-template'
-import { Resend } from 'resend'
+import { sendEmail } from '@/lib/email'
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'
 
 export const dynamic = 'force-dynamic'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(
   req: NextRequest,
@@ -124,7 +123,7 @@ export async function POST(
   })
 
   for (const chef of chefs) {
-    await resend.emails.send({
+    await sendEmail({
       from: 'Sol au piano <noreply@solaupiano.fr>',
       to: chef.user.email,
       subject,

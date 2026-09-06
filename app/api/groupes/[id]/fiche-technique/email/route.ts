@@ -3,9 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getEmailTemplate } from '@/lib/get-email-template'
-import { Resend } from 'resend'
+import { sendEmail } from '@/lib/email'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 function formatSection(title: string, rows: string[]): string {
   if (!rows.length) return ''
@@ -143,7 +142,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const html = buildEmailHtml(rider.content, group.name, shareUrl, rendered.introHtml, rendered.outroHtml)
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     // Sujet saisi par le chef en priorité, sinon le sujet du template

@@ -4,6 +4,33 @@ import { signPresence, signConcertPresence } from './presence-token'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+type SendPayload = Parameters<typeof resend.emails.send>[0]
+
+/**
+ * Envoi d'un email, avec journalisation des échecs.
+ *
+ * À utiliser partout plutôt que `resend.emails.send` directement : le SDK Resend
+ * ne lève PAS d'exception quand un envoi échoue, il renvoie `{ data, error }`.
+ * Sans ce garde-fou, une panne d'envoi (domaine non vérifié, clé révoquée,
+ * quota dépassé) est totalement invisible dans les logs — c'est ce qui a laissé
+ * passer plusieurs semaines sans le moindre email en septembre 2026, l'appli
+ * croyant sincèrement que tout était parti.
+ */
+export async function sendEmail(payload: SendPayload) {
+  const to = Array.isArray(payload.to) ? payload.to.join(', ') : payload.to
+  try {
+    const { data, error } = await resend.emails.send(payload)
+    if (error) {
+      console.error(`[email] ECHEC → ${to} · « ${payload.subject} » ·`, error.name, '·', error.message)
+      return { ok: false as const, id: null }
+    }
+    return { ok: true as const, id: data?.id ?? null }
+  } catch (e) {
+    console.error(`[email] EXCEPTION → ${to} · « ${payload.subject} » ·`, e)
+    return { ok: false as const, id: null }
+  }
+}
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, '&amp;')
@@ -53,12 +80,12 @@ export async function sendNewsletterToSubscribers(
     const batch = subscribers.slice(i, i + BATCH)
     await Promise.all(
       batch.map((s) =>
-        resend.emails.send({
+        sendEmail({
           from: 'Sol au piano <noreply@solaupiano.fr>',
           to: s.email,
           subject,
           html: emailWrapper(contentHtml, `${SITE_URL}/desinscription?token=${s.token}`),
-        }).then(() => { delivered.push({ id: s.id, email: s.email }) }).catch((e) => { console.error('newsletter send', s.email, e) })
+        }).then((res) => { if (res.ok) delivered.push({ id: s.id, email: s.email }) })
       )
     )
   }
@@ -126,7 +153,7 @@ export async function sendRehearsalNotification(
         location: rehearsal.location,
       })
 
-      return resend.emails.send({
+      return sendEmail({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject,
@@ -167,7 +194,7 @@ export async function sendConcertValidationReminder(
       const { subject, introHtml, outroHtml } = tpl.render({ memberName: name, groupName, concertName: concert.name, date: dateStr, deadline: deadlineStr })
       const presentUrl = `${baseUrl}/presence?c=${concert.id}&u=${userId}&t=${signConcertPresence(concert.id, userId)}&a=present`
       const absentUrl = `${baseUrl}/presence?c=${concert.id}&u=${userId}&t=${signConcertPresence(concert.id, userId)}&a=absent`
-      return resend.emails.send({
+      return sendEmail({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject,
@@ -209,7 +236,7 @@ export async function sendTaskListEmail(
       ${t.details ? `<br><span style="font-size: 12px; color: #6b7280;">${escapeHtml(t.details)}</span>` : ''}
     </p>`).join('')
 
-  return resend.emails.send({
+  return sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: member.email,
     subject,
@@ -240,7 +267,7 @@ export async function sendConcertTimeReminder(
   await Promise.all(
     chiefs.map(({ email, name }) => {
       const { subject, introHtml, outroHtml } = tpl.render({ memberName: name, groupName, concertName: concert.name, date: dateStr })
-      return resend.emails.send({
+      return sendEmail({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject,
@@ -271,7 +298,7 @@ export async function sendConcertCancelled(
   await Promise.all(
     members.map(({ email, name }) => {
       const { subject, introHtml, outroHtml } = tpl.render({ memberName: name, groupName, concertName: concert.name, date: dateStr })
-      return resend.emails.send({
+      return sendEmail({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject,
@@ -326,7 +353,7 @@ export async function sendConcertNotification(
       const presentUrl = `${baseUrl}/presence?c=${concert.id}&u=${userId}&t=${signConcertPresence(concert.id, userId)}&a=present`
       const absentUrl = `${baseUrl}/presence?c=${concert.id}&u=${userId}&t=${signConcertPresence(concert.id, userId)}&a=absent`
 
-      return resend.emails.send({
+      return sendEmail({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject,
@@ -373,7 +400,7 @@ export async function sendPollCreatedEmail(
   await Promise.all(
     members.map(({ email, name }) => {
       const { subject, introHtml, outroHtml } = tpl.render({ memberName: name, groupName, pollTitle: poll.title })
-      return resend.emails.send({
+      return sendEmail({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject,
@@ -409,7 +436,7 @@ export async function sendEvaluationReminder(
   const tpl = await getEmailTemplate('evaluation_reminder')
   const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName, date: dateStr })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -435,7 +462,7 @@ export async function sendEvaluationReminder(
 export async function sendPerfAlert(to: string, metric: string, detail: string, baseUrl: string) {
   const tpl = await getEmailTemplate('perf_alert')
   const { subject, introHtml, outroHtml } = tpl.render({ metric, detail })
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -466,7 +493,7 @@ export async function sendConcertEvaluationReminder(
   const tpl = await getEmailTemplate('concert_evaluation_reminder')
   const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName, concertName: concert.name, date: dateStr })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -522,7 +549,7 @@ export async function sendRehearsalAutoReminderEmail(
     location: rehearsal.location,
   })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: member.email,
     subject,
@@ -583,7 +610,7 @@ export async function sendMasteryReminderEmail(
     collective,
   })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: member.email,
     subject,
@@ -641,7 +668,7 @@ export async function sendAttendanceReminder(
         date: dateStr,
       })
 
-      return resend.emails.send({
+      return sendEmail({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject,
@@ -676,7 +703,7 @@ export async function sendGroupWelcomeEmail(
   const tpl = await getEmailTemplate(isSchool ? 'group_welcome_school' : 'group_welcome')
   const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -708,7 +735,7 @@ export async function sendMemberRemovedEmail(
   const tpl = await getEmailTemplate('member_removed')
   const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -734,7 +761,7 @@ export async function sendInvitationEmail(to: string, fromName: string, personal
   const tpl = await getEmailTemplate('invitation')
   const { subject, introHtml, outroHtml } = tpl.render({ fromName })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -770,7 +797,7 @@ export async function sendEmailVerification(to: string, name: string, verifyUrl:
   const tpl = await getEmailTemplate('email_verification')
   const { subject, introHtml, outroHtml } = tpl.render({ userName: name })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -791,7 +818,7 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
   const tpl = await getEmailTemplate('password_reset')
   const { subject, introHtml, outroHtml } = tpl.render({ userName: name })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -812,7 +839,7 @@ export async function sendNewUserNotification(adminEmail: string, newUser: { nam
     userEmail: newUser.email,
   })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: adminEmail,
     subject,
@@ -923,7 +950,7 @@ export async function sendWeeklyDigestEmail(
     `
   }).join('')
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -958,7 +985,7 @@ export async function sendAdminAnnonceNotification(annonce: {
     userEmail: annonce.userEmail,
   })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: adminEmail,
     subject,
@@ -994,7 +1021,7 @@ export async function sendResourceLinkRequest(
   const list = (items: string[]) => items.length
     ? `<ul style="margin:4px 0 0; padding-left:18px;">${items.map((i) => `<li style="font-size:13px; color:#374151;">${i}</li>`).join('')}</ul>`
     : '<p style="margin:4px 0 0; font-size:13px; color:#9ca3af;">—</p>'
-  return resend.emails.send({
+  return sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: adminEmail,
     subject,
@@ -1043,7 +1070,7 @@ export async function sendSupportTicketToAdmin(
     userEmail: ticket.userEmail,
   })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: adminEmail,
     subject,
@@ -1079,7 +1106,7 @@ export async function sendSupportConfirmationToUser(
     ticketSubject: ticket.subject,
   })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -1112,7 +1139,7 @@ export async function sendSupportReply(
   })
   const safeReply = ticket.reply.replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
     subject,
@@ -1143,7 +1170,7 @@ export async function sendMemberAnnonceRefused(to: { email: string; name: string
     adminComment: annonce.adminComment ?? '',
   })
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to: to.email,
     subject,
@@ -1179,7 +1206,7 @@ export async function sendRehearsalPhotoReminder(
       const { subject, introHtml, outroHtml } = tpl.render({
         memberName: name, groupName, date: dateStr, time: rehearsal.startTime, locationSuffix,
       })
-      return resend.emails.send({
+      return sendEmail({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to: email,
         subject,
@@ -1222,7 +1249,7 @@ export async function sendAdminLoginNotification(
 
   await Promise.all(
     adminEmails.map((to) =>
-      resend.emails.send({
+      sendEmail({
         from: 'Sol au piano <noreply@solaupiano.fr>',
         to,
         subject,

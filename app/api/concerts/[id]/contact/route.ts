@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import { sendEmail } from '@/lib/email'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 function escapeHtml(value: string) {
   return value
@@ -88,7 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const address = fullAddress(concert)
 
   await Promise.all(chefs.map((chefEmail) =>
-    resend.emails.send({
+    sendEmail({
       from: 'Sol au piano <noreply@solaupiano.fr>',
       to: chefEmail,
       replyTo: email,
