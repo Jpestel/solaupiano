@@ -24,8 +24,9 @@ interface ChartData {
  *   l = symbole de début de mesure (||:, 𝄋…)
  *   b = tableau de temps (un accord/contenu par temps)
  *   r = symbole de fin de mesure (:||, 𝄌, Fine…)
+ *   c = couleur de fond (facultative) pour repérer couplet / refrain / pont…
  */
-type BarData = { l: string; b: string[]; r: string }
+type BarData = { l: string; b: string[]; r: string; c?: string }
 type ChartSound = { bar?: number; label: string; url?: string }
 
 /** Cible active dans la palette */
@@ -57,7 +58,7 @@ function normalizeCells(raw: unknown, totalBars: number, bpb: number): BarData[]
       const paddedBeats = beats.length < bpb
         ? [...beats, ...Array(bpb - beats.length).fill('')]
         : beats.slice(0, bpb)
-      result.push({ l: bar.l || '', b: paddedBeats, r: bar.r || '' })
+      result.push({ l: bar.l || '', b: paddedBeats, r: bar.r || '', c: typeof bar.c === 'string' ? bar.c : '' })
 
     } else if (item && typeof item === 'object' && !Array.isArray(item) && 'chord' in item) {
       // Ancien format de démo { chord, section }
@@ -119,6 +120,20 @@ function escapeHtml(value: string): string {
 }
 
 /* ─── Palette data ─── */
+/** Couleurs de fond des mesures : teintes claires, les accords restent lisibles.
+ *  Les intitulés sont indicatifs — libre à chacun de les utiliser autrement. */
+const BAR_COLORS: { label: string; val: string }[] = [
+  { label: 'Aucune', val: '' },
+  { label: 'Jaune',  val: '#fef3c7' },
+  { label: 'Vert',   val: '#dcfce7' },
+  { label: 'Bleu',   val: '#dbeafe' },
+  { label: 'Violet', val: '#ede9fe' },
+  { label: 'Rose',   val: '#fce7f3' },
+  { label: 'Orange', val: '#ffedd5' },
+  { label: 'Cyan',   val: '#cffafe' },
+  { label: 'Gris',   val: '#e5e7eb' },
+]
+
 const ROOT_NOTES = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B']
 const QUALITIES = [
   { label: 'M', val: '', title: 'Majeur (rien)' },
@@ -220,6 +235,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
   // Active target
   const [active, setActive] = useState<ActiveTarget | null>(null)
+  // Colorier toute la ligne d'un coup (un refrain tient souvent sur une ligne entière)
+  const [colorWholeRow, setColorWholeRow] = useState(false)
   const [inputVal, setInputVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -352,6 +369,19 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     scheduleSave(newCells)
   }
 
+  /* Couleur de fond de la mesure active (ou de toute sa ligne) */
+  const setBarColor = (color: string) => {
+    if (!active || !chart) return
+    const bpr = chart.barsPerRow
+    const rowStart = Math.floor(active.bar / bpr) * bpr
+    const targets = colorWholeRow
+      ? new Set(Array.from({ length: bpr }, (_, k) => rowStart + k))
+      : new Set([active.bar])
+    const newCells = cells.map((bar, i) => (targets.has(i) ? { ...bar, c: color } : bar))
+    setCells(newCells)
+    scheduleSave(newCells)
+  }
+
   /* Palette : ajouter une racine */
   const appendRoot = (root: string) => {
     const cur = inputVal
@@ -381,7 +411,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const copyCurrentBar = () => {
     if (!active) return
     const bar = cells[active.bar]
-    setCopiedBar({ l: bar.l, b: [...bar.b], r: bar.r })
+    setCopiedBar({ l: bar.l, b: [...bar.b], r: bar.r, c: bar.c || '' })
     setCopiedFromIdx(active.bar)
     setCopyFeedback(true)
     if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current)
@@ -395,7 +425,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     let beats = [...copiedBar.b]
     if (beats.length < bpb) beats = [...beats, ...Array(bpb - beats.length).fill('')]
     else beats = beats.slice(0, bpb)
-    const newBar: BarData = { l: copiedBar.l, b: beats, r: copiedBar.r }
+    const newBar: BarData = { l: copiedBar.l, b: beats, r: copiedBar.r, c: copiedBar.c || '' }
     const newCells = cells.map((bar, i) => i === active.bar ? newBar : bar)
     setCells(newCells)
     scheduleSave(newCells)
@@ -548,7 +578,9 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         const beatsHtml = bar.b.map((beat, bi) =>
           `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #ddd;' : ''}font-size:${gridTextSize}px;font-weight:700;color:#111;min-height:18px;">${escapeHtml(beat || '')}</div>`
         ).join('')
-        tds += `<td style="border:1px solid #bbb;padding:0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${rowBg}">
+        // Couleur de section si elle est définie (on n'accepte qu'un hex #rrggbb)
+        const barBg = typeof bar.c === 'string' && /^#[0-9a-fA-F]{6}$/.test(bar.c) ? bar.c : rowBg
+        tds += `<td style="border:1px solid #bbb;padding:0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${barBg}">
           <div style="display:flex;align-items:baseline;justify-content:space-between;padding:2px 5px 1px;border-bottom:1px solid #e5e5e5;">
             <span style="font-size:9px;color:#aaa;">${barNum}</span>
             ${bar.l ? `<span style="font-size:13px;font-weight:900;color:#4338ca;">${escapeHtml(bar.l)}</span>` : ''}
@@ -786,7 +818,11 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                         isCopiedBar ? 'border-blue-300 bg-blue-50/30' :
                         'border-gray-200'
                       }`}
-                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '72px', padding: 0, verticalAlign: 'top' }}
+                      style={{
+                        width: `${(100 / bpr).toFixed(1)}%`, height: '72px', padding: 0, verticalAlign: 'top',
+                        // Couleur de section (couplet, refrain, pont…) choisie par l'utilisateur
+                        ...(bar.c ? { backgroundColor: bar.c } : {}),
+                      }}
                     >
                       {/* ── Bandelette supérieure : numéro + marqueurs ── */}
                       <div className="flex items-center border-b border-gray-100 px-1.5 gap-1" style={{ height: '18px' }}>
@@ -937,6 +973,38 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                 className="flex-shrink-0 w-8 h-8 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors text-xs">
                 ↓
               </button>
+            </div>
+
+            {/* ── Couleur de fond de la mesure (repérer couplet, refrain, pont…) ── */}
+            <div className="mb-2 flex items-center gap-2 overflow-x-auto">
+              <span className="text-[10px] font-semibold text-gray-400 w-14 flex-shrink-0">Couleur</span>
+              <div className="flex gap-1 flex-shrink-0">
+                {BAR_COLORS.map((col) => {
+                  const isCurrent = (cells[active.bar]?.c || '') === col.val
+                  return (
+                    <button
+                      key={col.label}
+                      onClick={() => setBarColor(col.val)}
+                      title={col.val ? col.label : 'Aucune couleur'}
+                      className={`h-7 w-7 flex-shrink-0 rounded-md border flex items-center justify-center transition-all ${
+                        isCurrent ? 'border-orange-400 ring-2 ring-orange-200' : 'border-gray-300 hover:border-gray-500'
+                      } ${col.val ? '' : 'bg-white'}`}
+                      style={col.val ? { backgroundColor: col.val } : undefined}
+                    >
+                      {!col.val && <span className="text-[11px] font-bold text-gray-400">∅</span>}
+                    </button>
+                  )
+                })}
+              </div>
+              <label className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-medium text-gray-500">
+                <input
+                  type="checkbox"
+                  checked={colorWholeRow}
+                  onChange={(e) => setColorWholeRow(e.target.checked)}
+                  className="rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                />
+                toute la ligne
+              </label>
             </div>
 
             {/* ── Palette pour temps (accords) ── */}

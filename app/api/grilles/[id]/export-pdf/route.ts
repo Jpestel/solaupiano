@@ -8,7 +8,12 @@ import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
 import { getGroupStorageInfo } from '@/lib/storage'
 
-type BarData = { l: string; b: string[]; r: string }
+type BarData = { l: string; b: string[]; r: string; c?: string }
+
+/** Couleur de fond de mesure : on n'accepte qu'un hex #rrggbb. */
+function safeBarColor(value: unknown): string | undefined {
+  return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value : undefined
+}
 type ChartSound = { bar?: number; label: string; url?: string }
 
 function beatsPerBar(timeSig: string): number {
@@ -38,6 +43,7 @@ function normalizeCells(raw: unknown, totalBars: number, bpb: number): BarData[]
         l: typeof bar.l === 'string' ? bar.l : '',
         b: beats.length < bpb ? [...beats, ...Array(bpb - beats.length).fill('')] : beats.slice(0, bpb),
         r: typeof bar.r === 'string' ? bar.r : '',
+        c: safeBarColor(bar.c),
       })
     } else if (item && typeof item === 'object' && !Array.isArray(item) && 'chord' in item) {
       const legacy = item as any
@@ -159,7 +165,9 @@ function generateChartPdf(chart: any, textSize: number) {
       const x = margin + j * cellW
       if (!bar) continue
 
-      drawRoundedRect(doc, x, y, cellW, rowH, rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb', '#d1d5db')
+      // Couleur de section si définie, sinon alternance de lignes
+      const barFill = bar.c ?? (rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb')
+      drawRoundedRect(doc, x, y, cellW, rowH, barFill, '#d1d5db')
       doc.setDrawColor('#e5e7eb')
       doc.line(x, y + barHeaderH, x + cellW, y + barHeaderH)
 
