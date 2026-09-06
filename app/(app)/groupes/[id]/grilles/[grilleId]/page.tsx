@@ -9,7 +9,7 @@ import { VoiceRecorder } from '@/components/VoiceRecorder'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { ph } from '@/lib/placeholders'
-import { beatsPerBar, normalizeCells, type BarData } from '@/lib/grille'
+import { beatsPerBar, normalizeCells, clampTotalBars, MAX_BARS, type BarData } from '@/lib/grille'
 import { BeatContent, MarkerContent } from '@/components/GrilleGrid'
 
 /* ─── Types ─── */
@@ -407,7 +407,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const handleSettingsSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSettingsSaving(true)
-    const newTotal = Number(settingsForm.totalBars)
+    const newTotal = clampTotalBars(settingsForm.totalBars, chart?.totalBars ?? 32)
     const newBpb = beatsPerBar(settingsForm.timeSignature)
     const oldBpb = chart ? beatsPerBar(chart.timeSignature) : newBpb
 
@@ -1178,11 +1178,31 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             </div>
             <div>
               <label className="form-label">Nb mesures</label>
-              <select value={settingsForm.totalBars}
+              <input
+                type="number"
+                min={1}
+                max={MAX_BARS}
+                value={settingsForm.totalBars}
                 onChange={(e) => setSettingsForm({ ...settingsForm, totalBars: Number(e.target.value) })}
-                className="form-input">
-                {TOTAL_BARS_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
+                className="form-input"
+              />
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {TOTAL_BARS_OPTIONS.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setSettingsForm({ ...settingsForm, totalBars: n })}
+                    className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                      Number(settingsForm.totalBars) === n
+                        ? 'border-orange-300 bg-orange-50 text-orange-700'
+                        : 'border-gray-200 text-gray-500 hover:border-orange-300 hover:text-orange-600'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-[11px] text-gray-400">Saisissez librement le nombre de mesures (jusqu&apos;à {MAX_BARS}).</p>
             </div>
           </div>
           {groupSongs.length > 0 && (

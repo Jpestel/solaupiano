@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { ph } from '@/lib/placeholders'
+import { MAX_BARS } from '@/lib/grille'
 
 interface SongResource { id: number; name: string; type: string; filePath: string }
 interface Song { id: number; title: string; artist?: string; tempo?: number | null; resources?: SongResource[] }
@@ -50,7 +51,7 @@ function cellsFromImportPreview(previewText: string, totalBars: number) {
     })
     .filter((item): item is { number: number; chords: string[] } => Boolean(item))
   const maxBar = Math.max(totalBars, ...parsed.map((item) => item.number), 8)
-  const cells = Array.from({ length: Math.min(240, maxBar) }, () => ({ l: '', b: Array(4).fill(''), r: '' }))
+  const cells = Array.from({ length: Math.min(MAX_BARS, maxBar) }, () => ({ l: '', b: Array(4).fill(''), r: '' }))
 
   parsed.forEach(({ number, chords }) => {
     const bar = cells[number - 1]
@@ -719,9 +720,30 @@ export default function GrillesPage({ params }: { params: { id: string } }) {
             </div>
             <div>
               <label className="form-label">Nb mesures</label>
-              <select value={form.totalBars} onChange={(e) => setForm({ ...form, totalBars: Number(e.target.value) })} className="form-input">
-                {totalBarOptions.map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
+              <input
+                type="number"
+                min={1}
+                max={MAX_BARS}
+                value={form.totalBars}
+                onChange={(e) => setForm({ ...form, totalBars: Number(e.target.value) })}
+                className="form-input"
+              />
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {totalBarOptions.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setForm({ ...form, totalBars: n })}
+                    className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                      Number(form.totalBars) === n
+                        ? 'border-orange-300 bg-orange-50 text-orange-700'
+                        : 'border-gray-200 text-gray-500 hover:border-orange-300 hover:text-orange-600'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           {songs.length > 0 && (

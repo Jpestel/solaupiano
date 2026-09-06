@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
+import { clampTotalBars } from '@/lib/grille'
 
 async function checkAccess(userId: number, groupId: number, isAdmin: boolean, chefOnly = false) {
   const membership = await prisma.groupMember.findUnique({
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { title, tempo, keySignature, timeSignature, barsPerRow, totalBars, songId, cells } = await req.json()
   if (!title?.trim()) return NextResponse.json({ error: 'Le titre est requis.' }, { status: 400 })
 
-  const bars = Math.max(8, Math.min(240, Number(totalBars) || 32))
+  const bars = clampTotalBars(totalBars, 32)
   const normalizedCells = Array.isArray(cells)
     ? (cells.length < bars ? [...cells, ...Array(bars - cells.length).fill('')] : cells.slice(0, bars))
     : Array(bars).fill('')

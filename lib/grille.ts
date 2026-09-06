@@ -11,6 +11,19 @@
  */
 export type BarData = { l: string; b: string[]; r: string; c?: string }
 
+/**
+ * Nombre de mesures : saisie libre, avec une seule garde haute technique.
+ * (Au-delà, l'affichage et le JSON stocké deviendraient déraisonnables ;
+ *  1000 mesures dépassent très largement n'importe quel morceau.)
+ */
+export const MAX_BARS = 1000
+
+export function clampTotalBars(value: unknown, fallback = 32): number {
+  const n = Math.round(Number(value))
+  if (!Number.isFinite(n)) return fallback
+  return Math.max(1, Math.min(MAX_BARS, n))
+}
+
 export function beatsPerBar(timeSig: string): number {
   const map: Record<string, number> = {
     '4/4': 4, '3/4': 3, '6/8': 2, '2/4': 2, '5/4': 5, '12/8': 4, '2/2': 2,

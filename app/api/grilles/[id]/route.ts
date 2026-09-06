@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
+import { clampTotalBars } from '@/lib/grille'
 
 async function getChartAndCheckAccess(
   chartId: number, userId: number, isAdmin: boolean, chefOnly = false
@@ -72,7 +73,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   if (cells !== undefined || totalBars !== undefined) {
     const currentCells = (result.chart.cells as string[]) ?? []
-    const newTotal = totalBars !== undefined ? Number(totalBars) : result.chart.totalBars
+    const newTotal = totalBars !== undefined ? clampTotalBars(totalBars, result.chart.totalBars) : result.chart.totalBars
     const base = Array.isArray(cells) ? cells : currentCells
 
     if (base.length < newTotal) {

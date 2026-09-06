@@ -11,6 +11,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
 import { getGroupStorageInfo } from '@/lib/storage'
+import { MAX_BARS } from '@/lib/grille'
 
 const execFileAsync = promisify(execFile)
 const MAX_PDF_SIZE = 25 * 1024 * 1024
@@ -389,7 +390,7 @@ function parseChordifyXml(xml: string, fallbackText: string, accidentalMode: Acc
     tempo,
     timeSignature: '4/4',
     barsPerRow: 4,
-    totalBars: Math.max(8, Math.min(240, lastNumber)),
+    totalBars: Math.max(8, Math.min(MAX_BARS, lastNumber)),
     previewText,
     warnings: [
       'Import géométrique : les accords sont replacés selon leur position dans le PDF Chordify.',
@@ -459,7 +460,7 @@ function parseChordifyText(text: string) {
 
   const orderedNumbers = Array.from(byNumber.keys()).sort((a, b) => a - b)
   const lastNumber = orderedNumbers.at(-1) || 32
-  const totalBars = Math.max(8, Math.min(240, lastNumber + 3))
+  const totalBars = Math.max(8, Math.min(MAX_BARS, lastNumber + 3))
   const previewText = buildPreviewText(byNumber, totalBars)
 
   if (!previewText) {

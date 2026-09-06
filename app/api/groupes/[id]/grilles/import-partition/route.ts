@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
+import { MAX_BARS } from '@/lib/grille'
 
 const MAX_SCORE_SIZE = 25 * 1024 * 1024
 
@@ -137,7 +138,7 @@ function buildPreviewText(measures: MeasureData[], fillRepeats = true) {
   const lastNumber = Math.max(8, ...measures.map((measure) => measure.number), ...Array.from(byNumber.keys()))
   const lines: string[] = []
   let hasPreviousChord = false
-  for (let number = 1; number <= Math.min(240, lastNumber); number += 1) {
+  for (let number = 1; number <= Math.min(MAX_BARS, lastNumber); number += 1) {
     const chords = byNumber.get(number)
     if (chords?.length) {
       lines.push(`${number}: ${chords.join(' | ')}`)
@@ -146,7 +147,7 @@ function buildPreviewText(measures: MeasureData[], fillRepeats = true) {
       lines.push(`${number}: %`)
     }
   }
-  return { previewText: lines.join('\n'), totalBars: Math.min(240, lastNumber), explicitCount: measures.filter((m) => m.harmonies.length > 0).length }
+  return { previewText: lines.join('\n'), totalBars: Math.min(MAX_BARS, lastNumber), explicitCount: measures.filter((m) => m.harmonies.length > 0).length }
 }
 
 async function bufferToXml(buffer: Buffer, fileName: string) {
