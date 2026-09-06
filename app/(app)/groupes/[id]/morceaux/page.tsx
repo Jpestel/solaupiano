@@ -17,6 +17,7 @@ import { SongMetronome } from '@/components/ui/SongMetronome'
 import dynamic from 'next/dynamic'
 import { ph } from '@/lib/placeholders'
 const PdfModal = dynamic(() => import('@/components/ui/PdfModal').then((m) => m.PdfModal), { ssr: false })
+const GrilleViewer = dynamic(() => import('@/components/GrilleViewer').then((m) => m.GrilleViewer), { ssr: false })
 const ScoreAnnotator = dynamic(() => import('@/components/ui/ScoreAnnotator').then((m) => m.ScoreAnnotator), { ssr: false })
 
 interface Resource {
@@ -159,6 +160,8 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
   const [resourceSaving, setResourceSaving] = useState(false)
   const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string; local?: boolean } | null>(null)
   const [pdfModal, setPdfModal] = useState<{ url: string; title: string; kind?: 'pdf' | 'image'; songId?: number; songTitle?: string } | null>(null)
+  // Grille affichée en plein écran, sans quitter le répertoire
+  const [grilleViewer, setGrilleViewer] = useState<{ chartId: number; editHref?: string } | null>(null)
   const [annotate, setAnnotate] = useState<{ id: number; name: string; type: string; filePath: string } | null>(null)
   const [pendingResources, setPendingResources] = useState<PendingResource[]>([])
   const [submitSongId, setSubmitSongId] = useState<number | null>(null)
@@ -751,14 +754,19 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
                       )}
                       {(groupInfo?.hasGrilles ?? true) && (
                         hasChordChart ? (
-                          <Link
-                            href={`/groupes/${groupId}/grilles/${song.chordCharts![0].id}?from=repertoire&songId=${song.id}`}
+                          // Ouvre la grille en plein écran SANS quitter le répertoire
+                          <button
+                            type="button"
+                            onClick={() => setGrilleViewer({
+                              chartId: song.chordCharts![0].id,
+                              editHref: `/groupes/${groupId}/grilles/${song.chordCharts![0].id}?from=repertoire&songId=${song.id}`,
+                            })}
                             className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-orange-300 hover:text-orange-600 transition-colors"
-                            title={song.chordCharts!.length > 1 ? `${song.chordCharts!.length} grilles associées` : 'Grille d\'accords'}
+                            title={song.chordCharts!.length > 1 ? `${song.chordCharts!.length} grilles associées` : 'Afficher la grille d\'accords en plein écran'}
                           >
                             🎸 Grille
                             <span className="w-1.5 h-1.5 rounded-full bg-orange-400 ml-0.5" />
-                          </Link>
+                          </button>
                         ) : chefCan('grilles', 'create') ? (
                           <Link
                             href={`/groupes/${groupId}/grilles?songId=${song.id}`}
@@ -1268,6 +1276,15 @@ export default function MorceauxPage({ params }: { params: { id: string } }) {
           songId={pdfModal.songId ?? null}
           songTitle={pdfModal.songTitle ?? null}
           onClose={() => setPdfModal(null)}
+        />
+      )}
+
+      {grilleViewer && (
+        <GrilleViewer
+          groupId={groupId}
+          chartId={grilleViewer.chartId}
+          editHref={grilleViewer.editHref}
+          onClose={() => setGrilleViewer(null)}
         />
       )}
 

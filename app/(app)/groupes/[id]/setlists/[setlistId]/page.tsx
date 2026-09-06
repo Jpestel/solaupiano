@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { SetlistSequenceStage } from '@/components/ui/SetlistSequenceStage'
 import { PdfModal } from '@/components/ui/PdfModal'
+import { GrilleViewer } from '@/components/GrilleViewer'
 
 interface Resource {
   id: number
@@ -143,6 +144,8 @@ function ConcertSetlistStage({
 }) {
   const [query, setQuery] = useState('')
   const [selectedSongId, setSelectedSongId] = useState<number | null>(songs[0]?.song.id ?? null)
+  // Grille ouverte par-dessus la scène : on ne quitte pas le concert
+  const [grilleViewer, setGrilleViewer] = useState<{ chartId: number } | null>(null)
   const normalizedQuery = query.trim().toLowerCase()
   const filteredSongs = normalizedQuery
     ? songs.filter(({ song }) => `${song.title} ${song.artist ?? ''}`.toLowerCase().includes(normalizedQuery))
@@ -273,14 +276,16 @@ function ConcertSetlistStage({
                     )}
 
                     {(selectedEntry.song.chordCharts?.length ?? 0) > 0 ? (
-                      <Link
-                        href={`/groupes/${groupId}/grilles/${selectedEntry.song.chordCharts![0].id}`}
+                      // Plein écran par-dessus la setlist : on reste dans le concert
+                      <button
+                        type="button"
+                        onClick={() => setGrilleViewer({ chartId: selectedEntry.song.chordCharts![0].id })}
                         className="rounded-2xl border-2 border-orange-200 bg-orange-50 px-5 py-4 text-left font-black text-orange-700 transition-colors hover:bg-orange-100"
                       >
                         <span className="block text-2xl">🎸</span>
                         Ouvrir la grille
                         <span className="mt-1 block truncate text-xs font-semibold text-orange-500">{selectedEntry.song.chordCharts![0].title}</span>
-                      </Link>
+                      </button>
                     ) : (
                       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-400">
                         Pas de grille
@@ -355,6 +360,14 @@ function ConcertSetlistStage({
           </main>
         </div>
       </div>
+
+      {grilleViewer && (
+        <GrilleViewer
+          groupId={groupId}
+          chartId={grilleViewer.chartId}
+          onClose={() => setGrilleViewer(null)}
+        />
+      )}
     </div>
   )
 }

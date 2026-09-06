@@ -9,6 +9,8 @@ import { VoiceRecorder } from '@/components/VoiceRecorder'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { ph } from '@/lib/placeholders'
+import { beatsPerBar, normalizeCells, type BarData } from '@/lib/grille'
+import { BeatContent, MarkerContent } from '@/components/GrilleGrid'
 
 /* ─── Types ─── */
 interface Song { id: number; title: string; artist?: string; tempo?: number | null }
@@ -19,14 +21,6 @@ interface ChartData {
   sons?: string | null; song?: { id: number; title: string } | null
 }
 
-/**
- * Structure d'une mesure :
- *   l = symbole de début de mesure (||:, 𝄋…)
- *   b = tableau de temps (un accord/contenu par temps)
- *   r = symbole de fin de mesure (:||, 𝄌, Fine…)
- *   c = couleur de fond (facultative) pour repérer couplet / refrain / pont…
- */
-type BarData = { l: string; b: string[]; r: string; c?: string }
 type ChartSound = { bar?: number; label: string; url?: string }
 
 /** Cible active dans la palette */
@@ -36,58 +30,7 @@ type ActiveTarget =
   | { bar: number; type: 'right' }
 
 /* ─── Helpers ─── */
-function beatsPerBar(timeSig: string): number {
-  const map: Record<string, number> = {
-    '4/4': 4, '3/4': 3, '6/8': 2, '2/4': 2, '5/4': 5, '12/8': 4, '2/2': 2,
-  }
-  return map[timeSig] ?? 4
-}
 
-/** Convertit n'importe quel format de données (string[], string[][], BarData[]) → BarData[] */
-function normalizeCells(raw: unknown, totalBars: number, bpb: number): BarData[] {
-  const src = Array.isArray(raw) ? raw : []
-  const result: BarData[] = []
-
-  for (let i = 0; i < totalBars; i++) {
-    const item = src[i]
-
-    if (item && typeof item === 'object' && !Array.isArray(item) && 'b' in item) {
-      // Format courant BarData { l, b, r }
-      const bar = item as any
-      const beats = (Array.isArray(bar.b) ? bar.b : []).map((v: any) => typeof v === 'string' ? v : '')
-      const paddedBeats = beats.length < bpb
-        ? [...beats, ...Array(bpb - beats.length).fill('')]
-        : beats.slice(0, bpb)
-      result.push({ l: bar.l || '', b: paddedBeats, r: bar.r || '', c: typeof bar.c === 'string' ? bar.c : '' })
-
-    } else if (item && typeof item === 'object' && !Array.isArray(item) && 'chord' in item) {
-      // Ancien format de démo { chord, section }
-      const legacy = item as any
-      const beats = Array(bpb).fill('')
-      beats[0] = typeof legacy.chord === 'string' ? legacy.chord : ''
-      const section = typeof legacy.section === 'string' ? legacy.section.trim() : ''
-      result.push({ l: section ? section : '', b: beats, r: '' })
-
-    } else if (Array.isArray(item)) {
-      // Ancien format string[]
-      const beats = item.map((v: any) => typeof v === 'string' ? v : '')
-      const paddedBeats = beats.length < bpb
-        ? [...beats, ...Array(bpb - beats.length).fill('')]
-        : beats.slice(0, bpb)
-      result.push({ l: '', b: paddedBeats, r: '' })
-
-    } else if (typeof item === 'string') {
-      // Très ancien format (string par mesure)
-      const beats = Array(bpb).fill('')
-      beats[0] = item
-      result.push({ l: '', b: beats, r: '' })
-
-    } else {
-      result.push({ l: '', b: Array(bpb).fill(''), r: '' })
-    }
-  }
-  return result
-}
 
 function parseChartSounds(value: string): ChartSound[] | null {
   const trimmed = value.trim()
@@ -189,35 +132,6 @@ const MIN_GRID_TEXT_SIZE = 9
 const MAX_GRID_TEXT_SIZE = 22
 const DEFAULT_GRID_TEXT_SIZE = 12
 
-/* ─── Beat content renderer ─── */
-function BeatContent({ content, fontSize }: { content: string; fontSize: number }) {
-  const tokens = content.trim().split(/\s+/).filter(Boolean)
-  if (!tokens.length) return <span className="text-gray-200 text-[10px] select-none">·</span>
-  return (
-    <div className="flex flex-col items-center justify-center gap-0.5 px-0.5 w-full">
-      {tokens.map((token, i) => (
-        <span key={i} className="text-gray-900 font-bold leading-none" style={{ fontSize }}>{token}</span>
-      ))}
-    </div>
-  )
-}
-
-/* ─── Marker renderer (barre de mesure gauche ou droite) ─── */
-function MarkerContent({ value, side }: { value: string; side: 'left' | 'right' }) {
-  if (!value) return null
-  const isRepeat = value === '||:' || value === ':||' || value === ':|:'
-  return (
-    <span
-      className={`text-indigo-700 font-black leading-none select-none ${
-        isRepeat ? 'text-sm' : 'text-[9px] font-semibold'
-      } ${side === 'right' ? 'text-right' : 'text-left'}`}
-      style={isRepeat ? { fontFamily: '"Courier New", Courier, monospace', letterSpacing: '-2px' } : undefined}
-    >
-      {value}
-    </span>
-  )
-}
-
 /* ─── Main editor ─── */
 export default function GrilleEditorPage({ params }: { params: { id: string; grilleId: string } }) {
   const { data: session } = useSession()
@@ -237,6 +151,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const [active, setActive] = useState<ActiveTarget | null>(null)
   // Colorier toute la ligne d'un coup (un refrain tient souvent sur une ligne entière)
   const [colorWholeRow, setColorWholeRow] = useState(false)
+  // Mode plein écran : lecture seule, sans les barres d'outils (pupitre en répétition)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [inputVal, setInputVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -278,6 +194,19 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   useEffect(() => {
     window.localStorage.setItem(`solaupiano:grid-text-size:${grilleId}`, String(gridTextSize))
   }, [grilleId, gridTextSize])
+
+  // Ouverture directe en plein écran (lien « ⛶ » depuis le répertoire)
+  useEffect(() => {
+    if (searchParams.get('plein') === '1') setIsFullscreen(true)
+  }, [searchParams])
+
+  // Échap quitte le plein écran
+  useEffect(() => {
+    if (!isFullscreen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsFullscreen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isFullscreen])
 
   /* Fetch */
   const fetchData = useCallback(async () => {
@@ -339,6 +268,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const isChef = groupRole === 'CHEF'
   const readOnlyTestAccount = session?.user?.email === TEST_ACCOUNT_EMAIL
   const canEditGrid = isChef && !readOnlyTestAccount
+  // En plein écran la grille est en lecture seule (pupitre) : pas de palette d'édition
+  const gridEditable = canEditGrid && !isFullscreen
 
   /* Ouvrir une cible dans la palette */
   const openTarget = (target: ActiveTarget) => {
@@ -645,6 +576,9 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   if (!chart) return <div className="text-gray-500">Grille introuvable.</div>
 
   const bpr = chart.barsPerRow
+  // Mesures plus hautes en plein écran (lecture sur tablette / pupitre)
+  const barH = isFullscreen ? '104px' : '72px'
+  const beatsH = isFullscreen ? '86px' : '54px'
   const bpb = beatsPerBar(chart.timeSignature)
   const parsedSounds = parseChartSounds(sons)
   const currentSongId = chart.song?.id ?? chart.songId ?? null
@@ -663,6 +597,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
   return (
     <div className="pb-48 lg:pb-32">
+      {/* Tout l'habillage est masqué en plein écran : il ne reste que la grille */}
+      {!isFullscreen && (<>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-500 mb-2 flex-wrap">
         <Link href="/groupes" className="hover:text-indigo-600">Mes groupes</Link>
@@ -721,6 +657,14 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           >
             {backLabel}
           </Link>
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(true)}
+            title="Afficher la grille en plein écran (lecture)"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100"
+          >
+            ⛶ Plein écran
+          </button>
           <div className="flex items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
             <button
               type="button"
@@ -793,9 +737,39 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           Compte TESTEUR : cette grille est une démonstration en lecture seule. Les accords, repères et sons ne peuvent pas être modifiés.
         </div>
       )}
+      </>)}
+
+      {/* Barre flottante du mode plein écran */}
+      {isFullscreen && (
+        <div className="fixed inset-x-0 top-0 z-[60] flex items-center gap-2 border-b border-gray-200 bg-white/95 px-3 py-2 backdrop-blur">
+          <span className="min-w-0 flex-1 truncate text-sm font-bold text-gray-900">{chart.title}</span>
+          <button
+            type="button"
+            onClick={() => updateGridTextSize(-1)}
+            disabled={gridTextSize <= MIN_GRID_TEXT_SIZE}
+            title="Réduire le texte"
+            className="h-9 w-9 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+          >A</button>
+          <button
+            type="button"
+            onClick={() => updateGridTextSize(1)}
+            disabled={gridTextSize >= MAX_GRID_TEXT_SIZE}
+            title="Agrandir le texte"
+            className="h-9 w-9 rounded-lg border border-gray-200 text-base font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+          >A</button>
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(false)}
+            title="Quitter le plein écran (Échap)"
+            className="h-9 rounded-lg border border-gray-300 bg-gray-100 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-200"
+          >✕ Quitter</button>
+        </div>
+      )}
 
       {/* Grid */}
-      <div className="mb-4 overflow-x-auto rounded-xl border border-gray-300 bg-white">
+      <div className={isFullscreen
+        ? 'fixed inset-0 z-50 overflow-auto bg-white px-2 pb-4 pt-14 sm:px-4'
+        : 'mb-4 overflow-x-auto rounded-xl border border-gray-300 bg-white'}>
         <table className="min-w-[720px] border-collapse sm:w-full sm:min-w-0">
           <tbody>
             {rows.map((row, rowIdx) => (
@@ -804,7 +778,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                   const isValidBar = barIdx < cells.length
                   if (!isValidBar) return (
                     <td key={barIdx} className="border border-gray-200 bg-gray-50/30"
-                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: '72px' }} />
+                      style={{ width: `${(100 / bpr).toFixed(1)}%`, height: barH }} />
                   )
                   const bar = cells[barIdx]
                   const isActiveBar = active?.bar === barIdx
@@ -819,7 +793,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                         'border-gray-200'
                       }`}
                       style={{
-                        width: `${(100 / bpr).toFixed(1)}%`, height: '72px', padding: 0, verticalAlign: 'top',
+                        width: `${(100 / bpr).toFixed(1)}%`, height: barH, padding: 0, verticalAlign: 'top',
                         // Couleur de section (couplet, refrain, pont…) choisie par l'utilisateur
                         ...(bar.c ? { backgroundColor: bar.c } : {}),
                       }}
@@ -833,17 +807,17 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
                         {/* Marqueur gauche */}
                         <div
-                          onClick={() => canEditGrid && openTarget({ bar: barIdx, type: 'left' })}
+                          onClick={() => gridEditable && openTarget({ bar: barIdx, type: 'left' })}
                           className={`flex items-center flex-shrink-0 rounded px-0.5 transition-colors leading-none
-                            ${canEditGrid ? 'cursor-pointer hover:bg-indigo-50' : ''}
+                            ${gridEditable ? 'cursor-pointer hover:bg-indigo-50' : ''}
                             ${isActiveBar && active?.type === 'left' ? 'bg-orange-100 ring-1 ring-orange-300' : ''}
                           `}
                           style={{ minWidth: '20px', height: '14px' }}
-                          title={canEditGrid ? 'Cliquer pour ajouter un symbole de début' : undefined}
+                          title={gridEditable ? 'Cliquer pour ajouter un symbole de début' : undefined}
                         >
                           {bar.l
                             ? <MarkerContent value={bar.l} side="left" />
-                            : canEditGrid && <span className="text-[8px] text-gray-200 select-none">+</span>
+                            : gridEditable && <span className="text-[8px] text-gray-200 select-none">+</span>
                           }
                         </div>
 
@@ -851,33 +825,33 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
                         {/* Marqueur droit */}
                         <div
-                          onClick={() => canEditGrid && openTarget({ bar: barIdx, type: 'right' })}
+                          onClick={() => gridEditable && openTarget({ bar: barIdx, type: 'right' })}
                           className={`flex items-center justify-end flex-shrink-0 rounded px-0.5 transition-colors leading-none
-                            ${canEditGrid ? 'cursor-pointer hover:bg-indigo-50' : ''}
+                            ${gridEditable ? 'cursor-pointer hover:bg-indigo-50' : ''}
                             ${isActiveBar && active?.type === 'right' ? 'bg-orange-100 ring-1 ring-orange-300' : ''}
                           `}
                           style={{ minWidth: '20px', height: '14px' }}
-                          title={canEditGrid ? 'Cliquer pour ajouter un symbole de fin' : undefined}
+                          title={gridEditable ? 'Cliquer pour ajouter un symbole de fin' : undefined}
                         >
                           {bar.r
                             ? <MarkerContent value={bar.r} side="right" />
-                            : canEditGrid && <span className="text-[8px] text-gray-200 select-none">+</span>
+                            : gridEditable && <span className="text-[8px] text-gray-200 select-none">+</span>
                           }
                         </div>
                       </div>
 
                       {/* ── Zones de temps ── */}
-                      <div className="flex" style={{ height: '54px' }}>
+                      <div className="flex" style={{ height: beatsH }}>
                         {Array.from({ length: bpb }).map((_, beatIdx) => {
                           const isActiveBeat = isActiveBar && active?.type === 'beat' && (active as any).beat === beatIdx
                           return (
                             <div
                               key={beatIdx}
-                              onClick={() => canEditGrid && openTarget({ bar: barIdx, type: 'beat', beat: beatIdx })}
+                              onClick={() => gridEditable && openTarget({ bar: barIdx, type: 'beat', beat: beatIdx })}
                               className={`
                                 flex-1 flex items-center justify-center relative min-w-0
                                 ${beatIdx < bpb - 1 ? 'border-r border-gray-100' : ''}
-                                ${canEditGrid ? 'cursor-pointer hover:bg-orange-50/60' : ''}
+                                ${gridEditable ? 'cursor-pointer hover:bg-orange-50/60' : ''}
                                 ${isActiveBeat ? 'bg-orange-50/80 ring-2 ring-inset ring-orange-400' : ''}
                                 transition-colors
                               `}
@@ -897,6 +871,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       </div>
 
       {/* SONS footer */}
+      {!isFullscreen && (
       <div className="rounded-xl border border-gray-200 bg-white p-4 mb-4">
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">SONS :</label>
         {parsedSounds && parsedSounds.length > 0 ? (
@@ -930,9 +905,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           <p className="whitespace-pre-wrap text-sm text-gray-700">{sons}</p>
         )}
       </div>
+      )}
 
       {/* ── Palette sticky ── */}
-      {canEditGrid && active !== null && (
+      {gridEditable && active !== null && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-orange-200 shadow-2xl">
           <div className="max-w-6xl mx-auto px-3 py-2">
 
