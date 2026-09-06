@@ -156,10 +156,13 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const [isFullscreen, setIsFullscreen] = useState(false)
   // Vue repliée : affichage seulement, les mesures enregistrées ne bougent pas.
   const [condensed, setCondensed] = useState(false)
-  // Dernière ligne supprimée, conservée pour pouvoir revenir en arrière.
-  const [deletedRow, setDeletedRow] = useState<
+  // État d'avant la dernière action sur une ligne (suppression ou collage),
+  // conservé pour pouvoir revenir en arrière d'un clic.
+  const [rowUndo, setRowUndo] = useState<
     { label: string; cells: BarData[]; totalBars: number } | null
   >(null)
+  // Ligne copiée, en attente d'être collée sur une autre ligne.
+  const [copiedRow, setCopiedRow] = useState<{ rowIdx: number; bars: BarData[] } | null>(null)
   const [inputVal, setInputVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -243,10 +246,11 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   useEffect(() => { if (session) fetchData() }, [session, fetchData])
 
   /* Auto-save */
-  const scheduleSave = (newCells: BarData[]) => {
-    // Toute modification rend caduque l'annulation d'une suppression de ligne :
+  const scheduleSave = (newCells: BarData[], keepRowUndo = false) => {
+    // Toute modification rend caduque l'annulation d'une action de ligne :
     // restaurer l'état d'avant écraserait la saisie qui vient d'être faite.
-    setDeletedRow(null)
+    // (Sauf quand c'est l'action de ligne elle-même qui déclenche la sauvegarde.)
+    if (!keepRowUndo) setRowUndo(null)
     pendingCellsRef.current = newCells
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
@@ -338,23 +342,67 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
     const newCells = [...cells.slice(0, start), ...cells.slice(start + bpr)]
     const lastBar = Math.min(start + bpr, cells.length)
-    setDeletedRow({
-      label: `Ligne ${rowIdx + 1} (mesures ${start + 1} à ${lastBar})`,
+    setRowUndo({
+      label: `Ligne ${rowIdx + 1} supprimée (mesures ${start + 1} à ${lastBar}) — les suivantes ont remonté`,
       cells,
       totalBars: chart.totalBars,
     })
     setActive(null)
+    setCopiedRow(null)
     setCells(newCells)
     setChart({ ...chart, totalBars: newCells.length })
     await saveStructure(newCells, newCells.length)
   }
 
-  /* Annuler la suppression : on remet exactement les mesures d'avant. */
-  const undoDeleteRow = async () => {
-    if (!deletedRow || !chart) return
-    const restored = deletedRow.cells
-    const total = deletedRow.totalBars
-    setDeletedRow(null)
+  /* Copier une ligne entière (mise de côté, rien n'est modifié). */
+  const copyRow = (rowIdx: number) => {
+    if (!chart || !gridEditable) return
+    const bpr = chart.barsPerRow
+    const start = rowIdx * bpr
+    const bars = cells.slice(start, start + bpr).map((bar) => ({
+      l: bar.l, b: [...bar.b], r: bar.r, c: bar.c || '',
+    }))
+    if (bars.length === 0) return
+    setCopiedRow({ rowIdx, bars })
+  }
+
+  /* Coller la ligne copiée sur une autre ligne (le nombre de mesures ne change pas). */
+  const pasteRow = (rowIdx: number) => {
+    if (!chart || !copiedRow || !gridEditable) return
+    const bpr = chart.barsPerRow
+    const bpb = beatsPerBar(chart.timeSignature)
+    const start = rowIdx * bpr
+    // La dernière ligne peut être incomplète : on ne colle que ce qui tient,
+    // sans jamais rallonger la grille dans le dos de l'utilisateur.
+    const count = Math.min(copiedRow.bars.length, cells.length - start)
+    if (count <= 0) return
+
+    const newCells = cells.map((bar, i) => {
+      const k = i - start
+      if (k < 0 || k >= count) return bar
+      const src = copiedRow.bars[k]
+      const beats = src.b.length < bpb
+        ? [...src.b, ...Array(bpb - src.b.length).fill('')]
+        : src.b.slice(0, bpb)
+      return { l: src.l, b: beats, r: src.r, c: src.c || '' }
+    })
+
+    setRowUndo({
+      label: `Ligne ${copiedRow.rowIdx + 1} collée sur la ligne ${rowIdx + 1}`,
+      cells,
+      totalBars: chart.totalBars,
+    })
+    setActive(null)
+    setCells(newCells)
+    scheduleSave(newCells, true)
+  }
+
+  /* Annuler la dernière action de ligne : on remet exactement les mesures d'avant. */
+  const undoRowAction = async () => {
+    if (!rowUndo || !chart) return
+    const restored = rowUndo.cells
+    const total = rowUndo.totalBars
+    setRowUndo(null)
     setCells(restored)
     setChart({ ...chart, totalBars: total })
     await saveStructure(restored, total)
@@ -500,7 +548,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     })
     setSettingsSaving(false)
     setSettingsOpen(false)
-    setDeletedRow(null)
+    setRowUndo(null)
+    setCopiedRow(null)
     setCells(newCells)
     fetchData()
   }
@@ -851,22 +900,36 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         </div>
       )}
 
-      {/* Retour en arrière après une suppression de ligne */}
-      {deletedRow && !isFullscreen && (
-        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <span className="text-sm text-amber-900">
-            <strong>{deletedRow.label}</strong> supprimée — les mesures suivantes ont remonté.
+      {/* Ligne copiée : où la coller */}
+      {copiedRow && !isFullscreen && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5">
+          <span className="text-sm text-blue-900">
+            <strong>Ligne {copiedRow.rowIdx + 1} copiée</strong> — cliquez sur ⤵ dans la ligne où la coller.
           </span>
           <button
             type="button"
-            onClick={undoDeleteRow}
+            onClick={() => setCopiedRow(null)}
+            className="ml-auto text-xs font-medium text-blue-600 hover:text-blue-800"
+          >
+            Abandonner la copie
+          </button>
+        </div>
+      )}
+
+      {/* Retour en arrière après une suppression ou un collage de ligne */}
+      {rowUndo && !isFullscreen && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <span className="text-sm text-amber-900">{rowUndo.label}.</span>
+          <button
+            type="button"
+            onClick={undoRowAction}
             className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
           >
-            ↩ Annuler la suppression
+            ↩ Annuler
           </button>
           <button
             type="button"
-            onClick={() => setDeletedRow(null)}
+            onClick={() => setRowUndo(null)}
             className="ml-auto text-xs font-medium text-amber-600 hover:text-amber-800"
           >
             Fermer
@@ -895,14 +958,39 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
               <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/80'}>
                 {/* Gouttière d'édition : repère de ligne + suppression de la ligne entière */}
                 {gridEditable && (
-                  <td className="border border-gray-200 bg-gray-50 p-0 align-middle" style={{ width: '34px' }}>
+                  <td
+                    className={`border border-gray-200 p-0 align-middle ${
+                      copiedRow?.rowIdx === rowIdx ? 'bg-blue-50' : 'bg-gray-50'
+                    }`}
+                    style={{ width: '34px' }}
+                  >
                     <div className="flex flex-col items-center justify-center gap-0.5 py-1">
-                      <span className="select-none text-[9px] font-bold text-gray-400">L{rowIdx + 1}</span>
+                      <span className={`select-none text-[9px] font-bold ${
+                        copiedRow?.rowIdx === rowIdx ? 'text-blue-500' : 'text-gray-400'
+                      }`}>L{rowIdx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyRow(rowIdx)}
+                        title={`Copier toute la ligne ${rowIdx + 1} (mesures ${rowIdx * bpr + 1} à ${Math.min((rowIdx + 1) * bpr, cells.length)})`}
+                        className="rounded px-1 py-0.5 text-[12px] leading-none text-gray-300 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                      >
+                        📋
+                      </button>
+                      {copiedRow && copiedRow.rowIdx !== rowIdx && (
+                        <button
+                          type="button"
+                          onClick={() => pasteRow(rowIdx)}
+                          title={`Coller la ligne ${copiedRow.rowIdx + 1} ici, à la place de la ligne ${rowIdx + 1}`}
+                          className="rounded bg-blue-100 px-1 py-0.5 text-[12px] font-bold leading-none text-blue-700 transition-colors hover:bg-blue-200"
+                        >
+                          ⤵
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => deleteRow(rowIdx)}
                         title={`Supprimer la ligne ${rowIdx + 1} (mesures ${rowIdx * bpr + 1} à ${Math.min((rowIdx + 1) * bpr, cells.length)}) — les mesures suivantes remontent`}
-                        className="rounded px-1 py-0.5 text-[13px] leading-none text-gray-300 transition-colors hover:bg-red-50 hover:text-red-600"
+                        className="rounded px-1 py-0.5 text-[12px] leading-none text-gray-300 transition-colors hover:bg-red-50 hover:text-red-600"
                       >
                         🗑
                       </button>
