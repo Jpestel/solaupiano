@@ -26,21 +26,20 @@ const DEFAULT_SIZE = 14
  * Affiche une grille d'accords en plein écran, par-dessus la page en cours.
  * Utilisée depuis le Répertoire et depuis les setlists (concerts) pour consulter
  * une grille SANS quitter le module où l'on se trouve.
+ *
+ * La barre d'espace fait défiler la grille d'un écran vers le bas (Maj + Espace
+ * pour remonter) : la grille défile dans son propre conteneur, où la touche
+ * n'aurait aucun effet natif. Pensé pour jouer sans lâcher son instrument,
+ * y compris avec une pédale tourne-pages, qui envoie justement la touche Espace.
  */
 export function GrilleViewer({
-  groupId, chartId, onClose, editHref, spaceScroll = false,
+  groupId, chartId, onClose, editHref,
 }: {
   groupId: string | number
   chartId: number
   onClose: () => void
   /** Si fourni, un bouton « Modifier » mène à l'éditeur (choix explicite de l'utilisateur). */
   editHref?: string
-  /**
-   * Mode concert : la barre d'espace fait défiler la grille d'un écran vers le bas
-   * (Maj + Espace pour remonter). Pensé pour jouer sans lâcher son instrument,
-   * y compris avec une pédale tourne-pages qui envoie la touche Espace.
-   */
-  spaceScroll?: boolean
 }) {
   const [chart, setChart] = useState<ChartData | null>(null)
   const [cells, setCells] = useState<BarData[]>([])
@@ -82,11 +81,11 @@ export function GrilleViewer({
     return () => { cancelled = true }
   }, [chartId])
 
-  // Échap ferme la visionneuse ; en concert, Espace fait défiler la grille.
+  // Échap ferme la visionneuse, Espace fait défiler la grille.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { onClose(); return }
-      if (!spaceScroll || e.code !== 'Space') return
+      if (e.code !== 'Space') return
 
       // Ne jamais voler la barre d'espace à une saisie en cours.
       const el = e.target as HTMLElement | null
@@ -108,7 +107,7 @@ export function GrilleViewer({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, spaceScroll])
+  }, [onClose])
 
   const bpb = chart ? beatsPerBar(chart.timeSignature) : 4
 
@@ -128,12 +127,10 @@ export function GrilleViewer({
           )}
         </div>
 
-        {spaceScroll && (
-          <span className="hidden flex-shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-500 md:flex">
-            <kbd className="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-sans text-[10px]">Espace</kbd>
-            défiler
-          </span>
-        )}
+        <span className="hidden flex-shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-500 md:flex">
+          <kbd className="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-sans text-[10px]">Espace</kbd>
+          défiler
+        </span>
 
         <button
           type="button" onClick={() => changeSize(-1)} disabled={fontSize <= MIN_SIZE}
