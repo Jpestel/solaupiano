@@ -97,6 +97,23 @@ function sanitizeFileName(value: string) {
     .toLowerCase() || 'grille'
 }
 
+const isRepeatMarker = (value: string) =>
+  value === '||:' || value === ':||' || value === ':|:'
+
+/** Double barre + les deux points, sur le bord de la mesure (x = ce bord). */
+function drawRepeatBarline(doc: jsPDF, edgeX: number, y: number, h: number, side: 'left' | 'right') {
+  const dir = side === 'left' ? 1 : -1
+  doc.setFillColor(30, 27, 75)
+  // barre epaisse collee au bord, puis barre fine
+  doc.rect(side === 'left' ? edgeX : edgeX - 1.4, y, 1.4, h, 'F')
+  const thinX = side === 'left' ? edgeX + 2.2 : edgeX - 2.9
+  doc.rect(thinX, y, 0.7, h, 'F')
+  // les deux points, de part et d'autre du centre
+  const dotX = edgeX + dir * 4.6
+  doc.circle(dotX, y + h / 2 - 1.8, 0.6, 'F')
+  doc.circle(dotX, y + h / 2 + 1.8, 0.6, 'F')
+}
+
 function drawRoundedRect(doc: jsPDF, x: number, y: number, w: number, h: number, fill: string, stroke: string) {
   doc.setFillColor(fill)
   doc.setDrawColor(stroke)
@@ -176,11 +193,18 @@ function generateChartPdf(chart: any, textSize: number) {
       doc.setTextColor(156, 163, 175)
       doc.text(String(barIdx + 1), x + 1.8, y + 4.2)
 
+      // Les signes de reprise sont dessines sur le bord de la mesure, comme sur
+      // une partition : bien plus lisibles qu'un « :|| » ecrit en petit.
+      if (isRepeatMarker(bar.l)) drawRepeatBarline(doc, x, y, rowH, 'left')
+      if (isRepeatMarker(bar.r)) drawRepeatBarline(doc, x + cellW, y, rowH, 'right')
+
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(8)
-      doc.setTextColor(67, 56, 202)
-      if (bar.l) doc.text(bar.l, x + 8, y + 4.4, { maxWidth: cellW * 0.35 })
-      if (bar.r) doc.text(bar.r, x + cellW - 2, y + 4.4, { align: 'right', maxWidth: cellW * 0.35 })
+      doc.setFontSize(9.5)
+      doc.setTextColor(30, 27, 75)
+      const annotL = isRepeatMarker(bar.l) ? '' : bar.l
+      const annotR = isRepeatMarker(bar.r) ? '' : bar.r
+      if (annotL) doc.text(annotL, x + 8, y + 4.6, { maxWidth: cellW * 0.35 })
+      if (annotR) doc.text(annotR, x + cellW - 3.5, y + 4.6, { align: 'right', maxWidth: cellW * 0.35 })
 
       for (let beatIdx = 0; beatIdx < bpb; beatIdx++) {
         const beatX = x + (cellW / bpb) * beatIdx

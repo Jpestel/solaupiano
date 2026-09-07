@@ -10,7 +10,10 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { ph } from '@/lib/placeholders'
 import { beatsPerBar, normalizeCells, clampTotalBars, MAX_BARS, type BarData } from '@/lib/grille'
-import { BeatContent, MarkerContent } from '@/components/GrilleGrid'
+import {
+  BeatContent, MarkerContent, RepeatBarline,
+  isRepeatMarker, headerHeight, markerFontSize, repeatInsets, REPEAT_INSET,
+} from '@/components/GrilleGrid'
 import { GrilleCondensed } from '@/components/GrilleCondensed'
 
 /* ─── Types ─── */
@@ -600,6 +603,18 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     if (!chart) return
     const bpr = chart.barsPerRow
     const bpb = beatsPerBar(chart.timeSignature)
+    const markerSize = markerFontSize(gridTextSize)
+    const printHeaderH = headerHeight(gridTextSize)
+    /** Double barre + les deux points, dessinée sur le bord de la mesure. */
+    const repeatBarlineHtml = (side: 'left' | 'right') => {
+      const at = (px: number) => `${side}:${px}px;`
+      const dot = '<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1e1b4b;"></span>'
+      return `<span style="position:absolute;top:0;bottom:0;${at(0)}width:16px;">
+        <span style="position:absolute;top:0;bottom:0;${at(0)}width:4px;background:#1e1b4b;"></span>
+        <span style="position:absolute;top:0;bottom:0;${at(6)}width:2px;background:#1e1b4b;"></span>
+        <span style="position:absolute;top:50%;transform:translateY(-50%);${at(11)}display:flex;flex-direction:column;gap:6px;">${dot}${dot}</span>
+      </span>`
+    }
     const parsedSounds = parseChartSounds(sons)
     const soundsHtml = parsedSounds
       ? parsedSounds.map((sound) => {
@@ -621,14 +636,27 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         ).join('')
         // Couleur de section si elle est définie (on n'accepte qu'un hex #rrggbb)
         const barBg = typeof bar.c === 'string' && /^#[0-9a-fA-F]{6}$/.test(bar.c) ? bar.c : rowBg
-        tds += `<td style="border:1px solid #bbb;padding:0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${barBg}">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;padding:2px 5px 1px;border-bottom:1px solid #e5e5e5;">
+        // Les signes de reprise sont dessinés sur le bord de la mesure (comme sur
+        // une partition) ; seules les annotations restent du texte.
+        // La barre de reprise passerait par-dessus l'accord du bord : on écarte.
+        const inset = [
+          isRepeatMarker(bar.l) ? `padding-left:${REPEAT_INSET}px` : '',
+          isRepeatMarker(bar.r) ? `padding-right:${REPEAT_INSET}px` : '',
+        ].filter(Boolean).join(';')
+        const annot = (value: string, align: string) =>
+          value && !isRepeatMarker(value)
+            ? `<span style="font-size:${markerSize}px;font-weight:800;color:#1e1b4b;text-align:${align};">${escapeHtml(value)}</span>`
+            : ''
+        tds += `<td style="position:relative;border:1px solid #bbb;padding:0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${barBg}">
+          ${isRepeatMarker(bar.l) ? repeatBarlineHtml('left') : ''}
+          ${isRepeatMarker(bar.r) ? repeatBarlineHtml('right') : ''}
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 5px 1px;${inset};border-bottom:1px solid #e5e5e5;min-height:${printHeaderH}px;">
             <span style="font-size:9px;color:#aaa;">${barNum}</span>
-            ${bar.l ? `<span style="font-size:13px;font-weight:900;color:#4338ca;">${escapeHtml(bar.l)}</span>` : ''}
+            ${annot(bar.l, 'left')}
             <span style="flex:1;"></span>
-            ${bar.r ? `<span style="font-size:13px;font-weight:900;color:#4338ca;">${escapeHtml(bar.r)}</span>` : ''}
+            ${annot(bar.r, 'right')}
           </div>
-          <div style="display:flex;">${beatsHtml}</div>
+          <div style="display:flex;${inset}">${beatsHtml}</div>
         </td>`
       }
       rowsHtml += `<tr>${tds}</tr>`
@@ -687,8 +715,11 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
 
   const bpr = chart.barsPerRow
   // Mesures plus hautes en plein écran (lecture sur tablette / pupitre)
-  const barH = isFullscreen ? '104px' : '72px'
-  const beatsH = isFullscreen ? '86px' : '54px'
+  const barHpx = isFullscreen ? 104 : 72
+  const barH = `${barHpx}px`
+  // La bandelette grandit avec la taille de texte, pour que les annotations y tiennent.
+  const headerH = headerHeight(gridTextSize)
+  const beatsH = `${Math.max(24, barHpx - headerH)}px`
   const bpb = beatsPerBar(chart.timeSignature)
   const parsedSounds = parseChartSounds(sons)
   const currentSongId = chart.song?.id ?? chart.songId ?? null
@@ -1021,8 +1052,15 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                         ...(bar.c ? { backgroundColor: bar.c } : {}),
                       }}
                     >
-                      {/* ── Bandelette supérieure : numéro + marqueurs ── */}
-                      <div className="flex items-center border-b border-gray-100 px-1.5 gap-1" style={{ height: '18px' }}>
+                      {/* Barres de reprise, dessinées sur les bords de la mesure */}
+                      {isRepeatMarker(bar.l) && <RepeatBarline side="left" />}
+                      {isRepeatMarker(bar.r) && <RepeatBarline side="right" />}
+
+                      {/* ── Bandelette supérieure : numéro + annotations ── */}
+                      <div
+                        className="flex items-center border-b border-gray-100 px-1.5 gap-1.5"
+                        style={{ height: `${headerH}px`, ...repeatInsets(bar) }}
+                      >
                         {/* Numéro de mesure */}
                         <span className="text-[9px] text-gray-300 font-medium leading-none flex-shrink-0 select-none">
                           {barIdx + 1}
@@ -1035,12 +1073,14 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                             ${gridEditable ? 'cursor-pointer hover:bg-indigo-50' : ''}
                             ${isActiveBar && active?.type === 'left' ? 'bg-orange-100 ring-1 ring-orange-300' : ''}
                           `}
-                          style={{ minWidth: '20px', height: '14px' }}
+                          style={{ minWidth: '20px' }}
                           title={gridEditable ? 'Cliquer pour ajouter un symbole de début' : undefined}
                         >
-                          {bar.l
-                            ? <MarkerContent value={bar.l} side="left" />
-                            : gridEditable && <span className="text-[8px] text-gray-200 select-none">+</span>
+                          {isRepeatMarker(bar.l)
+                            ? <span className="select-none text-[10px] font-bold text-indigo-400">||:</span>
+                            : bar.l
+                              ? <MarkerContent value={bar.l} side="left" fontSize={gridTextSize} />
+                              : gridEditable && <span className="text-[8px] text-gray-200 select-none">+</span>
                           }
                         </div>
 
@@ -1053,18 +1093,20 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                             ${gridEditable ? 'cursor-pointer hover:bg-indigo-50' : ''}
                             ${isActiveBar && active?.type === 'right' ? 'bg-orange-100 ring-1 ring-orange-300' : ''}
                           `}
-                          style={{ minWidth: '20px', height: '14px' }}
+                          style={{ minWidth: '20px' }}
                           title={gridEditable ? 'Cliquer pour ajouter un symbole de fin' : undefined}
                         >
-                          {bar.r
-                            ? <MarkerContent value={bar.r} side="right" />
-                            : gridEditable && <span className="text-[8px] text-gray-200 select-none">+</span>
+                          {isRepeatMarker(bar.r)
+                            ? <span className="select-none text-[10px] font-bold text-indigo-400">:||</span>
+                            : bar.r
+                              ? <MarkerContent value={bar.r} side="right" fontSize={gridTextSize} />
+                              : gridEditable && <span className="text-[8px] text-gray-200 select-none">+</span>
                           }
                         </div>
                       </div>
 
                       {/* ── Zones de temps ── */}
-                      <div className="flex" style={{ height: beatsH }}>
+                      <div className="flex" style={{ height: beatsH, ...repeatInsets(bar) }}>
                         {Array.from({ length: bpb }).map((_, beatIdx) => {
                           const isActiveBeat = isActiveBar && active?.type === 'beat' && (active as any).beat === beatIdx
                           return (

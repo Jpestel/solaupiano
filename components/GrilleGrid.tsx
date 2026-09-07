@@ -15,16 +15,71 @@ export function BeatContent({ content, fontSize }: { content: string; fontSize: 
   )
 }
 
-/* ─── Rendu d'un marqueur de barre de mesure (gauche ou droite) ─── */
-export function MarkerContent({ value, side }: { value: string; side: 'left' | 'right' }) {
-  if (!value) return null
-  const isRepeat = value === '||:' || value === ':||' || value === ':|:'
+export const isRepeatMarker = (value: string) =>
+  value === '||:' || value === ':||' || value === ':|:'
+
+/**
+ * Les marqueurs suivent la taille de texte choisie (boutons A/A).
+ * Auparavant ils étaient figés : agrandir le texte grossissait les accords
+ * mais pas les annotations, qui devenaient de plus en plus discrètes.
+ */
+export const markerFontSize = (fontSize: number) => Math.max(11, Math.round(fontSize * 0.8))
+
+/** Hauteur de la bandelette du haut, pour que l'annotation y tienne. */
+export const headerHeight = (fontSize: number) => Math.max(20, Math.round(fontSize * 1.55))
+
+const REPEAT_COLOR = '#1e1b4b'
+
+/** Largeur occupée par une barre de reprise : le contenu de la mesure doit
+ *  s'écarter d'autant de ce bord, sinon la barre passe par-dessus l'accord
+ *  ou le numéro de mesure. */
+export const REPEAT_INSET = 18
+
+export function repeatInsets(bar: { l: string; r: string }) {
+  return {
+    paddingLeft: isRepeatMarker(bar.l) ? REPEAT_INSET : undefined,
+    paddingRight: isRepeatMarker(bar.r) ? REPEAT_INSET : undefined,
+  }
+}
+
+/**
+ * Barre de reprise dessinée sur le bord de la mesure, comme sur une partition
+ * (double barre + les deux points), plutôt qu'un « :|| » écrit en petit dans la
+ * bandelette : un musicien la reconnaît d'un coup d'œil, sans avoir à la lire.
+ */
+export function RepeatBarline({ side }: { side: 'left' | 'right' }) {
+  const at = (offset: number | string) => (side === 'left' ? { left: offset } : { right: offset })
+  return (
+    <div className="pointer-events-none absolute inset-y-0 select-none" style={{ ...at(0), width: '16px' }}>
+      <div className="absolute inset-y-0" style={{ ...at(0), width: '4px', background: REPEAT_COLOR }} />
+      <div className="absolute inset-y-0" style={{ ...at('6px'), width: '2px', background: REPEAT_COLOR }} />
+      <div
+        className="absolute top-1/2 flex -translate-y-1/2 flex-col gap-[6px]"
+        style={at('11px')}
+      >
+        <span className="block h-[5px] w-[5px] rounded-full" style={{ background: REPEAT_COLOR }} />
+        <span className="block h-[5px] w-[5px] rounded-full" style={{ background: REPEAT_COLOR }} />
+      </div>
+    </div>
+  )
+}
+
+/* ─── Annotation portée par une mesure (« X 3 », « Rif Orgue », Coda…) ───
+   Les signes de reprise, eux, sont dessinés par RepeatBarline. */
+export function MarkerContent({
+  value, side, fontSize = 14,
+}: {
+  value: string
+  side: 'left' | 'right'
+  fontSize?: number
+}) {
+  if (!value || isRepeatMarker(value)) return null
   return (
     <span
-      className={`text-indigo-700 font-black leading-none select-none ${
-        isRepeat ? 'text-sm' : 'text-[9px] font-semibold'
-      } ${side === 'right' ? 'text-right' : 'text-left'}`}
-      style={isRepeat ? { fontFamily: '"Courier New", Courier, monospace', letterSpacing: '-2px' } : undefined}
+      className={`select-none font-extrabold leading-none text-indigo-900 ${
+        side === 'right' ? 'text-right' : 'text-left'
+      }`}
+      style={{ fontSize: markerFontSize(fontSize) }}
     >
       {value}
     </span>
@@ -51,7 +106,7 @@ export function GrilleGrid({
   for (let i = 0; i < cells.length; i += bpr) {
     rows.push(Array.from({ length: bpr }, (_, k) => i + k))
   }
-  const headerH = 18
+  const headerH = headerHeight(fontSize)
   const beatsH = Math.max(24, barHeight - headerH)
 
   return (
@@ -75,22 +130,29 @@ export function GrilleGrid({
                     ...(bar.c ? { backgroundColor: bar.c } : {}),
                   }}
                 >
-                  {/* Bandelette : numéro + marqueurs */}
-                  <div className="flex items-center border-b border-gray-100 px-1.5 gap-1" style={{ height: `${headerH}px` }}>
+                  {/* Barres de reprise, dessinées sur les bords de la mesure */}
+                  {isRepeatMarker(bar.l) && <RepeatBarline side="left" />}
+                  {isRepeatMarker(bar.r) && <RepeatBarline side="right" />}
+
+                  {/* Bandelette : numéro + annotations */}
+                  <div
+                    className="flex items-center border-b border-gray-100 px-1.5 gap-1.5"
+                    style={{ height: `${headerH}px`, ...repeatInsets(bar) }}
+                  >
                     <span className="text-[9px] text-gray-300 font-medium leading-none flex-shrink-0 select-none">
                       {numberOffset + barIdx + 1}
                     </span>
-                    <div className="flex items-center flex-shrink-0 leading-none" style={{ minWidth: '20px', height: '14px' }}>
-                      <MarkerContent value={bar.l} side="left" />
+                    <div className="flex min-w-0 items-center leading-none">
+                      <MarkerContent value={bar.l} side="left" fontSize={fontSize} />
                     </div>
                     <div className="flex-1" />
-                    <div className="flex items-center justify-end flex-shrink-0 leading-none" style={{ minWidth: '20px', height: '14px' }}>
-                      <MarkerContent value={bar.r} side="right" />
+                    <div className="flex min-w-0 items-center justify-end leading-none">
+                      <MarkerContent value={bar.r} side="right" fontSize={fontSize} />
                     </div>
                   </div>
 
                   {/* Zones de temps */}
-                  <div className="flex" style={{ height: `${beatsH}px` }}>
+                  <div className="flex" style={{ height: `${beatsH}px`, ...repeatInsets(bar) }}>
                     {Array.from({ length: bpb }).map((_, beatIdx) => (
                       <div
                         key={beatIdx}
