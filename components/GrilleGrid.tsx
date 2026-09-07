@@ -1,6 +1,6 @@
 'use client'
 
-import { beatNotes, hasBeatNotes, type BarData } from '@/lib/grille'
+import { beatTexts, hasBeatTexts, type BarData, type BeatTextField } from '@/lib/grille'
 
 /* ─── Rendu d'un temps (accord(s)) ─── */
 export function BeatContent({ content, fontSize }: { content: string; fontSize: number }) {
@@ -120,28 +120,30 @@ export function MarkerContent({
   )
 }
 
-/** Hauteur de la bande d'annotations de temps. */
-export const beatNotesHeight = (fontSize: number) => markerFontSize(fontSize) + 6
+/** Hauteur d'une bande de texte de temps. */
+export const beatTextHeight = (fontSize: number) => markerFontSize(fontSize) + 6
 
 /**
- * Annotations posées au-dessus de chaque temps (« Solo », « cresc. »), alignées
- * sur les colonnes de temps. La bande n'apparaît que sur les lignes qui en
- * portent, pour ne rien changer aux grilles qui n'en utilisent pas.
+ * Texte libre aligné sur chaque temps, au-dessus de l'accord (« Solo »,
+ * « cresc. ») ou en dessous (doigté, parole, nuance). Une bande n'apparaît que
+ * sur les lignes qui en portent, pour ne rien changer aux grilles qui ne s'en
+ * servent pas.
  */
-export function BeatNotesStrip({
-  bar, bpb, fontSize,
+export function BeatTextStrip({
+  bar, bpb, fontSize, field,
 }: {
   bar: BarData
   bpb: number
   fontSize: number
+  field: BeatTextField
 }) {
-  const notes = beatNotes(bar, bpb)
+  const texts = beatTexts(bar, bpb, field)
   return (
     <div
-      className="flex border-b border-gray-100"
-      style={{ height: `${beatNotesHeight(fontSize)}px`, ...repeatInsets(bar) }}
+      className={`flex ${field === 'n' ? 'border-b' : 'border-t'} border-gray-100`}
+      style={{ height: `${beatTextHeight(fontSize)}px`, ...repeatInsets(bar) }}
     >
-      {notes.map((note, i) => (
+      {texts.map((text, i) => (
         <div
           key={i}
           className={`flex min-w-0 flex-1 items-center justify-center px-0.5 ${
@@ -149,10 +151,12 @@ export function BeatNotesStrip({
           }`}
         >
           <span
-            className="truncate font-bold leading-none text-indigo-800"
+            className={`truncate font-bold leading-none ${
+              field === 'n' ? 'text-indigo-800' : 'text-slate-600'
+            }`}
             style={{ fontSize: markerFontSize(fontSize) }}
           >
-            {note}
+            {text}
           </span>
         </div>
       ))}
@@ -188,10 +192,11 @@ export function GrilleGrid({
         {rows.map((row, rowIdx) => (
           <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/80'}>
             {row.map((barIdx) => {
-              // Toute la ligne réserve la bande dès qu'une mesure en porte une,
+              // Toute la ligne réserve une bande dès qu'une mesure en porte une,
               // sinon les zones de temps ne seraient plus alignées entre elles.
-              const rowNotes = row.some((k) => k < cells.length && hasBeatNotes(cells[k]))
-              const notesH = rowNotes ? beatNotesHeight(fontSize) : 0
+              const rowAbove = row.some((k) => k < cells.length && hasBeatTexts(cells[k], 'n'))
+              const rowBelow = row.some((k) => k < cells.length && hasBeatTexts(cells[k], 's'))
+              const stripsH = (rowAbove ? beatTextHeight(fontSize) : 0) + (rowBelow ? beatTextHeight(fontSize) : 0)
               if (barIdx >= cells.length) return (
                 <td key={barIdx} className={`${BAR_BORDER} bg-gray-50/30`}
                   style={{ width: `${(100 / bpr).toFixed(1)}%`, height: `${barHeight}px` }} />
@@ -228,12 +233,12 @@ export function GrilleGrid({
                     </div>
                   </div>
 
-                  {rowNotes && <BeatNotesStrip bar={bar} bpb={bpb} fontSize={fontSize} />}
+                  {rowAbove && <BeatTextStrip bar={bar} bpb={bpb} fontSize={fontSize} field="n" />}
 
                   {/* Zones de temps */}
                   <div
                     className="flex"
-                    style={{ height: `${Math.max(24, barHeight - headerH - notesH)}px`, ...repeatInsets(bar) }}
+                    style={{ height: `${Math.max(24, barHeight - headerH - stripsH)}px`, ...repeatInsets(bar) }}
                   >
                     {Array.from({ length: bpb }).map((_, beatIdx) => (
                       <div
@@ -246,6 +251,8 @@ export function GrilleGrid({
                       </div>
                     ))}
                   </div>
+
+                  {rowBelow && <BeatTextStrip bar={bar} bpb={bpb} fontSize={fontSize} field="s" />}
                 </td>
               )
             })}

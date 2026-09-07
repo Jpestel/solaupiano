@@ -11,12 +11,13 @@ import { Button } from '@/components/ui/Button'
 import { ph } from '@/lib/placeholders'
 import {
   beatsPerBar, normalizeCells, clampTotalBars, MAX_BARS,
-  beatNotes, hasBeatNotes, withBeatNotes, type BarData,
+  beatTexts, hasBeatTexts, withBeatTexts, BEAT_TEXT_FIELDS,
+  type BarData, type BeatTextField,
 } from '@/lib/grille'
 import {
   BeatContent, MarkerContent, RepeatBarline,
   isRepeatMarker, headerHeight, markerFontSize, repeatInsets, REPEAT_INSET,
-  BeatNotesStrip, beatNotesHeight, splitMarker, toggleMarkerRepeat, setMarkerText,
+  BeatTextStrip, beatTextHeight, splitMarker, toggleMarkerRepeat, setMarkerText,
   BAR_BORDER, BEAT_BORDER,
 } from '@/components/GrilleGrid'
 import { GrilleCondensed } from '@/components/GrilleCondensed'
@@ -369,7 +370,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     const start = rowIdx * bpr
     const bars = cells.slice(start, start + bpr).map((bar) => ({
       l: bar.l, b: [...bar.b], r: bar.r, c: bar.c || '',
-      ...(bar.n ? { n: [...bar.n] } : {}),
+      ...(bar.n ? { n: [...bar.n] } : {}), ...(bar.s ? { s: [...bar.s] } : {}),
     }))
     if (bars.length === 0) return
     setCopiedRow({ rowIdx, bars })
@@ -393,7 +394,9 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       const beats = src.b.length < bpb
         ? [...src.b, ...Array(bpb - src.b.length).fill('')]
         : src.b.slice(0, bpb)
-      return withBeatNotes({ l: src.l, b: beats, r: src.r, c: src.c || '' }, beatNotes(src, bpb))
+      let pasted: BarData = { l: src.l, b: beats, r: src.r, c: src.c || '' }
+      for (const f of BEAT_TEXT_FIELDS) pasted = withBeatTexts(pasted, beatTexts(src, bpb, f), f)
+      return pasted
     })
 
     setRowUndo({
@@ -417,16 +420,16 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     await saveStructure(restored, total)
   }
 
-  /* Annotation posée au-dessus du temps actif (« Solo », « cresc. »…) */
-  const setBeatNote = (text: string) => {
+  /* Texte libre posé au-dessus ('n') ou en dessous ('s') du temps actif */
+  const setBeatText = (text: string, field: BeatTextField) => {
     if (!active || active.type !== 'beat' || !chart) return
     const bpb = beatsPerBar(chart.timeSignature)
     const beat = (active as any).beat as number
     const newCells = cells.map((bar, i) => {
       if (i !== active.bar) return bar
-      const notes = beatNotes(bar, bpb)
-      notes[beat] = text
-      return withBeatNotes(bar, notes)
+      const texts = beatTexts(bar, bpb, field)
+      texts[beat] = text
+      return withBeatTexts(bar, texts, field)
     })
     setCells(newCells)
     scheduleSave(newCells)
@@ -474,7 +477,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const copyCurrentBar = () => {
     if (!active) return
     const bar = cells[active.bar]
-    setCopiedBar({ l: bar.l, b: [...bar.b], r: bar.r, c: bar.c || '', ...(bar.n ? { n: [...bar.n] } : {}) })
+    setCopiedBar({
+      l: bar.l, b: [...bar.b], r: bar.r, c: bar.c || '',
+      ...(bar.n ? { n: [...bar.n] } : {}), ...(bar.s ? { s: [...bar.s] } : {}),
+    })
     setCopiedFromIdx(active.bar)
     setCopyFeedback(true)
     if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current)
@@ -488,10 +494,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     let beats = [...copiedBar.b]
     if (beats.length < bpb) beats = [...beats, ...Array(bpb - beats.length).fill('')]
     else beats = beats.slice(0, bpb)
-    const newBar: BarData = withBeatNotes(
-      { l: copiedBar.l, b: beats, r: copiedBar.r, c: copiedBar.c || '' },
-      beatNotes(copiedBar, bpb),
-    )
+    let newBar: BarData = { l: copiedBar.l, b: beats, r: copiedBar.r, c: copiedBar.c || '' }
+    for (const field of BEAT_TEXT_FIELDS) {
+      newBar = withBeatTexts(newBar, beatTexts(copiedBar, bpb, field), field)
+    }
     const newCells = cells.map((bar, i) => i === active.bar ? newBar : bar)
     setCells(newCells)
     scheduleSave(newCells)
@@ -655,12 +661,18 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         const barIdx = i + j
         const bar = barIdx < cells.length ? cells[barIdx] : { l: '', b: Array(bpb).fill(''), r: '' }
         const barNum = barIdx + 1
-        const notes = beatNotes(bar, bpb)
-        const notesHtml = notes.some((n) => n.trim())
-          ? `<div style="display:flex;${'' /* aligné sur les temps */}border-bottom:1px solid #eee;">${
-              notes.map((n) => `<div style="flex:1;text-align:center;font-size:${Math.round(markerSize * 0.9)}px;font-weight:700;color:#3730a3;padding:1px 2px;">${escapeHtml(n)}</div>`).join('')
-            }</div>`
-          : ''
+        // Textes alignés sur les temps, au-dessus et en dessous de l'accord
+        const stripHtml = (field: BeatTextField) => {
+          const texts = beatTexts(bar, bpb, field)
+          if (!texts.some((t) => t.trim())) return ''
+          const color = field === 'n' ? '#3730a3' : '#475569'
+          const edge = field === 'n' ? 'border-bottom' : 'border-top'
+          return `<div style="display:flex;${edge}:1px solid #eee;">${
+            texts.map((t, ti) => `<div style="flex:1;text-align:center;font-size:${Math.round(markerSize * 0.9)}px;font-weight:700;color:${color};padding:1px 2px;${ti < bpb - 1 ? 'border-right:1px solid #d1d5db;' : ''}">${escapeHtml(t)}</div>`).join('')
+          }</div>`
+        }
+        const aboveHtml = stripHtml('n')
+        const belowHtml = stripHtml('s')
         const beatsHtml = bar.b.map((beat, bi) =>
           `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #d1d5db;' : ''}font-size:${gridTextSize}px;font-weight:700;color:#111;min-height:18px;">${escapeHtml(beat || '')}</div>`
         ).join('')
@@ -690,8 +702,9 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             <span style="flex:1;"></span>
             ${annot(bar.r, 'right')}
           </div>
-          ${notesHtml ? `<div style="${inset}">${notesHtml}</div>` : ''}
+          ${aboveHtml ? `<div style="${inset}">${aboveHtml}</div>` : ''}
           <div style="display:flex;${inset}">${beatsHtml}</div>
+          ${belowHtml ? `<div style="${inset}">${belowHtml}</div>` : ''}
         </td>`
       }
       rowsHtml += `<tr>${tds}</tr>`
@@ -1063,10 +1076,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                   </td>
                 )}
                 {row.map((barIdx) => {
-                  // Toute la ligne réserve la bande dès qu'une mesure en porte
+                  // Toute la ligne réserve une bande dès qu'une mesure en porte
                   // une, sinon les temps ne seraient plus alignés entre eux.
-                  const rowNotes = row.some((k) => k < cells.length && hasBeatNotes(cells[k]))
-                  const notesH = rowNotes ? beatNotesHeight(gridTextSize) : 0
+                  const rowAbove = row.some((k) => k < cells.length && hasBeatTexts(cells[k], 'n'))
+                  const rowBelow = row.some((k) => k < cells.length && hasBeatTexts(cells[k], 's'))
+                  const stripsH = (rowAbove ? beatTextHeight(gridTextSize) : 0)
+                    + (rowBelow ? beatTextHeight(gridTextSize) : 0)
                   const isValidBar = barIdx < cells.length
                   if (!isValidBar) return (
                     <td key={barIdx} className={`${BAR_BORDER} bg-gray-50/30`}
@@ -1143,11 +1158,11 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                       </div>
 
                       {/* ── Zones de temps ── */}
-                      {rowNotes && <BeatNotesStrip bar={bar} bpb={bpb} fontSize={gridTextSize} />}
+                      {rowAbove && <BeatTextStrip bar={bar} bpb={bpb} fontSize={gridTextSize} field="n" />}
 
                       <div
                         className="flex"
-                        style={{ height: `${Math.max(24, barHpx - headerH - notesH)}px`, ...repeatInsets(bar) }}
+                        style={{ height: `${Math.max(24, barHpx - headerH - stripsH)}px`, ...repeatInsets(bar) }}
                       >
                         {Array.from({ length: bpb }).map((_, beatIdx) => {
                           const isActiveBeat = isActiveBar && active?.type === 'beat' && (active as any).beat === beatIdx
@@ -1168,6 +1183,8 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                           )
                         })}
                       </div>
+
+                      {rowBelow && <BeatTextStrip bar={bar} bpb={bpb} fontSize={gridTextSize} field="s" />}
                     </td>
                   )
                 })}
@@ -1332,17 +1349,24 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                     </div>
                   </div>
 
-                  {/* Annotation propre à ce temps, affichée juste au-dessus de lui */}
-                  <div className="flex items-center gap-1 pt-1">
-                    <span className="w-14 flex-shrink-0 text-[10px] font-semibold text-gray-400">Au-dessus</span>
-                    <input
-                      type="text"
-                      value={cells[active.bar] ? beatNotes(cells[active.bar], bpb)[(active as any).beat] || '' : ''}
-                      onChange={(e) => setBeatNote(e.target.value)}
-                      placeholder="Texte au-dessus de ce temps (Solo, cresc., 2e voix…)"
-                      className="min-w-[220px] flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-300"
-                    />
-                  </div>
+                  {/* Textes propres à ce temps, de part et d'autre de l'accord */}
+                  {([
+                    { field: 'n' as BeatTextField, label: 'Au-dessus', ph: 'Texte au-dessus de l’accord (Solo, cresc.…)' },
+                    { field: 's' as BeatTextField, label: 'En dessous', ph: 'Texte sous l’accord (doigté, parole, nuance…)' },
+                  ]).map(({ field, label, ph: placeholder }) => (
+                    <div key={field} className="flex items-center gap-1 pt-1">
+                      <span className="w-14 flex-shrink-0 text-[10px] font-semibold text-gray-400">{label}</span>
+                      <input
+                        type="text"
+                        value={cells[active.bar]
+                          ? beatTexts(cells[active.bar], bpb, field)[(active as any).beat] || ''
+                          : ''}
+                        onChange={(e) => setBeatText(e.target.value, field)}
+                        placeholder={placeholder}
+                        className="min-w-[220px] flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

@@ -8,28 +8,36 @@
  *   b = tableau de temps (un accord/contenu par temps)
  *   r = symbole de fin de mesure (:||, Coda, Fine…)
  *   c = couleur de fond facultative (repérer couplet / refrain / pont…)
- *   n = annotation facultative au-dessus de chaque temps (« Solo », « cresc. »)
+ *   n = texte facultatif AU-DESSUS de chaque temps (« Solo », « cresc. »)
+ *   s = texte facultatif EN DESSOUS de chaque temps (doigté, parole, nuance…)
  *
- * `n` n'est présent que s'il porte quelque chose : une grille sans annotation
- * de temps ne traîne pas un tableau de chaînes vides à chaque mesure.
+ * `n` et `s` ne sont présents que s'ils portent quelque chose : une grille qui
+ * ne s'en sert pas ne traîne pas un tableau de chaînes vides à chaque mesure.
  */
-export type BarData = { l: string; b: string[]; r: string; c?: string; n?: string[] }
+export type BarData = {
+  l: string; b: string[]; r: string; c?: string; n?: string[]; s?: string[]
+}
 
-/** Annotations par temps, ramenées à la longueur de la mesure. */
-export function beatNotes(bar: BarData, bpb: number): string[] {
-  const src = Array.isArray(bar.n) ? bar.n : []
+/** Les deux lignes de texte alignées sur les temps, de part et d'autre de l'accord. */
+export type BeatTextField = 'n' | 's'
+export const BEAT_TEXT_FIELDS: BeatTextField[] = ['n', 's']
+
+/** Textes d'un côté, ramenés à la longueur de la mesure. */
+export function beatTexts(bar: BarData, bpb: number, field: BeatTextField): string[] {
+  const src = Array.isArray(bar[field]) ? (bar[field] as string[]) : []
   return Array.from({ length: bpb }, (_, i) => (typeof src[i] === 'string' ? src[i] : ''))
 }
 
-export function hasBeatNotes(bar: BarData): boolean {
-  return Array.isArray(bar.n) && bar.n.some((v) => typeof v === 'string' && v.trim() !== '')
+export function hasBeatTexts(bar: BarData, field: BeatTextField): boolean {
+  const src = bar[field]
+  return Array.isArray(src) && src.some((v) => typeof v === 'string' && v.trim() !== '')
 }
 
-/** Range `n` dans la mesure, ou l'enlève si plus rien n'y est écrit. */
-export function withBeatNotes(bar: BarData, notes: string[]): BarData {
+/** Range les textes dans la mesure, ou enlève le champ si plus rien n'y est écrit. */
+export function withBeatTexts(bar: BarData, texts: string[], field: BeatTextField): BarData {
   const next = { ...bar }
-  if (notes.some((v) => v.trim() !== '')) next.n = notes
-  else delete next.n
+  if (texts.some((v) => v.trim() !== '')) next[field] = texts
+  else delete next[field]
   return next
 }
 
@@ -73,11 +81,12 @@ export function normalizeCells(raw: unknown, totalBars: number, bpb: number): Ba
       // Format courant BarData { l, b, r, c }
       const bar = item as any
       const beats = (Array.isArray(bar.b) ? bar.b : []).map((v: any) => (typeof v === 'string' ? v : ''))
-      const notes = (Array.isArray(bar.n) ? bar.n : []).map((v: any) => (typeof v === 'string' ? v : ''))
-      result.push(withBeatNotes(
-        { l: bar.l || '', b: pad(beats), r: bar.r || '', c: safeBarColor(bar.c) },
-        pad(notes),
-      ))
+      let normalized: BarData = { l: bar.l || '', b: pad(beats), r: bar.r || '', c: safeBarColor(bar.c) }
+      for (const field of BEAT_TEXT_FIELDS) {
+        const texts = (Array.isArray(bar[field]) ? bar[field] : []).map((v: any) => (typeof v === 'string' ? v : ''))
+        normalized = withBeatTexts(normalized, pad(texts), field)
+      }
+      result.push(normalized)
 
     } else if (item && typeof item === 'object' && !Array.isArray(item) && 'chord' in item) {
       // Ancien format de démo { chord, section }

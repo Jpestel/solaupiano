@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
 import { getGroupStorageInfo } from '@/lib/storage'
 
-type BarData = { l: string; b: string[]; r: string; c?: string; n?: string[] }
+type BarData = { l: string; b: string[]; r: string; c?: string; n?: string[]; s?: string[] }
 
 /** Couleur de fond de mesure : on n'accepte qu'un hex #rrggbb. */
 function safeBarColor(value: unknown): string | undefined {
@@ -44,8 +44,9 @@ function normalizeCells(raw: unknown, totalBars: number, bpb: number): BarData[]
         b: beats.length < bpb ? [...beats, ...Array(bpb - beats.length).fill('')] : beats.slice(0, bpb),
         r: typeof bar.r === 'string' ? bar.r : '',
         c: safeBarColor(bar.c),
-        // Annotations posees au-dessus de chaque temps
+        // Textes poses au-dessus (n) et en dessous (s) de chaque temps
         n: Array.isArray(bar.n) ? bar.n.map((v: any) => (typeof v === 'string' ? v : '')) : undefined,
+        s: Array.isArray(bar.s) ? bar.s.map((v: any) => (typeof v === 'string' ? v : '')) : undefined,
       })
     } else if (item && typeof item === 'object' && !Array.isArray(item) && 'chord' in item) {
       const legacy = item as any
@@ -225,29 +226,33 @@ function generateChartPdf(chart: any, textSize: number) {
       if (annotL) doc.text(annotL, x + 8, y + 4.6, { maxWidth: cellW * 0.35 })
       if (annotR) doc.text(annotR, x + cellW - 3.5, y + 4.6, { align: 'right', maxWidth: cellW * 0.35 })
 
-      // Annotations de temps, juste sous la bandelette
-      const notes = Array.isArray(bar.n) ? bar.n : []
-      const hasNotes = notes.some((v) => typeof v === 'string' && v.trim() !== '')
-      const notesH = hasNotes ? 3.6 : 0
-      if (hasNotes) {
+      // Textes de temps : une bande sous la bandelette, une en bas de la mesure
+      const above = Array.isArray(bar.n) ? bar.n : []
+      const below = Array.isArray(bar.s) ? bar.s : []
+      const hasText = (arr: any[]) => arr.some((v) => typeof v === 'string' && v.trim() !== '')
+      const notesH = hasText(above) ? 3.6 : 0
+      const belowH = hasText(below) ? 3.6 : 0
+      const drawStrip = (arr: any[], baselineY: number, rgb: [number, number, number]) => {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(6.5)
-        doc.setTextColor(55, 48, 163)
+        doc.setTextColor(...rgb)
         for (let k = 0; k < bpb; k++) {
-          const note = (notes[k] || '').trim()
-          if (!note) continue
-          doc.text(note, x + (cellW / bpb) * (k + 0.5), y + barHeaderH + 2.6, {
+          const text = (arr[k] || '').trim()
+          if (!text) continue
+          doc.text(text, x + (cellW / bpb) * (k + 0.5), baselineY, {
             align: 'center', maxWidth: cellW / bpb - 1.5,
           })
         }
       }
+      if (notesH) drawStrip(above, y + barHeaderH + 2.6, [55, 48, 163])
+      if (belowH) drawStrip(below, y + rowH - 1.2, [71, 85, 105])
 
       for (let beatIdx = 0; beatIdx < bpb; beatIdx++) {
         const beatX = x + (cellW / bpb) * beatIdx
         if (beatIdx > 0) {
           doc.setDrawColor('#d1d5db')
           doc.setLineWidth(BEAT_LINE_W)
-          doc.line(beatX, y + barHeaderH + notesH, beatX, y + rowH)
+          doc.line(beatX, y + barHeaderH + notesH, beatX, y + rowH - belowH)
         }
         const beat = bar.b[beatIdx] || ''
         if (!beat.trim()) continue
