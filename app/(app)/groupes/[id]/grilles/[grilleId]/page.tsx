@@ -17,6 +17,7 @@ import {
   BeatContent, MarkerContent, RepeatBarline,
   isRepeatMarker, headerHeight, markerFontSize, repeatInsets, REPEAT_INSET,
   BeatNotesStrip, beatNotesHeight, splitMarker, toggleMarkerRepeat, setMarkerText,
+  BAR_BORDER, BEAT_BORDER,
 } from '@/components/GrilleGrid'
 import { GrilleCondensed } from '@/components/GrilleCondensed'
 
@@ -661,7 +662,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             }</div>`
           : ''
         const beatsHtml = bar.b.map((beat, bi) =>
-          `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #ddd;' : ''}font-size:${gridTextSize}px;font-weight:700;color:#111;min-height:18px;">${escapeHtml(beat || '')}</div>`
+          `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #d1d5db;' : ''}font-size:${gridTextSize}px;font-weight:700;color:#111;min-height:18px;">${escapeHtml(beat || '')}</div>`
         ).join('')
         // Couleur de section si elle est définie (on n'accepte qu'un hex #rrggbb)
         const barBg = typeof bar.c === 'string' && /^#[0-9a-fA-F]{6}$/.test(bar.c) ? bar.c : rowBg
@@ -672,11 +673,15 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
           isRepeatMarker(bar.l) ? `padding-left:${REPEAT_INSET}px` : '',
           isRepeatMarker(bar.r) ? `padding-right:${REPEAT_INSET}px` : '',
         ].filter(Boolean).join(';')
-        const annot = (value: string, align: string) =>
-          value && !isRepeatMarker(value)
-            ? `<span style="font-size:${markerSize}px;font-weight:800;color:#1e1b4b;text-align:${align};">${escapeHtml(value)}</span>`
+        // Un marqueur peut porter la reprise ET du texte : on n'imprime ici que
+        // le texte, la barre etant dessinee separement.
+        const annot = (value: string, align: string) => {
+          const text = splitMarker(value).text
+          return text
+            ? `<span style="font-size:${markerSize}px;font-weight:800;color:#1e1b4b;text-align:${align};">${escapeHtml(text)}</span>`
             : ''
-        tds += `<td style="position:relative;border:1px solid #bbb;padding:0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${barBg}">
+        }
+        tds += `<td style="position:relative;border:2px solid #9ca3af;padding:0;width:${(100 / bpr).toFixed(1)}%;vertical-align:top;background:${barBg}">
           ${isRepeatMarker(bar.l) ? repeatBarlineHtml('left') : ''}
           ${isRepeatMarker(bar.r) ? repeatBarlineHtml('right') : ''}
           <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 5px 1px;${inset};border-bottom:1px solid #e5e5e5;min-height:${printHeaderH}px;">
@@ -1064,7 +1069,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                   const notesH = rowNotes ? beatNotesHeight(gridTextSize) : 0
                   const isValidBar = barIdx < cells.length
                   if (!isValidBar) return (
-                    <td key={barIdx} className="border border-gray-200 bg-gray-50/30"
+                    <td key={barIdx} className={`${BAR_BORDER} bg-gray-50/30`}
                       style={{ width: `${(100 / bpr).toFixed(1)}%`, height: barH }} />
                   )
                   const bar = cells[barIdx]
@@ -1074,10 +1079,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                   return (
                     <td
                       key={barIdx}
-                      className={`border relative transition-colors ${
-                        isActiveBar ? 'border-orange-200' :
-                        isCopiedBar ? 'border-blue-300 bg-blue-50/30' :
-                        'border-gray-200'
+                      className={`relative border-2 transition-colors ${
+                        isActiveBar ? 'border-orange-300' :
+                        isCopiedBar ? 'border-blue-400 bg-blue-50/30' :
+                        'border-gray-400'
                       }`}
                       style={{
                         width: `${(100 / bpr).toFixed(1)}%`, height: barH, padding: 0, verticalAlign: 'top',
@@ -1109,12 +1114,13 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                           style={{ minWidth: '20px' }}
                           title={gridEditable ? 'Cliquer pour ajouter un symbole de début' : undefined}
                         >
-                          {isRepeatMarker(bar.l)
-                            ? <span className="select-none text-[10px] font-bold text-indigo-400">||:</span>
-                            : bar.l
-                              ? <MarkerContent value={bar.l} side="left" fontSize={gridTextSize} />
-                              : gridEditable && <span className="text-[8px] text-gray-200 select-none">+</span>
-                          }
+                          {/* Un marqueur porte la reprise ET du texte. On n'affiche
+                              ici que le texte : la reprise, elle, est la grande barre
+                              dessinée sur le bord — pas de petit symbole en doublon. */}
+                          <MarkerContent value={bar.l} side="left" fontSize={gridTextSize} />
+                          {!bar.l && gridEditable && (
+                            <span className="text-[8px] text-gray-200 select-none">+</span>
+                          )}
                         </div>
 
                         <div className="flex-1" />
@@ -1129,12 +1135,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                           style={{ minWidth: '20px' }}
                           title={gridEditable ? 'Cliquer pour ajouter un symbole de fin' : undefined}
                         >
-                          {isRepeatMarker(bar.r)
-                            ? <span className="select-none text-[10px] font-bold text-indigo-400">:||</span>
-                            : bar.r
-                              ? <MarkerContent value={bar.r} side="right" fontSize={gridTextSize} />
-                              : gridEditable && <span className="text-[8px] text-gray-200 select-none">+</span>
-                          }
+                          <MarkerContent value={bar.r} side="right" fontSize={gridTextSize} />
+                          {!bar.r && gridEditable && (
+                            <span className="text-[8px] text-gray-200 select-none">+</span>
+                          )}
                         </div>
                       </div>
 
@@ -1153,7 +1157,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                               onClick={() => gridEditable && openTarget({ bar: barIdx, type: 'beat', beat: beatIdx })}
                               className={`
                                 flex-1 flex items-center justify-center relative min-w-0
-                                ${beatIdx < bpb - 1 ? 'border-r border-gray-100' : ''}
+                                ${beatIdx < bpb - 1 ? BEAT_BORDER : ''}
                                 ${gridEditable ? 'cursor-pointer hover:bg-orange-50/60' : ''}
                                 ${isActiveBeat ? 'bg-orange-50/80 ring-2 ring-inset ring-orange-400' : ''}
                                 transition-colors

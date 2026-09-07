@@ -58,6 +58,11 @@ export const headerHeight = (fontSize: number) => Math.max(20, Math.round(fontSi
 
 const REPEAT_COLOR = '#1e1b4b'
 
+/* Quadrillage : trait fin entre les temps, trait epais entre les mesures.
+   L'oeil retrouve ainsi la mesure d'un coup, sans compter les temps. */
+export const BAR_BORDER = 'border-2 border-gray-400'
+export const BEAT_BORDER = 'border-r border-gray-300'
+
 /** Largeur occupée par une barre de reprise : le contenu de la mesure doit
  *  s'écarter d'autant de ce bord, sinon la barre passe par-dessus l'accord
  *  ou le numéro de mesure. */
@@ -137,7 +142,12 @@ export function BeatNotesStrip({
       style={{ height: `${beatNotesHeight(fontSize)}px`, ...repeatInsets(bar) }}
     >
       {notes.map((note, i) => (
-        <div key={i} className="flex min-w-0 flex-1 items-center justify-center px-0.5">
+        <div
+          key={i}
+          className={`flex min-w-0 flex-1 items-center justify-center px-0.5 ${
+            i < bpb - 1 ? BEAT_BORDER : ''
+          }`}
+        >
           <span
             className="truncate font-bold leading-none text-indigo-800"
             style={{ fontSize: markerFontSize(fontSize) }}
@@ -183,14 +193,14 @@ export function GrilleGrid({
               const rowNotes = row.some((k) => k < cells.length && hasBeatNotes(cells[k]))
               const notesH = rowNotes ? beatNotesHeight(fontSize) : 0
               if (barIdx >= cells.length) return (
-                <td key={barIdx} className="border border-gray-200 bg-gray-50/30"
+                <td key={barIdx} className={`${BAR_BORDER} bg-gray-50/30`}
                   style={{ width: `${(100 / bpr).toFixed(1)}%`, height: `${barHeight}px` }} />
               )
               const bar = cells[barIdx]
               return (
                 <td
                   key={barIdx}
-                  className="border border-gray-200 relative"
+                  className={`relative ${BAR_BORDER}`}
                   style={{
                     width: `${(100 / bpr).toFixed(1)}%`, height: `${barHeight}px`,
                     padding: 0, verticalAlign: 'top',
@@ -229,7 +239,7 @@ export function GrilleGrid({
                       <div
                         key={beatIdx}
                         className={`flex-1 flex items-center justify-center relative min-w-0 ${
-                          beatIdx < bpb - 1 ? 'border-r border-gray-100' : ''
+                          beatIdx < bpb - 1 ? BEAT_BORDER : ''
                         }`}
                       >
                         <BeatContent content={bar.b[beatIdx] || ''} fontSize={fontSize} />

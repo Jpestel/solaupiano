@@ -99,8 +99,19 @@ function sanitizeFileName(value: string) {
     .toLowerCase() || 'grille'
 }
 
-const isRepeatMarker = (value: string) =>
-  value === '||:' || value === ':||' || value === ':|:'
+const REPEAT_SYMBOLS = ['||:', ':|:', ':||']
+
+/** Un marqueur peut porter un signe de reprise ET du texte (« ||: Intro »). */
+function splitMarker(value: string): { repeat: string; text: string } {
+  const v = (value || '').trim()
+  for (const symbol of REPEAT_SYMBOLS) {
+    if (v.startsWith(symbol)) return { repeat: symbol, text: v.slice(symbol.length).trim() }
+    if (v.endsWith(symbol)) return { repeat: symbol, text: v.slice(0, -symbol.length).trim() }
+  }
+  return { repeat: '', text: v }
+}
+
+const isRepeatMarker = (value: string) => splitMarker(value).repeat !== ''
 
 /** Double barre + les deux points, sur le bord de la mesure (x = ce bord). */
 function drawRepeatBarline(doc: jsPDF, edgeX: number, y: number, h: number, side: 'left' | 'right') {
@@ -116,10 +127,16 @@ function drawRepeatBarline(doc: jsPDF, edgeX: number, y: number, h: number, side
   doc.circle(dotX, y + h / 2 + 1.8, 0.6, 'F')
 }
 
+/* Quadrillage : trait fin entre les temps, trait epais entre les mesures. */
+const BAR_LINE_W = 0.6
+const BEAT_LINE_W = 0.2
+
 function drawRoundedRect(doc: jsPDF, x: number, y: number, w: number, h: number, fill: string, stroke: string) {
   doc.setFillColor(fill)
   doc.setDrawColor(stroke)
+  doc.setLineWidth(BAR_LINE_W)
   doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD')
+  doc.setLineWidth(BEAT_LINE_W)
 }
 
 function generateChartPdf(chart: any, textSize: number) {
@@ -186,7 +203,7 @@ function generateChartPdf(chart: any, textSize: number) {
 
       // Couleur de section si définie, sinon alternance de lignes
       const barFill = bar.c ?? (rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb')
-      drawRoundedRect(doc, x, y, cellW, rowH, barFill, '#d1d5db')
+      drawRoundedRect(doc, x, y, cellW, rowH, barFill, '#9ca3af')
       doc.setDrawColor('#e5e7eb')
       doc.line(x, y + barHeaderH, x + cellW, y + barHeaderH)
 
@@ -203,8 +220,8 @@ function generateChartPdf(chart: any, textSize: number) {
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9.5)
       doc.setTextColor(30, 27, 75)
-      const annotL = isRepeatMarker(bar.l) ? '' : bar.l
-      const annotR = isRepeatMarker(bar.r) ? '' : bar.r
+      const annotL = splitMarker(bar.l).text
+      const annotR = splitMarker(bar.r).text
       if (annotL) doc.text(annotL, x + 8, y + 4.6, { maxWidth: cellW * 0.35 })
       if (annotR) doc.text(annotR, x + cellW - 3.5, y + 4.6, { align: 'right', maxWidth: cellW * 0.35 })
 
@@ -228,7 +245,8 @@ function generateChartPdf(chart: any, textSize: number) {
       for (let beatIdx = 0; beatIdx < bpb; beatIdx++) {
         const beatX = x + (cellW / bpb) * beatIdx
         if (beatIdx > 0) {
-          doc.setDrawColor('#eeeeee')
+          doc.setDrawColor('#d1d5db')
+          doc.setLineWidth(BEAT_LINE_W)
           doc.line(beatX, y + barHeaderH + notesH, beatX, y + rowH)
         }
         const beat = bar.b[beatIdx] || ''
