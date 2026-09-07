@@ -9,10 +9,14 @@ import { VoiceRecorder } from '@/components/VoiceRecorder'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { ph } from '@/lib/placeholders'
-import { beatsPerBar, normalizeCells, clampTotalBars, MAX_BARS, type BarData } from '@/lib/grille'
+import {
+  beatsPerBar, normalizeCells, clampTotalBars, MAX_BARS,
+  beatNotes, hasBeatNotes, withBeatNotes, type BarData,
+} from '@/lib/grille'
 import {
   BeatContent, MarkerContent, RepeatBarline,
   isRepeatMarker, headerHeight, markerFontSize, repeatInsets, REPEAT_INSET,
+  BeatNotesStrip, beatNotesHeight, splitMarker, toggleMarkerRepeat, setMarkerText,
 } from '@/components/GrilleGrid'
 import { GrilleCondensed } from '@/components/GrilleCondensed'
 
@@ -364,6 +368,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     const start = rowIdx * bpr
     const bars = cells.slice(start, start + bpr).map((bar) => ({
       l: bar.l, b: [...bar.b], r: bar.r, c: bar.c || '',
+      ...(bar.n ? { n: [...bar.n] } : {}),
     }))
     if (bars.length === 0) return
     setCopiedRow({ rowIdx, bars })
@@ -387,7 +392,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
       const beats = src.b.length < bpb
         ? [...src.b, ...Array(bpb - src.b.length).fill('')]
         : src.b.slice(0, bpb)
-      return { l: src.l, b: beats, r: src.r, c: src.c || '' }
+      return withBeatNotes({ l: src.l, b: beats, r: src.r, c: src.c || '' }, beatNotes(src, bpb))
     })
 
     setRowUndo({
@@ -409,6 +414,21 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     setCells(restored)
     setChart({ ...chart, totalBars: total })
     await saveStructure(restored, total)
+  }
+
+  /* Annotation posée au-dessus du temps actif (« Solo », « cresc. »…) */
+  const setBeatNote = (text: string) => {
+    if (!active || active.type !== 'beat' || !chart) return
+    const bpb = beatsPerBar(chart.timeSignature)
+    const beat = (active as any).beat as number
+    const newCells = cells.map((bar, i) => {
+      if (i !== active.bar) return bar
+      const notes = beatNotes(bar, bpb)
+      notes[beat] = text
+      return withBeatNotes(bar, notes)
+    })
+    setCells(newCells)
+    scheduleSave(newCells)
   }
 
   /* Couleur de fond de la mesure active (ou de toute sa ligne) */
@@ -453,7 +473,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const copyCurrentBar = () => {
     if (!active) return
     const bar = cells[active.bar]
-    setCopiedBar({ l: bar.l, b: [...bar.b], r: bar.r, c: bar.c || '' })
+    setCopiedBar({ l: bar.l, b: [...bar.b], r: bar.r, c: bar.c || '', ...(bar.n ? { n: [...bar.n] } : {}) })
     setCopiedFromIdx(active.bar)
     setCopyFeedback(true)
     if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current)
@@ -467,7 +487,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
     let beats = [...copiedBar.b]
     if (beats.length < bpb) beats = [...beats, ...Array(bpb - beats.length).fill('')]
     else beats = beats.slice(0, bpb)
-    const newBar: BarData = { l: copiedBar.l, b: beats, r: copiedBar.r, c: copiedBar.c || '' }
+    const newBar: BarData = withBeatNotes(
+      { l: copiedBar.l, b: beats, r: copiedBar.r, c: copiedBar.c || '' },
+      beatNotes(copiedBar, bpb),
+    )
     const newCells = cells.map((bar, i) => i === active.bar ? newBar : bar)
     setCells(newCells)
     scheduleSave(newCells)
@@ -631,6 +654,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
         const barIdx = i + j
         const bar = barIdx < cells.length ? cells[barIdx] : { l: '', b: Array(bpb).fill(''), r: '' }
         const barNum = barIdx + 1
+        const notes = beatNotes(bar, bpb)
+        const notesHtml = notes.some((n) => n.trim())
+          ? `<div style="display:flex;${'' /* aligné sur les temps */}border-bottom:1px solid #eee;">${
+              notes.map((n) => `<div style="flex:1;text-align:center;font-size:${Math.round(markerSize * 0.9)}px;font-weight:700;color:#3730a3;padding:1px 2px;">${escapeHtml(n)}</div>`).join('')
+            }</div>`
+          : ''
         const beatsHtml = bar.b.map((beat, bi) =>
           `<div style="flex:1;padding:3px 4px;${bi < bpb - 1 ? 'border-right:1px solid #ddd;' : ''}font-size:${gridTextSize}px;font-weight:700;color:#111;min-height:18px;">${escapeHtml(beat || '')}</div>`
         ).join('')
@@ -656,6 +685,7 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
             <span style="flex:1;"></span>
             ${annot(bar.r, 'right')}
           </div>
+          ${notesHtml ? `<div style="${inset}">${notesHtml}</div>` : ''}
           <div style="display:flex;${inset}">${beatsHtml}</div>
         </td>`
       }
@@ -719,7 +749,6 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
   const barH = `${barHpx}px`
   // La bandelette grandit avec la taille de texte, pour que les annotations y tiennent.
   const headerH = headerHeight(gridTextSize)
-  const beatsH = `${Math.max(24, barHpx - headerH)}px`
   const bpb = beatsPerBar(chart.timeSignature)
   const parsedSounds = parseChartSounds(sons)
   const currentSongId = chart.song?.id ?? chart.songId ?? null
@@ -1029,6 +1058,10 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                   </td>
                 )}
                 {row.map((barIdx) => {
+                  // Toute la ligne réserve la bande dès qu'une mesure en porte
+                  // une, sinon les temps ne seraient plus alignés entre eux.
+                  const rowNotes = row.some((k) => k < cells.length && hasBeatNotes(cells[k]))
+                  const notesH = rowNotes ? beatNotesHeight(gridTextSize) : 0
                   const isValidBar = barIdx < cells.length
                   if (!isValidBar) return (
                     <td key={barIdx} className="border border-gray-200 bg-gray-50/30"
@@ -1106,7 +1139,12 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                       </div>
 
                       {/* ── Zones de temps ── */}
-                      <div className="flex" style={{ height: beatsH, ...repeatInsets(bar) }}>
+                      {rowNotes && <BeatNotesStrip bar={bar} bpb={bpb} fontSize={gridTextSize} />}
+
+                      <div
+                        className="flex"
+                        style={{ height: `${Math.max(24, barHpx - headerH - notesH)}px`, ...repeatInsets(bar) }}
+                      >
                         {Array.from({ length: bpb }).map((_, beatIdx) => {
                           const isActiveBeat = isActiveBar && active?.type === 'beat' && (active as any).beat === beatIdx
                           return (
@@ -1289,6 +1327,18 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                       ))}
                     </div>
                   </div>
+
+                  {/* Annotation propre à ce temps, affichée juste au-dessus de lui */}
+                  <div className="flex items-center gap-1 pt-1">
+                    <span className="w-14 flex-shrink-0 text-[10px] font-semibold text-gray-400">Au-dessus</span>
+                    <input
+                      type="text"
+                      value={cells[active.bar] ? beatNotes(cells[active.bar], bpb)[(active as any).beat] || '' : ''}
+                      onChange={(e) => setBeatNote(e.target.value)}
+                      placeholder="Texte au-dessus de ce temps (Solo, cresc., 2e voix…)"
+                      className="min-w-[220px] flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -1300,9 +1350,14 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                 {LEFT_MARKERS.map((m) => {
                   const isRepeatSymbol = m.val === '||:' || m.val === ':||' || m.val === ':|:'
                   return (
-                    <button key={m.val} onClick={() => applyValue(m.val)} title={m.title}
+                    <button
+                      key={m.val}
+                      onClick={() => applyValue(
+                        isRepeatSymbol ? toggleMarkerRepeat(inputVal, m.val) : setMarkerText(inputVal, m.val),
+                      )}
+                      title={m.title}
                       className={`rounded-md border px-3 py-1 font-black transition-colors
-                        ${inputVal === m.val
+                        ${(isRepeatSymbol ? splitMarker(inputVal).repeat === m.val : splitMarker(inputVal).text === m.val)
                           ? 'border-indigo-400 bg-indigo-100 text-indigo-700'
                           : 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300'
                         } ${isRepeatSymbol ? 'text-sm' : 'text-xs'}`}
@@ -1327,9 +1382,14 @@ export default function GrilleEditorPage({ params }: { params: { id: string; gri
                 {RIGHT_MARKERS.map((m) => {
                   const isRepeatSymbol = m.val === '||:' || m.val === ':||' || m.val === ':|:'
                   return (
-                    <button key={m.val} onClick={() => applyValue(m.val)} title={m.title}
+                    <button
+                      key={m.val}
+                      onClick={() => applyValue(
+                        isRepeatSymbol ? toggleMarkerRepeat(inputVal, m.val) : setMarkerText(inputVal, m.val),
+                      )}
+                      title={m.title}
                       className={`rounded-md border px-3 py-1 font-semibold transition-colors
-                        ${inputVal === m.val
+                        ${(isRepeatSymbol ? splitMarker(inputVal).repeat === m.val : splitMarker(inputVal).text === m.val)
                           ? 'border-indigo-400 bg-indigo-100 text-indigo-700 font-black'
                           : 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300'
                         } ${isRepeatSymbol ? 'text-sm font-black' : 'text-xs'}`}

@@ -51,9 +51,14 @@ function barSignature(bar: BarData): string {
   return bar.b.map((x) => x.trim()).join('')
 }
 
-/** Annotations portées par une mesure (marqueurs de début et de fin). */
+/**
+ * Annotations portées par une mesure : marqueurs de début et de fin, et texte
+ * posé au-dessus de chaque temps. Toutes doivent ressortir sur un renvoi, sinon
+ * replier une section les ferait disparaître de l'écran.
+ */
 function barNotes(bar: BarData): string[] {
-  return [bar.l.trim(), bar.r.trim()].filter(Boolean)
+  const perBeat = Array.isArray(bar.n) ? bar.n.map((v) => (typeof v === 'string' ? v.trim() : '')) : []
+  return [bar.l.trim(), ...perBeat, bar.r.trim()].filter(Boolean)
 }
 
 function isBarEmpty(bar: BarData): boolean {

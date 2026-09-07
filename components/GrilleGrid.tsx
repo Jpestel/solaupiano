@@ -1,6 +1,6 @@
 'use client'
 
-import type { BarData } from '@/lib/grille'
+import { beatNotes, hasBeatNotes, type BarData } from '@/lib/grille'
 
 /* ─── Rendu d'un temps (accord(s)) ─── */
 export function BeatContent({ content, fontSize }: { content: string; fontSize: number }) {
@@ -15,8 +15,36 @@ export function BeatContent({ content, fontSize }: { content: string; fontSize: 
   )
 }
 
-export const isRepeatMarker = (value: string) =>
-  value === '||:' || value === ':||' || value === ':|:'
+const REPEAT_SYMBOLS = ['||:', ':|:', ':||']
+
+/**
+ * Un marqueur peut porter À LA FOIS un signe de reprise et du texte :
+ * « ||: Intro » doit donner la barre dessinée ET l'annotation « Intro ».
+ * Sans cette séparation, la valeur entière cessait d'être reconnue comme une
+ * reprise et retombait en petit texte — la barre disparaissait.
+ */
+export function splitMarker(value: string): { repeat: string; text: string } {
+  const v = (value || '').trim()
+  for (const symbol of REPEAT_SYMBOLS) {
+    if (v.startsWith(symbol)) return { repeat: symbol, text: v.slice(symbol.length).trim() }
+    if (v.endsWith(symbol)) return { repeat: symbol, text: v.slice(0, -symbol.length).trim() }
+  }
+  return { repeat: '', text: v }
+}
+
+export const isRepeatMarker = (value: string) => splitMarker(value).repeat !== ''
+
+/** Pose ou retire le signe de reprise, sans toucher au texte déjà écrit. */
+export function toggleMarkerRepeat(current: string, symbol: string): string {
+  const { repeat, text } = splitMarker(current)
+  return [repeat === symbol ? '' : symbol, text].filter(Boolean).join(' ')
+}
+
+/** Remplace le texte, sans toucher au signe de reprise déjà posé. */
+export function setMarkerText(current: string, text: string): string {
+  const { repeat } = splitMarker(current)
+  return [repeat, text.trim()].filter(Boolean).join(' ')
+}
 
 /**
  * Les marqueurs suivent la taille de texte choisie (boutons A/A).
@@ -73,16 +101,52 @@ export function MarkerContent({
   side: 'left' | 'right'
   fontSize?: number
 }) {
-  if (!value || isRepeatMarker(value)) return null
+  const { text } = splitMarker(value)
+  if (!text) return null
   return (
     <span
-      className={`select-none font-extrabold leading-none text-indigo-900 ${
+      className={`select-none truncate font-extrabold leading-none text-indigo-900 ${
         side === 'right' ? 'text-right' : 'text-left'
       }`}
       style={{ fontSize: markerFontSize(fontSize) }}
     >
-      {value}
+      {text}
     </span>
+  )
+}
+
+/** Hauteur de la bande d'annotations de temps. */
+export const beatNotesHeight = (fontSize: number) => markerFontSize(fontSize) + 6
+
+/**
+ * Annotations posées au-dessus de chaque temps (« Solo », « cresc. »), alignées
+ * sur les colonnes de temps. La bande n'apparaît que sur les lignes qui en
+ * portent, pour ne rien changer aux grilles qui n'en utilisent pas.
+ */
+export function BeatNotesStrip({
+  bar, bpb, fontSize,
+}: {
+  bar: BarData
+  bpb: number
+  fontSize: number
+}) {
+  const notes = beatNotes(bar, bpb)
+  return (
+    <div
+      className="flex border-b border-gray-100"
+      style={{ height: `${beatNotesHeight(fontSize)}px`, ...repeatInsets(bar) }}
+    >
+      {notes.map((note, i) => (
+        <div key={i} className="flex min-w-0 flex-1 items-center justify-center px-0.5">
+          <span
+            className="truncate font-bold leading-none text-indigo-800"
+            style={{ fontSize: markerFontSize(fontSize) }}
+          >
+            {note}
+          </span>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -107,7 +171,6 @@ export function GrilleGrid({
     rows.push(Array.from({ length: bpr }, (_, k) => i + k))
   }
   const headerH = headerHeight(fontSize)
-  const beatsH = Math.max(24, barHeight - headerH)
 
   return (
     <table className="min-w-[720px] border-collapse sm:w-full sm:min-w-0">
@@ -115,6 +178,10 @@ export function GrilleGrid({
         {rows.map((row, rowIdx) => (
           <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/80'}>
             {row.map((barIdx) => {
+              // Toute la ligne réserve la bande dès qu'une mesure en porte une,
+              // sinon les zones de temps ne seraient plus alignées entre elles.
+              const rowNotes = row.some((k) => k < cells.length && hasBeatNotes(cells[k]))
+              const notesH = rowNotes ? beatNotesHeight(fontSize) : 0
               if (barIdx >= cells.length) return (
                 <td key={barIdx} className="border border-gray-200 bg-gray-50/30"
                   style={{ width: `${(100 / bpr).toFixed(1)}%`, height: `${barHeight}px` }} />
@@ -151,8 +218,13 @@ export function GrilleGrid({
                     </div>
                   </div>
 
+                  {rowNotes && <BeatNotesStrip bar={bar} bpb={bpb} fontSize={fontSize} />}
+
                   {/* Zones de temps */}
-                  <div className="flex" style={{ height: `${beatsH}px`, ...repeatInsets(bar) }}>
+                  <div
+                    className="flex"
+                    style={{ height: `${Math.max(24, barHeight - headerH - notesH)}px`, ...repeatInsets(bar) }}
+                  >
                     {Array.from({ length: bpb }).map((_, beatIdx) => (
                       <div
                         key={beatIdx}

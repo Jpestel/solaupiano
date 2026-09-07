@@ -8,8 +8,30 @@
  *   b = tableau de temps (un accord/contenu par temps)
  *   r = symbole de fin de mesure (:||, Coda, Fine…)
  *   c = couleur de fond facultative (repérer couplet / refrain / pont…)
+ *   n = annotation facultative au-dessus de chaque temps (« Solo », « cresc. »)
+ *
+ * `n` n'est présent que s'il porte quelque chose : une grille sans annotation
+ * de temps ne traîne pas un tableau de chaînes vides à chaque mesure.
  */
-export type BarData = { l: string; b: string[]; r: string; c?: string }
+export type BarData = { l: string; b: string[]; r: string; c?: string; n?: string[] }
+
+/** Annotations par temps, ramenées à la longueur de la mesure. */
+export function beatNotes(bar: BarData, bpb: number): string[] {
+  const src = Array.isArray(bar.n) ? bar.n : []
+  return Array.from({ length: bpb }, (_, i) => (typeof src[i] === 'string' ? src[i] : ''))
+}
+
+export function hasBeatNotes(bar: BarData): boolean {
+  return Array.isArray(bar.n) && bar.n.some((v) => typeof v === 'string' && v.trim() !== '')
+}
+
+/** Range `n` dans la mesure, ou l'enlève si plus rien n'y est écrit. */
+export function withBeatNotes(bar: BarData, notes: string[]): BarData {
+  const next = { ...bar }
+  if (notes.some((v) => v.trim() !== '')) next.n = notes
+  else delete next.n
+  return next
+}
 
 /**
  * Nombre de mesures : saisie libre, avec une seule garde haute technique.
@@ -51,7 +73,11 @@ export function normalizeCells(raw: unknown, totalBars: number, bpb: number): Ba
       // Format courant BarData { l, b, r, c }
       const bar = item as any
       const beats = (Array.isArray(bar.b) ? bar.b : []).map((v: any) => (typeof v === 'string' ? v : ''))
-      result.push({ l: bar.l || '', b: pad(beats), r: bar.r || '', c: safeBarColor(bar.c) })
+      const notes = (Array.isArray(bar.n) ? bar.n : []).map((v: any) => (typeof v === 'string' ? v : ''))
+      result.push(withBeatNotes(
+        { l: bar.l || '', b: pad(beats), r: bar.r || '', c: safeBarColor(bar.c) },
+        pad(notes),
+      ))
 
     } else if (item && typeof item === 'object' && !Array.isArray(item) && 'chord' in item) {
       // Ancien format de démo { chord, section }

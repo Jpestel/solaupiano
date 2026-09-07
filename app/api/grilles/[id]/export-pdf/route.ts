@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { coChefCanDo } from '@/lib/permissions'
 import { getGroupStorageInfo } from '@/lib/storage'
 
-type BarData = { l: string; b: string[]; r: string; c?: string }
+type BarData = { l: string; b: string[]; r: string; c?: string; n?: string[] }
 
 /** Couleur de fond de mesure : on n'accepte qu'un hex #rrggbb. */
 function safeBarColor(value: unknown): string | undefined {
@@ -44,6 +44,8 @@ function normalizeCells(raw: unknown, totalBars: number, bpb: number): BarData[]
         b: beats.length < bpb ? [...beats, ...Array(bpb - beats.length).fill('')] : beats.slice(0, bpb),
         r: typeof bar.r === 'string' ? bar.r : '',
         c: safeBarColor(bar.c),
+        // Annotations posees au-dessus de chaque temps
+        n: Array.isArray(bar.n) ? bar.n.map((v: any) => (typeof v === 'string' ? v : '')) : undefined,
       })
     } else if (item && typeof item === 'object' && !Array.isArray(item) && 'chord' in item) {
       const legacy = item as any
@@ -206,11 +208,28 @@ function generateChartPdf(chart: any, textSize: number) {
       if (annotL) doc.text(annotL, x + 8, y + 4.6, { maxWidth: cellW * 0.35 })
       if (annotR) doc.text(annotR, x + cellW - 3.5, y + 4.6, { align: 'right', maxWidth: cellW * 0.35 })
 
+      // Annotations de temps, juste sous la bandelette
+      const notes = Array.isArray(bar.n) ? bar.n : []
+      const hasNotes = notes.some((v) => typeof v === 'string' && v.trim() !== '')
+      const notesH = hasNotes ? 3.6 : 0
+      if (hasNotes) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(6.5)
+        doc.setTextColor(55, 48, 163)
+        for (let k = 0; k < bpb; k++) {
+          const note = (notes[k] || '').trim()
+          if (!note) continue
+          doc.text(note, x + (cellW / bpb) * (k + 0.5), y + barHeaderH + 2.6, {
+            align: 'center', maxWidth: cellW / bpb - 1.5,
+          })
+        }
+      }
+
       for (let beatIdx = 0; beatIdx < bpb; beatIdx++) {
         const beatX = x + (cellW / bpb) * beatIdx
         if (beatIdx > 0) {
           doc.setDrawColor('#eeeeee')
-          doc.line(beatX, y + barHeaderH, beatX, y + rowH)
+          doc.line(beatX, y + barHeaderH + notesH, beatX, y + rowH)
         }
         const beat = bar.b[beatIdx] || ''
         if (!beat.trim()) continue
@@ -219,7 +238,7 @@ function generateChartPdf(chart: any, textSize: number) {
         doc.setTextColor(17, 24, 39)
         const parts = beat.trim().split(/\s+/).slice(0, 3)
         const centerX = beatX + cellW / bpb / 2
-        const baseY = y + barHeaderH + 7
+        const baseY = y + barHeaderH + notesH + 7
         parts.forEach((part, index) => {
           doc.text(part, centerX, baseY + index * Math.max(4, textSize * 0.38), { align: 'center', maxWidth: cellW / bpb - 2 })
         })
