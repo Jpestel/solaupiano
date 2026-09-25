@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
+import { youtubeVideoId, youtubeTimes, buildYoutubeEmbedUrl } from './youtube'
 
 export function formatDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date
@@ -75,16 +76,12 @@ export function getVideoEmbedUrl(url: string): string | null {
     const host = u.hostname.replace(/^www\./, '')
 
     // YouTube: youtube.com/watch?v=ID  |  youtu.be/ID  |  youtube.com/shorts/ID
-    if (host === 'youtube.com' || host === 'youtu.be') {
-      let id: string | null = null
-      if (host === 'youtu.be') {
-        id = u.pathname.slice(1).split('/')[0]
-      } else if (u.pathname.startsWith('/shorts/')) {
-        id = u.pathname.split('/shorts/')[1]?.split('/')[0]
-      } else {
-        id = u.searchParams.get('v')
-      }
-      if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`
+    // Le début et la fin inscrits dans le lien sont repris : sans cela, un lien
+    // pointant sur un passage précis repartait du début dans le lecteur.
+    const id = youtubeVideoId(url)
+    if (id && (host === 'youtube.com' || host === 'youtu.be' || host === 'music.youtube.com')) {
+      const times = youtubeTimes(url)
+      return buildYoutubeEmbedUrl(id, times, { autoplay: true })
     }
 
     // Vimeo: vimeo.com/ID  or  vimeo.com/channels/*/ID

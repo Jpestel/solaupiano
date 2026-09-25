@@ -89,6 +89,14 @@ export const MODULES: ModuleDef[] = [
     category: 'outil',
   },
   {
+    key: 'tool_youtube_extrait',
+    label: 'Extrait YouTube',
+    description: "Fabrique un lien YouTube qui démarre à un instant précis (3:43, 3mn43…) et, dans un lecteur intégré, qui s'arrête à l'instant voulu. Utile pour pointer un solo ou un passage difficile.",
+    href: '/outils/youtube-extrait',
+    icon: '▶️',
+    category: 'outil',
+  },
+  {
     key: 'tool_video2audio',
     label: 'Vidéo → MP3 / WAV',
     description: "Extrait la piste audio d'un fichier vidéo (MP4, MOV, WEBM…) en MP3 ou WAV. Conversion locale dans le navigateur — rien n'est envoyé au serveur. Réservé aux contenus dont l'utilisateur détient les droits.",
