@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { planForNewGroup } from '@/lib/user-plan'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -48,12 +49,15 @@ export async function POST(req: NextRequest) {
   if (!chefId) return NextResponse.json({ error: 'Un chef est requis.' }, { status: 400 })
 
   // Le groupe hérite du statut « de test » de son chef fondateur.
-  const chef = await prisma.user.findUnique({ where: { id: Number(chefId) }, select: { isTest: true } })
+  const chef = await prisma.user.findUnique({ where: { id: Number(chefId) }, select: { isTest: true, accountPlan: true } })
+  // Un nouveau groupe démarre avec le plan le plus complet (voir lib/user-plan.ts)
+  const newGroupPlan = await planForNewGroup(chef?.accountPlan ?? 'FREE')
 
   const group = await prisma.group.create({
     data: {
       name: name.trim(),
       description: description?.trim() || null,
+      plan: newGroupPlan,
       isTest: chef?.isTest ?? false,
       createdBy: Number(chefId),
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,

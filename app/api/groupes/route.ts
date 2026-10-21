@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { planForNewGroup } from '@/lib/user-plan'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -98,12 +99,14 @@ export async function POST(req: NextRequest) {
     : await prisma.user.findUnique({ where: { id: chefUserId }, select: { accountPlan: true, isTest: true } })
   const founderPlanKey = founder?.accountPlan ?? 'FREE'
   const founderIsTest = founder?.isTest ?? false
+  // Un nouveau groupe démarre avec le plan le plus complet (voir lib/user-plan.ts)
+  const newGroupPlan = await planForNewGroup(founderPlanKey)
 
   const group = await prisma.group.create({
     data: {
       name: name.trim(),
       type: groupType,
-      plan: founderPlanKey,
+      plan: newGroupPlan,
       isTest: founderIsTest,
       description: description?.trim() || undefined,
       style: typeof style === 'string' && style.trim() ? style.trim() : undefined,
