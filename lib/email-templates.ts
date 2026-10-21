@@ -282,12 +282,13 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
   {
     key: 'invitation',
     name: 'Invitation à rejoindre',
-    description: 'Envoyé quand un chef invite quelqu\'un à rejoindre son groupe.',
+    description: 'Envoyé quand un chef invite quelqu\'un à rejoindre son groupe. Quand l\'invitation part depuis un groupe, l\'e-mail contient le lien de ce groupe et la personne y est ajoutée dès son inscription.',
     defaultSubject: '{{fromName}} vous invite à rejoindre Sol au piano',
     defaultIntro: 'Vous avez été invité(e) par {{fromName}} à rejoindre la plateforme Sol au piano.',
     defaultOutro: 'Créez votre compte gratuitement et rejoignez le groupe.',
     variables: [
       { key: 'fromName', description: 'Nom de l\'invitant' },
+      { key: 'groupName', description: 'Nom du groupe invitant (vide pour une invitation générale)' },
     ],
   },
   {

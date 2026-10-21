@@ -757,9 +757,15 @@ export async function sendMemberRemovedEmail(
 
 // ─── 6. Invitation ────────────────────────────────────────────────────────────
 
-export async function sendInvitationEmail(to: string, fromName: string, personalMessage: string | null, signupUrl: string) {
+export async function sendInvitationEmail(
+  to: string,
+  fromName: string,
+  personalMessage: string | null,
+  signupUrl: string,
+  groupName?: string | null,
+) {
   const tpl = await getEmailTemplate('invitation')
-  const { subject, introHtml, outroHtml } = tpl.render({ fromName })
+  const { subject, introHtml, outroHtml } = tpl.render({ fromName, groupName: groupName || '' })
 
   await sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
@@ -782,8 +788,17 @@ export async function sendInvitationEmail(to: string, fromName: string, personal
           <li style="font-size: 13px; color: #4b5563;">✅ &nbsp;Suivre votre préparation morceau par morceau</li>
         </ul>
       </div>
+      ${groupName ? dataBox(`
+        <p style="margin:0 0 4px; font-size:13px; color:#1d4ed8;">Vous êtes invité(e) à rejoindre</p>
+        <p style="margin:0; font-size:17px; font-weight:700; color:#1e3a8a;">🎵 ${escapeHtml(groupName)}</p>
+      `) : ''}
       ${outroHtml}
-      ${ctaButton(signupUrl, 'Créer mon compte gratuitement')}
+      ${ctaButton(signupUrl, groupName ? `Rejoindre ${escapeHtml(groupName)}` : 'Créer mon compte gratuitement')}
+      ${groupName ? `
+      <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 12px 0 0;">
+        Ce bouton vous emmène directement sur la page du groupe. Créez votre compte
+        (ou connectez-vous) et vous y serez ajouté(e) aussitôt.
+      </p>` : ''}
       <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 12px 0 0;">
         Si vous n'êtes pas musicien ou ne souhaitez pas rejoindre Sol au piano, ignorez simplement cet email.
       </p>

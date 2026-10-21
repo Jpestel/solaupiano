@@ -84,10 +84,12 @@ export function InvitePanel({ groupId, groupType }: { groupId: number; groupType
   // 2) Invitation à s'inscrire : envoie un email d'invitation à créer un compte
   const handleSignupInvite = async () => {
     setSignupLoading(true)
+    // `groupId` est indispensable : sans lui, l'e-mail n'emmène que vers une
+    // inscription nue et la personne ne retrouve jamais le groupe.
     const res = await fetch('/api/auth/inviter', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: notRegistered }),
+      body: JSON.stringify({ email: notRegistered, groupId }),
     })
     setSignupLoading(false)
     if (res.ok) {
@@ -203,7 +205,9 @@ export function InvitePanel({ groupId, groupType }: { groupId: number; groupType
             Aucun compte Sol au piano n&apos;est associé à <strong>{notRegistered}</strong>.
           </p>
           <p className="text-xs text-amber-600 mt-0.5 mb-2.5">
-            On ne peut ajouter {isSchool ? 'à la classe' : 'au groupe'} qu&apos;un {inviteLabel} déjà inscrit. Envoyez-lui plutôt une invitation à créer son compte :
+            On ne peut ajouter {isSchool ? 'à la classe' : 'au groupe'} qu&apos;un {inviteLabel} déjà inscrit.
+            Envoyez-lui une invitation : elle contient le lien {isSchool ? 'de la classe' : 'du groupe'},
+            et {isSchool ? 'l’élève' : 'le musicien'} {isSchool ? 'y' : 'y'} sera ajouté{isSchool ? '(e)' : '(e)'} dès son inscription.
           </p>
           <button
             onClick={handleSignupInvite}
@@ -218,7 +222,9 @@ export function InvitePanel({ groupId, groupType }: { groupId: number; groupType
       {/* Confirmation invitation inscription envoyée */}
       {signupSent && (
         <div className="mt-3 rounded-lg bg-green-50 border border-green-200 px-3 py-2.5 text-sm text-green-700">
-          ✅ Invitation envoyée à <strong>{signupSent}</strong>. Une fois inscrit, revenez l&apos;ajouter au groupe avec son e-mail.
+          ✅ Invitation envoyée à <strong>{signupSent}</strong>. Le lien {isSchool ? 'de la classe' : 'du groupe'} est
+          dans l&apos;e-mail : dès qu&apos;elle aura créé son compte, la personne rejoindra {isSchool ? 'la classe' : 'le groupe'}
+          d&apos;un clic — vous n&apos;avez rien à refaire.
         </div>
       )}
     </div>
