@@ -21,15 +21,11 @@ export const metadata = {
   description: 'Découvrez les plans Sol au piano et choisissez celui qui vous convient.',
 }
 
-function fmtPrice(price: number | null | undefined) {
-  if (!price) return 'Gratuit'
-  return `${price.toFixed(2).replace('.', ',')} €`
-}
-
-function fmtPriceLabel(price: number | null | undefined) {
-  if (!price) return 'Gratuit'
-  return `${price.toFixed(2).replace('.', ',')} €/mois`
-}
+// Sol au piano est un projet personnel gratuit : aucun montant n'est affiché ni
+// facturé. Les niveaux ne servent plus qu'à décrire les limites techniques.
+// Les prix restent en base pour un éventuel retour en arrière.
+function fmtPrice(_price?: number | null) { return 'Gratuit' }
+function fmtPriceLabel(_price?: number | null) { return 'Offert' }
 
 export default async function TarifsPage() {
   const [groupPlans, allModuleAccess, session] = await Promise.all([
@@ -119,10 +115,14 @@ export default async function TarifsPage() {
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 text-center">
           <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 leading-tight">
-            Choisissez votre <span className="text-indigo-600">plan</span>
+            Les <span className="text-indigo-600">niveaux</span>
           </h1>
           <p className="mt-3 text-gray-500 text-sm sm:text-lg leading-relaxed">
-            Un seul compte qui fait tout. Les plans changent seulement les limites (groupes, stockage) — commencez gratuitement, évoluez quand vous en avez besoin.
+            Un seul compte qui fait tout. Les niveaux ne changent que les limites (groupes, stockage).
+          </p>
+          <p className="mt-4 inline-block rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+            <strong>Tout est gratuit.</strong> Sol au piano est un projet personnel sans but lucratif :
+            rien n&apos;est vendu et aucun moyen de paiement n&apos;est demandé.
           </p>
         </div>
       </div>
@@ -148,14 +148,14 @@ export default async function TarifsPage() {
                   key={plan.id}
                   emoji={planIcon(plan)}
                   title={plan.label}
-                  badge={isFree ? 'Gratuit · Limité' : plan.label === 'Pro' ? 'Tout débloqué' : plan.description ?? plan.label}
+                  badge={isFree ? 'Limité' : plan.label === 'Pro' ? 'Tout débloqué' : plan.description ?? plan.label}
                   badgeColor={isFree ? 'gray' : color === 'purple' ? 'purple' : 'indigo'}
                   description={plan.description ?? `Plan ${plan.label}.`}
-                  price={isFree ? 'Gratuit' : `${fmtPrice(plan.priceMonthly)} / mois`}
+                  price="Gratuit"
                   features={buildCardFeatures(plan, isFree)}
                   modulesData={planModules(plan.key)}
-                  cta={isFree ? 'Démarrer gratuitement' : `Démarrer avec ${plan.label}`}
-                  href="/inscription"
+                  cta="Demander un accès"
+                  href="/demander-acces"
                   variant={variant as 'default' | 'indigo' | 'purple'}
                   highlight={isHighlighted}
                   planColor={color}
@@ -164,7 +164,7 @@ export default async function TarifsPage() {
             })}
           </div>
           <p className="text-center text-xs text-gray-400 mt-4">
-            Pas d&apos;engagement. Plans payants résiliables à tout moment depuis votre profil.
+            Aucun engagement, aucun paiement. Le niveau d&apos;un groupe est attribué par l&apos;éditeur.
           </p>
         </section>
 
@@ -237,7 +237,7 @@ export default async function TarifsPage() {
                 : "Le plan gratuit vous permet de tester la plateforme avec votre groupe. Passez à un plan payant pour débloquer toutes les fonctionnalités."}
             />
             <FaqItem
-              q={paidPlans[0] ? `Pourquoi passer au plan ${paidPlans[0].label} ?` : 'Pourquoi passer à un plan payant ?'}
+              q={paidPlans[0] ? `Qu'apporte le niveau ${paidPlans[0].label} ?` : "Qu'apportent les niveaux supérieurs ?"}
               a={proWorthText}
             />
             <FaqItem
@@ -245,16 +245,20 @@ export default async function TarifsPage() {
               a={storageText}
             />
             <FaqItem
-              q="Puis-je changer de plan à tout moment ?"
-              a="Oui, depuis votre profil. Passage en plan payant immédiat. Résiliation sans frais ni pénalité."
+              q="Puis-je changer de niveau ?"
+              a="Les niveaux sont attribués par l'éditeur. Si les limites de votre groupe vous gênent, écrivez-lui : l'ajustement est gratuit."
             />
             <FaqItem
-              q="Faut-il une carte bancaire pour s'inscrire ?"
-              a="Non. L'inscription est 100% gratuite. Vous ne renseignez une carte bancaire que si vous choisissez un plan payant."
+              q="Faut-il une carte bancaire ?"
+              a="Non, jamais. Sol au piano est un projet personnel gratuit et sans but lucratif : aucun paiement n'est demandé et aucun moyen de paiement n'est collecté."
+            />
+            <FaqItem
+              q="Comment obtenir un accès ?"
+              a="L'accès se fait sur invitation. Si un chef d'orchestre ou un professeur vous a invité, suivez le lien reçu par email. Sinon, demandez un accès à l'éditeur depuis la page « Demander un accès »."
             />
             {groupPlans.length > 1 && (
               <FaqItem
-                q="Comment choisir entre les différents plans payants ?"
+                q="Qu'est-ce qui distingue les niveaux ?"
                 a={groupPlans
                   .filter(p => p.priceMonthly !== null)
                   .map(p => `${p.label} (${fmtPriceLabel(p.priceMonthly)}) — ${p.description ?? p.label}`)
@@ -270,7 +274,7 @@ export default async function TarifsPage() {
             <>
               <h2 className="text-xl sm:text-2xl font-bold mb-2">Besoin de plus ?</h2>
               <p className="text-indigo-100 text-sm mb-5">
-                Pour changer le plan d&apos;un groupe, ouvrez-le et choisissez votre formule dans la section « Plans &amp; tarifs ».
+                Si les limites de votre groupe vous gênent, écrivez à l&apos;éditeur : l&apos;ajustement est gratuit.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link href="/groupes" className="rounded-xl bg-white text-indigo-700 font-semibold px-6 py-3 text-sm hover:bg-indigo-50 transition-colors shadow-sm">
@@ -283,13 +287,13 @@ export default async function TarifsPage() {
             </>
           ) : (
             <>
-              <h2 className="text-xl sm:text-2xl font-bold mb-2">Prêt à commencer ?</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">Envie de nous rejoindre ?</h2>
               <p className="text-indigo-100 text-sm mb-5">
-                L&apos;inscription est gratuite. Évoluez vers un plan payant quand vous en avez besoin.
+                L&apos;accès se fait sur invitation. Si personne ne vous a invité, demandez un accès à l&apos;éditeur.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link href="/inscription" className="rounded-xl bg-white text-indigo-700 font-semibold px-6 py-3 text-sm hover:bg-indigo-50 transition-colors shadow-sm">
-                  Créer mon compte gratuitement
+                <Link href="/demander-acces" className="rounded-xl bg-white text-indigo-700 font-semibold px-6 py-3 text-sm hover:bg-indigo-50 transition-colors shadow-sm">
+                  Demander un accès
                 </Link>
                 <Link href="/connexion" className="rounded-xl border border-indigo-400 text-white font-semibold px-6 py-3 text-sm hover:bg-indigo-500 transition-colors">
                   Déjà inscrit ? Se connecter

@@ -3,11 +3,12 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendEmailVerification, sendNewUserNotification } from '@/lib/email'
+import { accessTokenMatches } from '@/lib/acces'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, email, password, instrumentIds, otherInstrument } = body
+    const { name, email, password, instrumentIds, otherInstrument, inviteToken, acces } = body
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Tous les champs obligatoires doivent être remplis.' }, { status: 400 })
@@ -24,6 +25,32 @@ export async function POST(req: NextRequest) {
 
     const userCount = await prisma.user.count()
     const isFirstUser = userCount === 0
+
+    /* ─── Accès sur invitation ───
+       L'inscription n'est pas ouverte au public : il faut soit le lien
+       d'invitation d'un groupe, soit une invitation personnelle de l'éditeur.
+       Ce contrôle est ici, et pas seulement dans l'écran d'inscription, parce
+       que c'est le seul endroit qu'on ne peut pas contourner. */
+    let invitedByGroupId: number | null = null
+    if (!isFirstUser) {
+      if (inviteToken) {
+        const group = await prisma.group.findUnique({
+          where: { inviteToken: String(inviteToken) },
+          select: { id: true, archivedAt: true },
+        })
+        if (group && !group.archivedAt) invitedByGroupId = group.id
+      }
+      const parAcces = typeof acces === 'string' && accessTokenMatches(acces, email)
+
+      if (invitedByGroupId === null && !parAcces) {
+        return NextResponse.json({
+          error: "L'inscription à Sol au piano se fait uniquement sur invitation. "
+            + "Si un chef d'orchestre ou un professeur vous a invité, utilisez le lien reçu par email. "
+            + 'Sinon, demandez un accès à l\'éditeur.',
+          code: 'INVITATION_REQUISE',
+        }, { status: 403 })
+      }
+    }
 
     const hashedPassword = await bcrypt.hash(password, 12)
 

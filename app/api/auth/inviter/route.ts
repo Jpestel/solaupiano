@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendInvitationEmail } from '@/lib/email'
 import { coChefCanDo } from '@/lib/permissions'
+import { signAccessToken } from '@/lib/acces'
 
 /**
  * Invitation à créer un compte.
@@ -12,8 +13,10 @@ import { coChefCanDo } from '@/lib/permissions'
  * Avec `groupId`, le lien envoyé est celui du groupe (/rejoindre/<jeton>) et non
  * une inscription nue : sans cela, la personne crée son compte et se retrouve
  * sans aucun moyen de retrouver le groupe — rien ne la rattache à lui.
- * Sans `groupId` (invitation générale depuis le tableau de bord), on garde
- * l'inscription simple.
+ * Sans `groupId`, l'invitation est une invitation personnelle de l'éditeur :
+ * le lien porte un jeton d'accès signé, lié à l'adresse invitée. L'inscription
+ * étant réservée aux invités, un membre ordinaire ne peut pas en émettre —
+ * il invite depuis son groupe.
  */
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -26,7 +29,7 @@ export async function POST(req: NextRequest) {
   const userId = Number(session.user.id)
   const isAdmin = session.user.siteRole === 'ADMIN'
 
-  let signupUrl = `${baseUrl}/inscription`
+  let signupUrl = ''
   let groupName: string | null = null
 
   if (groupId !== undefined && groupId !== null && groupId !== '') {
@@ -61,6 +64,17 @@ export async function POST(req: NextRequest) {
 
     signupUrl = `${baseUrl}/rejoindre/${token}`
     groupName = group.name
+  }
+
+  if (!signupUrl) {
+    // Pas de groupe : seule l'éditeur peut ouvrir un accès de sa propre initiative.
+    if (!isAdmin) {
+      return NextResponse.json({
+        error: "L'inscription est réservée aux personnes invitées. Invitez depuis votre groupe : "
+          + 'ouvrez-le, puis « Inviter ». Le lien du groupe sera envoyé avec l\'invitation.',
+      }, { status: 403 })
+    }
+    signupUrl = `${baseUrl}/inscription?acces=${encodeURIComponent(signAccessToken(email))}`
   }
 
   await sendInvitationEmail(

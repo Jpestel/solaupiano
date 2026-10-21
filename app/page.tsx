@@ -182,16 +182,16 @@ export default async function PublicHomePage() {
                 <>
                   <div className="sp-fade-up mt-6 flex flex-wrap items-center gap-3" style={{ animationDelay: '0.35s' }}>
                     <Link
-                      href="/inscription"
+                      href="/demander-acces"
                       className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-gray-100 transition-colors shadow-lg shadow-black/10"
                     >
-                      Créer mon compte gratuitement
+                      Demander un accès
                     </Link>
                     <Link
                       href="/tarifs"
                       className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/25 backdrop-blur transition-colors"
                     >
-                      Voir les tarifs →
+                      Voir les niveaux →
                     </Link>
                     <Link
                       href="/connexion"
@@ -208,7 +208,7 @@ export default async function PublicHomePage() {
                     <p className="text-xs text-white/60 mb-3">Inutile de choisir maintenant : votre compte sait tout faire, vous décidez au fil de l&apos;eau.</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
                       <Link
-                        href="/inscription"
+                        href="/demander-acces"
                         className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-all duration-200 hover:-translate-y-0.5"
                       >
                         <div className="flex items-center gap-2 text-white font-semibold">
@@ -217,7 +217,7 @@ export default async function PublicHomePage() {
                         <p className="mt-1 text-sm text-white/70">Votre répertoire et vos accords ; rejoignez un groupe sur invitation ou candidatez.</p>
                       </Link>
                       <Link
-                        href="/inscription"
+                        href="/demander-acces"
                         className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-all duration-200 hover:-translate-y-0.5"
                       >
                         <div className="flex items-center gap-2 text-white font-semibold">
@@ -226,7 +226,7 @@ export default async function PublicHomePage() {
                         <p className="mt-1 text-sm text-white/70">Organisez répétitions et concerts, recrutez les musiciens qui manquent.</p>
                       </Link>
                       <Link
-                        href="/inscription"
+                        href="/demander-acces"
                         className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-all duration-200 hover:-translate-y-0.5"
                       >
                         <div className="flex items-center gap-2 text-white font-semibold">
@@ -235,7 +235,7 @@ export default async function PublicHomePage() {
                         <p className="mt-1 text-sm text-white/70">Ouvrez une classe, suivez vos élèves, leurs devoirs et leur progression — en privé.</p>
                       </Link>
                       <Link
-                        href="/inscription"
+                        href="/demander-acces"
                         className="group rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 p-4 backdrop-blur transition-all duration-200 hover:-translate-y-0.5"
                       >
                         <div className="flex items-center gap-2 text-white font-semibold">
@@ -244,8 +244,8 @@ export default async function PublicHomePage() {
                         <p className="mt-1 text-sm text-white/70">Rejoignez la classe de votre professeur, accédez à vos morceaux et à votre suivi.</p>
                       </Link>
                     </div>
-                    <Link href="/inscription" className="mt-4 inline-block text-sm font-semibold text-amber-300 hover:text-amber-200 transition-colors">
-                      Créer mon compte gratuitement →
+                    <Link href="/demander-acces" className="mt-4 inline-block text-sm font-semibold text-amber-300 hover:text-amber-200 transition-colors">
+                      Demander un accès →
                     </Link>
                   </div>
                 </>
@@ -302,14 +302,14 @@ export default async function PublicHomePage() {
             <p className="text-xs text-indigo-600 mt-0.5">
               {isLoggedIn
                 ? 'Ajoutez vos concerts et passez-les en « Public » pour les rendre visibles ici.'
-                : 'Inscrivez-vous et ajoutez vos événements pour les rendre visibles ici.'}
+                : 'Une fois invité·e, ajoutez vos événements pour les rendre visibles ici.'}
             </p>
           </div>
           <Link
-            href={isLoggedIn ? '/groupes' : '/inscription'}
+            href={isLoggedIn ? '/groupes' : '/demander-acces'}
             className="flex-shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
           >
-            {isLoggedIn ? 'Mes groupes' : 'S’inscrire'}
+            {isLoggedIn ? 'Mes groupes' : 'Demander un accès'}
           </Link>
         </div>
       </div>
@@ -473,7 +473,7 @@ export default async function PublicHomePage() {
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-gray-500">
             <Link href="/connexion" className="hover:text-indigo-600 transition-colors">Connexion</Link>
-            <Link href="/inscription" className="hover:text-indigo-600 transition-colors">Inscription</Link>
+            <Link href="/demander-acces" className="hover:text-indigo-600 transition-colors">Demander un accès</Link>
             <Link href="/annonces" className="hover:text-indigo-600 transition-colors">Annonces</Link>
             <Link href="/blog" className="hover:text-indigo-600 transition-colors">Blog</Link>
             <Link href="/tarifs" className="hover:text-indigo-600 transition-colors">Tarifs</Link>

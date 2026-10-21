@@ -27,6 +27,22 @@ export default function InscriptionPage() {
   const [instrumentSearch, setInstrumentSearch] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  /* Contexte d'invitation. L'inscription n'est pas ouverte au public : elle
+     n'est possible qu'avec le lien d'invitation d'un groupe (transmis dans
+     callbackUrl par /rejoindre) ou une invitation personnelle de l'éditeur. */
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
+  const [acces, setAcces] = useState<string | null>(null)
+  const [contexteLu, setContexteLu] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const cb = params.get('callbackUrl') || ''
+    const m = cb.match(/\/rejoindre\/([A-Za-z0-9_-]+)/)
+    if (m) setInviteToken(m[1])
+    const a = params.get('acces')
+    if (a) setAcces(a)
+    setContexteLu(true)
+  }, [])
 
   useEffect(() => {
     fetch('/api/instruments')
@@ -69,6 +85,8 @@ export default function InscriptionPage() {
         password: form.password,
         instrumentIds: form.instrumentIds,
         otherInstrument: form.otherInstrument.trim() || undefined,
+        inviteToken: inviteToken || undefined,
+        acces: acces || undefined,
       }),
     })
 
@@ -116,17 +134,32 @@ export default function InscriptionPage() {
             <ul className="mt-2.5 space-y-1.5 text-sm text-indigo-800/90">
               <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Jouer en solo : votre répertoire, vos accords, vos outils.</li>
               <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Rejoindre un groupe sur invitation, ou candidater à un groupe public.</li>
-              <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Créer et gérer votre propre groupe (1 en gratuit, plus avec un plan payant).</li>
+              <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Créer et gérer votre propre groupe.</li>
               <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Enseigner : ouvrir une classe, suivre vos élèves et leurs devoirs.</li>
               <li className="flex items-start gap-2"><span className="text-indigo-500">✓</span> Apprendre : rejoindre la classe de votre professeur.</li>
             </ul>
             <p className="text-xs text-indigo-500/80 mt-3">
-              Pas de choix à faire maintenant : vous déciderez au fur et à mesure depuis votre espace.{' '}
-              <Link href="/tarifs" className="text-indigo-600 hover:text-indigo-700 underline underline-offset-2">
-                Voir les plans →
-              </Link>
+              Pas de choix à faire maintenant : vous déciderez au fur et à mesure depuis votre espace.
             </p>
           </div>
+
+          {/* Sans invitation, inutile de laisser remplir le formulaire pour rien. */}
+          {contexteLu && !inviteToken && !acces && (
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
+              <p className="text-sm font-semibold text-amber-900">🔒 L&apos;inscription se fait sur invitation</p>
+              <p className="mt-1.5 text-sm text-amber-800 leading-relaxed">
+                Sol au piano est un projet personnel et gratuit, réservé aux personnes invitées.
+                Si un chef d&apos;orchestre ou un professeur vous a invité, ouvrez le lien reçu par
+                email : il vous amènera ici avec votre invitation.
+              </p>
+              <Link
+                href="/demander-acces"
+                className="mt-3 inline-block rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-400 transition-colors"
+              >
+                Demander un accès →
+              </Link>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">

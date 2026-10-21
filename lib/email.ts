@@ -1017,6 +1017,52 @@ export async function sendAdminAnnonceNotification(annonce: {
   })
 }
 
+// ─── Demande d'accès (le site est sur invitation) ────────────────────────────
+
+/**
+ * Prévient l'éditeur qu'une personne demande un accès, et lui fournit le lien
+ * d'invitation personnel déjà fabriqué : il n'a qu'à le coller dans sa réponse
+ * s'il accepte. Le `reply_to` permet de répondre directement au demandeur.
+ */
+export async function sendAccessRequest(
+  adminEmail: string,
+  demande: { name: string; email: string; message: string },
+  accessUrl: string,
+  validiteJours: number,
+) {
+  return sendEmail({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to: adminEmail,
+    replyTo: demande.email,
+    subject: `Demande d'accès — ${demande.name}`,
+    html: emailWrapper(`
+      <div style="display:inline-flex; align-items:center; gap:6px; background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:6px 12px; margin-bottom:20px;">
+        <span style="font-size:14px;">🔒</span>
+        <span style="font-size:12px; font-weight:600; color:#92400e;">Demande d'accès</span>
+      </div>
+      <p style="font-size:14px; color:#374151; margin:0 0 16px;">
+        Une personne demande à rejoindre Sol au piano.
+      </p>
+      ${dataBox(`
+        <p style="margin:0 0 6px; font-size:15px; font-weight:700; color:#111827;">${escapeHtml(demande.name)}</p>
+        <p style="margin:0 0 10px; font-size:13px; color:#6b7280;">${escapeHtml(demande.email)}</p>
+        <p style="margin:0; font-size:13px; color:#374151; white-space:pre-wrap; border-top:1px solid #e5e7eb; padding-top:10px;">${escapeHtml(demande.message)}</p>
+      `, 'gray')}
+      <p style="font-size:13px; color:#374151; margin:18px 0 6px; font-weight:600;">Pour accepter</p>
+      <p style="font-size:13px; color:#6b7280; margin:0 0 10px;">
+        Répondez à cet email (la réponse part vers ${escapeHtml(demande.email)}) en collant ce lien
+        personnel, valable ${validiteJours} jours et utilisable uniquement avec cette adresse :
+      </p>
+      <p style="font-size:12px; color:#4338ca; word-break:break-all; background:#eef2ff; border:1px solid #c7d2fe; border-radius:10px; padding:12px;">
+        ${escapeHtml(accessUrl)}
+      </p>
+      <p style="font-size:12px; color:#9ca3af; margin:14px 0 0;">
+        Pour refuser, il suffit de ne rien faire : sans ce lien, la personne ne peut pas créer de compte.
+      </p>
+    `),
+  })
+}
+
 // ─── 12. Ticket de support (admin + confirmation utilisateur) ────────────────
 
 const CATEGORY_LABELS: Record<string, string> = {

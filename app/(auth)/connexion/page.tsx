@@ -147,7 +147,12 @@ function ConnexionForm() {
 
       <p className="mt-6 text-center text-sm text-gray-500">
         Pas encore de compte ?{' '}
-        <Link href="/inscription" className="font-medium text-indigo-600 hover:text-indigo-500">
+        {/* La destination doit suivre : sans elle, un invité qui passe par ici
+            arriverait sur l'inscription sans son invitation, donc bloqué. */}
+        <Link
+          href={`/inscription${callbackUrl !== '/tableau-de-bord' ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
+          className="font-medium text-indigo-600 hover:text-indigo-500"
+        >
           Créer un compte
         </Link>
       </p>

@@ -395,7 +395,8 @@ export default async function TableauDeBordPage({
           <h1 className="text-2xl font-bold text-gray-900">Bonjour, {session.user.name} 👋</h1>
           <p className="text-gray-500 mt-1 text-sm">Voici vos prochaines activités musicales.</p>
         </div>
-        <InviteButton />
+        {/* L'inscription étant sur invitation, seul l'éditeur ouvre des accès de
+            sa propre initiative. Un chef invite depuis son groupe. */}
       </div>
 
       {/* My groups quick access */}
