@@ -970,17 +970,17 @@ export default function ProfilPage() {
                       <li className="flex items-start gap-2"><span className="text-indigo-500 flex-shrink-0">✓</span> Enseigner et suivre vos élèves, ou rejoindre les cours d'un prof.</li>
                     </ul>
 
-                    {/* Quota de groupes gérables — selon le meilleur plan de vos groupes */}
+                    {/* Nombre de groupes que ce compte peut gérer */}
                     {profile.groupQuota && (
                       <div className="mt-4 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3">
                         <p className="text-sm font-semibold text-indigo-900">
-                          Plan {(profile.accountPlan ?? 'FREE') === 'FREE' ? 'Gratuit' : profile.accountPlan} · Groupes gérés : {profile.groupQuota.managed} / {profile.groupQuota.max}
+                          Groupes gérés : {profile.groupQuota.managed} / {profile.groupQuota.max}
                         </p>
                         <p className="text-xs text-indigo-700 mt-1 leading-relaxed">
-                          {profile.groupQuota.max > 1
-                            ? `Votre plan vous permet de gérer jusqu'à ${profile.groupQuota.max} groupes.`
-                            : 'Le plan Gratuit permet de gérer 1 groupe. Pour en gérer plusieurs, il faut un plan Pro ou Premium (contactez l’administrateur ou voyez les tarifs).'}{' '}
-                          <Link href="/tarifs" className="underline underline-offset-2 font-medium">Voir les tarifs →</Link>
+                          {profile.groupQuota.managed >= profile.groupQuota.max
+                            ? 'Vous gérez le nombre maximum de groupes. Pour en gérer un de plus, écrivez à l’éditeur du site.'
+                            : `Vous pouvez gérer jusqu’à ${profile.groupQuota.max} groupe${profile.groupQuota.max > 1 ? 's' : ''}.`}{' '}
+                          <Link href="/fonctionnalites" className="underline underline-offset-2 font-medium">Voir les fonctionnalités →</Link>
                         </p>
                       </div>
                     )}

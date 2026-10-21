@@ -503,8 +503,7 @@ export default function KilometriqueCalculatorPage() {
             </div>
           ) : (
             <p className="text-xs text-gray-400">
-              💾 Sauvegarde disponible si votre plan personnel ou le plan de votre groupe inclut du stockage.{' '}
-              <a href="/tarifs" className="text-indigo-500 hover:underline">Voir les forfaits →</a>
+              💾 La sauvegarde n&apos;est pas activée pour votre compte ou votre groupe. Écrivez à l&apos;éditeur si vous en avez besoin.
             </p>
           )}
         </div>

@@ -8,16 +8,16 @@ import JoinRequestsPanel from './JoinRequestsPanel'
 import { GroupSettingsButton } from './GroupSettingsButton'
 import { StudentModulesButton } from './StudentModulesButton'
 import { GroupCards } from './GroupCards'
-import { PlanSection } from './PlanSection'
+import { FeaturesSection } from './FeaturesSection'
 import { coChefCanDo } from '@/lib/permissions'
 import { getPreviewContext } from '@/lib/preview'
 import { parseStudentModules } from '@/lib/group-modules'
 import { GroupCoverUpload } from './GroupCoverUpload'
 import { PermissionsSettings } from './PermissionsSettings'
-import { DEFAULT_PLAN_SEEDS, type DbPlan } from '@/lib/plans'
 import { getGroupStorageInfo } from '@/lib/storage'
 import ImageConsentBanner from '@/components/ImageConsentBanner'
-import { isModuleEnabledForGroup } from '@/lib/module-access'
+import { isModuleEnabledForUserInGroup } from '@/lib/module-access'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 import { GroupModulesGrid, type GroupModuleLink } from './GroupModulesGrid'
 
 function parseLookingFor(raw?: string | null): string[] {
@@ -42,25 +42,6 @@ export default async function GroupePage({ params }: { params: { id: string } })
   const previewActive = isAdminUser && preview?.groupId === groupId
   const adminPower = isAdminUser && !previewActive
 
-  // Fetch plans from DB (auto-seed if empty)
-  let dbPlans = await prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } })
-  if (dbPlans.length === 0) {
-    await prisma.plan.createMany({ data: DEFAULT_PLAN_SEEDS })
-    dbPlans = await prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } })
-  }
-  const allPlans: DbPlan[] = dbPlans.map((p) => ({
-    ...p,
-    storageGb: Number(p.storageGb),
-    priceMonthly: p.priceMonthly !== null ? Number(p.priceMonthly) : null,
-    description: p.description ?? null,
-    maxMembersPerGroup: p.maxMembersPerGroup ?? null,
-    maxSongsPerGroup: p.maxSongsPerGroup ?? null,
-    maxSetlists: p.maxSetlists ?? null,
-    maxConcerts: p.maxConcerts ?? null,
-    maxCharts: p.maxCharts ?? null,
-    maxFilesPerSong: p.maxFilesPerSong ?? null,
-  }))
-
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
     select: { groupRole: true, cardOrder: true },
@@ -71,29 +52,26 @@ export default async function GroupePage({ params }: { params: { id: string } })
   // Check plan features (stats + member limit + storage)
   const groupMeta = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true, maxMembersOverride: true, storageQuotaOverrideGb: true } })
   const planData = groupMeta ? await prisma.plan.findUnique({ where: { key: groupMeta.plan }, select: { hasStats: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGalerie: true, hasSocial: true, maxMembersPerGroup: true } }) : null
-  const planHasStats = isAdminUser || (planData?.hasStats ?? false)
-  // Fonctionnalités débloquées par le plan (admin = tout)
+  // Fonctionnalités actives pour ce groupe et cette personne (admin = tout) :
+  // réglage de base du plan, surchargé par les dérogations de l'administrateur.
+  const resolved = await resolveGroupFeatures(groupId, userId)
+  const planHasStats = isAdminUser || resolved.hasStats
   const planFeatures = {
-    grilles:        isAdminUser || (planData?.hasGrilles ?? true),
-    setlists:       isAdminUser || (planData?.hasSetlists ?? true),
-    concerts:       isAdminUser || (planData?.hasConcerts ?? true),
-    ficheTechnique: isAdminUser || (planData?.hasFicheTechnique ?? true),
-    maPage:         isAdminUser || (planData?.hasMaPage ?? true),
-    accounting:     isAdminUser || (planData?.hasAccounting ?? true),
-    chat:           isAdminUser || (planData?.hasChat ?? true),
-    sharedResources: isAdminUser || (planData?.hasSharedResources ?? true),
-    unavailabilities: isAdminUser || (planData?.hasUnavailabilities ?? true),
-    polls:          isAdminUser || (planData?.hasPolls ?? true),
-    galerie:        isAdminUser || (planData?.hasGalerie ?? true),
-    social:         isAdminUser || (planData?.hasSocial ?? true),
+    grilles:          isAdminUser || resolved.hasGrilles,
+    setlists:         isAdminUser || resolved.hasSetlists,
+    concerts:         isAdminUser || resolved.hasConcerts,
+    ficheTechnique:   isAdminUser || resolved.hasFicheTechnique,
+    maPage:           isAdminUser || resolved.hasMaPage,
+    accounting:       isAdminUser || resolved.hasAccounting,
+    chat:             isAdminUser || resolved.hasChat,
+    sharedResources:  isAdminUser || resolved.hasSharedResources,
+    unavailabilities: isAdminUser || resolved.hasUnavailabilities,
+    polls:            isAdminUser || resolved.hasPolls,
+    galerie:          isAdminUser || resolved.hasGalerie,
+    social:           isAdminUser || resolved.hasSocial,
   }
   // Effective member limit: override (if set by admin) > plan limit > null (unlimited)
   const effectiveMemberLimit = groupMeta?.maxMembersOverride ?? planData?.maxMembersPerGroup ?? null
-  // Accès aux modules (outils) par plan — pour l'affichage des cartes
-  const allModuleAccess = await prisma.moduleAccess.findMany({
-    select: { moduleKey: true, planKey: true, enabled: true },
-  })
-
   // Shared storage info
   const storageInfo = await getGroupStorageInfo(groupId)
 
@@ -152,8 +130,8 @@ export default async function GroupePage({ params }: { params: { id: string } })
   // École : les élèves (non-chefs) ne voient que les modules autorisés par le prof.
   const isStudentView = (group as any).type === 'SCHOOL' && !isChef
   const studentMods = parseStudentModules((group as any).studentModules)
-  const tasksModuleEnabled = isAdminUser || await isModuleEnabledForGroup(groupId, 'feature_tasks')
-  const squareScoresModuleEnabled = isAdminUser || await isModuleEnabledForGroup(groupId, 'feature_partitions_carrees')
+  const tasksModuleEnabled = isAdminUser || await isModuleEnabledForUserInGroup(userId, groupId, 'feature_tasks')
+  const squareScoresModuleEnabled = isAdminUser || await isModuleEnabledForUserInGroup(userId, groupId, 'feature_partitions_carrees')
   const showTasksModule = tasksModuleEnabled && (!isStudentView || studentMods.includes('taches'))
   const showSquareScoresModule = squareScoresModuleEnabled && (!isStudentView || studentMods.includes('partitions-carrees'))
   const canReorderModules = isChef && coChefCanDo(
@@ -403,7 +381,7 @@ export default async function GroupePage({ params }: { params: { id: string } })
                 {!planHasStats && <span className="ml-1.5 text-[9px] font-bold bg-amber-100 text-amber-700 rounded-full px-1.5 py-0.5 uppercase tracking-wide">Plan supérieur</span>}
               </p>
               <p className="text-[11px] text-gray-400 leading-tight mt-0.5 truncate">
-                {planHasStats ? 'Présence, répertoire, fréquence…' : 'Disponible sur les plans payants'}
+                {planHasStats ? 'Présence, répertoire, fréquence…' : 'Non activée pour ce groupe'}
               </p>
             </div>
             <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-violet-100 text-violet-700 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
@@ -416,18 +394,12 @@ export default async function GroupePage({ params }: { params: { id: string } })
       )}
 
       {(!isStudentView || studentMods.includes('stockage')) && (
-      <PlanSection
-        currentPlanKey={group.plan}
+      <FeaturesSection
         storageUsedBytes={storageInfo.usedBytes}
         storageLimitGb={storageInfo.limitGb}
         storageGroupCount={storageInfo.groupCount}
         storageHasOverride={storageInfo.hasOverride}
-        isChef={isChef}
-        memberCount={group.members.length}
-        allPlans={allPlans}
-        moduleAccess={allModuleAccess}
-        groupId={groupId}
-        stripeSubscriptionId={group.stripeSubscriptionId ?? null}
+        features={resolved}
       />
       )}
 

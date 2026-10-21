@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { MODULES } from '@/lib/modules'
+import { GROUP_FEATURE_KEYS } from '@/lib/features'
 
 // POST /api/admin/module-access/override
 // Body: { moduleKey, type: 'user'|'group', targetId, allowed }
@@ -14,6 +16,10 @@ export async function POST(req: NextRequest) {
   const { moduleKey, type, targetId, allowed } = await req.json()
   if (!moduleKey || !type || !targetId || typeof allowed !== 'boolean') {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  }
+  // Une clé inconnue créerait une dérogation que rien ne lit : on la refuse.
+  if (!MODULES.some((m) => m.key === moduleKey) && !GROUP_FEATURE_KEYS.has(moduleKey)) {
+    return NextResponse.json({ error: 'Module inconnu' }, { status: 400 })
   }
 
   if (type === 'user') {

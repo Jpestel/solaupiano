@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 import { sendEvaluationReminder } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
@@ -45,9 +46,9 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   }
 
   // Module d'évaluation actif ?
-  const plan = await prisma.plan.findUnique({ where: { key: rehearsal.group.plan }, select: { hasEvaluations: true } })
-  if ((plan?.hasEvaluations ?? true) === false) {
-    return NextResponse.json({ error: "L'auto-évaluation n'est pas incluse dans l'offre de ce groupe." }, { status: 403 })
+  const features = await resolveGroupFeatures(rehearsal.groupId, userId)
+  if (!features.hasEvaluations) {
+    return NextResponse.json({ error: "L'auto-évaluation n'est pas activée pour ce groupe." }, { status: 403 })
   }
 
   // Répétition terminée ?

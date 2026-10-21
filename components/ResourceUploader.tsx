@@ -180,9 +180,9 @@ export function ResourceUploader({ songId, onUpload, uploadEnabled = true, canIm
 
       {!uploadEnabled && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          📁 L&apos;upload de fichiers n&apos;est pas inclus dans le plan de ce groupe (stockage à 0).
-          Vous pouvez ajouter des <strong>liens</strong> (YouTube, SoundCloud…) sans limite.{' '}
-          <a href="/tarifs" className="font-semibold underline hover:text-amber-900">Voir les forfaits avec stockage →</a>
+          📁 L&apos;envoi de fichiers n&apos;est pas activé pour ce groupe (aucun espace de stockage).
+          Vous pouvez ajouter des <strong>liens</strong> (YouTube, SoundCloud…) sans limite.
+          Écrivez à l&apos;éditeur pour activer le stockage.
         </div>
       )}
 

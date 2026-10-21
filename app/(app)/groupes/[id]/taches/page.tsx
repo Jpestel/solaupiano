@@ -61,7 +61,7 @@ export default function TachesPage({ params }: { params: { id: string } }) {
     } else {
       const d = await tRes.json().catch(() => ({}))
       setError(d.error === 'MODULE_LOCKED'
-        ? "Le module Tâches n'est pas disponible avec le plan actuel de ce groupe."
+        ? "Les tâches ne sont pas activées pour ce groupe."
         : (d.error || 'Impossible de charger les tâches.'))
     }
     if (gRes.ok) { const g = await gRes.json(); setGroupName(g.name) }

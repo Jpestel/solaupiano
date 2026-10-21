@@ -380,10 +380,10 @@ export default async function TableauDeBordPage({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
           </svg>
           <div>
-            <p className="text-sm font-medium text-amber-800">Fonctionnalité non incluse dans votre plan</p>
+            <p className="text-sm font-medium text-amber-800">Fonctionnalité non activée</p>
             <p className="text-sm text-amber-700 mt-0.5">
-              <strong>{moduleBloque}</strong> n'est pas disponible avec votre plan actuel.{' '}
-              <a href="/tarifs" className="font-semibold underline hover:text-amber-900">Découvrir les plans qui l'incluent →</a>
+              <strong>{moduleBloque}</strong> n'est pas activée pour votre compte ou votre groupe. Écrivez à l'éditeur si vous souhaitez l'utiliser.{' '}
+              <a href="/fonctionnalites" className="font-semibold underline hover:text-amber-900">Voir les fonctionnalités →</a>
             </p>
           </div>
         </div>

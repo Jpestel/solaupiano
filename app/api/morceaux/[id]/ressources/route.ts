@@ -89,7 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const storageInfo = await getGroupStorageInfo(song.groupId)
   if (storageInfo.limitBytes <= 0) {
     return NextResponse.json({
-      error: "L'ajout de fichiers n'est pas disponible avec ce plan (quota de stockage à 0). Passez à un plan avec stockage pour partager des partitions et ressources.",
+      error: "L'ajout de fichiers n'est pas activé pour ce groupe (aucun espace de stockage). Écrivez à l'éditeur pour activer le stockage.",
       code: 'PLAN_FEATURE_LOCKED',
     }, { status: 403 })
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 import { sendRehearsalPhotoReminder } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
@@ -51,10 +52,12 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Plans avec Galerie activée (sinon, pas de mail)
-  const planKeys = Array.from(new Set(rehearsals.map((r) => r.group.plan)))
-  const plans = await prisma.plan.findMany({ where: { key: { in: planKeys } }, select: { key: true, hasGalerie: true } })
-  const galerieOk = new Map(plans.map((p) => [p.key, p.hasGalerie]))
+  // Galerie activée pour le groupe ? (sinon, pas de mail). Résolu une fois par
+  // groupe, dérogations de l'administrateur comprises.
+  const galerieOk = new Map<number, boolean>()
+  for (const gid of Array.from(new Set(rehearsals.map((r) => r.groupId)))) {
+    galerieOk.set(gid, (await resolveGroupFeatures(gid)).hasGalerie)
+  }
 
   let sent = 0, processed = 0
 
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest) {
     // Marque comme traité immédiatement (évite les doublons entre exécutions)
     await prisma.rehearsal.update({ where: { id: r.id }, data: { photoReminderSentAt: now } })
 
-    if (galerieOk.get(r.group.plan) === false) continue
+    if (galerieOk.get(r.groupId) === false) continue
 
     const members = r.attendances
       .map((a) => a.user)

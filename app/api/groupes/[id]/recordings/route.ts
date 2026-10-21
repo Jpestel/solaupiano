@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isModuleEnabledForGroup } from '@/lib/module-access'
+import { isModuleEnabledForUserInGroup } from '@/lib/module-access'
 import fs from 'fs'
 import path from 'path'
 
@@ -38,7 +38,7 @@ async function ensureAccess(groupId: number) {
   const membership = await prisma.groupMember.findUnique({ where: { userId_groupId: { userId, groupId } } })
   if (!isAdmin && !membership) return { error: NextResponse.json({ error: 'Accès refusé.' }, { status: 403 }) }
 
-  if (!isAdmin && !(await isModuleEnabledForGroup(groupId, MODULE_KEY))) {
+  if (!isAdmin && !(await isModuleEnabledForUserInGroup(userId, groupId, MODULE_KEY))) {
     return { error: NextResponse.json({ error: 'MODULE_LOCKED' }, { status: 403 }) }
   }
 

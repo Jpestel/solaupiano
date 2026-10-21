@@ -116,7 +116,7 @@ export function StatsClient({ groupId }: { groupId: number }) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
         {error === 'MODULE_LOCKED'
-          ? '🔒 Le module statistiques n\'est pas inclus dans votre forfait actuel.'
+          ? '🔒 Les statistiques ne sont pas activées pour votre groupe.'
           : error}
       </div>
     )

@@ -266,8 +266,8 @@ export default function AssistancePage() {
         <div>
           <p className="text-sm font-semibold text-amber-800">Support prioritaire</p>
           <p className="text-xs text-amber-700 mt-0.5">
-            Les membres d&apos;un groupe avec un plan payant bénéficient d&apos;un traitement prioritaire. Consultez la{' '}
-            <a href="/tarifs" className="underline hover:no-underline">page Tarifs</a> pour en savoir plus.
+            Sol au piano est un projet personnel : les réponses arrivent au mieux des disponibilités de l&apos;éditeur,
+            généralement sous quelques jours.
           </p>
         </div>
       </div>

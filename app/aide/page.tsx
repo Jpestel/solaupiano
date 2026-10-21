@@ -105,7 +105,7 @@ export default async function AidePage() {
             { href: '#annonces', label: '📢 Annonces' },
             { href: '#blog', label: '📰 Blog' },
             ...(session?.user?.siteRole === 'ADMIN' ? [{ href: '#admin', label: '🛠 Admin' }] : []),
-            { href: '#plans', label: '📦 Plans' },
+            { href: '#plans', label: '📦 Stockage' },
             { href: '#testeur', label: '🧪 Compte testeur' },
             { href: '#assistance', label: '🆘 Assistance' },
             { href: '#faq', label: '❓ FAQ' },
@@ -159,11 +159,11 @@ export default async function AidePage() {
               <ul className="mt-3 space-y-1.5">
                 <li>🎵 <strong>Jouer en solo</strong> — votre répertoire, vos accords, vos outils.</li>
                 <li>👥 <strong>Rejoindre des groupes</strong> — sur invitation ou par candidature à un groupe public.</li>
-                <li>🎼 <strong>Créer et gérer</strong> votre propre groupe (1 en gratuit, davantage avec un plan payant).</li>
+                <li>🎼 <strong>Créer et gérer</strong> votre propre groupe .</li>
                 <li>🎓 <strong>Enseigner</strong> — ouvrir une classe, suivre vos élèves et leurs devoirs.</li>
                 <li>🎒 <strong>Apprendre</strong> — rejoindre la classe de votre professeur.</li>
               </ul>
-              <Tip>Le nombre de groupes/classes gérables et l&apos;espace de stockage dépendent de votre <strong>plan</strong> (Gratuit, Pro, Premium) — voir la page Tarifs.</Tip>
+              <Tip>Le nombre de groupes/classes que vous pouvez gérer et l&apos;espace de stockage sont fixés pour votre compte : écrivez à l&apos;éditeur pour les augmenter. La page <strong>Fonctionnalités</strong> présente tout ce que la plateforme offre.</Tip>
             </HelpCard>
           </div>
         </section>
@@ -187,18 +187,7 @@ export default async function AidePage() {
                   <Step n={3}>Vous devenez automatiquement <RolePill role="CHEF" /> de ce groupe.</Step>
                 </ol>
                 <Tip>Vous pouvez ajouter une <strong>photo de couverture</strong> en cliquant sur l&apos;icône du groupe depuis la page du groupe.</Tip>
-                <Note>
-                  {(() => {
-                    const freePlan = dbPlans.find(p => p.key === 'FREE') ?? dbPlans[0]
-                    const paidPlans = dbPlans.filter(p => p.priceMonthly !== null)
-                    if (!freePlan) return 'Consultez la page Tarifs pour découvrir les plans disponibles.'
-                    return <>Le plan <strong>{freePlan.label}</strong> permet de créer <strong>{freePlan.maxGroups} groupe</strong>
-                      {freePlan.maxMembersPerGroup ? ` (${freePlan.maxMembersPerGroup} membres max)` : ''}
-                      {freePlan.maxSongsPerGroup ? ` (${freePlan.maxSongsPerGroup} morceaux max)` : ''}.
-                      {paidPlans.length > 0 && <> Les plans payants permettent plus de groupes, de membres et de fonctionnalités.</>}
-                    </>
-                  })()}
-                </Note>
+                <Note>Un groupe a des limites de taille (nombre de membres, de morceaux, espace de stockage). Si vous les atteignez, écrivez à l&apos;éditeur : l&apos;ajustement est gratuit.</Note>
                 <Tip>Pour un usage pédagogique, créez un groupe de type <strong>École</strong> : les membres y sont présentés comme des <strong>élèves</strong>, et le chef comme <strong>professeur</strong>.</Tip>
               </HelpCard>
             )}
@@ -1968,7 +1957,7 @@ export default async function AidePage() {
             <HelpCard title="À quoi servent les statistiques ?">
               <p>Le module <strong>Statistiques</strong> donne aux chefs d&apos;orchestre une vue analytique complète de leur groupe : assiduité des membres, maîtrise du répertoire, fréquence des répétitions et utilisation des ressources.</p>
               <p className="mt-2">Toutes les données sont calculées en temps réel à partir des informations existantes — présences, niveaux de maîtrise, répétitions passées.</p>
-              <Note>Le module statistiques est disponible sur les <strong>plans payants</strong>. Sur le plan Gratuit, un message vous invite à upgrader.</Note>
+              <Note>Les statistiques sont une fonctionnalité qui peut être activée ou non pour votre groupe. Si elle ne l&apos;est pas, un message vous le dit.</Note>
             </HelpCard>
 
             {isCreateur && (
@@ -1977,7 +1966,7 @@ export default async function AidePage() {
                   <Step n={1}>Depuis la page de votre groupe, cliquez sur le bouton <strong>📊 Statistiques</strong> dans la barre de navigation.</Step>
                   <Step n={2}>La page affiche les indicateurs clés (KPIs) en haut, puis les graphiques détaillés.</Step>
                 </ol>
-                <Tip>Si votre forfait n&apos;inclut pas les statistiques, le bouton affiche un badge <strong>&quot;Plan supérieur&quot;</strong> — vous pouvez quand même cliquer pour voir le message d&apos;upgrade.</Tip>
+                <Tip>Si les statistiques ne sont pas activées pour votre groupe, le bouton l&apos;indique — vous pouvez quand même cliquer pour voir le message.</Tip>
               </HelpCard>
             )}
 
@@ -2168,7 +2157,7 @@ export default async function AidePage() {
                   <Step n={2}>Cliquez sur <strong>💾 Sauvegarder</strong>, nommez la simulation et choisissez le concert à lier dans le menu déroulant.</Step>
                   <Step n={3}>La simulation apparaît sur la carte du concert avec le résumé financier (coût employeur / net musiciens).</Step>
                 </ol>
-                <Note>La sauvegarde des simulations est réservée aux <strong>forfaits incluant du stockage</strong> (plan personnel ou plan du groupe). Pour les co-chefs ou co-profs, le fondateur contrôle chaque action séparément depuis les permissions du groupe : <strong>Créer</strong> (enregistrer une estimation), <strong>Sauvegarder</strong> (la lier à un concert), <strong>Modifier</strong> et <strong>Supprimer</strong>.</Note>
+                <Note>La sauvegarde des simulations nécessite que le <strong>stockage</strong> soit activé pour votre compte ou votre groupe. Pour les co-chefs ou co-profs, le fondateur contrôle chaque action séparément depuis les permissions du groupe : <strong>Créer</strong> (enregistrer une estimation), <strong>Sauvegarder</strong> (la lier à un concert), <strong>Modifier</strong> et <strong>Supprimer</strong>.</Note>
               </HelpCard>
             )}
             <HelpCard title="À quoi sert le simulateur cachet GUSO ?">
@@ -2259,45 +2248,18 @@ export default async function AidePage() {
 
         {/* ─── PLANS ─── */}
         <section id="plans">
-          <SectionTitle icon="📦" title="Plans et stockage" color="purple" />
+          <SectionTitle icon="📦" title="Stockage" color="purple" />
           <div className="space-y-4">
 
-            <HelpCard title="Plans de groupe">
-              <p>Le plan est attaché à <strong>chaque groupe</strong> individuellement. Il détermine les fonctionnalités disponibles. Le quota de stockage, lui, est <strong>partagé entre tous vos groupes</strong> — ce n&apos;est pas un quota par groupe.</p>
-              <div className={`mt-4 grid grid-cols-1 gap-3 ${dbPlans.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
-                {dbPlans.map(p => (
-                  <PlanDetailCard
-                    key={p.key}
-                    name={p.label}
-                    icon={planIcon(p)}
-                    storage={p.hasFileSubmissions ? storageLabel(p.storageGb) : '—'}
-                    price={p.priceMonthly ? `${p.priceMonthly.toFixed(2).replace('.', ',')} €/mois` : 'Gratuit'}
-                    groups={p.maxGroups === 1 ? '1 groupe' : `${p.maxGroups} groupes`}
-                    color={p.color}
-                    features={generateFeatureList(p)}
-                  />
-                ))}
-              </div>
-              <Note>Les quotas exacts (nombre de membres, morceaux, setlists…) sont visibles directement sur les cartes de plans depuis la page de votre groupe.</Note>
-            </HelpCard>
-
             <HelpCard title="Stockage">
-              <p>Le quota de stockage est <strong>partagé entre TOUS vos groupes</strong> — ce n&apos;est pas un quota par groupe. Si votre plan inclut 5 Go, ces 5 Go sont répartis librement entre l&apos;ensemble de vos groupes. Il comptabilise tous les fichiers attachés aux morceaux (partitions PDF, fichiers audio, images…).</p>
-              <ul className="mt-3 space-y-1.5">
-                {dbPlans.map(p => (
-                  <li key={p.key}>
-                    {planIcon(p)} <strong>Plan {p.label}</strong> —{' '}
-                    {p.hasFileSubmissions ? `${storageLabel(p.storageGb)}${p.maxGroups > 1 ? ' partagés (tous groupes)' : ''}` : 'sans stockage de fichiers'}
-                  </li>
-                ))}
-              </ul>
+              <p>L&apos;espace de stockage est <strong>partagé entre TOUS vos groupes</strong> — ce n&apos;est pas un quota par groupe. Il comptabilise tous les fichiers déposés (PDF, audio, images). La jauge de la page du groupe vous montre ce qui est utilisé.</p>
               <p className="mt-3 text-sm text-gray-600">Conseils pour économiser de l&apos;espace :</p>
               <ul className="mt-1 space-y-1">
                 <li>Préférez les <strong>liens</strong> (YouTube, SoundCloud) aux fichiers audio — ils ne consomment pas de stockage</li>
                 <li>Compressez vos PDFs avant de les uploader</li>
                 <li>Supprimez les ressources obsolètes depuis la fiche du morceau</li>
               </ul>
-              <Note>Quand le quota dépasse 90 %, un avertissement apparaît sur la page du groupe.</Note>
+              <Note>Quand l&apos;espace dépasse 90 %, un avertissement apparaît sur la page du groupe. Pour l&apos;augmenter, écrivez à l&apos;éditeur.</Note>
             </HelpCard>
           </div>
         </section>
@@ -2378,15 +2340,6 @@ export default async function AidePage() {
               <p className="mt-3 text-gray-600">Cliquez sur une demande pour voir son détail et lire la <strong>réponse de l&apos;équipe</strong> si elle a été ajoutée.</p>
             </HelpCard>
 
-            <HelpCard title="Support prioritaire ⭐">
-              <p>Si vous êtes chef d&apos;un groupe avec un <strong>plan payant</strong> (Pro ou Premium), vos demandes sont automatiquement marquées comme prioritaires. Cela signifie :</p>
-              <ul className="mt-2 space-y-1">
-                <li>Un badge <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 font-semibold">⭐ Prioritaire</span> apparaît sur votre ticket</li>
-                <li>L&apos;email de notification envoyé à l&apos;équipe est distingué comme prioritaire</li>
-                <li>Le délai de réponse est plus court</li>
-              </ul>
-              <Note>Le statut prioritaire est déterminé automatiquement selon votre plan — aucune action supplémentaire n&apos;est requise de votre part.</Note>
-            </HelpCard>
 
           </div>
         </section>
@@ -2510,7 +2463,7 @@ export default async function AidePage() {
               <strong>Oui — le quota de stockage est partagé entre TOUS vos groupes.</strong> Ce n&apos;est pas un quota par groupe : si votre plan inclut 5 Go, ces 5 Go sont communs à l&apos;ensemble de vos groupes. Par exemple, si vous avez 3 groupes et que le premier utilise 3 Go, il ne reste que 2 Go pour les deux autres. La barre de stockage visible sur chaque groupe affiche la consommation globale du compte.
             </FaqItem>
             <FaqItem question="Qui peut accéder aux statistiques du groupe ?">
-              Seuls les <strong>chefs</strong> du groupe y ont accès (fondateur et co-chefs, ou co-profs dans une école). Les membres simples et les élèves ne voient pas les statistiques. De plus, le module nécessite un <strong>plan payant</strong> (Pro ou Premium). Le fondateur peut restreindre l&apos;accès depuis les paramètres de permissions.
+              Seuls les <strong>chefs</strong> du groupe y ont accès (fondateur et co-chefs, ou co-profs dans une école). Les membres simples et les élèves ne voient pas les statistiques. La fonctionnalité doit aussi être activée pour le groupe. Le fondateur peut restreindre l&apos;accès depuis les paramètres de permissions.
             </FaqItem>
             <FaqItem question="Les statistiques se mettent-elles à jour automatiquement ?">
               Oui. Les données sont calculées en temps réel à chaque ouverture de la page — aucun rafraîchissement manuel n&apos;est nécessaire.

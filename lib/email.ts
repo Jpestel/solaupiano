@@ -1118,7 +1118,7 @@ export async function sendSupportTicketToAdmin(
   const priorityBadge = ticket.isPriority
     ? `<div style="display:inline-flex;align-items:center;gap:6px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:5px 12px;margin-bottom:16px;">
         <span style="font-size:13px;">⭐</span>
-        <span style="font-size:12px;font-weight:600;color:#92400e;">Support prioritaire (plan payant)</span>
+        <span style="font-size:12px;font-weight:600;color:#92400e;">Support prioritaire</span>
        </div>`
     : ''
 
@@ -1157,7 +1157,7 @@ export async function sendSupportConfirmationToUser(
   baseUrl: string
 ) {
   const delayText = ticket.isPriority
-    ? 'En tant que membre d\'un plan avec support prioritaire, votre demande sera traitée en priorité.'
+    ? 'Votre demande a été marquée comme prioritaire.'
     : 'Nous traitons les demandes dans l\'ordre d\'arrivée, généralement sous 24–48h.'
 
   const tpl = await getEmailTemplate('support_confirmation')

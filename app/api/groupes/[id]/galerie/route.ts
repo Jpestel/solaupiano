@@ -80,7 +80,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const storageInfo = await getGroupStorageInfo(groupId)
   if (storageInfo.limitBytes <= 0) {
-    return NextResponse.json({ error: "Le stockage n'est pas disponible avec ce plan (quota à 0).", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
+    return NextResponse.json({ error: "Le stockage n'est pas activé pour ce groupe.", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
   }
 
   const uploadDir = './public/uploads/galerie'

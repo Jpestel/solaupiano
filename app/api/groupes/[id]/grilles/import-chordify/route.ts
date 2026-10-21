@@ -605,7 +605,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
       const storageInfo = await getGroupStorageInfo(groupId)
       if (storageInfo.limitBytes <= 0) {
-        return NextResponse.json({ error: "L'ajout de fichiers n'est pas disponible avec ce plan.", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
+        return NextResponse.json({ error: "L'ajout de fichiers n'est pas activé pour ce groupe.", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
       }
       if (storageInfo.usedBytes + buffer.length > storageInfo.limitBytes) {
         return NextResponse.json({ error: 'Quota de stockage dépassé.', code: 'STORAGE_QUOTA_EXCEEDED' }, { status: 413 })

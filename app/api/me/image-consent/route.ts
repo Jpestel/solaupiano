@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,14 +17,11 @@ export async function GET() {
     select: { groupId: true, imageConsent: true, group: { select: { name: true, plan: true } } },
     orderBy: { joinedAt: 'asc' },
   })
-  const planKeys = Array.from(new Set(memberships.map((m) => m.group.plan)))
-  const plans = planKeys.length
-    ? await prisma.plan.findMany({ where: { key: { in: planKeys } }, select: { key: true, hasSocial: true } })
-    : []
-  const hasSocialByPlan = Object.fromEntries(plans.map((p) => [p.key, p.hasSocial]))
+  // Réseaux sociaux activé pour ce groupe et cette personne ? (dérogations comprises)
+  const socialOn = await Promise.all(memberships.map(async (m) => (await resolveGroupFeatures(m.groupId, userId)).hasSocial))
 
   const list = memberships
-    .filter((m) => hasSocialByPlan[m.group.plan] ?? true)
+    .filter((_, i) => socialOn[i])
     .map((m) => ({ groupId: m.groupId, groupName: m.group.name, consent: m.imageConsent ?? null }))
   return NextResponse.json(list)
 }

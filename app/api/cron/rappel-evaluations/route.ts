@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 import { sendEvaluationReminder, sendConcertEvaluationReminder } from '@/lib/email'
 import { getEmailSchedule, isScheduledHour } from '@/lib/email-schedules'
 
@@ -43,9 +44,11 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Map des plans → module activé ?
-  const plans = await prisma.plan.findMany({ select: { key: true, hasEvaluations: true } })
-  const evalOn = new Map(plans.map((p) => [p.key, p.hasEvaluations]))
+  // Auto-évaluation activée pour le groupe ? Résolu une fois par groupe, dérogations comprises.
+  const evalOn = new Map<number, boolean>()
+  for (const gid of Array.from(new Set(rehearsals.map((r) => r.group.id)))) {
+    evalOn.set(gid, (await resolveGroupFeatures(gid)).hasEvaluations)
+  }
 
   let sent = 0, skipped = 0, rehearsalsConsidered = 0
 
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
       if (end >= startToday) { continue } // terminée aujourd'hui → on attend demain
     }
     // Module d'auto-évaluation actif pour ce groupe ?
-    if ((evalOn.get(r.group.plan) ?? true) === false) { continue }
+    if ((evalOn.get(r.group.id) ?? true) === false) { continue }
 
     rehearsalsConsidered++
     const evaluatedBy = new Set(r.evaluations.map((e) => e.evaluatorId))

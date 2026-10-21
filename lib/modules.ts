@@ -4,7 +4,7 @@ export interface ModuleDef {
   description: string
   href: string
   icon: string
-  category: 'outil' | 'feature'
+  category: 'outil' | 'feature' | 'groupe'
 }
 
 export const MODULES: ModuleDef[] = [
@@ -19,7 +19,7 @@ export const MODULES: ModuleDef[] = [
   {
     key: 'tool_metronome',
     label: 'Métronome (outil)',
-    description: 'Outil autonome : métronome réglable avec différentes signatures rythmiques. Distinct du métronome intégré au répertoire (réglé par plan).',
+    description: 'Outil autonome : métronome réglable avec différentes signatures rythmiques. Distinct du métronome intégré au répertoire.',
     href: '/outils/metronome',
     icon: '🎵',
     category: 'outil',

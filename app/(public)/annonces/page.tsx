@@ -189,7 +189,7 @@ export default async function AnnoncesPage({ searchParams }: { searchParams: { c
           </Link>
           <div className="flex gap-3 flex-wrap">
             <Link href="/" className="hover:text-indigo-600">Accueil</Link>
-            <Link href="/tarifs" className="hover:text-indigo-600">Tarifs</Link>
+            <Link href="/fonctionnalites" className="hover:text-indigo-600">Fonctionnalités</Link>
             <Link href="/aide" className="hover:text-indigo-600">Aide</Link>
             <Link href="/mentions-legales" className="hover:text-indigo-600">Mentions légales</Link>
           </div>

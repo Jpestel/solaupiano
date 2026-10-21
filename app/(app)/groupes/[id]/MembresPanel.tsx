@@ -83,7 +83,7 @@ export default function MembresPanel({
       const otherMembers = members.filter((m) => m.userId !== currentUserId)
       if (otherMembers.length > 0) {
         // Chef cannot leave a group that still has members
-        setActionError(`En tant que ${leaderLabel} responsable du plan du groupe, vous ne pouvez pas le quitter tant qu'il y a d'autres ${isSchool ? 'élèves' : 'membres'}. Supprimez le groupe ou transférez le rôle de ${leaderLabel} à un autre membre avant de partir.`)
+        setActionError(`En tant que ${leaderLabel} responsable du groupe, vous ne pouvez pas le quitter tant qu'il y a d'autres ${isSchool ? 'élèves' : 'membres'}. Supprimez le groupe ou transférez le rôle de ${leaderLabel} à un autre membre avant de partir.`)
         return
       }
     }

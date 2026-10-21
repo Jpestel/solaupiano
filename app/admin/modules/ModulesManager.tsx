@@ -155,29 +155,38 @@ export function ModulesManager({
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Gestion des modules</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Gestion des fonctionnalités</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Activez ou désactivez l'accès aux outils selon le plan, le groupe ou l'utilisateur.
-          Par défaut, tous les outils sont accessibles à tous.
+          Activez ou désactivez une fonctionnalité pour un groupe précis ou pour une personne précise.
+          Une dérogation <strong>utilisateur</strong> l&apos;emporte sur une dérogation <strong>groupe</strong>,
+          qui l&apos;emporte sur le réglage de base. Par défaut, tout est accessible à tous.
         </p>
       </div>
 
-      {/* Module tabs */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {modules.map(m => (
-          <button
-            key={m.key}
-            onClick={() => setActiveModule(m.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeModule === m.key
-                ? 'bg-indigo-600 text-white shadow'
-                : 'bg-white text-gray-700 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
-            }`}
-          >
-            {m.icon} {m.label}
-          </button>
-        ))}
-      </div>
+      {/* Onglets : fonctionnalités de groupe, puis outils */}
+      {[
+        { title: 'Fonctionnalités des groupes', list: modules.filter(m => m.category === 'groupe') },
+        { title: 'Outils et modules', list: modules.filter(m => m.category !== 'groupe') },
+      ].filter(section => section.list.length > 0).map(section => (
+        <div key={section.title} className="mb-5">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{section.title}</p>
+          <div className="flex gap-2 flex-wrap">
+            {section.list.map(m => (
+              <button
+                key={m.key}
+                onClick={() => setActiveModule(m.key)}
+                className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeModule === m.key
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'bg-white text-gray-700 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
+                }`}
+              >
+                {m.icon} {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
 
       {currentModule && (
         <div className="space-y-6">
@@ -192,7 +201,21 @@ export function ModulesManager({
             </div>
           </div>
 
+          {/* Fonctionnalité de groupe : le réglage de base vient du plan du groupe */}
+          {currentModule.category === 'groupe' && (
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-5">
+              <h3 className="font-semibold text-indigo-900 mb-1">Réglage de base</h3>
+              <p className="text-sm text-indigo-800 leading-relaxed">
+                Pour un groupe sans dérogation, cette fonctionnalité suit le réglage de son plan
+                (Administration → Plans). Les deux blocs ci-dessous permettent de la
+                <strong> forcer ou de la bloquer</strong> pour un groupe précis ou pour une personne précise,
+                sans toucher au plan.
+              </p>
+            </div>
+          )}
+
           {/* Plan access toggles */}
+          {currentModule.category !== 'groupe' && (
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -232,6 +255,7 @@ export function ModulesManager({
               })}
             </div>
           </div>
+          )}
 
           {/* User overrides */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">

@@ -41,7 +41,7 @@ export async function POST(
   if (storageInfo.limitBytes <= 0 || storageInfo.usedBytes + fileSize > storageInfo.limitBytes) {
     return NextResponse.json({
       error: storageInfo.limitBytes <= 0
-        ? "Impossible d'accepter : le plan de ce groupe n'autorise pas le stockage de fichiers (quota 0)."
+        ? "Impossible d'accepter : le stockage de fichiers n'est pas activé pour ce groupe."
         : `Impossible d'accepter : quota de stockage dépassé (limite : ${storageInfo.limitGb} Go).`,
       code: 'STORAGE_QUOTA_EXCEEDED',
     }, { status: 413 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,8 +28,7 @@ async function loadContext(concertId: number, userId: number, isAdmin: boolean) 
   const membership = await prisma.groupMember.findUnique({ where: { userId_groupId: { userId, groupId: concert.groupId } } })
   if (!isAdmin && !membership) return { error: 'Accès refusé.', status: 403 }
 
-  const plan = await prisma.plan.findUnique({ where: { key: (await prisma.group.findUnique({ where: { id: concert.groupId }, select: { plan: true } }))!.plan }, select: { hasEvaluations: true } })
-  const moduleOn = plan?.hasEvaluations ?? true
+  const moduleOn = (await resolveGroupFeatures(concert.groupId, userId)).hasEvaluations
 
   const ended = concertEnded(concert.date)
   const myAtt = concert.attendances.find((a) => a.userId === userId)
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const ctx = await loadContext(concertId, userId, isAdmin)
   if ('error' in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status })
-  if (!ctx.moduleOn) return NextResponse.json({ error: "L'auto-évaluation n'est pas incluse dans l'offre de ce groupe." }, { status: 403 })
+  if (!ctx.moduleOn) return NextResponse.json({ error: "L'auto-évaluation n'est pas activée pour ce groupe." }, { status: 403 })
   if (!ctx.ended) return NextResponse.json({ error: 'Le concert n\'est pas encore passé.' }, { status: 403 })
   if (!ctx.isPresent) return NextResponse.json({ error: 'Seuls les musiciens présents peuvent évaluer.' }, { status: 403 })
 

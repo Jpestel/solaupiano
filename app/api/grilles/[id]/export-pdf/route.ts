@@ -339,7 +339,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const pdf = generateChartPdf(chart, textSize)
   const storageInfo = await getGroupStorageInfo(chart.groupId)
   if (storageInfo.limitBytes <= 0) {
-    return NextResponse.json({ error: "L'ajout de fichiers n'est pas disponible avec ce plan.", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
+    return NextResponse.json({ error: "L'ajout de fichiers n'est pas activé pour ce groupe.", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
   }
   if (storageInfo.usedBytes + pdf.length > storageInfo.limitBytes) {
     return NextResponse.json({ error: 'Quota de stockage depasse.', code: 'STORAGE_QUOTA_EXCEEDED' }, { status: 413 })

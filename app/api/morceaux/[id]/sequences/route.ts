@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 import { coChefCanDo } from '@/lib/permissions'
 import { getGroupStorageInfo } from '@/lib/storage'
 import formidable from 'formidable'
@@ -91,14 +92,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const group = await prisma.group.findUnique({
     where: { id: song.groupId },
-    select: { plan: true, createdBy: true, chefPermissions: true },
+    select: { createdBy: true, chefPermissions: true },
   })
   if (!group) return NextResponse.json({ error: 'Groupe introuvable.' }, { status: 404 })
 
-  // Plan : le lecteur de séquences doit être inclus
-  const plan = await prisma.plan.findUnique({ where: { key: group.plan }, select: { hasSequences: true } })
-  if (!isAdmin && plan && plan.hasSequences === false) {
-    return NextResponse.json({ error: "Le lecteur de séquences n'est pas inclus dans l'offre de ce groupe.", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
+  // Le lecteur de séquences doit être activé pour ce groupe et cette personne
+  if (!isAdmin && !(await resolveGroupFeatures(song.groupId, userId)).hasSequences) {
+    return NextResponse.json({ error: "Le lecteur de séquences n'est pas activé pour ce groupe.", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
   }
 
   // Permission co-chef (réutilise le module "ressources")
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const storageInfo = await getGroupStorageInfo(song.groupId)
   if (storageInfo.limitBytes <= 0) {
     return NextResponse.json({
-      error: "L'ajout de fichiers n'est pas disponible avec ce plan (quota de stockage à 0).",
+      error: "L'ajout de fichiers n'est pas activé pour ce groupe (aucun espace de stockage).",
       code: 'PLAN_FEATURE_LOCKED',
     }, { status: 403 })
   }

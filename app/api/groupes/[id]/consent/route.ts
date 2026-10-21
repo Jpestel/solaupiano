@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,13 +21,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   })
   if (!member) return NextResponse.json({ error: 'Vous ne faites pas partie de ce groupe.' }, { status: 403 })
 
-  const group = await prisma.group.findUnique({ where: { id: groupId }, select: { plan: true } })
-  const plan = group ? await prisma.plan.findUnique({ where: { key: group.plan }, select: { hasSocial: true } }) : null
+  const features = await resolveGroupFeatures(groupId, userId)
 
   return NextResponse.json({
     consent: member.imageConsent ?? null,
     consentAt: member.imageConsentAt,
-    hasSocial: plan?.hasSocial ?? true,
+    hasSocial: features.hasSocial,
   })
 }
 

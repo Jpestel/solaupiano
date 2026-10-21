@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 import { resolvePermissions } from '@/lib/permissions'
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
@@ -34,8 +35,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Accès réservé aux chefs.' }, { status: 403 })
   }
 
-  // Vérifier si le plan inclut les stats
-  const plan = await prisma.plan.findUnique({ where: { key: group.plan } })
   const isFounder = isAdmin || group.createdBy === userId
   if (!isFounder) {
     const perms = resolvePermissions(group.chefPermissions)
@@ -43,8 +42,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Permissions insuffisantes.' }, { status: 403 })
     }
   }
-  if (!isAdmin && plan && !plan.hasStats) {
-    return NextResponse.json({ error: 'MODULE_LOCKED', planLabel: plan.label }, { status: 403 })
+  // Fonctionnalité activée pour ce groupe et cette personne ?
+  if (!isAdmin && !(await resolveGroupFeatures(groupId, userId)).hasStats) {
+    return NextResponse.json({ error: 'MODULE_LOCKED' }, { status: 403 })
   }
 
   // ── Fetch all data in parallel ──────────────────────────────────────────

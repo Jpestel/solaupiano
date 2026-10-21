@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   // Musiciens (non-créateurs) cannot create groups
   if (!isAdmin && session.user.userPlan !== 'CREATEUR') {
     return NextResponse.json(
-      { error: 'Votre plan Musicien ne permet pas de créer un groupe. Passez au plan Créateur depuis votre profil.' },
+      { error: 'Votre compte ne permet pas de créer un groupe. Écrivez à l’éditeur du site pour l’activer.' },
       { status: 403 }
     )
   }
@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: maxGroups <= 1
-            ? `Votre plan Gratuit vous permet de gérer 1 groupe maximum. Passez à un plan Pro ou Premium pour en gérer plusieurs.`
-            : `Vous gérez déjà le maximum de ${maxGroups} groupes autorisé par votre plan.`,
+            ? `Vous gérez déjà un groupe, qui est le maximum pour votre compte. Pour en gérer un de plus, écrivez à l’éditeur du site.`
+            : `Vous gérez déjà le maximum de ${maxGroups} groupes autorisé pour votre compte. Pour en gérer un de plus, écrivez à l’éditeur du site.`,
           code: 'GROUP_LIMIT_REACHED',
         },
         { status: 403 }

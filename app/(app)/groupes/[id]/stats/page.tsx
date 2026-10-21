@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { resolvePermissions } from '@/lib/permissions'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 import { StatsClient } from './StatsClient'
 
 export const dynamic = 'force-dynamic'
@@ -40,16 +41,16 @@ export default async function StatsPage({ params }: { params: { id: string } }) 
     if (!perms.stats.view) redirect(`/groupes/${groupId}`)
   }
 
-  // Check plan
-  const plan = await prisma.plan.findUnique({ where: { key: group.plan } })
-  if (!isAdmin && plan && !plan.hasStats) {
+  // Fonctionnalité activée pour ce groupe et cette personne ? (admin = oui)
+  const features = await resolveGroupFeatures(groupId, userId)
+  if (!isAdmin && !features.hasStats) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
         <div className="text-5xl mb-4">📊</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Module Statistiques</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Statistiques</h1>
         <p className="text-gray-500 mb-6">
-          Le module statistiques est disponible à partir du plan <strong>{plan ? getPlanAbove(plan.key) : 'supérieur'}</strong>.
-          Passez à un forfait supérieur pour accéder à des analyses détaillées de votre groupe.
+          Cette fonctionnalité n&apos;est pas activée pour votre groupe.
+          Si vous souhaitez l&apos;utiliser, écrivez à l&apos;éditeur du site.
         </p>
         <Link
           href={`/groupes/${groupId}`}
@@ -91,6 +92,3 @@ export default async function StatsPage({ params }: { params: { id: string } }) 
   )
 }
 
-function getPlanAbove(_currentKey: string): string {
-  return 'supérieur'
-}

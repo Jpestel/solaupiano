@@ -69,7 +69,7 @@ export default function NouvelleAnnoncePage() {
 
     if (!res.ok) {
       if (data.code === 'PLAN_FEATURE_LOCKED') {
-        setError('Les petites annonces sont disponibles avec un plan Pro ou Premium. Mettez à niveau votre groupe depuis la page du groupe.')
+        setError('Les petites annonces ne sont pas activées pour votre groupe. Écrivez à l’éditeur si vous souhaitez les utiliser.')
       } else {
         setError(data.error || 'Erreur lors de la publication.')
       }

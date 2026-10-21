@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getGroupStorageInfo } from '@/lib/storage'
 import { cleanupGroupFiles } from '@/lib/file-cleanup'
+import { resolveGroupFeatures } from '@/lib/group-feature'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -57,30 +58,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // Stockage : l'upload de fichiers est possible si le quota effectif > 0
   const storageInfo = await getGroupStorageInfo(groupId)
 
-  // Fonctionnalités débloquées par le plan du groupe (défaut permissif si pas de plan trouvé)
-  const planRec = await prisma.plan.findUnique({
-    where: { key: group.plan },
-    select: { hasMetronome: true, hasParoles: true, hasSequences: true, hasEvaluations: true, hasAccounting: true, hasChat: true, hasSharedResources: true, hasUnavailabilities: true, hasPolls: true, hasGrilles: true, hasSetlists: true, hasConcerts: true, hasFicheTechnique: true, hasMaPage: true, hasStats: true, hasGalerie: true, hasSocial: true },
-  })
-  const planFeatures = {
-    hasMetronome: planRec?.hasMetronome ?? true,
-    hasParoles: planRec?.hasParoles ?? true,
-    hasSequences: planRec?.hasSequences ?? true,
-    hasEvaluations: planRec?.hasEvaluations ?? true,
-    hasAccounting: planRec?.hasAccounting ?? true,
-    hasChat: planRec?.hasChat ?? true,
-    hasSharedResources: planRec?.hasSharedResources ?? true,
-    hasUnavailabilities: planRec?.hasUnavailabilities ?? true,
-    hasPolls: planRec?.hasPolls ?? true,
-    hasGrilles: planRec?.hasGrilles ?? true,
-    hasSetlists: planRec?.hasSetlists ?? true,
-    hasConcerts: planRec?.hasConcerts ?? true,
-    hasFicheTechnique: planRec?.hasFicheTechnique ?? true,
-    hasMaPage: planRec?.hasMaPage ?? true,
-    hasStats: planRec?.hasStats ?? true,
-    hasGalerie: planRec?.hasGalerie ?? true,
-    hasSocial: planRec?.hasSocial ?? true,
-  }
+  // Fonctionnalités actives pour CE groupe et CETTE personne : réglage de base du
+  // plan, surchargé par les dérogations de l'administrateur (groupe, puis utilisateur).
+  const planFeatures = await resolveGroupFeatures(groupId, userId)
 
   return NextResponse.json({
     ...group,

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   const access = await getEstimationAccess(userId, userPlan, isAdmin)
   if (!access.storage) {
-    return NextResponse.json({ error: 'Votre forfait ne permet pas de sauvegarder des simulations.' }, { status: 403 })
+    return NextResponse.json({ error: "La sauvegarde des simulations n'est pas activée pour votre compte." }, { status: 403 })
   }
   if (!access.create) {
     return NextResponse.json({ error: "Le fondateur ne vous autorise pas à créer des estimations." }, { status: 403 })

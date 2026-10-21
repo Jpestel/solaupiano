@@ -25,78 +25,90 @@ export async function isModuleEnabledForGroup(groupId: number, moduleKey: string
 }
 
 /**
- * Check if a user has access to a module.
+ * Règle de décision, sans accès à la base : une seule source de vérité pour
+ * l'accès d'un utilisateur à un module (lecture unitaire comme lecture groupée).
  *
- * Priority chain:
- * 1. ModuleUserOverride (per-user allow/block) — highest priority
- * 2. ModuleGroupOverride (per-group allow/block) — any group the user belongs to
- * 3. ModuleAccess (per-plan allow/block)
- * 4. Default: open (true) if no rules configured
+ * Priorité :
+ * 1. dérogation par utilisateur (autoriser / bloquer) — la plus forte
+ * 2. dérogation par groupe, parmi les groupes de l'utilisateur :
+ *    « autorisé » l'emporte si au moins un groupe autorise
+ * 3. accès par plan : « meilleur plan gagne » — autorisé si AU MOINS un plan
+ *    candidat autorise ; l'absence d'enregistrement pour un plan = ouvert
+ * 4. ouvert par défaut
  */
-export async function hasModuleAccess(userId: number, moduleKey: string): Promise<boolean> {
-  // 1. User override
-  const userOverride = await prisma.moduleUserOverride.findUnique({
-    where: { moduleKey_userId: { moduleKey, userId } },
-  })
-  if (userOverride !== null) return userOverride.allowed
+export function decideModuleAccess(input: {
+  userOverride: boolean | null
+  groupOverrides: boolean[]
+  candidatePlans: string[]
+  planRules: Map<string, boolean>
+}): boolean {
+  if (input.userOverride !== null) return input.userOverride
+  if (input.groupOverrides.length > 0) return input.groupOverrides.some(Boolean)
+  for (const plan of input.candidatePlans) {
+    const rule = input.planRules.get(plan)
+    if (rule === undefined || rule === true) return true
+  }
+  return false
+}
 
-  // 2. Group override — check all groups the user belongs to
-  //    If ANY group has an explicit override, use it (allow wins over block at group level)
+/**
+ * Accès d'un utilisateur à plusieurs modules d'un coup (quelques requêtes au
+ * total, quel que soit le nombre de modules). Sert aussi bien à l'accès
+ * unitaire qu'au menu, qui doit savoir ce qu'il faut masquer.
+ */
+export async function moduleAccessMap(userId: number, moduleKeys: string[]): Promise<Record<string, boolean>> {
+  const result: Record<string, boolean> = {}
+  if (moduleKeys.length === 0) return result
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      groups: {
-        select: { groupId: true },
-      },
-    },
+    select: { userPlan: true, groups: { select: { groupId: true, group: { select: { plan: true } } } } },
   })
-  if (user && user.groups.length > 0) {
-    const groupIds = user.groups.map(g => g.groupId)
-    const groupOverrides = await prisma.moduleGroupOverride.findMany({
-      where: { moduleKey, groupId: { in: groupIds } },
-    })
-    if (groupOverrides.length > 0) {
-      // "allowed" wins: if any group grants access, grant it
-      return groupOverrides.some(o => o.allowed)
-    }
-  }
+  // Utilisateur introuvable : comportement historique, ouvert.
+  if (!user) { for (const k of moduleKeys) result[k] = true; return result }
 
-  // 3. Plan-based access — résolu sur l'ensemble des plans applicables à l'utilisateur :
-  //    - le plan de chacun de ses groupes (le plan du groupe paie / débloque)
-  //    - son plan utilisateur (MUSICIEN / CREATEUR) en complément
-  //    Règle "meilleur plan gagne" : si AU MOINS un plan autorise le module, c'est autorisé.
-  //    Pour un plan donné, l'absence d'enregistrement ModuleAccess = ouvert (permissif).
-  const userRecord = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      userPlan: true,
-      groups: { select: { group: { select: { plan: true } } } },
-    },
+  const groupIds = user.groups.map((g) => g.groupId)
+  // Les plans de groupe priment ; sans groupe, on retombe sur le plan personnel.
+  const candidatePlans = user.groups.length > 0
+    ? Array.from(new Set(user.groups.map((g) => g.group.plan)))
+    : [user.userPlan]
+
+  const [userRows, groupRows, planRows] = await Promise.all([
+    prisma.moduleUserOverride.findMany({ where: { userId, moduleKey: { in: moduleKeys } }, select: { moduleKey: true, allowed: true } }),
+    groupIds.length > 0
+      ? prisma.moduleGroupOverride.findMany({ where: { groupId: { in: groupIds }, moduleKey: { in: moduleKeys } }, select: { moduleKey: true, allowed: true } })
+      : Promise.resolve([] as { moduleKey: string; allowed: boolean }[]),
+    prisma.moduleAccess.findMany({ where: { planKey: { in: candidatePlans }, moduleKey: { in: moduleKeys } }, select: { moduleKey: true, planKey: true, enabled: true } }),
+  ])
+
+  for (const key of moduleKeys) {
+    const userOverride = userRows.find((r) => r.moduleKey === key)
+    result[key] = decideModuleAccess({
+      userOverride: userOverride ? userOverride.allowed : null,
+      groupOverrides: groupRows.filter((r) => r.moduleKey === key).map((r) => r.allowed),
+      candidatePlans,
+      planRules: new Map(planRows.filter((r) => r.moduleKey === key).map((r) => [r.planKey, r.enabled])),
+    })
+  }
+  return result
+}
+
+/** Un utilisateur a-t-il accès à un module ? (règle : voir decideModuleAccess) */
+export async function hasModuleAccess(userId: number, moduleKey: string): Promise<boolean> {
+  return (await moduleAccessMap(userId, [moduleKey]))[moduleKey]
+}
+
+/**
+ * Un module de GROUPE (tâches, partitions carrées, dictaphone…) est-il ouvert à
+ * cette personne dans ce groupe ? La dérogation utilisateur prime sur celle du
+ * groupe, qui prime sur le plan — comme pour les autres modules. Sans cela, une
+ * dérogation posée sur une personne dans l'administration n'aurait aucun effet.
+ */
+export async function isModuleEnabledForUserInGroup(userId: number, groupId: number, moduleKey: string): Promise<boolean> {
+  const userOverride = await prisma.moduleUserOverride.findUnique({
+    where: { moduleKey_userId: { moduleKey, userId } },
+    select: { allowed: true },
   })
-  if (userRecord) {
-    // Les plans de groupe priment (c'est l'abonnement du groupe qui débloque).
-    // L'utilisateur sans aucun groupe est évalué sur son plan personnel (MUSICIEN).
-    const candidatePlans = new Set<string>()
-    if (userRecord.groups.length > 0) {
-      for (const g of userRecord.groups) candidatePlans.add(g.group.plan)
-    } else {
-      candidatePlans.add(userRecord.userPlan)
-    }
-
-    const records = await prisma.moduleAccess.findMany({
-      where: { moduleKey, planKey: { in: [...candidatePlans] } },
-    })
-    const recordByPlan = new Map(records.map(r => [r.planKey, r.enabled]))
-
-    // Pour chaque plan candidat : autorisé si pas d'enregistrement (ouvert) OU enabled=true
-    for (const plan of candidatePlans) {
-      const rec = recordByPlan.get(plan)
-      if (rec === undefined || rec === true) return true   // meilleur plan gagne
-    }
-    // Tous les plans candidats ont un enregistrement explicite à false
-    return false
-  }
-
-  // 4. Default: open to all
-  return true
+  if (userOverride) return userOverride.allowed
+  return isModuleEnabledForGroup(groupId, moduleKey)
 }

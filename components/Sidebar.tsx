@@ -1,10 +1,12 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { clsx } from '@/lib/utils'
 import { useSettings } from './SettingsProvider'
+import { MODULES } from '@/lib/modules'
 
 const navItems = [
   {
@@ -222,6 +224,23 @@ export function Sidebar({ open = false, onClose, collapsed = false, onToggleColl
   const { data: session } = useSession()
   const { siteIcon } = useSettings()
 
+  // Outils fermés à cette personne (dérogation utilisateur, groupe ou plan) : on les
+  // retire du menu plutôt que de laisser un lien qui renvoie vers un message d'erreur.
+  const [blockedHrefs, setBlockedHrefs] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let cancelled = false
+    fetch('/api/me/module-access')
+      .then((r) => (r.ok ? r.json() : { blocked: [] }))
+      .then((data: { blocked?: string[] }) => {
+        if (cancelled) return
+        const blocked = new Set(data.blocked ?? [])
+        setBlockedHrefs(new Set(MODULES.filter((m) => blocked.has(m.key)).map((m) => m.href)))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [session?.user?.id])
+
   const isActive = (href: string) =>
     href === '/tableau-de-bord' || href === '/admin' || href === '/' ? pathname === href : pathname.startsWith(href)
 
@@ -264,6 +283,7 @@ export function Sidebar({ open = false, onClose, collapsed = false, onToggleColl
       <nav className={clsx('flex-1 overflow-y-auto py-4 space-y-1', collapsed ? 'px-2' : 'px-3')}>
         {navItems
           .filter((item) => item.href === '/groupes' ? session?.user?.siteRole !== 'ADMIN' : true)
+          .filter((item) => !blockedHrefs.has(item.href))
           .map((item) => (
             <Link
               key={item.href}

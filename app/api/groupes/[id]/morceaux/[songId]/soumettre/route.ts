@@ -39,7 +39,7 @@ export async function POST(
   const storageInfo = await getGroupStorageInfo(groupId)
   if (storageInfo.limitBytes <= 0) {
     return NextResponse.json({
-      error: "L'ajout de fichiers n'est pas disponible avec ce plan (quota de stockage à 0).",
+      error: "L'ajout de fichiers n'est pas activé pour ce groupe (aucun espace de stockage).",
       code: 'PLAN_FEATURE_LOCKED',
     }, { status: 403 })
   }

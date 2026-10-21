@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { MODULES } from '@/lib/modules'
+import { groupFeaturesAsModules } from '@/lib/features'
 import { ModulesManager } from './ModulesManager'
 
 export const metadata = { title: 'Gestion des modules — Admin' }
@@ -52,7 +53,7 @@ export default async function AdminModulesPage() {
 
   return (
     <ModulesManager
-      modules={MODULES}
+      modules={[...MODULES, ...groupFeaturesAsModules()]}
       plans={plans}
       planAccess={planAccess}
       userOverrides={userOverrides}

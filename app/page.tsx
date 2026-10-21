@@ -188,10 +188,10 @@ export default async function PublicHomePage() {
                       Demander un accès
                     </Link>
                     <Link
-                      href="/tarifs"
+                      href="/fonctionnalites"
                       className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/25 backdrop-blur transition-colors"
                     >
-                      Voir les niveaux →
+                      Voir les fonctionnalités →
                     </Link>
                     <Link
                       href="/connexion"
@@ -476,7 +476,7 @@ export default async function PublicHomePage() {
             <Link href="/demander-acces" className="hover:text-indigo-600 transition-colors">Demander un accès</Link>
             <Link href="/annonces" className="hover:text-indigo-600 transition-colors">Annonces</Link>
             <Link href="/blog" className="hover:text-indigo-600 transition-colors">Blog</Link>
-            <Link href="/tarifs" className="hover:text-indigo-600 transition-colors">Tarifs</Link>
+            <Link href="/fonctionnalites" className="hover:text-indigo-600 transition-colors">Fonctionnalités</Link>
             <Link href="/aide" className="hover:text-indigo-600 transition-colors">Aide</Link>
             <Link href="/newsletter" className="hover:text-indigo-600 transition-colors">Newsletter</Link>
             <Link href="/mentions-legales" className="hover:text-indigo-600 transition-colors">Mentions légales</Link>

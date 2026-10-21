@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (contentType.includes('multipart/form-data')) {
     const storageInfo = await getGroupStorageInfo(groupId)
     if (storageInfo.limitBytes <= 0) {
-      return NextResponse.json({ error: "L'ajout de fichiers n'est pas disponible avec ce plan (quota à 0).", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
+      return NextResponse.json({ error: "L'ajout de fichiers n'est pas activé pour ce groupe (aucun espace de stockage).", code: 'PLAN_FEATURE_LOCKED' }, { status: 403 })
     }
 
     const uploadDir = './public/uploads/partagees'
