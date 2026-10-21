@@ -726,6 +726,73 @@ export async function sendGroupWelcomeEmail(
   })
 }
 
+// ─── Lien d'invitation d'un groupe renouvelé ─────────────────────────────────
+
+/**
+ * Prévient un chef que l'ancien lien d'invitation de son groupe a été désactivé
+ * et lui remet le nouveau, à envoyer aux musiciens qui n'ont pas encore rejoint.
+ * `cc` met l'éditeur en copie visible ; `replyTo` permet de répondre directement.
+ */
+export async function sendInviteLinkRenewed(
+  to: string,
+  chefName: string,
+  groupName: string,
+  groupId: number,
+  newInviteUrl: string,
+  baseUrl: string,
+  options: { cc?: string | string[]; replyTo?: string } = {},
+) {
+  const firstName = escapeHtml(chefName.trim().split(/\s+/)[0] || chefName.trim())
+  const group = escapeHtml(groupName)
+
+  return sendEmail({
+    from: 'Sol au piano <noreply@solaupiano.fr>',
+    to,
+    ...(options.cc ? { cc: options.cc } : {}),
+    ...(options.replyTo ? { replyTo: options.replyTo } : {}),
+    subject: `${groupName} : votre lien d'invitation a été renouvelé`,
+    html: emailWrapper(`
+      <p style="font-size:15px; color:#111827; margin:0 0 14px;">Bonjour ${firstName},</p>
+      <p style="font-size:14px; color:#374151; line-height:1.6; margin:0 0 12px;">
+        Nous venons de mettre en place un correctif : jusqu&apos;à présent, un musicien qui recevait votre lien
+        d&apos;invitation ne pouvait pas rejoindre <strong>${group}</strong> tant que le groupe n&apos;était pas public.
+        C&apos;est réglé, et ${group} est de nouveau un groupe privé.
+      </p>
+      <p style="font-size:14px; color:#374151; line-height:1.6; margin:0 0 12px;">
+        Par la même occasion, <strong>l&apos;ancien lien d&apos;invitation</strong>, envoyé avant ce correctif, a été
+        désactivé : il ne fonctionne plus. Un nouveau lien a été créé à sa place, pour que seules les personnes que
+        vous invitez puissent rejoindre le groupe.
+      </p>
+      ${dataBox(`
+        <p style="margin:0 0 6px; font-size:14px; font-weight:700; color:#1e3a8a;">Ce que vous avez à faire</p>
+        <p style="margin:0; font-size:13px; color:#1e3a8a; line-height:1.6;">
+          Envoyez le nouveau lien aux musiciens qui <strong>n&apos;ont pas encore rejoint</strong> ${group}.
+          Les membres déjà inscrits n&apos;ont rien à faire.
+        </p>
+      `)}
+      <p style="font-size:13px; font-weight:600; color:#374151; margin:18px 0 6px;">Votre nouveau lien d&apos;invitation</p>
+      <p style="font-size:12px; color:#4338ca; word-break:break-all; background:#eef2ff; border:1px solid #c7d2fe; border-radius:10px; padding:12px; margin:0;">
+        ${escapeHtml(newInviteUrl)}
+      </p>
+      <p style="font-size:13px; color:#6b7280; line-height:1.6; margin:12px 0 0;">
+        Vous pouvez aussi le retrouver à tout moment : ouvrez votre groupe, puis la carte
+        « ➕ Inviter un musicien » et « 🔗 Inviter par lien ».
+      </p>
+      ${ctaButton(`${baseUrl}/groupes/${groupId}`, 'Ouvrir mon groupe')}
+      <p style="font-size:13px; color:#6b7280; line-height:1.6; margin:0 0 12px;">
+        Un musicien qui n&apos;a pas encore de compte le crée en suivant ce lien, puis arrive directement sur la page
+        du groupe, qu&apos;il rejoint en un clic. Sol au piano étant désormais accessible uniquement sur invitation,
+        ce lien est le moyen d&apos;accueillir de nouvelles personnes.
+      </p>
+      <p style="font-size:14px; color:#374151; line-height:1.6; margin:0 0 4px;">
+        Merci de votre patience, et toutes nos excuses pour la gêne occasionnée. Pour toute question, répondez
+        simplement à ce message.
+      </p>
+      <p style="font-size:14px; color:#374151; margin:12px 0 0;">Jérôme<br/><span style="color:#9ca3af; font-size:12px;">Sol au piano</span></p>
+    `),
+  })
+}
+
 // ─── 5. Membre retiré du groupe ───────────────────────────────────────────────
 
 export async function sendMemberRemovedEmail(
