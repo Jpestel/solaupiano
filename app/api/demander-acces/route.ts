@@ -11,7 +11,29 @@ import { signAccessToken, ACCESS_TOKEN_DAYS } from '@/lib/acces'
  * contient déjà le lien d'invitation personnel, pour qu'accepter se résume à
  * répondre en le collant.
  */
+/* Limite d'envois, en mémoire : la route est publique et chaque appel envoie un
+   email à l'éditeur. Sans borne, n'importe qui pourrait inonder sa boîte. */
+const FENETRE_MS = 60 * 60 * 1000
+const MAX_PAR_IP = 5
+const MAX_PAR_EMAIL = 2
+const parIp = new Map<string, number[]>()
+const parEmail = new Map<string, number[]>()
+
+function depasse(table: Map<string, number[]>, cle: string, max: number): boolean {
+  const now = Date.now()
+  const recents = (table.get(cle) ?? []).filter((t) => now - t < FENETRE_MS)
+  if (recents.length >= max) { table.set(cle, recents); return true }
+  recents.push(now)
+  table.set(cle, recents)
+  return false
+}
+
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'inconnue'
+  if (depasse(parIp, ip, MAX_PAR_IP)) {
+    return NextResponse.json({ error: 'Trop de demandes. Réessayez dans une heure.' }, { status: 429 })
+  }
+
   const body = await req.json().catch(() => ({}))
   const name = String(body.name ?? '').trim()
   const email = String(body.email ?? '').trim().toLowerCase()
@@ -25,6 +47,11 @@ export async function POST(req: NextRequest) {
   }
   if (name.length > 120 || email.length > 160 || message.length > 2000) {
     return NextResponse.json({ error: 'Votre message est trop long.' }, { status: 400 })
+  }
+
+  if (depasse(parEmail, email, MAX_PAR_EMAIL)) {
+    // Même réponse qu'un succès : on ne dit pas à un tiers que l'adresse a déjà servi.
+    return NextResponse.json({ ok: true })
   }
 
   const admin = await prisma.user.findFirst({
