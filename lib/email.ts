@@ -696,16 +696,19 @@ export async function sendGroupWelcomeEmail(
   groupId: number,
   addedByName: string,
   baseUrl: string,
-  groupType?: string
+  groupType?: string,
+  /** `bcc` : copie cachée (le destinataire ne voit pas qui est en copie). */
+  options: { bcc?: string | string[] } = {},
 ) {
   const isSchool = groupType === 'SCHOOL'
   const groupUrl = `${baseUrl}/groupes/${groupId}`
   const tpl = await getEmailTemplate(isSchool ? 'group_welcome_school' : 'group_welcome')
   const { subject, introHtml, outroHtml } = tpl.render({ memberName, groupName })
 
-  await sendEmail({
+  return sendEmail({
     from: 'Sol au piano <noreply@solaupiano.fr>',
     to,
+    ...(options.bcc ? { bcc: options.bcc } : {}),
     subject,
     html: emailWrapper(`
       ${introHtml}
