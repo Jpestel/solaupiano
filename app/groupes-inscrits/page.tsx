@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getSiteSettings } from '@/lib/site-settings'
+import { getSiteSettings } from '@/lib/site-settings-server'
 import { PublicNav } from '../PublicNav'
 import { GroupCard } from '@/components/GroupCard'
 

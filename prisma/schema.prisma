@@ -224,6 +224,7 @@ model User {
   helpBubbleDismissals     HelpBubbleDismissal[]
   taskAssignments          TaskAssignee[]
   voiceRecordings          VoiceRecording[]
+  groupActivities GroupActivity[]
 }
 
 // ─── Blog ────────────────────────────────────────────────────────────────────
@@ -409,6 +410,7 @@ model Group {
   socialPosts      SocialPost[]
   taskLists        TaskList[]
   voiceRecordings  VoiceRecording[]
+  activities GroupActivity[]
 }
 
 // Catalogue de liens de ressources (audios, vidéos, tutos, partitions…)
@@ -1584,5 +1586,26 @@ model TaskAssignee {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([taskId, userId])
+  @@index([userId])
+}
+
+// Journal d'activité d'un groupe : qui a fait quoi, quand. Alimenté automatiquement
+// par lib/audit.ts à chaque écriture sur un élément de groupe (aucune route à
+// instrumenter une par une). Visible des chefs du groupe. Conservé 12 mois.
+model GroupActivity {
+  id         Int      @id @default(autoincrement())
+  groupId    Int
+  userId     Int?                          // auteur ; vide si son compte a été supprimé
+  actorName  String   @db.VarChar(120)     // nom au moment des faits (survit à la suppression du compte)
+  action     String   @db.VarChar(16)      // CREATE | UPDATE | DELETE
+  entityType String   @db.VarChar(40)      // rehearsal, song, concert…
+  entityId   Int?
+  summary    String   @db.VarChar(400)     // « a modifié la répétition du 22/10/2026 (date, lieu) »
+  createdAt  DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([groupId, createdAt])
   @@index([userId])
 }

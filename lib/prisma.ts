@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { attachAudit } from './audit'
 
 // BigInt n'est pas sérialisable en JSON par défaut — fix global
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,6 +14,9 @@ export const prisma =
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
+
+// Journal d'activité des groupes : branché une fois pour toutes les écritures (lib/audit.ts)
+attachAudit(prisma)
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 

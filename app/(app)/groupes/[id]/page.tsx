@@ -378,13 +378,35 @@ export default async function GroupePage({ params }: { params: { id: string } })
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-violet-700 leading-tight">
                 Statistiques
-                {!planHasStats && <span className="ml-1.5 text-[9px] font-bold bg-amber-100 text-amber-700 rounded-full px-1.5 py-0.5 uppercase tracking-wide">Plan supérieur</span>}
               </p>
               <p className="text-[11px] text-gray-400 leading-tight mt-0.5 truncate">
                 {planHasStats ? 'Présence, répertoire, fréquence…' : 'Non activée pour ce groupe'}
               </p>
             </div>
             <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-violet-100 text-violet-700 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+          </Link>
+        </div>
+      )}
+
+      {/* Historique des actions — chefs uniquement */}
+      {isChef && (
+        <div className="mb-6">
+          <Link
+            href={`/groupes/${groupId}/historique`}
+            className="relative flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 transition-all duration-150 group w-full hover:shadow-md hover:-translate-y-0.5 hover:border-gray-300 hover:bg-gray-50/60"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-base flex-shrink-0 transition-transform group-hover:scale-110">
+              🕓
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-700 leading-tight">Historique des actions</p>
+              <p className="text-[11px] text-gray-400 leading-tight mt-0.5 truncate">Qui a fait quoi, et quand</p>
+            </div>
+            <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-600 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>

@@ -8,7 +8,7 @@ import { PublicConcerts } from '@/components/PublicConcerts'
 import { ConcertMap } from '@/components/ConcertMap'
 import { GroupCard } from '@/components/GroupCard'
 import { Reveal } from '@/components/Reveal'
-import { getSiteSettings } from '@/lib/site-settings'
+import { getSiteSettings } from '@/lib/site-settings-server'
 import { parseHomeZones } from '@/lib/home-zones'
 
 export default async function PublicHomePage() {

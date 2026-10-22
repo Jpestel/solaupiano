@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { verifyPresence, verifyConcertPresence } from '@/lib/presence-token'
 import { recomputeConcertStatus } from '@/lib/concert-status'
+import { runAsActor } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,9 @@ export default async function PresencePage({ searchParams }: { searchParams: { r
 
   let rehearsal: { date: Date; location: string; startTime: string; endTime: string | null; group: { name: string } } | null = null
   let done = false
+  // Réponse par lien signé : pas de session, donc on désigne l'auteur pour le journal d'activité.
+  const who = valid ? await prisma.user.findUnique({ where: { id: userId }, select: { name: true } }) : null
+  const actor = { id: userId, name: who?.name ?? 'Un membre' }
   if (valid) {
     if (isConcert) {
       const concert = await prisma.concert.findUnique({
@@ -28,11 +32,11 @@ export default async function PresencePage({ searchParams }: { searchParams: { r
       })
       if (concert) {
         rehearsal = { date: concert.date, location: concert.location, startTime: concert.name, endTime: null, group: concert.group }
-        await prisma.concertAttendance.upsert({
+        await runAsActor(actor, () => prisma.concertAttendance.upsert({
           where: { userId_concertId: { userId, concertId: eventId } },
           create: { userId, concertId: eventId, status: action },
           update: { status: action },
-        })
+        }))
         if (action === 'ABSENT') {
           await prisma.concertEvaluation.deleteMany({ where: { concertId: eventId, evaluatorId: userId } })
         }
@@ -45,11 +49,11 @@ export default async function PresencePage({ searchParams }: { searchParams: { r
         select: { date: true, location: true, startTime: true, endTime: true, group: { select: { name: true } } },
       })
       if (rehearsal) {
-        await prisma.attendance.upsert({
+        await runAsActor(actor, () => prisma.attendance.upsert({
           where: { userId_rehearsalId: { userId, rehearsalId: eventId } },
           create: { userId, rehearsalId: eventId, status: action },
           update: { status: action },
-        })
+        }))
         if (action === 'ABSENT') {
           await prisma.rehearsalEvaluation.deleteMany({ where: { rehearsalId: eventId, evaluatorId: userId } })
         }

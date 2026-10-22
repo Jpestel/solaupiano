@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getSiteSettings, updateSiteSettings } from '@/lib/site-settings'
+import { getSiteSettings, updateSiteSettings } from '@/lib/site-settings-server'
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions)

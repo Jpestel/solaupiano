@@ -163,6 +163,13 @@ export default function MentionsLegalesPage() {
               est assuré par IONOS, au sein de l&apos;Union européenne.
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
+              Les actions effectuées dans un groupe (création, modification ou suppression d&apos;un élément, réponse à
+              une répétition, arrivée ou départ d&apos;un membre…) sont enregistrées dans un journal d&apos;activité :
+              auteur, nature de l&apos;action et date. Ce journal est consultable par les chefs du groupe concerné, afin
+              de pouvoir s&apos;y retrouver en cas d&apos;erreur ou de modification inattendue. Il est conservé 12 mois,
+              puis supprimé automatiquement.
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed mt-2">
               Pour exercer vos droits, obtenir la suppression de votre compte ou poser toute question relative à vos
               données, écrivez à{' '}
               <a href="mailto:jerompestel@gmail.com" className="text-indigo-600 hover:underline">jerompestel@gmail.com</a>.
