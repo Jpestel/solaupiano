@@ -301,6 +301,14 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Ajout d'un membre à la répétition (possible même une fois la répétition passée)
+  const [groupMembers, setGroupMembers] = useState<{ userId: number; name: string }[]>([])
+  const [addOpen, setAddOpen] = useState(false)
+  const [addUserId, setAddUserId] = useState('')
+  const [addStatus, setAddStatus] = useState('EN_ATTENTE')
+  const [addLoading, setAddLoading] = useState(false)
+  const [addError, setAddError] = useState('')
+
   // Reminder state
   const [reminderSending, setReminderSending] = useState(false)
   const [reminderResult, setReminderResult] = useState<{ sent: number } | { error: string } | null>(null)
@@ -330,6 +338,7 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
       const me = g.members?.find((m: { userId: number; groupRole: string }) => m.userId === Number(session?.user?.id))
       const role = session?.user?.siteRole === 'ADMIN' ? 'CHEF' : (me?.groupRole || 'MEMBRE')
       setGroupInfo({ name: g.name, type: g.type, groupRole: role, memberCount: g.members?.length ?? 0, createdBy: g.createdBy ?? null, chefPermissions: g.chefPermissions ?? null })
+      setGroupMembers((g.members ?? []).map((m: { userId: number; user?: { name?: string } }) => ({ userId: m.userId, name: (m.user?.name ?? '').trim() })))
     }
     if (songsRes.ok) setGroupSongs(await songsRes.json())
     if (setlistsRes.ok) setGroupSetlists(await setlistsRes.json())
@@ -337,6 +346,26 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
   }, [session, params.repId, params.id])
 
   useEffect(() => { if (session) fetchData() }, [session, fetchData])
+
+  const handleAddMember = async () => {
+    if (!addUserId) return
+    setAddLoading(true)
+    setAddError('')
+    const res = await fetch(`/api/repetitions/${params.repId}/presences`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: Number(addUserId), status: addStatus }),
+    })
+    setAddLoading(false)
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setAddError(d.error || "L'ajout a échoué.")
+      return
+    }
+    setAddUserId('')
+    setAddOpen(false)
+    fetchData()
+  }
 
   const openEdit = () => {
     if (!rehearsal) return
@@ -468,6 +497,18 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
 
   const respondedCount = rehearsal.attendances.filter((a) => a.status === 'PRESENT' || a.status === 'ABSENT' || a.status === 'INCERTAIN').length
   const notRespondedCount = (groupInfo?.memberCount ?? 0) - respondedCount
+
+  // Répétition terminée ? (sert à proposer « Présent(e) » par défaut pour une répétition passée)
+  const rehearsalEndsAt = (() => {
+    const end = new Date(rehearsal.date)
+    const t = (rehearsal.endTime || rehearsal.startTime || '23:59').split(':')
+    end.setHours(Number(t[0]) || 23, Number(t[1]) || 59, 0, 0)
+    return end
+  })()
+  const rehearsalIsPast = new Date() >= rehearsalEndsAt
+  const alreadyInList = new Set(rehearsal.attendances.map((a) => a.userId))
+  const addableMembers = groupMembers.filter((m) => !alreadyInList.has(m.userId))
+  const canAddMembers = chefCan('repetitions', 'update')
 
   return (
     <div>
@@ -659,7 +700,66 @@ export default function RepetitionDetailPage({ params }: { params: { id: string;
           )}
 
           <Card>
-            <CardHeader title={`Présences (${rehearsal.attendances.length})`} />
+            <CardHeader
+              title={`Présences (${rehearsal.attendances.length})`}
+              action={canAddMembers ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddOpen((v) => !v)
+                    setAddError('')
+                    setAddStatus(rehearsalIsPast ? 'PRESENT' : 'EN_ATTENTE')
+                  }}
+                  className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+                >
+                  {addOpen ? 'Fermer' : `➕ Ajouter ${isSchool ? 'un élève' : 'un membre'}`}
+                </button>
+              ) : undefined}
+            />
+
+            {canAddMembers && addOpen && (
+              <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3.5">
+                {rehearsalIsPast && (
+                  <p className="mb-2.5 text-xs text-indigo-800">
+                    {isSchool ? 'Ce cours est passé' : 'Cette répétition est passée'} : vous pouvez quand même y ajouter quelqu&apos;un,
+                    par exemple pour noter qu&apos;il était là.
+                  </p>
+                )}
+                {addableMembers.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    {isSchool ? 'Tous les élèves' : 'Tous les membres du groupe'} figurent déjà dans la liste.
+                  </p>
+                ) : (
+                  <div className="space-y-2.5">
+                    <select
+                      value={addUserId}
+                      onChange={(e) => setAddUserId(e.target.value)}
+                      className="form-input"
+                    >
+                      <option value="">{isSchool ? 'Choisir un élève…' : 'Choisir un membre…'}</option>
+                      {addableMembers.map((m) => (
+                        <option key={m.userId} value={m.userId}>{m.name || `Membre #${m.userId}`}</option>
+                      ))}
+                    </select>
+                    <select value={addStatus} onChange={(e) => setAddStatus(e.target.value)} className="form-input">
+                      <option value="EN_ATTENTE">Pas encore répondu</option>
+                      <option value="PRESENT">Présent(e)</option>
+                      <option value="INCERTAIN">Peut-être</option>
+                      <option value="ABSENT">Absent(e)</option>
+                    </select>
+                    {addError && <p className="text-xs text-red-600">{addError}</p>}
+                    <button
+                      type="button"
+                      onClick={handleAddMember}
+                      disabled={!addUserId || addLoading}
+                      className="w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                    >
+                      {addLoading ? 'Ajout…' : 'Ajouter à la liste'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {rehearsal.attendances.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">Aucune réponse pour l&apos;instant.</p>
             ) : (
