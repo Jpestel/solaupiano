@@ -309,7 +309,10 @@ async function record(db: Db, spec: AuditEntity, params: any, result: any, actor
   // remise à l'heure (sinon l'enregistrement automatique d'une grille en créerait des centaines).
   // On ne fusionne que des phrases IDENTIQUES : changer le titre puis le contenu, ou
   // régénérer le lien d'invitation puis modifier les paramètres, ce sont deux actions.
-  if (action === 'UPDATE' && entityId !== null && spec.key !== 'attendance') {
+  // Vaut aussi pour les éléments sans identifiant simple (programme d'une répétition :
+  // trois réorganisations de suite ne font pas trois lignes). Pour une présence, deux
+  // réponses identiques de suite n'en font qu'une ; une réponse différente est une autre ligne.
+  if (action === 'UPDATE') {
     const recent = await db.groupActivity.findFirst({
       where: { groupId: base.groupId, userId: base.userId, entityType: base.entityType, entityId, action: 'UPDATE',
                summary: base.summary, createdAt: { gt: new Date(Date.now() - COALESCE_MS) } },

@@ -29,19 +29,19 @@ const timeLabel = (iso: string) =>
 export default function HistoriquePage({ params }: { params: { id: string } }) {
   const [items, setItems] = useState<Item[]>([])
   const [authors, setAuthors] = useState<Author[]>([])
-  const [cursor, setCursor] = useState<number | null>(null)
+  const [cursor, setCursor] = useState<string | null>(null)
   const [retentionDays, setRetentionDays] = useState(365)
   const [authorId, setAuthorId] = useState('')
   const [entity, setEntity] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const load = useCallback(async (before?: number) => {
+  const load = useCallback(async (before?: string) => {
     setLoading(true)
     const q = new URLSearchParams()
     if (authorId) q.set('userId', authorId)
     if (entity) q.set('entity', entity)
-    if (before) q.set('before', String(before))
+    if (before) q.set('before', before)
     const res = await fetch(`/api/groupes/${params.id}/historique?${q.toString()}`)
     setLoading(false)
     if (res.status === 403) { setError('Le journal est réservé aux chefs du groupe.'); return }

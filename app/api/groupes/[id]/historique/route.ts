@@ -14,7 +14,11 @@ const PAGE = 50
  * ordinaire n'a pas à consulter ce que font les autres.
  *
  * Paramètres : `userId` (un auteur), `entity` (un type d'élément), `before`
- * (identifiant de la dernière ligne vue, pour charger la suite).
+ * (curseur renvoyé par la page précédente, pour charger la suite).
+ *
+ * Tri par date : une ligne « remise à l'heure » (modifications répétées regroupées)
+ * peut être plus récente qu'une ligne d'identifiant plus grand. Le curseur combine
+ * donc la date et l'identifiant, sans quoi la pagination sauterait ou répéterait des lignes.
  */
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -32,18 +36,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const q = req.nextUrl.searchParams
   const authorId = Number(q.get('userId'))
   const entity = q.get('entity')
-  const before = Number(q.get('before'))
+  // Curseur « <millisecondes>_<id> » : on repart juste après cette ligne dans l'ordre (date, id) décroissant.
+  const m = /^(\d+)_(\d+)$/.exec(q.get('before') ?? '')
+  const cursor = m ? { at: new Date(Number(m[1])), id: Number(m[2]) } : null
 
   const where = {
     groupId,
     ...(Number.isInteger(authorId) && authorId > 0 ? { userId: authorId } : {}),
     ...(entity ? { entityType: entity } : {}),
-    ...(Number.isInteger(before) && before > 0 ? { id: { lt: before } } : {}),
+    ...(cursor ? { OR: [{ createdAt: { lt: cursor.at } }, { createdAt: cursor.at, id: { lt: cursor.id } }] } : {}),
   }
 
   const rows = await prisma.groupActivity.findMany({
     where,
-    orderBy: { id: 'desc' },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: PAGE + 1,
     select: { id: true, createdAt: true, userId: true, actorName: true, action: true, entityType: true, summary: true },
   })
@@ -60,7 +66,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   return NextResponse.json({
     items,
-    nextCursor: hasMore ? items[items.length - 1].id : null,
+    nextCursor: hasMore ? `${items[items.length - 1].createdAt.getTime()}_${items[items.length - 1].id}` : null,
     authors: authors.map((a) => ({ userId: a.userId, name: a.actorName })),
     retentionDays: AUDIT_RETENTION_DAYS,
   })
