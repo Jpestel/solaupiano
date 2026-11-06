@@ -24,6 +24,16 @@ export default function ReprisesPage() {
   const [error, setError] = useState('')
   const [viewing, setViewing] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
+  const [preview, setPreview] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
+  useEffect(() => {
+    if (!file) { setPreview(null); return }
+    const url = URL.createObjectURL(file)
+    setPreview({ url, type: file.type === 'application/pdf' ? 'pdf' : 'image' })
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+  // Une fois l'aperçu affiché, le curseur passe sur le titre.
+  useEffect(() => { if (preview) titleRef.current?.focus() }, [preview])
 
   const load = useCallback(async () => {
     const r = await fetch('/api/reprises')
@@ -125,25 +135,49 @@ export default function ReprisesPage() {
         <button onClick={() => { reset(); setShowForm(true) }} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium">+ Ajouter</button>
       </div>
 
-      {showForm && (
-        <form onSubmit={submit} className="mb-6 rounded-xl border border-gray-200 p-4 space-y-3">
-          <h2 className="font-semibold">{editId === null ? 'Nouvelle partition' : 'Modifier les informations'}</h2>
-          <input className={input} placeholder="Titre (obligatoire)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <div className="grid sm:grid-cols-3 gap-3">
-            <input className={input} placeholder="Style" value={form.style} onChange={(e) => setForm({ ...form, style: e.target.value })} />
-            <input className={input} placeholder="Interprète" value={form.performer} onChange={(e) => setForm({ ...form, performer: e.target.value })} />
-            <input className={input} placeholder="Compositeur" value={form.composer} onChange={(e) => setForm({ ...form, composer: e.target.value })} />
-          </div>
-          {editId === null && (
-            <input ref={fileRef} type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-sm" />
+      {showForm && (() => {
+        const editing = editId !== null ? scores.find((x) => x.id === editId) : null
+        const shownPreview = preview ?? (editing ? { url: editing.filePath, type: editing.fileType } : null)
+        return (
+        <form onSubmit={submit} className="mb-6 rounded-xl border border-gray-200 bg-white p-4 space-y-4">
+          <h2 className="font-semibold">{editing ? 'Modifier les informations' : 'Nouvelle partition'}</h2>
+
+          {!editing && (
+            <div>
+              <label className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 text-center text-sm ${file ? 'border-gray-200 py-2 text-gray-500' : 'border-indigo-300 bg-indigo-50 py-10 text-indigo-700'}`}>
+                {file ? <span>{file.name} — <span className="underline">changer de fichier</span></span>
+                  : <><span className="text-base font-semibold">1. Choisissez la photo ou le PDF de la partition</span><span className="mt-1 text-xs">Appareil photo, galerie ou fichier (PDF, JPG, PNG…)</span></>}
+                <input ref={fileRef} type="file" accept="application/pdf,image/*" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              </label>
+            </div>
           )}
+
+          {(shownPreview || editing) && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center h-80 md:h-[28rem]">
+                {shownPreview?.type === 'pdf'
+                  ? <iframe src={shownPreview.url} title="Aperçu" className="w-full h-full bg-white" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  : shownPreview && <img src={shownPreview.url} alt="Aperçu de la partition" className="max-w-full max-h-full object-contain" />}
+              </div>
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500">{editing ? '' : '2. '}Renseignez les informations en regardant l&apos;aperçu.</p>
+                <input ref={titleRef} className={input} placeholder="Titre (obligatoire)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                <input className={input} placeholder="Interprète" value={form.performer} onChange={(e) => setForm({ ...form, performer: e.target.value })} />
+                <input className={input} placeholder="Compositeur" value={form.composer} onChange={(e) => setForm({ ...form, composer: e.target.value })} />
+                <input className={input} placeholder="Style" value={form.style} onChange={(e) => setForm({ ...form, style: e.target.value })} />
+              </div>
+            </div>
+          )}
+
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
-            <button disabled={busy} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-50">{busy ? 'Envoi…' : 'Enregistrer'}</button>
+            {(file || editing) && <button disabled={busy} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-50">{busy ? 'Envoi…' : 'Enregistrer'}</button>}
             <button type="button" onClick={reset} className="rounded-lg border border-gray-300 bg-white text-gray-800 px-4 py-2 text-sm">Annuler</button>
           </div>
         </form>
-      )}
+        )
+      })()}
 
       <div className="space-y-2 mb-3">
         <input className={input} placeholder="Rechercher (titre, interprète, compositeur, style…)" value={q} onChange={(e) => setQ(e.target.value)} />
