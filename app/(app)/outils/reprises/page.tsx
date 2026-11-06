@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { titresSimilaires, type Similaire } from '@/lib/reprises-similarite'
 import { ScoreViewer } from '@/components/ScoreViewer'
+import { FilterPicker, type FilterOption } from './FilterPicker'
 
 interface Score {
   id: number; title: string; style: string | null; performer: string | null; composer: string | null
@@ -92,11 +93,27 @@ export default function ReprisesPage() {
     await loadSelections()
   }
 
-  const distinct = (k: 'style' | 'performer' | 'composer') =>
-    Array.from(new Set(scores.map((s) => s[k]).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
-  const styles = useMemo(() => distinct('style'), [scores]) // eslint-disable-line react-hooks/exhaustive-deps
-  const performers = useMemo(() => distinct('performer'), [scores]) // eslint-disable-line react-hooks/exhaustive-deps
-  const composers = useMemo(() => distinct('composer'), [scores]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Valeurs proposées par chaque filtre : seulement celles qui existent encore compte tenu de la
+  // recherche et des deux autres filtres, avec le nombre de partitions correspondantes.
+  const matchSearch = useCallback((x: Score) => {
+    const t = q.trim().toLowerCase()
+    return !t || [x.title, x.performer, x.composer, x.style].some((v) => v?.toLowerCase().includes(t))
+  }, [q])
+  const facet = useCallback((k: 'style' | 'performer' | 'composer'): FilterOption[] => {
+    const cur = { style, performer: performerF, composer: composerF }
+    const m = new Map<string, number>()
+    for (const x of scores) {
+      const v = x[k]
+      if (!v || !matchSearch(x)) continue
+      if ((['style', 'performer', 'composer'] as const).some((o) => o !== k && cur[o] && x[o] !== cur[o])) continue
+      m.set(v, (m.get(v) ?? 0) + 1)
+    }
+    if (cur[k] && !m.has(cur[k])) m.set(cur[k], 0)
+    return Array.from(m, ([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value, 'fr', { sensitivity: 'base' }))
+  }, [scores, style, performerF, composerF, matchSearch])
+  const performers = useMemo(() => facet('performer'), [facet])
+  const composers = useMemo(() => facet('composer'), [facet])
+  const styles = useMemo(() => facet('style'), [facet])
 
   const proches = useMemo(() => (showForm && form.title.trim().length >= 3 ? titresSimilaires(form.title, scores, editId ?? undefined) : []), [showForm, form.title, scores, editId])
 
@@ -107,18 +124,15 @@ export default function ReprisesPage() {
   }, [sortValue])
 
   const shown = useMemo(() => {
-    const t = q.trim().toLowerCase()
     return scores
-      .filter((s) =>
-        (!style || s.style === style) && (!performerF || s.performer === performerF) && (!composerF || s.composer === composerF) &&
-        (!t || [s.title, s.performer, s.composer, s.style].some((v) => v?.toLowerCase().includes(t))))
+      .filter((s) => (!style || s.style === style) && (!performerF || s.performer === performerF) && (!composerF || s.composer === composerF) && matchSearch(s))
       .sort((a, b) => {
         const va = sortValue(a), vb = sortValue(b)
         // Sans valeur (ex. pas d'interprète) : en fin de liste.
         if (!va !== !vb) return va ? -1 : 1
         return va.localeCompare(vb, 'fr', { sensitivity: 'base' }) || a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' })
       })
-  }, [scores, q, style, performerF, composerF, sortValue])
+  }, [scores, style, performerF, composerF, matchSearch, sortValue])
 
   const groups = useMemo(() => {
     const m = new Map<string, Score[]>()
@@ -331,16 +345,10 @@ export default function ReprisesPage() {
       <div className="space-y-2 mb-3">
         <input className={input} placeholder="Rechercher (titre, interprète, compositeur, style…)" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <select className={input} value={performerF} onChange={(e) => setPerformerF(e.target.value)}>
-            <option value="">Tous les interprètes</option>{performers.map((v) => <option key={v}>{v}</option>)}
-          </select>
-          <select className={input} value={composerF} onChange={(e) => setComposerF(e.target.value)}>
-            <option value="">Tous les compositeurs</option>{composers.map((v) => <option key={v}>{v}</option>)}
-          </select>
-          <select className={input} value={style} onChange={(e) => setStyle(e.target.value)}>
-            <option value="">Tous les styles</option>{styles.map((v) => <option key={v}>{v}</option>)}
-          </select>
-          <select className={input} value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+          <FilterPicker label="Interprète" options={performers} value={performerF} onChange={setPerformerF} />
+          <FilterPicker label="Compositeur" options={composers} value={composerF} onChange={setComposerF} />
+          <FilterPicker label="Style" options={styles} value={style} onChange={setStyle} />
+          <select className={input} value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label="Classement">
             <option value="title">Classer par titre</option>
             <option value="performer">Classer par interprète</option>
             <option value="composer">Classer par compositeur</option>
