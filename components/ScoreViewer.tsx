@@ -44,11 +44,11 @@ export function ScoreViewer({ scores, start = 0, onClose }: { scores: ViewerScor
 
   if (!score || !page) return null
   const sub = [score.performer, score.composer && `de ${score.composer}`].filter(Boolean).join(' · ')
-  const btn = 'rounded px-3 py-1 disabled:opacity-30'
+  const btn = 'rounded px-2.5 py-1 disabled:opacity-30 sm:px-3'
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
-      <div className="flex items-center gap-2 bg-black/90 p-2 text-sm">
+      <div className="flex items-center gap-1 bg-black/90 p-2 text-sm sm:gap-2">
         {scores.length > 1 && <>
           <button onClick={() => goScore(-1)} disabled={si === 0} className={btn} title="Partition précédente" aria-label="Partition précédente">«</button>
           <button onClick={() => goScore(1)} disabled={si === scores.length - 1} className={btn} title="Partition suivante" aria-label="Partition suivante">»</button>
@@ -58,9 +58,9 @@ export function ScoreViewer({ scores, start = 0, onClose }: { scores: ViewerScor
           {sub && <div className="truncate text-xs text-white/60">{sub}</div>}
         </div>
         {page.fileType === 'image'
-          ? <button onClick={() => setZoom((z) => !z)} className="rounded bg-white/15 px-3 py-1">{zoom ? 'Ajuster' : 'Agrandir'}</button>
-          : <a href={page.src} target="_blank" rel="noreferrer" className="rounded bg-white/15 px-3 py-1">Ouvrir</a>}
-        {onClose && <button onClick={onClose} className="rounded bg-white/15 px-3 py-1">Fermer ✕</button>}
+          ? <button onClick={() => setZoom((z) => !z)} className="shrink-0 rounded bg-white/15 px-2.5 py-1 sm:px-3" aria-label={zoom ? 'Ajuster à l’écran' : 'Agrandir'}>{zoom ? '⤢' : '🔍'}<span className="hidden sm:inline">{zoom ? ' Ajuster' : ' Agrandir'}</span></button>
+          : <a href={page.src} target="_blank" rel="noreferrer" className="shrink-0 rounded bg-white/15 px-2.5 py-1 sm:px-3">Ouvrir</a>}
+        {onClose && <button onClick={onClose} className="shrink-0 rounded bg-white/15 px-2.5 py-1 sm:px-3" aria-label="Fermer">✕<span className="hidden sm:inline"> Fermer</span></button>}
       </div>
 
       <div
@@ -81,13 +81,13 @@ export function ScoreViewer({ scores, start = 0, onClose }: { scores: ViewerScor
       </div>
 
       {pageCount > 1 && (
-        <div className="flex items-center justify-center gap-2 bg-black/90 p-2 text-sm">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 bg-black/90 p-2 text-sm">
           <button onClick={() => goPage(pi - 1)} disabled={pi === 0} className={btn + ' bg-white/15'} aria-label="Page précédente">‹</button>
           {pageCount <= 8 ? (
-            <div className="flex gap-1">
+            <div className="flex flex-wrap justify-center gap-1">
               {score.pages.map((_, i) => (
                 <button key={i} onClick={() => goPage(i)} aria-label={`Page ${i + 1}`} aria-current={i === pi}
-                  className={`h-8 min-w-[2rem] rounded-md font-semibold ${i === pi ? 'bg-white text-black' : 'bg-white/15'}`}>{i + 1}</button>
+                  className={`h-8 min-w-[1.75rem] rounded-md px-1 font-semibold ${i === pi ? 'bg-white text-black' : 'bg-white/15'}`}>{i + 1}</button>
               ))}
             </div>
           ) : (

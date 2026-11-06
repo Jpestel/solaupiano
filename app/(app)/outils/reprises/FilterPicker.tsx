@@ -9,11 +9,13 @@ export interface FilterOption { value: string; count: number }
  * recherche et une liste défilante (valeurs + nombre de partitions). Remplace un
  * menu déroulant interminable.
  */
-export function FilterPicker({ label, options, value, onChange }: {
+export function FilterPicker({ label, options, value, onChange, align = 'left' }: {
   label: string
   options: FilterOption[]
   value: string
   onChange: (v: string) => void
+  /** Côté d'où s'ouvre la fenêtre : « right » pour un filtre placé à droite, afin qu'elle ne dépasse pas de l'écran. */
+  align?: 'left' | 'right'
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
@@ -34,7 +36,7 @@ export function FilterPicker({ label, options, value, onChange }: {
   }, [options, q])
 
   return (
-    <div ref={box} className="relative">
+    <div ref={box} className="relative min-w-0">
       <button type="button" onClick={() => { setOpen((o) => !o); setQ('') }}
         className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${value ? 'border-indigo-400 bg-indigo-50 text-indigo-900' : 'border-gray-300 bg-white text-gray-700'}`}>
         <span className="truncate">{value || label}</span>
@@ -43,7 +45,7 @@ export function FilterPicker({ label, options, value, onChange }: {
           : <span className="text-gray-400">▾</span>}
       </button>
       {open && (
-        <div className="absolute left-0 z-30 mt-1 w-72 max-w-[85vw] rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
+        <div className={`absolute z-30 mt-1 w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white p-2 shadow-lg ${align === 'right' ? 'right-0' : 'left-0'}`}>
           {options.length > 6 && (
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Chercher ${label.toLowerCase()}…`}
               className="mb-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400" />

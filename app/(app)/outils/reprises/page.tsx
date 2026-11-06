@@ -234,12 +234,12 @@ export default function ReprisesPage() {
   const input = 'w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2 text-sm'
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-3.75rem)] max-w-6xl flex-col px-3 pt-3 lg:h-[100dvh]">
-      <div className="mb-2 flex shrink-0 items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">🎶 Partitions de reprises</h1>
-        <div className="flex gap-2">
-          {scores.length > 0 && <button onClick={() => { setPickMode((m) => !m); setPicked(new Set()) }} className="rounded-lg border border-gray-300 bg-white text-gray-800 px-3 py-2 text-sm">{pickMode ? 'Annuler la sélection' : '🔗 Partager une sélection'}</button>}
-          <button onClick={() => { reset(); setShowForm(true) }} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium">+ Ajouter</button>
+    <div className="mx-auto flex h-[calc(100dvh-3.75rem)] w-full min-w-0 max-w-6xl flex-col overflow-x-hidden px-3 pt-3 lg:h-[100dvh]">
+      <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <h1 className="min-w-0 truncate text-lg font-bold sm:text-xl">🎶 Partitions de reprises</h1>
+        <div className="flex shrink-0 gap-2">
+          {scores.length > 0 && <button onClick={() => { setPickMode((m) => !m); setPicked(new Set()) }} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800">{pickMode ? 'Annuler' : <>🔗<span className="hidden sm:inline"> Partager une sélection</span><span className="sm:hidden"> Sélection</span></>}</button>}
+          <button onClick={() => { reset(); setShowForm(true) }} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white">+ Ajouter</button>
         </div>
       </div>
 
@@ -252,8 +252,8 @@ export default function ReprisesPage() {
         const cur = list[Math.min(pv, list.length - 1)]
         const canSave = editing || files.length > 0
         return (
-        <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/40 p-3 sm:p-6">
-        <form onSubmit={submit} className="w-full max-w-4xl space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+        <div className="fixed inset-0 z-40 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-black/40 p-2 sm:p-6">
+        <form onSubmit={submit} className="w-full min-w-0 max-w-4xl space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
           <h2 className="font-semibold">{editing ? 'Modifier la partition' : 'Nouvelle partition'}</h2>
 
           {!editing && files.length === 0 && (
@@ -328,7 +328,7 @@ export default function ReprisesPage() {
       {pickMode && (
         <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 p-2 text-sm">
           <span className="text-indigo-900">Cochez les partitions à partager ({picked.size})</span>
-          <input className={input + ' sm:w-64'} placeholder="Nom du lien (ex. Soirée du 12)" value={selName} onChange={(e) => setSelName(e.target.value)} />
+          <input className={input + ' min-w-0 flex-1 sm:w-64 sm:flex-none'} placeholder="Nom du lien (ex. Soirée du 12)" value={selName} onChange={(e) => setSelName(e.target.value)} />
           <button disabled={picked.size === 0} onClick={createSelection} className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white disabled:opacity-40">Créer le lien</button>
         </div>
       )}
@@ -357,9 +357,9 @@ export default function ReprisesPage() {
           <input className={input + ' sm:flex-1 sm:min-w-[14rem]'} placeholder="Rechercher…" value={q} onChange={(e) => setQ(e.target.value)} />
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
             <div className="sm:w-36"><FilterPicker label="Interprète" options={performers} value={performerF} onChange={setPerformerF} /></div>
-            <div className="sm:w-36"><FilterPicker label="Compositeur" options={composers} value={composerF} onChange={setComposerF} /></div>
+            <div className="sm:w-36"><FilterPicker label="Compositeur" options={composers} value={composerF} onChange={setComposerF} align="right" /></div>
             <div className="sm:w-32"><FilterPicker label="Style" options={styles} value={style} onChange={setStyle} /></div>
-            <select className={input + ' sm:w-36'} value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label="Classement">
+            <select className={input + ' min-w-0 sm:w-36'} value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label="Classement">
               <option value="title">Par titre</option>
               <option value="performer">Par interprète</option>
               <option value="composer">Par compositeur</option>
