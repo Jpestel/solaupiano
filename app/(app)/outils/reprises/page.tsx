@@ -226,9 +226,9 @@ export default function ReprisesPage() {
   const input = 'w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2 text-sm'
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <h1 className="text-2xl font-bold">🎶 Partitions de reprises</h1>
+    <div className="mx-auto flex h-[calc(100dvh-3.75rem)] max-w-6xl flex-col px-3 pt-3 lg:h-[100dvh]">
+      <div className="mb-2 flex shrink-0 items-center justify-between gap-3">
+        <h1 className="text-xl font-bold">🎶 Partitions de reprises</h1>
         <div className="flex gap-2">
           {scores.length > 0 && <button onClick={() => { setPickMode((m) => !m); setPicked(new Set()) }} className="rounded-lg border border-gray-300 bg-white text-gray-800 px-3 py-2 text-sm">{pickMode ? 'Annuler la sélection' : '🔗 Partager une sélection'}</button>}
           <button onClick={() => { reset(); setShowForm(true) }} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium">+ Ajouter</button>
@@ -244,7 +244,8 @@ export default function ReprisesPage() {
         const cur = list[Math.min(pv, list.length - 1)]
         const canSave = editing || files.length > 0
         return (
-        <form onSubmit={submit} className="mb-6 rounded-xl border border-gray-200 bg-white p-4 space-y-4">
+        <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/40 p-3 sm:p-6">
+        <form onSubmit={submit} className="w-full max-w-4xl space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
           <h2 className="font-semibold">{editing ? 'Modifier la partition' : 'Nouvelle partition'}</h2>
 
           {!editing && files.length === 0 && (
@@ -312,11 +313,12 @@ export default function ReprisesPage() {
             <button type="button" onClick={reset} className="rounded-lg border border-gray-300 bg-white text-gray-800 px-4 py-2 text-sm">{editing ? 'Fermer' : 'Annuler'}</button>
           </div>
         </form>
+        </div>
         )
       })()}
 
       {pickMode && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-sm">
+        <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 p-2 text-sm">
           <span className="text-indigo-900">Cochez les partitions à partager ({picked.size})</span>
           <input className={input + ' sm:w-64'} placeholder="Nom du lien (ex. Soirée du 12)" value={selName} onChange={(e) => setSelName(e.target.value)} />
           <button disabled={picked.size === 0} onClick={createSelection} className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white disabled:opacity-40">Créer le lien</button>
@@ -324,7 +326,7 @@ export default function ReprisesPage() {
       )}
 
       {selections.length > 0 && (
-        <details className="mb-3 rounded-xl border border-gray-200 bg-white p-3 text-sm">
+        <details className="mb-2 shrink-0 rounded-xl border border-gray-200 bg-white p-2 text-sm">
           <summary className="cursor-pointer font-medium text-gray-800">Mes liens de sélection ({selections.length})</summary>
           <ul className="mt-2 divide-y divide-gray-100">
             {selections.map((sel) => {
@@ -342,17 +344,19 @@ export default function ReprisesPage() {
         </details>
       )}
 
-      <div className="space-y-2 mb-3">
-        <input className={input} placeholder="Rechercher (titre, interprète, compositeur, style…)" value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <FilterPicker label="Interprète" options={performers} value={performerF} onChange={setPerformerF} />
-          <FilterPicker label="Compositeur" options={composers} value={composerF} onChange={setComposerF} />
-          <FilterPicker label="Style" options={styles} value={style} onChange={setStyle} />
-          <select className={input} value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label="Classement">
-            <option value="title">Classer par titre</option>
-            <option value="performer">Classer par interprète</option>
-            <option value="composer">Classer par compositeur</option>
-          </select>
+      <div className="mb-2 shrink-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <input className={input + ' sm:flex-1 sm:min-w-[14rem]'} placeholder="Rechercher…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+            <div className="sm:w-36"><FilterPicker label="Interprète" options={performers} value={performerF} onChange={setPerformerF} /></div>
+            <div className="sm:w-36"><FilterPicker label="Compositeur" options={composers} value={composerF} onChange={setComposerF} /></div>
+            <div className="sm:w-32"><FilterPicker label="Style" options={styles} value={style} onChange={setStyle} /></div>
+            <select className={input + ' sm:w-36'} value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label="Classement">
+              <option value="title">Par titre</option>
+              <option value="performer">Par interprète</option>
+              <option value="composer">Par compositeur</option>
+            </select>
+          </div>
         </div>
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>{shown.length} partition{shown.length > 1 ? 's' : ''}{filtersOn ? ` sur ${scores.length}` : ''}</span>
@@ -363,8 +367,9 @@ export default function ReprisesPage() {
       {loading ? <p className="text-sm text-gray-500">Chargement…</p> : shown.length === 0 ? (
         <p className="text-sm text-gray-500">{scores.length === 0 ? 'Aucune partition pour le moment. Ajoutez-en une avec le bouton ci-dessus.' : 'Aucun résultat.'}</p>
       ) : (
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1 md:columns-2 md:gap-6">
+        <div className="flex min-h-0 flex-1 gap-2 pb-2">
+          <div className="min-w-0 flex-1 overflow-y-auto pr-1">
+            <div className="md:columns-2 md:gap-6">
             {groups.map(([l, items]) => (
               <section key={l} id={`lettre-${l === '#' ? 'autres' : l}`} className="mb-3 scroll-mt-4">
                 <h2 className="mb-0.5 break-after-avoid border-b border-indigo-100 text-base font-bold leading-tight text-indigo-700">{l}</h2>
@@ -414,10 +419,11 @@ export default function ReprisesPage() {
                 </ul>
               </section>
             ))}
+            </div>
           </div>
 
           {/* Index A–Z : barre verticale sur toute la hauteur de l'écran, toujours visible. */}
-          <nav aria-label="Index alphabétique" className="sticky top-2 flex h-[calc(100vh-1rem)] w-9 shrink-0 flex-col justify-between rounded-xl bg-indigo-50 py-1 sm:w-11">
+          <nav aria-label="Index alphabétique" className="flex h-full w-9 shrink-0 flex-col justify-between rounded-xl bg-indigo-50 py-1 sm:w-11">
             {'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('').map((l) => (
               <button key={l} onClick={() => jump(l)} disabled={!present.has(l)}
                 className={`flex min-h-0 flex-1 items-center justify-center text-sm font-bold sm:text-base ${present.has(l) ? 'text-indigo-700 hover:bg-indigo-200' : 'text-indigo-200'}`}>{l}</button>
