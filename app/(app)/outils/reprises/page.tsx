@@ -43,7 +43,7 @@ export default function ReprisesPage() {
     return () => u.forEach((x) => URL.revokeObjectURL(x))
   }, [files])
   // Lecture automatique du titre : suggestion à valider ou corriger, jamais enregistrée sans l'accord de l'utilisateur.
-  const [detect, setDetect] = useState<{ etat: 'cours' | 'ok' | 'rien' | 'erreur'; texte: string; champs: string[] }>({ etat: 'ok', texte: '', champs: [] })
+  const [detect, setDetect] = useState<{ etat: 'cours' | 'ok' | 'rien' | 'erreur'; texte: string; champs: string[]; detail?: string }>({ etat: 'ok', texte: '', champs: [] })
   const formRef = useRef(form)
   formRef.current = form
   const lancerDetection = useCallback(async (f: File) => {
@@ -60,8 +60,9 @@ export default function ReprisesPage() {
       if (d.composer && !cur.composer.trim()) { next.composer = d.composer; champs.push('composer') }
       setForm(next)
       setDetect({ etat: champs.length ? 'ok' : 'rien', texte: '', champs })
-    } catch {
-      setDetect({ etat: 'erreur', texte: '', champs: [] })
+    } catch (e) {
+      console.error('Lecture automatique de la partition :', e)
+      setDetect({ etat: 'erreur', texte: '', champs: [], detail: e instanceof Error ? e.message : String(e) })
     }
   }, [])
   const premier = files[0]
@@ -333,7 +334,7 @@ export default function ReprisesPage() {
                   </p>
                 )}
                 {!editing && (detect.etat === 'rien' || detect.etat === 'erreur') && (
-                  <p className="text-xs text-gray-500">{detect.etat === 'rien' ? 'Aucun titre lisible n’a été trouvé : saisissez-le à la main.' : 'La lecture automatique est indisponible : saisissez le titre à la main.'}</p>
+                  <p className="text-xs text-gray-500">{detect.etat === 'rien' ? 'Aucun titre lisible n’a été trouvé : saisissez-le à la main.' : `La lecture automatique a échoué${detect.detail ? ` (${detect.detail.slice(0, 120)})` : ''} : saisissez le titre à la main.`}</p>
                 )}
                 {!editing && detect.etat !== 'cours' && files[0] && (
                   <button type="button" onClick={() => lancerDetection(files[0])} className="text-xs text-indigo-600 hover:underline">🔍 Relire la page 1</button>
