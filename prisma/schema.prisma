@@ -198,6 +198,7 @@ model User {
   annonces                 Annonce[]
   moduleUserOverrides      ModuleUserOverride[]
   coverScores              CoverScore[]
+  coverShares              CoverShare[]
   groupMessages            GroupMessage[]
   supportTickets           SupportTicket[]
   cachetSimulations        CachetSimulation[]
@@ -1622,10 +1623,24 @@ model CoverScore {
   filePath  String
   fileType  String   // 'image' | 'pdf'
   fileSize  Int
+  shareToken String? @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares CoverShare[]
 
   @@index([userId, title])
+}
+
+// Lien public vers une sélection de partitions de reprises (consultable sans compte).
+model CoverShare {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scores CoverScore[]
 }

@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface Score {
   id: number; title: string; style: string | null; performer: string | null; composer: string | null
-  filePath: string; fileType: 'image' | 'pdf'
+  filePath: string; fileType: 'image' | 'pdf'; shareToken: string | null
 }
+interface Selection { id: number; token: string; name: string | null; _count: { scores: number } }
 const EMPTY = { title: '', style: '', performer: '', composer: '' }
 
 export default function ReprisesPage() {
@@ -41,6 +42,46 @@ export default function ReprisesPage() {
     setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
+
+  // ── Partage par lien ────────────────────────────────────────────────────────
+  const [selections, setSelections] = useState<Selection[]>([])
+  const [shareId, setShareId] = useState<number | null>(null)        // partition dont on affiche le lien
+  const [pickMode, setPickMode] = useState(false)                     // mode « choisir une sélection »
+  const [picked, setPicked] = useState<Set<number>>(new Set())
+  const [selName, setSelName] = useState('')
+  const [copied, setCopied] = useState('')
+  const loadSelections = useCallback(async () => {
+    const r = await fetch('/api/reprises/selections')
+    if (r.ok) setSelections(await r.json())
+  }, [])
+  useEffect(() => { loadSelections() }, [loadSelections])
+
+  const urlOf = (kind: 'partition' | 'selection', token: string) => `${window.location.origin}/${kind}/${token}`
+  async function copy(url: string) {
+    try { await navigator.clipboard.writeText(url) } catch { window.prompt('Copiez ce lien :', url) }
+    setCopied(url); setTimeout(() => setCopied(''), 2000)
+  }
+  async function send(url: string, title: string) {
+    if (navigator.share) { try { await navigator.share({ title, url }); return } catch { /* annulé */ } }
+    copy(url)
+  }
+  async function shareAction(id: number, action: 'enable' | 'renew' | 'stop') {
+    if (action === 'stop' && !confirm('Arrêter le partage ? Le lien ne fonctionnera plus pour personne.')) return
+    if (action === 'renew' && !confirm("Créer un nouveau lien ? L'ancien ne fonctionnera plus.")) return
+    const r = await fetch(`/api/reprises/${id}/partage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) })
+    if (r.ok) { await load(); if (action === 'stop') setShareId(null) }
+  }
+  async function createSelection() {
+    const r = await fetch('/api/reprises/selections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: selName, scoreIds: Array.from(picked) }) })
+    if (!r.ok) return
+    setPickMode(false); setPicked(new Set()); setSelName('')
+    await loadSelections()
+  }
+  async function deleteSelection(sel: Selection) {
+    if (!confirm('Arrêter ce lien de sélection ? Il ne fonctionnera plus pour personne.')) return
+    await fetch(`/api/reprises/selections/${sel.id}`, { method: 'DELETE' })
+    await loadSelections()
+  }
 
   const distinct = (k: 'style' | 'performer' | 'composer') =>
     Array.from(new Set(scores.map((s) => s[k]).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
@@ -132,7 +173,10 @@ export default function ReprisesPage() {
     <div className="max-w-3xl mx-auto p-4">
       <div className="flex items-center justify-between gap-3 mb-4">
         <h1 className="text-2xl font-bold">🎶 Partitions de reprises</h1>
-        <button onClick={() => { reset(); setShowForm(true) }} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium">+ Ajouter</button>
+        <div className="flex gap-2">
+          {scores.length > 0 && <button onClick={() => { setPickMode((m) => !m); setPicked(new Set()) }} className="rounded-lg border border-gray-300 bg-white text-gray-800 px-3 py-2 text-sm">{pickMode ? 'Annuler la sélection' : '🔗 Partager une sélection'}</button>}
+          <button onClick={() => { reset(); setShowForm(true) }} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium">+ Ajouter</button>
+        </div>
       </div>
 
       {showForm && (() => {
@@ -179,6 +223,33 @@ export default function ReprisesPage() {
         )
       })()}
 
+      {pickMode && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-sm">
+          <span className="text-indigo-900">Cochez les partitions à partager ({picked.size})</span>
+          <input className={input + ' sm:w-64'} placeholder="Nom du lien (ex. Soirée du 12)" value={selName} onChange={(e) => setSelName(e.target.value)} />
+          <button disabled={picked.size === 0} onClick={createSelection} className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white disabled:opacity-40">Créer le lien</button>
+        </div>
+      )}
+
+      {selections.length > 0 && (
+        <details className="mb-3 rounded-xl border border-gray-200 bg-white p-3 text-sm">
+          <summary className="cursor-pointer font-medium text-gray-800">Mes liens de sélection ({selections.length})</summary>
+          <ul className="mt-2 divide-y divide-gray-100">
+            {selections.map((sel) => {
+              const url = typeof window !== 'undefined' ? urlOf('selection', sel.token) : ''
+              return (
+                <li key={sel.id} className="flex flex-wrap items-center gap-2 py-2">
+                  <span className="min-w-0 flex-1 truncate">{sel.name || 'Sans nom'} <span className="text-xs text-gray-500">· {sel._count.scores} partition{sel._count.scores > 1 ? 's' : ''}</span></span>
+                  <button onClick={() => send(url, sel.name || 'Partitions')} className="text-xs text-indigo-600 hover:underline">Envoyer</button>
+                  <button onClick={() => copy(url)} className="text-xs text-indigo-600 hover:underline">{copied === url ? 'Copié ✓' : 'Copier le lien'}</button>
+                  <button onClick={() => deleteSelection(sel)} className="text-xs text-red-600 hover:underline">Arrêter</button>
+                </li>
+              )
+            })}
+          </ul>
+        </details>
+      )}
+
       <div className="space-y-2 mb-3">
         <input className={input} placeholder="Rechercher (titre, interprète, compositeur, style…)" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -221,15 +292,36 @@ export default function ReprisesPage() {
               <h2 className="mb-1 text-lg font-bold text-indigo-700">{l}</h2>
               <ul className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
                 {items.map((s) => (
-                  <li key={s.id} className="flex items-center gap-3 p-3">
-                    <button onClick={() => setViewing(s.id)} className="flex-1 text-left min-w-0">
-                      <div className="font-medium truncate">{s.title}</div>
-                      <div className="text-xs text-gray-500 truncate">
-                        {[s.performer, s.composer && `de ${s.composer}`, s.style].filter(Boolean).join(' · ') || (s.fileType === 'pdf' ? 'PDF' : 'Image')}
-                      </div>
-                    </button>
-                    <button onClick={() => { setEditId(s.id); setForm({ title: s.title, style: s.style ?? '', performer: s.performer ?? '', composer: s.composer ?? '' }); setShowForm(true); window.scrollTo({ top: 0 }) }} className="text-xs text-gray-500 hover:underline">Modifier</button>
-                    <button onClick={() => remove(s)} className="text-xs text-red-600 hover:underline">Supprimer</button>
+                  <li key={s.id} className="p-3">
+                    <div className="flex items-center gap-3">
+                      {pickMode && <input type="checkbox" className="h-5 w-5" checked={picked.has(s.id)} onChange={() => setPicked((p) => { const n = new Set(p); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n })} />}
+                      <button onClick={() => (pickMode ? setPicked((p) => { const n = new Set(p); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n }) : setViewing(s.id))} className="flex-1 text-left min-w-0">
+                        <div className="font-medium truncate">{s.title}{s.shareToken && <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">🔗 partagée</span>}</div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {[s.performer, s.composer && `de ${s.composer}`, s.style].filter(Boolean).join(' · ') || (s.fileType === 'pdf' ? 'PDF' : 'Image')}
+                        </div>
+                      </button>
+                      {!pickMode && <>
+                        <button onClick={() => { setShareId(shareId === s.id ? null : s.id); if (!s.shareToken) shareAction(s.id, 'enable') }} className="text-xs text-indigo-600 hover:underline">Partager</button>
+                        <button onClick={() => { setEditId(s.id); setForm({ title: s.title, style: s.style ?? '', performer: s.performer ?? '', composer: s.composer ?? '' }); setShowForm(true); window.scrollTo({ top: 0 }) }} className="text-xs text-gray-500 hover:underline">Modifier</button>
+                        <button onClick={() => remove(s)} className="text-xs text-red-600 hover:underline">Supprimer</button>
+                      </>}
+                    </div>
+                    {shareId === s.id && s.shareToken && (() => {
+                      const url = urlOf('partition', s.shareToken)
+                      return (
+                        <div className="mt-3 space-y-2 rounded-lg bg-gray-50 p-3">
+                          <p className="text-xs text-gray-600">Toute personne qui a ce lien peut voir cette partition, sans compte.</p>
+                          <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className={input} />
+                          <div className="flex flex-wrap gap-2 text-sm">
+                            <button onClick={() => send(url, s.title)} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-white">Envoyer</button>
+                            <button onClick={() => copy(url)} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800">{copied === url ? 'Copié ✓' : 'Copier le lien'}</button>
+                            <button onClick={() => shareAction(s.id, 'renew')} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800">Nouveau lien</button>
+                            <button onClick={() => shareAction(s.id, 'stop')} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-red-600">Arrêter le partage</button>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </li>
                 ))}
               </ul>

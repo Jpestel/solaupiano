@@ -57,6 +57,8 @@ export default withAuth(
         if (pathname.startsWith('/api/concerts/') && pathname.endsWith('/contact')) return true
         // Lien d'invitation : la page gère elle-même connecté / non connecté.
         if (pathname.startsWith('/rejoindre/')) return true
+        // Partitions de reprises partagées par lien : consultables sans compte.
+        if (pathname.startsWith('/partition/') || pathname.startsWith('/selection/') || pathname.startsWith('/api/partage/')) return true
         // Pages publiques de groupe : /[slug] (un seul segment). La page elle-même
         // renvoie 404 si le groupe n'existe pas / page non publiée / archivé / test.
         // On exclut les routes applicatives à segment unique (qui restent protégées).

@@ -17,7 +17,7 @@ export async function GET() {
   if (!u) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   const scores = await prisma.coverScore.findMany({
     where: { userId: u.userId }, orderBy: { title: 'asc' },
-    select: { id: true, title: true, style: true, performer: true, composer: true, filePath: true, fileType: true },
+    select: { id: true, title: true, style: true, performer: true, composer: true, filePath: true, fileType: true, shareToken: true },
   })
   return NextResponse.json(scores)
 }
