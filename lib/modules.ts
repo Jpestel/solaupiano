@@ -5,6 +5,8 @@ export interface ModuleDef {
   href: string
   icon: string
   category: 'outil' | 'feature' | 'groupe'
+  /** Fermé pour tous tant que l'admin ne l'a pas ouvert à une personne précise. */
+  closedByDefault?: boolean
 }
 
 export const MODULES: ModuleDef[] = [
@@ -135,6 +137,15 @@ export const MODULES: ModuleDef[] = [
     href: '/outils/partition',
     icon: '🎼',
     category: 'outil',
+  },
+  {
+    key: 'tool_reprises',
+    label: 'Partitions de reprises',
+    description: "Répertoire personnel de partitions (image ou PDF) classées par titre, avec style, interprète et compositeur facultatifs. La partition s'affiche telle qu'elle a été envoyée, en plein écran. Fermé par défaut : à ouvrir membre par membre (dérogation utilisateur « autorisé »).",
+    href: '/outils/reprises',
+    icon: '🎶',
+    category: 'outil',
+    closedByDefault: true,
   },
 ]
 

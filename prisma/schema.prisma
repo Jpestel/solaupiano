@@ -197,6 +197,7 @@ model User {
   autoReminders            RehearsalAutoReminder[]
   annonces                 Annonce[]
   moduleUserOverrides      ModuleUserOverride[]
+  coverScores              CoverScore[]
   groupMessages            GroupMessage[]
   supportTickets           SupportTicket[]
   cachetSimulations        CachetSimulation[]
@@ -1608,4 +1609,23 @@ model GroupActivity {
 
   @@index([groupId, createdAt])
   @@index([userId])
+}
+
+// Répertoire personnel de partitions de reprises (image ou PDF affiché tel quel).
+model CoverScore {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  style     String?
+  performer String?
+  composer  String?
+  filePath  String
+  fileType  String   // 'image' | 'pdf'
+  fileSize  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, title])
 }

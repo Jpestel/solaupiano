@@ -21,9 +21,13 @@ export async function GET(req: NextRequest) {
   const key = req.nextUrl.searchParams.get('key')
 
   if (key) {
-    return NextResponse.json({ allowed: await hasModuleAccess(userId, key) })
+    const adminOpen = session.user.siteRole === 'ADMIN' && MODULES.some((m) => m.key === key && m.closedByDefault)
+    return NextResponse.json({ allowed: adminOpen || await hasModuleAccess(userId, key) })
   }
 
   const access = await moduleAccessMap(userId, MODULES.map((m) => m.key))
-  return NextResponse.json({ blocked: Object.keys(access).filter((k) => !access[k]) })
+  const isAdmin = session.user.siteRole === 'ADMIN'
+  // L'admin garde accès aux modules fermés par défaut (pour les tester).
+  const closed = new Set(MODULES.filter((m) => m.closedByDefault).map((m) => m.key))
+  return NextResponse.json({ blocked: Object.keys(access).filter((k) => !access[k] && !(isAdmin && closed.has(k))) })
 }

@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { getModuleDef } from './modules'
 
 export async function isModuleEnabledForPlan(planKey: string, moduleKey: string): Promise<boolean> {
   const record = await prisma.moduleAccess.findUnique({
@@ -83,6 +84,8 @@ export async function moduleAccessMap(userId: number, moduleKeys: string[]): Pro
 
   for (const key of moduleKeys) {
     const userOverride = userRows.find((r) => r.moduleKey === key)
+    // Module fermé par défaut : seule une dérogation utilisateur explicite l'ouvre.
+    if (getModuleDef(key)?.closedByDefault) { result[key] = userOverride ? userOverride.allowed : false; continue }
     result[key] = decideModuleAccess({
       userOverride: userOverride ? userOverride.allowed : null,
       groupOverrides: groupRows.filter((r) => r.moduleKey === key).map((r) => r.allowed),
