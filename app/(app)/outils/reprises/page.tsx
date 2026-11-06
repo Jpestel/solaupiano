@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { titresSimilaires, type Similaire } from '@/lib/reprises-similarite'
 import { ScoreViewer } from '@/components/ScoreViewer'
 import { FilterPicker, type FilterOption } from './FilterPicker'
+import { detecterInfos } from '@/lib/reprises-ocr'
 
 interface Score {
   id: number; title: string; style: string | null; performer: string | null; composer: string | null
@@ -41,8 +42,39 @@ export default function ReprisesPage() {
     setUrls(u)
     return () => u.forEach((x) => URL.revokeObjectURL(x))
   }, [files])
-  // Une fois le premier fichier choisi, le curseur passe sur le titre.
-  useEffect(() => { if (files.length > 0) titleRef.current?.focus() }, [files.length > 0]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Lecture automatique du titre : suggestion à valider ou corriger, jamais enregistrée sans l'accord de l'utilisateur.
+  const [detect, setDetect] = useState<{ etat: 'cours' | 'ok' | 'rien' | 'erreur'; texte: string; champs: string[] }>({ etat: 'ok', texte: '', champs: [] })
+  const formRef = useRef(form)
+  formRef.current = form
+  const lancerDetection = useCallback(async (f: File) => {
+    setDetect({ etat: 'cours', texte: 'Lecture de la partition…', champs: [] })
+    try {
+      const d = await detecterInfos(f, (t) => setDetect((x) => (x.etat === 'cours' ? { ...x, texte: t } : x)))
+      if (!d) { setDetect({ etat: 'rien', texte: '', champs: [] }); return }
+      const cur = formRef.current
+      const champs: string[] = []
+      const next = { ...cur }
+      // On ne remplace jamais ce que l'utilisateur a déjà saisi.
+      if (d.title && !cur.title.trim()) { next.title = d.title; champs.push('title') }
+      if (d.performer && !cur.performer.trim()) { next.performer = d.performer; champs.push('performer') }
+      if (d.composer && !cur.composer.trim()) { next.composer = d.composer; champs.push('composer') }
+      setForm(next)
+      setDetect({ etat: champs.length ? 'ok' : 'rien', texte: '', champs })
+    } catch {
+      setDetect({ etat: 'erreur', texte: '', champs: [] })
+    }
+  }, [])
+  const premier = files[0]
+  const dejaLu = useRef<File | null>(null)
+  useEffect(() => {
+    if (!premier) { dejaLu.current = null; setDetect({ etat: 'ok', texte: '', champs: [] }); return }
+    if (dejaLu.current === premier) return
+    dejaLu.current = premier
+    lancerDetection(premier)
+    titleRef.current?.focus()
+  }, [premier, lancerDetection])
+  const marque = (k: string) => (detect.champs.includes(k) ? ' ring-2 ring-indigo-400 border-indigo-400' : '')
+  const edite = (k: 'title' | 'performer' | 'composer' | 'style', v: string) => { setDetect((x) => ({ ...x, champs: x.champs.filter((c) => c !== k) })); setForm((f) => ({ ...f, [k]: v })) }
 
   const load = useCallback(async () => {
     const r = await fetch('/api/reprises')
@@ -293,7 +325,19 @@ export default function ReprisesPage() {
               </div>
               <div className="space-y-3">
                 <p className="text-xs text-gray-500">{editing ? '' : '2. '}Renseignez les informations en regardant l&apos;aperçu.</p>
-                <input ref={titleRef} className={input} placeholder="Titre (obligatoire)" value={form.title} onChange={(e) => { setDoublons(null); setForm({ ...form, title: e.target.value }) }} />
+                <input ref={titleRef} className={input + marque('title')} placeholder="Titre (obligatoire)" value={form.title} onChange={(e) => { setDoublons(null); edite('title', e.target.value) }} />
+                {!editing && detect.etat === 'cours' && <p className="flex items-center gap-2 text-xs text-indigo-700"><span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-indigo-300 border-t-indigo-700" />{detect.texte} <span className="text-gray-500">(vous pouvez déjà saisir)</span></p>}
+                {!editing && detect.etat !== 'cours' && detect.champs.length > 0 && (
+                  <p className="rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-900">
+                    ✨ Lu automatiquement sur la partition : <strong>vérifiez</strong> {detect.champs.includes('title') ? 'le titre' : ''}{detect.champs.includes('performer') ? ' et l’interprète' : ''}{detect.champs.includes('composer') ? ' et le compositeur' : ''}, puis corrigez si besoin. Modifier un champ valide votre version.
+                  </p>
+                )}
+                {!editing && (detect.etat === 'rien' || detect.etat === 'erreur') && (
+                  <p className="text-xs text-gray-500">{detect.etat === 'rien' ? 'Aucun titre lisible n’a été trouvé : saisissez-le à la main.' : 'La lecture automatique est indisponible : saisissez le titre à la main.'}</p>
+                )}
+                {!editing && detect.etat !== 'cours' && files[0] && (
+                  <button type="button" onClick={() => lancerDetection(files[0])} className="text-xs text-indigo-600 hover:underline">🔍 Relire la page 1</button>
+                )}
                 {(doublons ?? proches).length > 0 && (
                   <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                     <p className="font-medium">{(doublons ?? proches).some((d) => d.niveau === 'identique') ? 'Ce titre existe déjà dans votre répertoire :' : 'Un titre très proche existe déjà :'}</p>
@@ -308,9 +352,9 @@ export default function ReprisesPage() {
                     )}
                   </div>
                 )}
-                <input className={input} placeholder="Interprète" value={form.performer} onChange={(e) => setForm({ ...form, performer: e.target.value })} />
-                <input className={input} placeholder="Compositeur" value={form.composer} onChange={(e) => setForm({ ...form, composer: e.target.value })} />
-                <input className={input} placeholder="Style" value={form.style} onChange={(e) => setForm({ ...form, style: e.target.value })} />
+                <input className={input + marque('performer')} placeholder="Interprète" value={form.performer} onChange={(e) => edite('performer', e.target.value)} />
+                <input className={input + marque('composer')} placeholder="Compositeur" value={form.composer} onChange={(e) => edite('composer', e.target.value)} />
+                <input className={input} placeholder="Style" value={form.style} onChange={(e) => edite('style', e.target.value)} />
               </div>
             </div>
           )}

@@ -1,0 +1,69 @@
+'use client'
+
+import { extraireInfos, type Detection, type LigneOcr } from './reprises-detection'
+
+const LARGEUR_MAX = 1600
+
+/** Dessine la partition (photo redressée selon son orientation, ou 1re page d'un PDF) dans un canvas de taille raisonnable. */
+async function versCanvas(file: File): Promise<HTMLCanvasElement> {
+  let source: CanvasImageSource, w: number, h: number
+  if (file.type === 'application/pdf') {
+    const { pdfjs } = await import('react-pdf')
+    pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+    const page = await doc.getPage(1)
+    const base = page.getViewport({ scale: 1 })
+    const vp = page.getViewport({ scale: LARGEUR_MAX / base.width })
+    const c = document.createElement('canvas')
+    c.width = Math.round(vp.width); c.height = Math.round(vp.height)
+    await page.render({ canvasContext: c.getContext('2d')!, viewport: vp, canvas: c }).promise
+    return c
+  }
+  const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  source = bmp; w = bmp.width; h = bmp.height
+  const k = Math.min(1, LARGEUR_MAX / w)
+  const c = document.createElement('canvas')
+  c.width = Math.round(w * k); c.height = Math.round(h * k)
+  c.getContext('2d')!.drawImage(source, 0, 0, c.width, c.height)
+  bmp.close()
+  return c
+}
+
+/** Extrait une bande horizontale de l'image (plus fiable que l'option « rectangle » de l'outil de lecture). */
+function decouper(src: HTMLCanvasElement, top: number, height: number): HTMLCanvasElement {
+  const c = document.createElement('canvas')
+  c.width = src.width; c.height = Math.max(1, height)
+  c.getContext('2d')!.drawImage(src, 0, top, src.width, height, 0, 0, src.width, height)
+  return c
+}
+
+const lignesDe = (data: { blocks?: { paragraphs: { lines: { text: string; bbox: { y0: number; y1: number }; confidence: number }[] }[] }[] | null }): LigneOcr[] => {
+  const out: LigneOcr[] = []
+  for (const b of data.blocks ?? []) for (const p of b.paragraphs) for (const l of p.lines) out.push({ text: l.text, y0: l.bbox.y0, y1: l.bbox.y1, confidence: l.confidence })
+  return out
+}
+
+/**
+ * Lit le titre (et si possible l'interprète et le compositeur) d'une partition.
+ * Tout se passe dans le navigateur : l'image n'est envoyée nulle part. Seuls les
+ * fichiers du moteur de lecture sont téléchargés (une fois, puis gardés en cache).
+ * On ne lit que le haut de la page (titre, interprète) et le bas (« Written by »),
+ * ce qui est bien plus rapide que la page entière.
+ */
+export async function detecterInfos(file: File, onEtat?: (t: string) => void): Promise<Detection | null> {
+  onEtat?.('Préparation de l’image…')
+  const canvas = await versCanvas(file)
+  onEtat?.('Chargement du moteur de lecture…')
+  const { createWorker } = await import('tesseract.js')
+  const worker = await createWorker('eng+fra')
+  try {
+    onEtat?.('Lecture du titre…')
+    const W = canvas.width, H = canvas.height
+    const haut = await worker.recognize(decouper(canvas, 0, Math.round(H * 0.3)), {}, { blocks: true })
+    const yBas = Math.round(H * 0.88)
+    const bas = await worker.recognize(decouper(canvas, yBas, H - yBas), {}, { blocks: true })
+    return extraireInfos(lignesDe(haut.data), lignesDe(bas.data))
+  } finally {
+    await worker.terminate()
+  }
+}
