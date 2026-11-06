@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
+import sharp from 'sharp'
 import { authOptions } from '@/lib/auth'
 import { hasModuleAccess } from '@/lib/module-access'
 import { prisma } from '@/lib/prisma'
@@ -33,15 +34,31 @@ export function checkFiles(files: File[]): string | null {
   return null
 }
 
+/**
+ * Enregistre un fichier. Les photos sont redressées (orientation EXIF), ramenées à 2400 px
+ * maximum et recompressées en JPEG : une photo de téléphone de 6 Mo tombe vers 0,5 Mo,
+ * ce qui accélère l'affichage page à page. Si la version allégée n'est pas plus petite
+ * (ou en cas d'échec), le fichier d'origine est conservé tel quel. PDF et GIF : inchangés.
+ */
 export async function saveFile(file: File): Promise<{ filePath: string; fileType: 'image' | 'pdf'; fileSize: number }> {
   const fileType = REPRISES_TYPES[file.type]
   const dir = path.join(process.cwd(), 'public', 'uploads', 'reprises')
   fs.mkdirSync(dir, { recursive: true })
   const sub = file.type.split('/')[1]
-  const ext = fileType === 'pdf' ? '.pdf' : '.' + (sub === 'jpeg' ? 'jpg' : sub)
+  let ext = fileType === 'pdf' ? '.pdf' : '.' + (sub === 'jpeg' ? 'jpg' : sub)
+  let data: Buffer = Buffer.from(await file.arrayBuffer())
+
+  if (fileType === 'image' && file.type !== 'image/gif') {
+    try {
+      const light = await sharp(data).rotate().resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true })
+        .flatten({ background: '#ffffff' }).jpeg({ quality: 85, mozjpeg: true }).toBuffer()
+      if (light.length < data.length) { data = light; ext = '.jpg' }
+    } catch { /* image illisible par sharp : on garde l'original */ }
+  }
+
   const name = `${crypto.randomBytes(12).toString('hex')}${ext}`
-  fs.writeFileSync(path.join(dir, name), Buffer.from(await file.arrayBuffer()))
-  return { filePath: `/uploads/reprises/${name}`, fileType, fileSize: file.size }
+  fs.writeFileSync(path.join(dir, name), data)
+  return { filePath: `/uploads/reprises/${name}`, fileType, fileSize: data.length }
 }
 
 export function removeFile(filePath: string) {

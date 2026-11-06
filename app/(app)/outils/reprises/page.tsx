@@ -139,6 +139,14 @@ export default function ReprisesPage() {
     for (const s of shown) { const l = letterOf(s); m.set(l, [...(m.get(l) ?? []), s]) }
     return Array.from(m.entries()).sort(([a], [b]) => (a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)))
   }, [shown, letterOf])
+  // Deux colonnes d'effectif voisin (ordre alphabétique conservé : début à gauche, fin à droite).
+  const columns = useMemo(() => {
+    const total = groups.reduce((n, [, it]) => n + it.length + 1, 0)
+    const left: typeof groups = [], right: typeof groups = []
+    let acc = 0
+    for (const g of groups) { (acc < total / 2 ? left : right).push(g); acc += g[1].length + 1 }
+    return right.length ? [left, right] : [left]
+  }, [groups])
   const present = useMemo(() => new Set(groups.map(([l]) => l)), [groups])
   const filtersOn = !!(q || style || performerF || composerF)
   const jump = (l: string) => document.getElementById(`lettre-${l === '#' ? 'autres' : l}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -369,8 +377,10 @@ export default function ReprisesPage() {
       ) : (
         <div className="flex min-h-0 flex-1 gap-2 pb-2">
           <div className="min-w-0 flex-1 overflow-y-auto pr-1">
-            <div className="md:columns-2 md:gap-6">
-            {groups.map(([l, items]) => (
+            <div className="flex flex-col md:flex-row md:gap-6">
+            {columns.map((col, ci) => (
+              <div key={ci} className="min-w-0 md:flex-1">
+            {col.map(([l, items]) => (
               <section key={l} id={`lettre-${l === '#' ? 'autres' : l}`} className="mb-3 scroll-mt-4">
                 <h2 className="mb-0.5 break-after-avoid border-b border-indigo-100 text-base font-bold leading-tight text-indigo-700">{l}</h2>
                 <ul className="divide-y divide-gray-100">
@@ -418,6 +428,8 @@ export default function ReprisesPage() {
                   ))}
                 </ul>
               </section>
+            ))}
+              </div>
             ))}
             </div>
           </div>
