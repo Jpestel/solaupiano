@@ -201,6 +201,17 @@ export function ModulesManager({
             </div>
           </div>
 
+          {currentModule.closedByDefault && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="font-semibold text-amber-900 mb-1">Module fermé par défaut</h3>
+              <p className="text-sm text-amber-800 leading-relaxed">
+                Personne n&apos;y a accès tant que vous ne l&apos;avez pas ouvert. Pour l&apos;ouvrir à quelqu&apos;un,
+                utilisez <strong>« Ajouter une exception utilisateur »</strong> ci-dessous et choisissez <strong>Autoriser</strong>.
+                Les réglages par plan ou par groupe n&apos;ont pas d&apos;effet sur ce module.
+              </p>
+            </div>
+          )}
+
           {/* Fonctionnalité de groupe : le réglage de base vient du plan du groupe */}
           {currentModule.category === 'groupe' && (
             <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-5">
@@ -215,7 +226,7 @@ export function ModulesManager({
           )}
 
           {/* Plan access toggles */}
-          {currentModule.category !== 'groupe' && (
+          {currentModule.category !== 'groupe' && !currentModule.closedByDefault && (
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -361,7 +372,7 @@ export function ModulesManager({
               </div>
             ) : (
               <button
-                onClick={() => setOverrideForm({ moduleKey: activeModule, type: 'user', targetId: 0, allowed: false })}
+                onClick={() => setOverrideForm({ moduleKey: activeModule, type: 'user', targetId: 0, allowed: !!currentModule?.closedByDefault })}
                 className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -373,7 +384,7 @@ export function ModulesManager({
           </div>
 
           {/* Group overrides */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          {!currentModule.closedByDefault && <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
               <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -480,10 +491,10 @@ export function ModulesManager({
                 Ajouter une exception groupe
               </button>
             )}
-          </div>
+          </div>}
 
           {/* Priority legend */}
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+          {!currentModule.closedByDefault && <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
             <h4 className="text-xs font-semibold text-indigo-700 mb-2 uppercase tracking-wide">Ordre de priorité</h4>
             <ol className="text-xs text-indigo-800 space-y-1">
               <li><span className="font-bold">1.</span> Exception utilisateur (priorité maximale)</li>
@@ -491,7 +502,7 @@ export function ModulesManager({
               <li><span className="font-bold">3.</span> Accès par plan</li>
               <li><span className="font-bold">4.</span> Par défaut : accès autorisé pour tous</li>
             </ol>
-          </div>
+          </div>}
         </div>
       )}
     </div>
