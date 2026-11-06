@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { PublicScore } from '@/lib/reprises-partage'
-import { Viewer } from '../../partition/Viewer'
+import { PartitionPartagee } from '../../partition/[token]/Vue'
 
 export function Selection({ token, name, scores }: { token: string; name: string | null; scores: PublicScore[] }) {
   const [open, setOpen] = useState<number | null>(null)
@@ -15,12 +15,12 @@ export function Selection({ token, name, scores }: { token: string; name: string
           <li key={s.id}>
             <button onClick={() => setOpen(i)} className="w-full px-4 py-3 text-left">
               <div className="font-medium text-gray-900">{s.title}</div>
-              <div className="text-xs text-gray-500">{[s.performer, s.composer && `de ${s.composer}`, s.style].filter(Boolean).join(' · ')}</div>
+              <div className="text-xs text-gray-500">{[s.performer, s.composer && `de ${s.composer}`, s.style, s.pages.length > 1 && `${s.pages.length} pages`].filter(Boolean).join(' · ')}</div>
             </button>
           </li>
         ))}
       </ul>
-      {open !== null && <Viewer key={open} token={token} scores={scores} start={open} onClose={() => setOpen(null)} />}
+      {open !== null && <PartitionPartagee token={token} scores={scores} start={open} onClose={() => setOpen(null)} />}
     </main>
   )
 }

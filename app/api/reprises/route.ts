@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
-import fs from 'fs'
-import path from 'path'
 import { prisma } from '@/lib/prisma'
-import { reprisesUser, REPRISES_MAX_BYTES, REPRISES_TYPES } from '@/lib/reprises'
+import { reprisesUser, checkFiles, saveFile, removeFile, PAGE_SELECT, REPRISES_MAX_PAGES } from '@/lib/reprises'
 import { titresSimilaires } from '@/lib/reprises-similarite'
 
 export const dynamic = 'force-dynamic'
@@ -18,11 +15,15 @@ export async function GET() {
   if (!u) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
   const scores = await prisma.coverScore.findMany({
     where: { userId: u.userId }, orderBy: { title: 'asc' },
-    select: { id: true, title: true, style: true, performer: true, composer: true, filePath: true, fileType: true, shareToken: true },
+    select: {
+      id: true, title: true, style: true, performer: true, composer: true, filePath: true, fileType: true, shareToken: true,
+      pages: { select: PAGE_SELECT, orderBy: { position: 'asc' } },
+    },
   })
   return NextResponse.json(scores)
 }
 
+/** Création : un ou plusieurs fichiers (`file`, dans l'ordre des pages). */
 export async function POST(req: NextRequest) {
   const u = await reprisesUser()
   if (!u) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
@@ -31,11 +32,10 @@ export async function POST(req: NextRequest) {
 
   const title = clean(form.get('title'), 150)
   if (!title) return NextResponse.json({ error: 'Le titre est obligatoire.' }, { status: 400 })
-  const file = form.get('file')
-  if (!(file instanceof File)) return NextResponse.json({ error: 'Aucun fichier reçu.' }, { status: 400 })
-  const fileType = REPRISES_TYPES[file.type]
-  if (!fileType) return NextResponse.json({ error: 'Format accepté : PDF, JPG, PNG, WEBP ou GIF.' }, { status: 400 })
-  if (file.size > REPRISES_MAX_BYTES) return NextResponse.json({ error: 'Fichier trop lourd (25 Mo maximum).' }, { status: 413 })
+  const files = form.getAll('file').filter((f): f is File => f instanceof File)
+  if (files.length > REPRISES_MAX_PAGES) return NextResponse.json({ error: `${REPRISES_MAX_PAGES} pages maximum par partition.` }, { status: 400 })
+  const bad = checkFiles(files)
+  if (bad) return NextResponse.json({ error: bad }, { status: 400 })
 
   // Titre déjà présent (ou voisin) : on refuse, sauf si l'utilisateur maintient l'ajout.
   if (form.get('force') !== '1') {
@@ -46,17 +46,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const dir = path.join(process.cwd(), 'public', 'uploads', 'reprises')
-  fs.mkdirSync(dir, { recursive: true })
-  const ext = fileType === 'pdf' ? '.pdf' : '.' + (file.type.split('/')[1] === 'jpeg' ? 'jpg' : file.type.split('/')[1])
-  const name = `${crypto.randomBytes(12).toString('hex')}${ext}`
-  fs.writeFileSync(path.join(dir, name), Buffer.from(await file.arrayBuffer()))
-
-  const score = await prisma.coverScore.create({
-    data: {
-      userId: u.userId, title, style: clean(form.get('style'), 80), performer: clean(form.get('performer'), 120),
-      composer: clean(form.get('composer'), 120), filePath: `/uploads/reprises/${name}`, fileType, fileSize: file.size,
-    },
-  })
-  return NextResponse.json(score, { status: 201 })
+  const saved = []
+  try {
+    for (const f of files) saved.push(await saveFile(f))
+    const score = await prisma.coverScore.create({
+      data: {
+        userId: u.userId, title, style: clean(form.get('style'), 80), performer: clean(form.get('performer'), 120),
+        composer: clean(form.get('composer'), 120), ...saved[0],
+        pages: { create: saved.map((s, i) => ({ position: i, ...s })) },
+      },
+    })
+    return NextResponse.json(score, { status: 201 })
+  } catch (e) {
+    for (const s of saved) removeFile(s.filePath)
+    throw e
+  }
 }

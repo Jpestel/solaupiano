@@ -1629,8 +1629,24 @@ model CoverScore {
 
   user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   shares CoverShare[]
+  pages  CoverPage[]
 
   @@index([userId, title])
+}
+
+// Une page d'une partition de reprises (un fichier). La première page est aussi
+// recopiée dans CoverScore.filePath/fileType (couverture, compatibilité).
+model CoverPage {
+  id       Int    @id @default(autoincrement())
+  scoreId  Int
+  position Int
+  filePath String
+  fileType String // 'image' | 'pdf'
+  fileSize Int
+
+  score CoverScore @relation(fields: [scoreId], references: [id], onDelete: Cascade)
+
+  @@index([scoreId, position])
 }
 
 // Lien public vers une sélection de partitions de reprises (consultable sans compte).

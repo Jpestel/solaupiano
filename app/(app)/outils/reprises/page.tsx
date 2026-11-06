@@ -2,11 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { titresSimilaires, type Similaire } from '@/lib/reprises-similarite'
+import { ScoreViewer } from '@/components/ScoreViewer'
 
 interface Score {
   id: number; title: string; style: string | null; performer: string | null; composer: string | null
   filePath: string; fileType: 'image' | 'pdf'; shareToken: string | null
+  pages: { id: number; filePath: string; fileType: 'image' | 'pdf' }[]
 }
+/** Pages d'une partition ; une ancienne partition (sans page enregistrée) n'a que son fichier, d'identifiant 0. */
+const pagesOf = (s: Score) => (s.pages.length > 0 ? s.pages : [{ id: 0, filePath: s.filePath, fileType: s.fileType }])
 interface Selection { id: number; token: string; name: string | null; _count: { scores: number } }
 const EMPTY = { title: '', style: '', performer: '', composer: '' }
 
@@ -19,24 +23,25 @@ export default function ReprisesPage() {
   const [composerF, setComposerF] = useState('')
   const [sortBy, setSortBy] = useState<'title' | 'performer' | 'composer'>('title')
   const [form, setForm] = useState(EMPTY)
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
+  const [pv, setPv] = useState(0) // page affichée dans l'aperçu
   const [editId, setEditId] = useState<number | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState('')
   const [doublons, setDoublons] = useState<Similaire[] | null>(null) // réponse du serveur à l'enregistrement
   const [error, setError] = useState('')
   const [viewing, setViewing] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const titleRef = useRef<HTMLInputElement>(null)
-  const [preview, setPreview] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
+  const [urls, setUrls] = useState<string[]>([])
   useEffect(() => {
-    if (!file) { setPreview(null); return }
-    const url = URL.createObjectURL(file)
-    setPreview({ url, type: file.type === 'application/pdf' ? 'pdf' : 'image' })
-    return () => URL.revokeObjectURL(url)
-  }, [file])
-  // Une fois l'aperçu affiché, le curseur passe sur le titre.
-  useEffect(() => { if (preview) titleRef.current?.focus() }, [preview])
+    const u = files.map((f) => URL.createObjectURL(f))
+    setUrls(u)
+    return () => u.forEach((x) => URL.revokeObjectURL(x))
+  }, [files])
+  // Une fois le premier fichier choisi, le curseur passe sur le titre.
+  useEffect(() => { if (files.length > 0) titleRef.current?.focus() }, [files.length > 0]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     const r = await fetch('/api/reprises')
@@ -122,14 +127,14 @@ export default function ReprisesPage() {
   const filtersOn = !!(q || style || performerF || composerF)
   const jump = (l: string) => document.getElementById(`lettre-${l === '#' ? 'autres' : l}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
-  const reset = () => { setDoublons(null); setForm(EMPTY); setFile(null); setEditId(null); setShowForm(false); setError(''); if (fileRef.current) fileRef.current.value = '' }
+  const reset = () => { setDoublons(null); setForm(EMPTY); setFiles([]); setPv(0); setEditId(null); setShowForm(false); setError(''); if (fileRef.current) fileRef.current.value = '' }
 
   async function submit(e: React.FormEvent | null, force = false) {
     e?.preventDefault()
     setDoublons(null)
     setError('')
     if (!form.title.trim()) return setError('Le titre est obligatoire.')
-    if (editId === null && !file) return setError('Choisissez une image ou un PDF.')
+    if (editId === null && files.length === 0) return setError('Choisissez au moins une image ou un PDF.')
     setBusy(true)
     try {
       let res: Response
@@ -137,7 +142,7 @@ export default function ReprisesPage() {
         const fd = new FormData()
         Object.entries(form).forEach(([k, v]) => fd.append(k, v))
         if (force) fd.append('force', '1')
-        fd.append('file', file!)
+        fd.append('file', files[0]) // les autres pages suivent une à une (requêtes légères, reprise possible)
         res = await fetch('/api/reprises', { method: 'POST', body: fd })
       } else {
         res = await fetch(`/api/reprises/${editId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, force }) })
@@ -147,8 +152,51 @@ export default function ReprisesPage() {
         if (d.code === 'DOUBLON') { setDoublons(d.similaires ?? []); return }
       }
       if (!res.ok) { setError((await res.json().catch(() => ({}))).error || 'Échec de l’enregistrement.'); return }
+      if (editId === null && files.length > 1) {
+        const created = await res.json()
+        for (let i = 1; i < files.length; i++) {
+          setProgress(`Envoi de la page ${i + 1} sur ${files.length}…`)
+          const fd = new FormData(); fd.append('file', files[i])
+          const r = await fetch(`/api/reprises/${created.id}/pages`, { method: 'POST', body: fd })
+          if (!r.ok) {
+            await load()
+            setEditId(created.id); setFiles([]); setPv(0)
+            setError(`La partition est enregistrée, mais la page ${i + 1} n’a pas pu être envoyée (${(await r.json().catch(() => ({}))).error || 'erreur'}). Ajoutez-la avec « + Ajouter des pages ».`)
+            return
+          }
+        }
+      }
       reset(); await load()
-    } finally { setBusy(false) }
+    } finally { setBusy(false); setProgress('') }
+  }
+
+  // ── Pages d'une partition existante (modification) ─────────────────────────
+  const [pageBusy, setPageBusy] = useState(false)
+  const pageFileRef = useRef<HTMLInputElement>(null)
+  async function pageCall(fn: () => Promise<Response>) {
+    setPageBusy(true); setError('')
+    try {
+      const r = await fn()
+      if (!r.ok) setError((await r.json().catch(() => ({}))).error || 'Échec.')
+      await load()
+    } finally { setPageBusy(false) }
+  }
+  const addPages = (id: number, list: FileList | null) => {
+    if (!list || list.length === 0) return
+    const fd = new FormData(); Array.from(list).forEach((f) => fd.append('file', f))
+    pageCall(() => fetch(`/api/reprises/${id}/pages`, { method: 'POST', body: fd })).then(() => { if (pageFileRef.current) pageFileRef.current.value = '' })
+  }
+  const deletePage = (sc: Score, pageId: number) => { if (confirm('Supprimer cette page ?')) { setPv(0); pageCall(() => fetch(`/api/reprises/${sc.id}/pages/${pageId}`, { method: 'DELETE' })) } }
+  const movePage = (sc: Score, i: number, d: number) => {
+    const ids = pagesOf(sc).map((p) => p.id)
+    if (ids.includes(0) || i + d < 0 || i + d >= ids.length) return
+    ;[ids[i], ids[i + d]] = [ids[i + d], ids[i]]
+    setPv(i + d)
+    pageCall(() => fetch(`/api/reprises/${sc.id}/pages`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: ids }) }))
+  }
+  const moveNew = (i: number, d: number) => {
+    if (i + d < 0 || i + d >= files.length) return
+    const n = files.slice(); [n[i], n[i + d]] = [n[i + d], n[i]]; setFiles(n); setPv(i + d)
   }
 
   async function remove(s: Score) {
@@ -157,25 +205,7 @@ export default function ReprisesPage() {
     await load()
   }
 
-  const viewIndex = viewing === null ? -1 : shown.findIndex((s) => s.id === viewing)
-  const current = viewIndex >= 0 ? shown[viewIndex] : null
-  const go = useCallback((d: number) => {
-    if (viewIndex < 0) return
-    const n = shown[viewIndex + d]
-    if (n) setViewing(n.id)
-  }, [shown, viewIndex])
-
-  useEffect(() => {
-    if (!current) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setViewing(null)
-      if (e.key === 'ArrowRight') go(1)
-      if (e.key === 'ArrowLeft') go(-1)
-    }
-    window.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
-  }, [current, go])
+  const viewIndex = viewing === null ? -1 : shown.findIndex((x) => x.id === viewing)
 
   const input = 'w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2 text-sm'
 
@@ -191,28 +221,50 @@ export default function ReprisesPage() {
 
       {showForm && (() => {
         const editing = editId !== null ? scores.find((x) => x.id === editId) : null
-        const shownPreview = preview ?? (editing ? { url: editing.filePath, type: editing.fileType } : null)
+        // Liste des pages affichées : celles qu'on s'apprête à envoyer, ou celles déjà enregistrées.
+        const list = editing
+          ? pagesOf(editing).map((p, i) => ({ key: p.id, label: `Page ${i + 1}`, url: p.filePath, type: p.fileType }))
+          : files.map((f, i) => ({ key: i, label: f.name, url: urls[i], type: f.type === 'application/pdf' ? 'pdf' : 'image' }))
+        const cur = list[Math.min(pv, list.length - 1)]
+        const canSave = editing || files.length > 0
         return (
         <form onSubmit={submit} className="mb-6 rounded-xl border border-gray-200 bg-white p-4 space-y-4">
-          <h2 className="font-semibold">{editing ? 'Modifier les informations' : 'Nouvelle partition'}</h2>
+          <h2 className="font-semibold">{editing ? 'Modifier la partition' : 'Nouvelle partition'}</h2>
 
-          {!editing && (
-            <div>
-              <label className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 text-center text-sm ${file ? 'border-gray-200 py-2 text-gray-500' : 'border-indigo-300 bg-indigo-50 py-10 text-indigo-700'}`}>
-                {file ? <span>{file.name} — <span className="underline">changer de fichier</span></span>
-                  : <><span className="text-base font-semibold">1. Choisissez la photo ou le PDF de la partition</span><span className="mt-1 text-xs">Appareil photo, galerie ou fichier (PDF, JPG, PNG…)</span></>}
-                <input ref={fileRef} type="file" accept="application/pdf,image/*" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-              </label>
-            </div>
+          {!editing && files.length === 0 && (
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50 px-4 py-10 text-center text-sm text-indigo-700">
+              <span className="text-base font-semibold">1. Choisissez la photo ou le PDF de la partition</span>
+              <span className="mt-1 text-xs">Une partition de plusieurs pages ? Sélectionnez tous les fichiers d&apos;un coup, ou ajoutez-les ensuite.</span>
+              <input ref={fileRef} type="file" multiple accept="application/pdf,image/*" className="sr-only" onChange={(e) => { setFiles(Array.from(e.target.files ?? [])); setPv(0) }} />
+            </label>
           )}
 
-          {(shownPreview || editing) && (
+          {list.length > 0 && cur && (
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center h-80 md:h-[28rem]">
-                {shownPreview?.type === 'pdf'
-                  ? <iframe src={shownPreview.url} title="Aperçu" className="w-full h-full bg-white" />
-                  // eslint-disable-next-line @next/next/no-img-element
-                  : shownPreview && <img src={shownPreview.url} alt="Aperçu de la partition" className="max-w-full max-h-full object-contain" />}
+              <div className="space-y-2">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center h-80 md:h-[28rem]">
+                  {cur.type === 'pdf'
+                    ? <iframe src={cur.url} title="Aperçu" className="w-full h-full bg-white" />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    : <img src={cur.url} alt="Aperçu de la partition" className="max-w-full max-h-full object-contain" />}
+                </div>
+                <ul className="space-y-1">
+                  {list.map((p, i) => (
+                    <li key={p.key} className={`flex items-center gap-2 rounded-lg border px-2 py-1 text-xs ${i === pv ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 bg-white'}`}>
+                      <button type="button" onClick={() => setPv(i)} className="min-w-0 flex-1 truncate text-left text-gray-800">
+                        <span className="font-semibold">Page {i + 1}</span>{!editing && <span className="text-gray-500"> · {p.label}</span>}
+                      </button>
+                      <button type="button" disabled={pageBusy || i === 0} onClick={() => (editing ? movePage(editing, i, -1) : moveNew(i, -1))} className="px-1 text-gray-600 disabled:opacity-30" aria-label="Monter">↑</button>
+                      <button type="button" disabled={pageBusy || i === list.length - 1} onClick={() => (editing ? movePage(editing, i, 1) : moveNew(i, 1))} className="px-1 text-gray-600 disabled:opacity-30" aria-label="Descendre">↓</button>
+                      <button type="button" disabled={pageBusy || list.length === 1} onClick={() => (editing ? deletePage(editing, p.key as number) : (setFiles(files.filter((_, k) => k !== i)), setPv(0)))} className="px-1 text-red-600 disabled:opacity-30" aria-label="Retirer">✕</button>
+                    </li>
+                  ))}
+                </ul>
+                <label className="inline-block cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-800">
+                  + Ajouter des pages
+                  <input ref={pageFileRef} type="file" multiple accept="application/pdf,image/*" className="sr-only"
+                    onChange={(e) => { if (editing) addPages(editing.id, e.target.files); else { setFiles([...files, ...Array.from(e.target.files ?? [])]); e.target.value = '' } }} />
+                </label>
               </div>
               <div className="space-y-3">
                 <p className="text-xs text-gray-500">{editing ? '' : '2. '}Renseignez les informations en regardant l&apos;aperçu.</p>
@@ -240,8 +292,8 @@ export default function ReprisesPage() {
 
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
-            {(file || editing) && !doublons && <button disabled={busy} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-50">{busy ? 'Envoi…' : 'Enregistrer'}</button>}
-            <button type="button" onClick={reset} className="rounded-lg border border-gray-300 bg-white text-gray-800 px-4 py-2 text-sm">Annuler</button>
+            {canSave && !doublons && <button disabled={busy} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-50">{busy ? (progress || 'Envoi…') : 'Enregistrer'}</button>}
+            <button type="button" onClick={reset} className="rounded-lg border border-gray-300 bg-white text-gray-800 px-4 py-2 text-sm">{editing ? 'Fermer' : 'Annuler'}</button>
           </div>
         </form>
         )
@@ -300,7 +352,7 @@ export default function ReprisesPage() {
 
       {scores.length > 0 && (
         <div className="sticky top-0 z-10 -mx-1 mb-3 flex flex-wrap gap-1 bg-white/95 px-1 py-2 backdrop-blur border-b border-gray-200">
-          {[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', '#'].map((l) => (
+          {'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('').map((l) => (
             <button key={l} onClick={() => jump(l)} disabled={!present.has(l)}
               className={`h-8 min-w-[2rem] rounded-md text-sm font-semibold ${present.has(l) ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'text-gray-300 cursor-default'}`}>{l}</button>
           ))}
@@ -323,11 +375,12 @@ export default function ReprisesPage() {
                         <div className="font-medium truncate">{s.title}{s.shareToken && <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">🔗 partagée</span>}</div>
                         <div className="text-xs text-gray-500 truncate">
                           {[s.performer, s.composer && `de ${s.composer}`, s.style].filter(Boolean).join(' · ') || (s.fileType === 'pdf' ? 'PDF' : 'Image')}
+                          {pagesOf(s).length > 1 && <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">{pagesOf(s).length} pages</span>}
                         </div>
                       </button>
                       {!pickMode && <>
                         <button onClick={() => { setShareId(shareId === s.id ? null : s.id); if (!s.shareToken) shareAction(s.id, 'enable') }} className="text-xs text-indigo-600 hover:underline">Partager</button>
-                        <button onClick={() => { setEditId(s.id); setForm({ title: s.title, style: s.style ?? '', performer: s.performer ?? '', composer: s.composer ?? '' }); setShowForm(true); window.scrollTo({ top: 0 }) }} className="text-xs text-gray-500 hover:underline">Modifier</button>
+                        <button onClick={() => { setPv(0); setEditId(s.id); setForm({ title: s.title, style: s.style ?? '', performer: s.performer ?? '', composer: s.composer ?? '' }); setShowForm(true); window.scrollTo({ top: 0 }) }} className="text-xs text-gray-500 hover:underline">Modifier</button>
                         <button onClick={() => remove(s)} className="text-xs text-red-600 hover:underline">Supprimer</button>
                       </>}
                     </div>
@@ -354,21 +407,13 @@ export default function ReprisesPage() {
         </div>
       )}
 
-      {current && (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col">
-          <div className="flex items-center gap-2 p-2 text-white text-sm bg-black/80">
-            <button onClick={() => go(-1)} disabled={viewIndex === 0} className="px-3 py-1 rounded disabled:opacity-30" aria-label="Précédente">←</button>
-            <button onClick={() => go(1)} disabled={viewIndex === shown.length - 1} className="px-3 py-1 rounded disabled:opacity-30" aria-label="Suivante">→</button>
-            <span className="flex-1 truncate text-center font-medium">{current.title}</span>
-            <button onClick={() => setViewing(null)} className="px-3 py-1 rounded bg-white/15">Fermer ✕</button>
-          </div>
-          <div className="flex-1 min-h-0 overflow-auto flex items-start justify-center">
-            {current.fileType === 'pdf'
-              ? <iframe src={current.filePath} title={current.title} className="w-full h-full bg-white" />
-              // eslint-disable-next-line @next/next/no-img-element
-              : <img src={current.filePath} alt={current.title} className="max-w-full max-h-full object-contain m-auto" />}
-          </div>
-        </div>
+      {viewIndex >= 0 && (
+        <ScoreViewer
+          key={viewing}
+          scores={shown.map((x) => ({ id: x.id, title: x.title, performer: x.performer, composer: x.composer, pages: pagesOf(x).map((p) => ({ id: p.id, fileType: p.fileType, src: p.filePath })) }))}
+          start={viewIndex}
+          onClose={() => setViewing(null)}
+        />
       )}
     </div>
   )

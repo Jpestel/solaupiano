@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
 import { prisma } from '@/lib/prisma'
-import { reprisesUser } from '@/lib/reprises'
+import { reprisesUser, removeFile } from '@/lib/reprises'
 import { titresSimilaires } from '@/lib/reprises-similarite'
 
 const clean = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null)
@@ -37,11 +35,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const u = await reprisesUser()
   if (!u) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 })
-  const score = await own(Number(params.id), u.userId)
+  const score = await prisma.coverScore.findFirst({ where: { id: Number(params.id), userId: u.userId }, include: { pages: true } })
   if (!score) return NextResponse.json({ error: 'Introuvable.' }, { status: 404 })
   await prisma.coverScore.delete({ where: { id: score.id } })
-  if (score.filePath.startsWith('/uploads/reprises/') && !score.filePath.includes('..')) {
-    try { fs.unlinkSync(path.join(process.cwd(), 'public', score.filePath)) } catch {}
-  }
+  for (const f of Array.from(new Set([score.filePath, ...score.pages.map((p) => p.filePath)]))) removeFile(f)
   return NextResponse.json({ ok: true })
 }

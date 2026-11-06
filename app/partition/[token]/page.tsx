@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { sharedScore } from '@/lib/reprises-partage'
-import { Viewer } from '../Viewer'
+import { PartitionPartagee as Vue } from './Vue'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Partition partagée', robots: { index: false, follow: false } }
@@ -17,5 +17,5 @@ export default async function PartitionPartagee({ params }: { params: { token: s
       </main>
     )
   }
-  return <Viewer token={params.token} scores={[score]} />
+  return <Vue token={params.token} scores={[score]} />
 }
