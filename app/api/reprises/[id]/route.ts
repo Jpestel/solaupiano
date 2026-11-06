@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { prisma } from '@/lib/prisma'
 import { reprisesUser } from '@/lib/reprises'
+import { titresSimilaires } from '@/lib/reprises-similarite'
 
 const clean = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null)
 
@@ -18,6 +19,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const b = await req.json().catch(() => ({}))
   const title = clean(b.title, 150)
   if (!title) return NextResponse.json({ error: 'Le titre est obligatoire.' }, { status: 400 })
+  // Seulement si le titre change réellement.
+  if (b.force !== true && title !== score.title) {
+    const existants = await prisma.coverScore.findMany({ where: { userId: u.userId }, select: { id: true, title: true, performer: true } })
+    const similaires = titresSimilaires(title, existants, score.id)
+    if (similaires.length > 0) {
+      return NextResponse.json({ error: 'Un titre identique ou voisin existe déjà.', code: 'DOUBLON', similaires }, { status: 409 })
+    }
+  }
   const updated = await prisma.coverScore.update({
     where: { id: score.id },
     data: { title, style: clean(b.style, 80), performer: clean(b.performer, 120), composer: clean(b.composer, 120) },

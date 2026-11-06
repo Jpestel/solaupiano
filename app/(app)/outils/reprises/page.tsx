@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { titresSimilaires, type Similaire } from '@/lib/reprises-similarite'
 
 interface Score {
   id: number; title: string; style: string | null; performer: string | null; composer: string | null
@@ -22,6 +23,7 @@ export default function ReprisesPage() {
   const [editId, setEditId] = useState<number | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [doublons, setDoublons] = useState<Similaire[] | null>(null) // réponse du serveur à l'enregistrement
   const [error, setError] = useState('')
   const [viewing, setViewing] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -89,6 +91,8 @@ export default function ReprisesPage() {
   const performers = useMemo(() => distinct('performer'), [scores]) // eslint-disable-line react-hooks/exhaustive-deps
   const composers = useMemo(() => distinct('composer'), [scores]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const proches = useMemo(() => (showForm && form.title.trim().length >= 3 ? titresSimilaires(form.title, scores, editId ?? undefined) : []), [showForm, form.title, scores, editId])
+
   const sortValue = useCallback((s: Score) => (sortBy === 'title' ? s.title : s[sortBy] ?? ''), [sortBy])
   const letterOf = useCallback((s: Score) => {
     const c = sortValue(s).trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase()
@@ -118,10 +122,11 @@ export default function ReprisesPage() {
   const filtersOn = !!(q || style || performerF || composerF)
   const jump = (l: string) => document.getElementById(`lettre-${l === '#' ? 'autres' : l}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
-  const reset = () => { setForm(EMPTY); setFile(null); setEditId(null); setShowForm(false); setError(''); if (fileRef.current) fileRef.current.value = '' }
+  const reset = () => { setDoublons(null); setForm(EMPTY); setFile(null); setEditId(null); setShowForm(false); setError(''); if (fileRef.current) fileRef.current.value = '' }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
+  async function submit(e: React.FormEvent | null, force = false) {
+    e?.preventDefault()
+    setDoublons(null)
     setError('')
     if (!form.title.trim()) return setError('Le titre est obligatoire.')
     if (editId === null && !file) return setError('Choisissez une image ou un PDF.')
@@ -131,10 +136,15 @@ export default function ReprisesPage() {
       if (editId === null) {
         const fd = new FormData()
         Object.entries(form).forEach(([k, v]) => fd.append(k, v))
+        if (force) fd.append('force', '1')
         fd.append('file', file!)
         res = await fetch('/api/reprises', { method: 'POST', body: fd })
       } else {
-        res = await fetch(`/api/reprises/${editId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
+        res = await fetch(`/api/reprises/${editId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, force }) })
+      }
+      if (res.status === 409) {
+        const d = await res.json().catch(() => ({}))
+        if (d.code === 'DOUBLON') { setDoublons(d.similaires ?? []); return }
       }
       if (!res.ok) { setError((await res.json().catch(() => ({}))).error || 'Échec de l’enregistrement.'); return }
       reset(); await load()
@@ -206,7 +216,21 @@ export default function ReprisesPage() {
               </div>
               <div className="space-y-3">
                 <p className="text-xs text-gray-500">{editing ? '' : '2. '}Renseignez les informations en regardant l&apos;aperçu.</p>
-                <input ref={titleRef} className={input} placeholder="Titre (obligatoire)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                <input ref={titleRef} className={input} placeholder="Titre (obligatoire)" value={form.title} onChange={(e) => { setDoublons(null); setForm({ ...form, title: e.target.value }) }} />
+                {(doublons ?? proches).length > 0 && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                    <p className="font-medium">{(doublons ?? proches).some((d) => d.niveau === 'identique') ? 'Ce titre existe déjà dans votre répertoire :' : 'Un titre très proche existe déjà :'}</p>
+                    <ul className="mt-1 list-disc pl-5">
+                      {(doublons ?? proches).map((d) => <li key={d.id}>{d.title}{d.performer ? ` — ${d.performer}` : ''}{d.niveau === 'identique' ? ' (identique)' : ''}</li>)}
+                    </ul>
+                    {doublons && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button type="button" disabled={busy} onClick={() => submit(null, true)} className="rounded-lg bg-amber-600 px-3 py-1.5 text-white disabled:opacity-50">Ajouter quand même</button>
+                        <button type="button" onClick={() => setDoublons(null)} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5">Modifier le titre</button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <input className={input} placeholder="Interprète" value={form.performer} onChange={(e) => setForm({ ...form, performer: e.target.value })} />
                 <input className={input} placeholder="Compositeur" value={form.composer} onChange={(e) => setForm({ ...form, composer: e.target.value })} />
                 <input className={input} placeholder="Style" value={form.style} onChange={(e) => setForm({ ...form, style: e.target.value })} />
@@ -216,7 +240,7 @@ export default function ReprisesPage() {
 
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
-            {(file || editing) && <button disabled={busy} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-50">{busy ? 'Envoi…' : 'Enregistrer'}</button>}
+            {(file || editing) && !doublons && <button disabled={busy} className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-50">{busy ? 'Envoi…' : 'Enregistrer'}</button>}
             <button type="button" onClick={reset} className="rounded-lg border border-gray-300 bg-white text-gray-800 px-4 py-2 text-sm">Annuler</button>
           </div>
         </form>

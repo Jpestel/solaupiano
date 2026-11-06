@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { prisma } from '@/lib/prisma'
 import { reprisesUser, REPRISES_MAX_BYTES, REPRISES_TYPES } from '@/lib/reprises'
+import { titresSimilaires } from '@/lib/reprises-similarite'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +36,15 @@ export async function POST(req: NextRequest) {
   const fileType = REPRISES_TYPES[file.type]
   if (!fileType) return NextResponse.json({ error: 'Format accepté : PDF, JPG, PNG, WEBP ou GIF.' }, { status: 400 })
   if (file.size > REPRISES_MAX_BYTES) return NextResponse.json({ error: 'Fichier trop lourd (25 Mo maximum).' }, { status: 413 })
+
+  // Titre déjà présent (ou voisin) : on refuse, sauf si l'utilisateur maintient l'ajout.
+  if (form.get('force') !== '1') {
+    const existants = await prisma.coverScore.findMany({ where: { userId: u.userId }, select: { id: true, title: true, performer: true } })
+    const similaires = titresSimilaires(title, existants)
+    if (similaires.length > 0) {
+      return NextResponse.json({ error: 'Un titre identique ou voisin existe déjà.', code: 'DOUBLON', similaires }, { status: 409 })
+    }
+  }
 
   const dir = path.join(process.cwd(), 'public', 'uploads', 'reprises')
   fs.mkdirSync(dir, { recursive: true })
