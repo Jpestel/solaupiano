@@ -63,6 +63,8 @@ export default function ReprisesPage() {
   }, [])
   useEffect(() => { loadSelections() }, [loadSelections])
 
+  const togglePick = (id: number) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n })
+
   const urlOf = (kind: 'partition' | 'selection', token: string) => `${window.location.origin}/${kind}/${token}`
   async function copy(url: string) {
     try { await navigator.clipboard.writeText(url) } catch { window.prompt('Copiez ce lien :', url) }
@@ -210,7 +212,7 @@ export default function ReprisesPage() {
   const input = 'w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2 text-sm'
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
+    <div className="max-w-6xl mx-auto p-4">
       <div className="flex items-center justify-between gap-3 mb-4">
         <h1 className="text-2xl font-bold">🎶 Partitions de reprises</h1>
         <div className="flex gap-2">
@@ -350,60 +352,69 @@ export default function ReprisesPage() {
         </div>
       </div>
 
-      {scores.length > 0 && (
-        <div className="sticky top-0 z-10 -mx-1 mb-3 flex flex-wrap gap-1 bg-white/95 px-1 py-2 backdrop-blur border-b border-gray-200">
-          {'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('').map((l) => (
-            <button key={l} onClick={() => jump(l)} disabled={!present.has(l)}
-              className={`h-8 min-w-[2rem] rounded-md text-sm font-semibold ${present.has(l) ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'text-gray-300 cursor-default'}`}>{l}</button>
-          ))}
-        </div>
-      )}
-
       {loading ? <p className="text-sm text-gray-500">Chargement…</p> : shown.length === 0 ? (
         <p className="text-sm text-gray-500">{scores.length === 0 ? 'Aucune partition pour le moment. Ajoutez-en une avec le bouton ci-dessus.' : 'Aucun résultat.'}</p>
       ) : (
-        <div className="space-y-4">
-          {groups.map(([l, items]) => (
-            <section key={l} id={`lettre-${l === '#' ? 'autres' : l}`} className="scroll-mt-16">
-              <h2 className="mb-1 text-lg font-bold text-indigo-700">{l}</h2>
-              <ul className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
-                {items.map((s) => (
-                  <li key={s.id} className="p-3">
-                    <div className="flex items-center gap-3">
-                      {pickMode && <input type="checkbox" className="h-5 w-5" checked={picked.has(s.id)} onChange={() => setPicked((p) => { const n = new Set(p); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n })} />}
-                      <button onClick={() => (pickMode ? setPicked((p) => { const n = new Set(p); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n }) : setViewing(s.id))} className="flex-1 text-left min-w-0">
-                        <div className="font-medium truncate">{s.title}{s.shareToken && <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">🔗 partagée</span>}</div>
-                        <div className="text-xs text-gray-500 truncate">
-                          {[s.performer, s.composer && `de ${s.composer}`, s.style].filter(Boolean).join(' · ') || (s.fileType === 'pdf' ? 'PDF' : 'Image')}
-                          {pagesOf(s).length > 1 && <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">{pagesOf(s).length} pages</span>}
-                        </div>
-                      </button>
-                      {!pickMode && <>
-                        <button onClick={() => { setShareId(shareId === s.id ? null : s.id); if (!s.shareToken) shareAction(s.id, 'enable') }} className="text-xs text-indigo-600 hover:underline">Partager</button>
-                        <button onClick={() => { setPv(0); setEditId(s.id); setForm({ title: s.title, style: s.style ?? '', performer: s.performer ?? '', composer: s.composer ?? '' }); setShowForm(true); window.scrollTo({ top: 0 }) }} className="text-xs text-gray-500 hover:underline">Modifier</button>
-                        <button onClick={() => remove(s)} className="text-xs text-red-600 hover:underline">Supprimer</button>
-                      </>}
-                    </div>
-                    {shareId === s.id && s.shareToken && (() => {
-                      const url = urlOf('partition', s.shareToken)
-                      return (
-                        <div className="mt-3 space-y-2 rounded-lg bg-gray-50 p-3">
-                          <p className="text-xs text-gray-600">Toute personne qui a ce lien peut voir cette partition, sans compte.</p>
-                          <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className={input} />
-                          <div className="flex flex-wrap gap-2 text-sm">
-                            <button onClick={() => send(url, s.title)} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-white">Envoyer</button>
-                            <button onClick={() => copy(url)} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800">{copied === url ? 'Copié ✓' : 'Copier le lien'}</button>
-                            <button onClick={() => shareAction(s.id, 'renew')} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800">Nouveau lien</button>
-                            <button onClick={() => shareAction(s.id, 'stop')} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-red-600">Arrêter le partage</button>
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1 md:columns-2 md:gap-6">
+            {groups.map(([l, items]) => (
+              <section key={l} id={`lettre-${l === '#' ? 'autres' : l}`} className="mb-3 scroll-mt-4">
+                <h2 className="mb-0.5 break-after-avoid border-b border-indigo-100 text-base font-bold leading-tight text-indigo-700">{l}</h2>
+                <ul className="divide-y divide-gray-100">
+                  {items.map((s) => (
+                    <li key={s.id} className="break-inside-avoid py-1.5">
+                      <div className="flex items-center gap-2">
+                        {pickMode && <input type="checkbox" className="h-5 w-5 shrink-0" checked={picked.has(s.id)} onChange={() => togglePick(s.id)} />}
+                        <button onClick={() => (pickMode ? togglePick(s.id) : setViewing(s.id))} className="min-w-0 flex-1 text-left leading-tight">
+                          <span className="block truncate text-sm font-medium text-gray-900">
+                            {s.title}
+                            {s.shareToken && <span className="ml-1.5 align-middle text-[10px]" title="Partagée par lien">🔗</span>}
+                            {pagesOf(s).length > 1 && <span className="ml-1.5 rounded bg-gray-100 px-1 align-middle text-[10px] font-medium text-gray-600">{pagesOf(s).length} p.</span>}
+                          </span>
+                          <span className="block truncate text-xs text-gray-500">
+                            {[s.performer, s.composer && `de ${s.composer}`, s.style].filter(Boolean).join(' · ') || (s.fileType === 'pdf' ? 'PDF' : 'Image')}
+                          </span>
+                        </button>
+                        {!pickMode && (
+                          <details className="relative shrink-0">
+                            <summary className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-md text-gray-500 hover:bg-gray-100" aria-label="Actions">⋯</summary>
+                            <div className="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-gray-200 bg-white py-1 text-sm shadow-lg" onClick={(e) => (e.currentTarget.parentElement as HTMLDetailsElement).removeAttribute('open')}>
+                              <button onClick={() => { setShareId(shareId === s.id ? null : s.id); if (!s.shareToken) shareAction(s.id, 'enable') }} className="block w-full px-3 py-1.5 text-left text-gray-800 hover:bg-gray-50">🔗 Partager</button>
+                              <button onClick={() => { setPv(0); setEditId(s.id); setForm({ title: s.title, style: s.style ?? '', performer: s.performer ?? '', composer: s.composer ?? '' }); setShowForm(true); window.scrollTo({ top: 0 }) }} className="block w-full px-3 py-1.5 text-left text-gray-800 hover:bg-gray-50">✏️ Modifier</button>
+                              <button onClick={() => remove(s)} className="block w-full px-3 py-1.5 text-left text-red-600 hover:bg-gray-50">🗑 Supprimer</button>
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                      {shareId === s.id && s.shareToken && (() => {
+                        const url = urlOf('partition', s.shareToken)
+                        return (
+                          <div className="mt-2 space-y-2 rounded-lg bg-gray-50 p-3">
+                            <p className="text-xs text-gray-600">Toute personne qui a ce lien peut voir cette partition, sans compte.</p>
+                            <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className={input} />
+                            <div className="flex flex-wrap gap-2 text-sm">
+                              <button onClick={() => send(url, s.title)} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-white">Envoyer</button>
+                              <button onClick={() => copy(url)} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800">{copied === url ? 'Copié ✓' : 'Copier le lien'}</button>
+                              <button onClick={() => shareAction(s.id, 'renew')} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800">Nouveau lien</button>
+                              <button onClick={() => shareAction(s.id, 'stop')} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-red-600">Arrêter le partage</button>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    })()}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+                        )
+                      })()}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+
+          {/* Index A–Z : barre verticale sur toute la hauteur de l'écran, toujours visible. */}
+          <nav aria-label="Index alphabétique" className="sticky top-2 flex h-[calc(100vh-1rem)] w-9 shrink-0 flex-col justify-between rounded-xl bg-indigo-50 py-1 sm:w-11">
+            {'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('').map((l) => (
+              <button key={l} onClick={() => jump(l)} disabled={!present.has(l)}
+                className={`flex min-h-0 flex-1 items-center justify-center text-sm font-bold sm:text-base ${present.has(l) ? 'text-indigo-700 hover:bg-indigo-200' : 'text-indigo-200'}`}>{l}</button>
+            ))}
+          </nav>
         </div>
       )}
 
