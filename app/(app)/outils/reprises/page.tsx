@@ -13,6 +13,9 @@ export default function ReprisesPage() {
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [style, setStyle] = useState('')
+  const [performerF, setPerformerF] = useState('')
+  const [composerF, setComposerF] = useState('')
+  const [sortBy, setSortBy] = useState<'title' | 'performer' | 'composer'>('title')
   const [form, setForm] = useState(EMPTY)
   const [file, setFile] = useState<File | null>(null)
   const [editId, setEditId] = useState<number | null>(null)
@@ -29,13 +32,40 @@ export default function ReprisesPage() {
   }, [])
   useEffect(() => { load() }, [load])
 
-  const styles = useMemo(() => Array.from(new Set(scores.map((s) => s.style).filter(Boolean) as string[])).sort(), [scores])
+  const distinct = (k: 'style' | 'performer' | 'composer') =>
+    Array.from(new Set(scores.map((s) => s[k]).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+  const styles = useMemo(() => distinct('style'), [scores]) // eslint-disable-line react-hooks/exhaustive-deps
+  const performers = useMemo(() => distinct('performer'), [scores]) // eslint-disable-line react-hooks/exhaustive-deps
+  const composers = useMemo(() => distinct('composer'), [scores]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sortValue = useCallback((s: Score) => (sortBy === 'title' ? s.title : s[sortBy] ?? ''), [sortBy])
+  const letterOf = useCallback((s: Score) => {
+    const c = sortValue(s).trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase()
+    return /[A-Z]/.test(c) ? c : '#'
+  }, [sortValue])
+
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase()
-    return scores.filter((s) =>
-      (!style || s.style === style) &&
-      (!t || [s.title, s.performer, s.composer, s.style].some((v) => v?.toLowerCase().includes(t))))
-  }, [scores, q, style])
+    return scores
+      .filter((s) =>
+        (!style || s.style === style) && (!performerF || s.performer === performerF) && (!composerF || s.composer === composerF) &&
+        (!t || [s.title, s.performer, s.composer, s.style].some((v) => v?.toLowerCase().includes(t))))
+      .sort((a, b) => {
+        const va = sortValue(a), vb = sortValue(b)
+        // Sans valeur (ex. pas d'interprète) : en fin de liste.
+        if (!va !== !vb) return va ? -1 : 1
+        return va.localeCompare(vb, 'fr', { sensitivity: 'base' }) || a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' })
+      })
+  }, [scores, q, style, performerF, composerF, sortValue])
+
+  const groups = useMemo(() => {
+    const m = new Map<string, Score[]>()
+    for (const s of shown) { const l = letterOf(s); m.set(l, [...(m.get(l) ?? []), s]) }
+    return Array.from(m.entries()).sort(([a], [b]) => (a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)))
+  }, [shown, letterOf])
+  const present = useMemo(() => new Set(groups.map(([l]) => l)), [groups])
+  const filtersOn = !!(q || style || performerF || composerF)
+  const jump = (l: string) => document.getElementById(`lettre-${l === '#' ? 'autres' : l}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   const reset = () => { setForm(EMPTY); setFile(null); setEditId(null); setShowForm(false); setError(''); if (fileRef.current) fileRef.current.value = '' }
 
@@ -115,33 +145,63 @@ export default function ReprisesPage() {
         </form>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
-        <input className={input} placeholder="Rechercher (titre, interprète, compositeur…)" value={q} onChange={(e) => setQ(e.target.value)} />
-        {styles.length > 0 && (
-          <select className={input + ' sm:w-48'} value={style} onChange={(e) => setStyle(e.target.value)}>
-            <option value="">Tous les styles</option>
-            {styles.map((s) => <option key={s}>{s}</option>)}
+      <div className="space-y-2 mb-3">
+        <input className={input} placeholder="Rechercher (titre, interprète, compositeur, style…)" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <select className={input} value={performerF} onChange={(e) => setPerformerF(e.target.value)}>
+            <option value="">Tous les interprètes</option>{performers.map((v) => <option key={v}>{v}</option>)}
           </select>
-        )}
+          <select className={input} value={composerF} onChange={(e) => setComposerF(e.target.value)}>
+            <option value="">Tous les compositeurs</option>{composers.map((v) => <option key={v}>{v}</option>)}
+          </select>
+          <select className={input} value={style} onChange={(e) => setStyle(e.target.value)}>
+            <option value="">Tous les styles</option>{styles.map((v) => <option key={v}>{v}</option>)}
+          </select>
+          <select className={input} value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+            <option value="title">Classer par titre</option>
+            <option value="performer">Classer par interprète</option>
+            <option value="composer">Classer par compositeur</option>
+          </select>
+        </div>
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>{shown.length} partition{shown.length > 1 ? 's' : ''}{filtersOn ? ` sur ${scores.length}` : ''}</span>
+          {filtersOn && <button onClick={() => { setQ(''); setStyle(''); setPerformerF(''); setComposerF('') }} className="text-indigo-600 hover:underline">Effacer les filtres</button>}
+        </div>
       </div>
+
+      {scores.length > 0 && (
+        <div className="sticky top-0 z-10 -mx-1 mb-3 flex flex-wrap gap-1 bg-white/95 px-1 py-2 backdrop-blur border-b border-gray-200">
+          {[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', '#'].map((l) => (
+            <button key={l} onClick={() => jump(l)} disabled={!present.has(l)}
+              className={`h-8 min-w-[2rem] rounded-md text-sm font-semibold ${present.has(l) ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'text-gray-300 cursor-default'}`}>{l}</button>
+          ))}
+        </div>
+      )}
 
       {loading ? <p className="text-sm text-gray-500">Chargement…</p> : shown.length === 0 ? (
         <p className="text-sm text-gray-500">{scores.length === 0 ? 'Aucune partition pour le moment. Ajoutez-en une avec le bouton ci-dessus.' : 'Aucun résultat.'}</p>
       ) : (
-        <ul className="divide-y divide-gray-200 dark:divide-gray-700 rounded-xl border border-gray-200 dark:border-gray-700">
-          {shown.map((s) => (
-            <li key={s.id} className="flex items-center gap-3 p-3">
-              <button onClick={() => setViewing(s.id)} className="flex-1 text-left min-w-0">
-                <div className="font-medium truncate">{s.title}</div>
-                <div className="text-xs text-gray-500 truncate">
-                  {[s.performer, s.composer && `de ${s.composer}`, s.style].filter(Boolean).join(' · ') || (s.fileType === 'pdf' ? 'PDF' : 'Image')}
-                </div>
-              </button>
-              <button onClick={() => { setEditId(s.id); setForm({ title: s.title, style: s.style ?? '', performer: s.performer ?? '', composer: s.composer ?? '' }); setShowForm(true); window.scrollTo({ top: 0 }) }} className="text-xs text-gray-500 hover:underline">Modifier</button>
-              <button onClick={() => remove(s)} className="text-xs text-red-600 hover:underline">Supprimer</button>
-            </li>
+        <div className="space-y-4">
+          {groups.map(([l, items]) => (
+            <section key={l} id={`lettre-${l === '#' ? 'autres' : l}`} className="scroll-mt-16">
+              <h2 className="mb-1 text-lg font-bold text-indigo-700">{l}</h2>
+              <ul className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
+                {items.map((s) => (
+                  <li key={s.id} className="flex items-center gap-3 p-3">
+                    <button onClick={() => setViewing(s.id)} className="flex-1 text-left min-w-0">
+                      <div className="font-medium truncate">{s.title}</div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {[s.performer, s.composer && `de ${s.composer}`, s.style].filter(Boolean).join(' · ') || (s.fileType === 'pdf' ? 'PDF' : 'Image')}
+                      </div>
+                    </button>
+                    <button onClick={() => { setEditId(s.id); setForm({ title: s.title, style: s.style ?? '', performer: s.performer ?? '', composer: s.composer ?? '' }); setShowForm(true); window.scrollTo({ top: 0 }) }} className="text-xs text-gray-500 hover:underline">Modifier</button>
+                    <button onClick={() => remove(s)} className="text-xs text-red-600 hover:underline">Supprimer</button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
 
       {current && (
